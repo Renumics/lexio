@@ -110,7 +110,7 @@ const retrieveAndGenerate = async (query: string): Promise<RetrieveAndGenerateRe
     // Resolve with our response object
     resolve({
       sources,
-      content: stream,
+      response: stream,
     });
   });
 };

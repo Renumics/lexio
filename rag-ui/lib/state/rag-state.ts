@@ -142,8 +142,6 @@ export const createRetrieveAndGenerateAtom = (
         } else {
           // For streaming responses
           let accumulatedContent = '';
-
-          console.log("response", response);
           
           for await (const chunk of response) {
             accumulatedContent += chunk.content;
