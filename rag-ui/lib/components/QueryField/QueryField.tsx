@@ -1,7 +1,7 @@
 import { useSetAtom, useAtomValue } from 'jotai';
 import React, { useState, useRef, useEffect } from 'react';
 import { addMessageAtom, workflowModeAtom } from '../../state/rag-state';
-import useResizeObserver from 'use-resize-observer';
+import useResizeObserver from '@react-hook/resize-observer';
 import type { WorkflowMode } from '../../types';
 
 // Add status configuration
@@ -63,6 +63,8 @@ const QueryField: React.FC<QueryFieldProps> = ({
     }
   };
 
+  const shouldShowScrollbar = formRef.current && textareaRef.current && textareaRef.current.scrollHeight > formRef.current.clientHeight - 50;
+
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="w-full h-full flex flex-col">
       <textarea
@@ -74,7 +76,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
         disabled={disabled}
         rows={1}
         className={`w-full resize-none px-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none min-h-[2.5rem] ${
-          textareaRef.current && textareaRef.current.scrollHeight > formRef.current.clientHeight - 50 ? 'overflow-y-auto' : 'overflow-y-hidden'
+          shouldShowScrollbar ? 'overflow-y-auto' : 'overflow-y-hidden'
         }`}
         style={{
           maxHeight: '100%',

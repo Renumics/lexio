@@ -36,7 +36,7 @@ export interface GenerateStreamChunk {
 
 export interface RetrieveAndGenerateResponse {
   sources?: RetrievalResult[];
-  content: string | AsyncIterable<GenerateStreamChunk>;
+  response: string | AsyncIterable<GenerateStreamChunk>;
 }
 
 export type RetrievalResult = SourceReference | TextContent;

@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import * as pdfJS from "pdfjs-dist";
+import * as pdfjs from "pdfjs-dist";
 import pdfJSWorkerURL from "pdfjs-dist/build/pdf.worker?url";
 
-pdfJS.GlobalWorkerOptions.workerSrc = pdfJSWorkerURL;
-
+pdfjs.GlobalWorkerOptions.workerSrc = pdfJSWorkerURL;
 
 interface PdfViewerProps {
   url: string;
@@ -26,7 +25,7 @@ const PdfViewer = ({ url, scale = 1.5 }: PdfViewerProps) => {
         setLoading(true);
         
         // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument(url);
+        const loadingTask = pdfjs.getDocument(url);
         const pdf = await loadingTask.promise;
 
         // Check if this is still the most recent render request

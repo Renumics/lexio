@@ -1,5 +1,3 @@
-import { useContext } from 'react';
-import { RAGContext } from './context';
 import { completedMessagesAtom, loadingAtom, currentStreamAtom } from '../../state/rag-state';
 import { useAtom } from 'jotai';
 
