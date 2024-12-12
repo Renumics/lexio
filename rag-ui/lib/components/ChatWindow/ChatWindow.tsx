@@ -6,8 +6,6 @@ const ChatWindow: React.FC = () => {
   const [messages] = useAtom(completedMessagesAtom);
   const [currentStream] = useAtom(currentStreamAtom);
 
-  console.log(messages);
-
   return (
     <div className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg">
       {messages.map((msg, index) => (

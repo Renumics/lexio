@@ -115,7 +115,6 @@ export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?:
   );
 };
 
-// Retrieve and generate
 export const createRetrieveAndGenerateAtom = (
   retrieveAndGenerateFn: (query: string, metadata?: Record<string, any>) => Promise<RetrieveAndGenerateResponse>
 ) => {
@@ -128,8 +127,16 @@ export const createRetrieveAndGenerateAtom = (
         const retrieveAndGenerateResponse = await retrieveAndGenerateFn(query, metadata);
         const { sources, response } = retrieveAndGenerateResponse;
         
-        // Update retrieved sources
-        set(retrievedSourcesAtom, sources || []);
+        // Handle sources - could be Promise<RetrievalResult[]> or RetrievalResult[]
+        if (sources instanceof Promise) {
+          // Update sources when promise resolves
+          sources.then(resolvedSources => {
+            set(retrievedSourcesAtom, resolvedSources);
+          });
+        } else if (sources) {
+          // Direct array of sources
+          set(retrievedSourcesAtom, sources);
+        }
         
         if (typeof response === 'string') {
           // For non-streaming responses

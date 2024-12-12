@@ -22,7 +22,6 @@ const RAGProvider = ({
   
 
   useEffect(() => {
-    console.log('Setting RAG atoms', generateAtom, retrieveAndGenerateAtom, retrieveSourcesAtom);
     store.set(ragAtomsAtom, {
       generateAtom,
       retrieveAndGenerateAtom,

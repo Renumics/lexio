@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from pypdf import PdfReader, PdfWriter
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette import EventSourceResponse
+import asyncio
 
 app = FastAPI()
 
@@ -54,7 +55,7 @@ class QueryRequest(BaseModel):
 def retrieve_helper(query: str):
     # Mock retrieval based on the presence of the query in the filename
     pdf_files = list_pdf_files()
-    retrieved_sources = [file for file in pdf_files if query.lower() in file["source"].lower()]
+    retrieved_sources = [file for file in pdf_files if any(query_part.lower() in file["source"].lower() for query_part in query.split())]
     return retrieved_sources
 
 # Endpoint to retrieve sources
@@ -74,18 +75,43 @@ async def generate_text(query: str) -> StreamingResponse:
 
 # Combined endpoint to retrieve and generate text
 
+import asyncio  # Add this import at the top
+
 @app.get("/retrieve-and-generate")
 async def retrieve_and_generate(query: str):
     async def event_generator():
         retrieved_sources = retrieve_helper(query)
-        # Send sources and initial content
+        
+        # Send sources first
         yield {
             "data": json.dumps({
                 "sources": retrieved_sources,
-                "content": f"Generated text based on query: {query}",
+                "content": "",
                 "done": False
             })
         }
+
+        # Simulate streaming text generation
+        text_chunks = [
+            "Generated text ",
+            "based on ",
+            f"query: {query}. ",
+            "This is some additional ",
+            "streaming content ",
+            "being generated ",
+            "word by word..."
+        ]
+        
+        # Stream each chunk with a delay
+        for chunk in text_chunks:
+            await asyncio.sleep(0.7)  # 0.7s * 7 chunks ≈ 5 seconds total
+            yield {
+                "data": json.dumps({
+                    "content": chunk,
+                    "done": False
+                })
+            }
+        
         # Send completion message
         yield {
             "data": json.dumps({

@@ -1,5 +1,5 @@
 import './App.css'
-import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, GenerateResponse, RetrievalResult, SourceContent } from '../lib/main'
+import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, GenerateResponse, RetrievalResult, SourceContent, SourcesDisplay } from '../lib/main'
 import { GenerateInput, GenerateStreamChunk } from '../lib/main'
 
 function App() {
@@ -42,77 +42,72 @@ const generateText = async (input: GenerateInput): Promise<GenerateResponse> => 
   return streamChunks();
 };
 
-// Function to retrieve and generate text from the server
 const retrieveAndGenerate = async (query: string): Promise<RetrieveAndGenerateResponse> => {
-  let sources: RetrievalResult[] = [];
-  
-  // Create a promise that will resolve with our stream interface
-  return new Promise((resolve, reject) => {
-    const eventSource = new EventSource(
-      `http://localhost:8000/retrieve-and-generate?query=${encodeURIComponent(query)}`
-    );
+  const eventSource = new EventSource(
+    `http://localhost:8000/retrieve-and-generate?query=${encodeURIComponent(query)}`
+  );
 
-    // Create our async generator
-    async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-      try {
-        // Create a promise queue to handle incoming messages
-        const messageQueue: Promise<GenerateStreamChunk>[] = [];
-        let resolveNext: ((value: GenerateStreamChunk) => void) | null = null;
-        
-        eventSource.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          
-          // Store sources if they exist
-          if (data.sources) {
-            sources = data.sources;
-          }
-
-          // Create a new promise for this chunk
-          const promise = new Promise<GenerateStreamChunk>((resolve) => {
-            resolve({
-              content: data.content || '',
-              done: data.done || false
-            });
-          });
-
-          messageQueue.push(promise);
-          // If someone is waiting for the next value, resolve their promise
-          resolveNext?.();
-        };
-
-        eventSource.onerror = (error) => {
-          console.error("EventSource failed:", error);
-          eventSource.close();
-        };
-
-        // Yield chunks as they come in
-        while (true) {
-          if (messageQueue.length === 0) {
-            // Wait for the next message
-            await new Promise(resolve => { resolveNext = resolve; });
-          }
-          
-          const chunk = await messageQueue.shift()!;
-          if (chunk.done) {
-            eventSource.close();
-            break;
-          }
-          yield chunk;
-        }
-      } finally {
-        eventSource.close();
+  // Create a promise to resolve sources
+  const sourcesPromise = new Promise<RetrievalResult[]>((resolve, reject) => {
+    const handleSources = (event: MessageEvent) => {
+      console.log('Handling sources', event.data);
+      const data = JSON.parse(event.data);
+      if (data.sources) {
+        resolve(data.sources);
+        eventSource.removeEventListener('message', handleSources);
       }
-    }
+    };
 
-    // Create the stream
-    const stream = streamChunks();
-    
-    // Resolve with our response object
-    resolve({
-      sources,
-      response: stream,
-    });
+    eventSource.addEventListener('message', handleSources);
+    eventSource.onerror = (error) => {
+      console.error("EventSource failed:", error);
+      eventSource.close();
+      reject(new Error('Failed to retrieve sources'));
+    };
   });
+
+  // Create an async generator for the response stream
+  async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
+    const messageQueue: GenerateStreamChunk[] = [];
+    let resolveNext: (() => void) | null = null;
+
+    const handleContent = (event: MessageEvent) => {
+      const data = JSON.parse(event.data);
+      // Skip source-only messages
+      if (!data.content && !data.done) return;
+      
+      const chunk: GenerateStreamChunk = {
+        content: data.content || '',
+        done: data.done || false
+      };
+      messageQueue.push(chunk);
+      resolveNext?.();
+    };
+
+    eventSource.addEventListener('message', handleContent);
+
+    try {
+      while (true) {
+        if (messageQueue.length === 0) {
+          await new Promise(resolve => { resolveNext = resolve; });
+        }
+
+        const chunk = messageQueue.shift()!;
+        if (chunk.done) {
+          break;
+        }
+        yield chunk;
+      }
+    } finally {
+      eventSource.removeEventListener('message', handleContent);
+      eventSource.close();
+    }
+  }
+
+  return {
+    sources: sourcesPromise,
+    response: streamChunks(),
+  };
 };
 
 const getDataSource = async (metadata: Record<string, any>): Promise<SourceContent> => {
@@ -133,23 +128,31 @@ const getDataSource = async (metadata: Record<string, any>): Promise<SourceConte
 
 
   return (
-    <div className="w-full h-screen flex flex-col items-center p-4">
-      <RAGProvider
-        retrieve={retrieveSources}
-        retrieveAndGenerate={retrieveAndGenerate}
-        generate={generateText}
-        getDataSource={getDataSource}
-      >
-        <div className="w-full max-w-3xl h-full flex flex-col gap-4">
-          <div className="h-2/3 min-h-0"> {/* Takes up 2/3 of the space */}
-            <ChatWindow />
-          </div>
-          <div className="h-1/3 min-h-0"> {/* Takes up 1/3 of the space */}
-            <QueryField onSubmit={() => {}} />
-          </div>
+<div className="w-full h-screen flex flex-col items-center p-4">
+  <RAGProvider
+    retrieve={retrieveSources}
+    retrieveAndGenerate={retrieveAndGenerate}
+    generate={generateText}
+    getDataSource={getDataSource}
+  >
+    <div className="w-full max-w-6xl h-full flex gap-4">
+      {/* Left side: Chat and Query */}
+      <div className="flex-1 flex flex-col gap-4">
+        <div className="h-2/3 min-h-0"> {/* Chat window */}
+          <ChatWindow />
         </div>
-      </RAGProvider>
+        <div className="h-1/3 min-h-0"> {/* Query field */}
+          <QueryField onSubmit={() => {}} />
+        </div>
+      </div>
+      
+      {/* Right side: Sources */}
+      <div className="w-1/3 h-full"> {/* Sources panel */}
+        <SourcesDisplay />
+      </div>
     </div>
+  </RAGProvider>
+</div>
   );
 }
 
