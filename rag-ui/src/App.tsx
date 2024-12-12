@@ -42,7 +42,7 @@ const generateText = async (input: GenerateInput): Promise<GenerateResponse> => 
   return streamChunks();
 };
 
-const retrieveAndGenerate = async (query: string): Promise<RetrieveAndGenerateResponse> => {
+const retrieveAndGenerate = (query: string): RetrieveAndGenerateResponse => {
   const eventSource = new EventSource(
     `http://localhost:8000/retrieve-and-generate?query=${encodeURIComponent(query)}`
   );
@@ -50,7 +50,6 @@ const retrieveAndGenerate = async (query: string): Promise<RetrieveAndGenerateRe
   // Create a promise to resolve sources
   const sourcesPromise = new Promise<RetrievalResult[]>((resolve, reject) => {
     const handleSources = (event: MessageEvent) => {
-      console.log('Handling sources', event.data);
       const data = JSON.parse(event.data);
       if (data.sources) {
         resolve(data.sources);
@@ -66,26 +65,26 @@ const retrieveAndGenerate = async (query: string): Promise<RetrieveAndGenerateRe
     };
   });
 
-  // Create an async generator for the response stream
-  async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-    const messageQueue: GenerateStreamChunk[] = [];
-    let resolveNext: (() => void) | null = null;
+  // Create the response stream
+  const messageQueue: GenerateStreamChunk[] = [];
+  let resolveNext: (() => void) | null = null;
 
-    const handleContent = (event: MessageEvent) => {
-      const data = JSON.parse(event.data);
-      // Skip source-only messages
-      if (!data.content && !data.done) return;
-      
-      const chunk: GenerateStreamChunk = {
-        content: data.content || '',
-        done: data.done || false
-      };
-      messageQueue.push(chunk);
-      resolveNext?.();
+  const handleContent = (event: MessageEvent) => {
+    const data = JSON.parse(event.data);
+    // Skip source-only messages
+    if (!data.content && !data.done) return;
+    
+    const chunk: GenerateStreamChunk = {
+      content: data.content || '',
+      done: data.done || false
     };
+    messageQueue.push(chunk);
+    resolveNext?.();
+  };
 
-    eventSource.addEventListener('message', handleContent);
+  eventSource.addEventListener('message', handleContent);
 
+  async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
     try {
       while (true) {
         if (messageQueue.length === 0) {

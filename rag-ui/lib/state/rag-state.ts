@@ -1,11 +1,19 @@
 import { atom, WritableAtom } from 'jotai'
-import { GenerateInput, GenerateResponse, Message, RetrievalResult, RetrieveAndGenerateResponse, SourceContent, WorkflowMode } from '../types';
+import { GenerateInput, GenerateResponse, GenerateStreamChunk, Message, RAGConfig, RetrievalResult, RetrieveAndGenerateResponse, SourceContent, WorkflowMode } from '../types';
 
 export const workflowModeAtom = atom<WorkflowMode>('init');
+
+export const ragConfigAtom = atom<RAGConfig>({
+  timeouts: {
+    stream: 10000,  // 10 seconds default
+    request: 30000  // 30 seconds default
+  }
+});
 
 export const completedMessagesAtom = atom<Message[]>([]);
 export const currentStreamAtom = atom<Message | null>(null);
 export const loadingAtom = atom(false);
+export const errorAtom = atom<string | null>(null);
 
 export const addMessageAtom = atom(
   null,
@@ -116,62 +124,62 @@ export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?:
 };
 
 export const createRetrieveAndGenerateAtom = (
-  retrieveAndGenerateFn: (query: string, metadata?: Record<string, any>) => Promise<RetrieveAndGenerateResponse>
+  retrieveAndGenerateFn: (query: string, metadata?: Record<string, any>) => RetrieveAndGenerateResponse
 ) => {
   return atom(
     null,
-    async (_get, set, query: string, metadata?: Record<string, any>) => {
+    (_get, set, query: string, metadata?: Record<string, any>) => {
       set(loadingAtom, true);
-      
-      try {
-        const retrieveAndGenerateResponse = await retrieveAndGenerateFn(query, metadata);
-        const { sources, response } = retrieveAndGenerateResponse;
-        
-        // Handle sources - could be Promise<RetrievalResult[]> or RetrievalResult[]
-        if (sources instanceof Promise) {
-          // Update sources when promise resolves
-          sources.then(resolvedSources => {
-            set(retrievedSourcesAtom, resolvedSources);
-          });
-        } else if (sources) {
-          // Direct array of sources
-          set(retrievedSourcesAtom, sources);
-        }
-        
-        if (typeof response === 'string') {
-          // For non-streaming responses
-          set(currentStreamAtom, { role: 'assistant', content: response });
+
+      const response = retrieveAndGenerateFn(query, metadata);
+      let accumulatedContent = '';
+
+      // Handle sources if present
+      if (response.sources) {
+        response.sources.then(resolvedSources => {
+          set(retrievedSourcesAtom, resolvedSources);
+        });
+      }
+
+      const responseObject = response.response;
+      // Handle response based on type
+      if (responseObject instanceof Promise) {
+        // Handle Promise response
+        responseObject.then(resolvedResponse => {
+          set(currentStreamAtom, { role: 'assistant', content: resolvedResponse });
           set(completedMessagesAtom, (prev) => [...prev, { 
             role: 'assistant', 
-            content: response 
+            content: resolvedResponse 
           }]);
           set(currentStreamAtom, null);
-        } else {
-          // For streaming responses
-          let accumulatedContent = '';
-          
-          for await (const chunk of response) {
+          set(loadingAtom, false);
+        });
+      } else if (Symbol.asyncIterator in responseObject) {
+        // Handle AsyncIterator response
+        (async () => {
+          for await (const chunk of responseObject) {
             accumulatedContent += chunk.content;
             set(currentStreamAtom, { 
               role: 'assistant', 
               content: accumulatedContent 
             });
             
-            // Optional: Update completed messages only on stream end
             if (chunk.done) {
               set(completedMessagesAtom, (prev) => [...prev, { 
                 role: 'assistant', 
                 content: accumulatedContent 
               }]);
               set(currentStreamAtom, null);
+              break;
             }
           }
-        }
-        
-        return retrieveAndGenerateResponse;
-      } finally {
-        set(loadingAtom, false);
+          set(loadingAtom, false);
+        })();
+      } else {
+        set(errorAtom, 'Invalid response type');
       }
+
+      return response;
     }
   );
 };
@@ -199,10 +207,11 @@ export const createGetDataSourceAtom = (getDataSourceFn: (metadata: Record<strin
 
 
 type GenerateAtom = WritableAtom<null, [GenerateInput], Promise<GenerateResponse>>;
+
 type RetrieveAndGenerateAtom = WritableAtom<
   null,
   [string, Record<string, any>?],
-  Promise<RetrieveAndGenerateResponse>
+  RetrieveAndGenerateResponse
 >;
 
 type RetrieveSourcesAtom = WritableAtom<

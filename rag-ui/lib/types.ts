@@ -35,8 +35,8 @@ export interface GenerateStreamChunk {
 }
 
 export interface RetrieveAndGenerateResponse {
-  sources?: RetrievalResult[] | Promise<RetrievalResult[]>;
-  response: string | AsyncIterable<GenerateStreamChunk>;
+  sources?: Promise<RetrievalResult[]>;
+  response: Promise<string> | AsyncIterable<GenerateStreamChunk>;
 }
 
 export type RetrievalResult = SourceReference | TextContent;
@@ -49,7 +49,15 @@ export interface RAGProviderProps<T = Record<string, any>, M = Record<string, an
   retrieveAndGenerate: (
     query: string,
     metadata?: T
-  ) => Promise<RetrieveAndGenerateResponse>;
+  ) => RetrieveAndGenerateResponse
   generate: (input: GenerateInput) => Promise<GenerateResponse>;
   getDataSource: (metadata: M) => Promise<SourceContent>;
+  config?: RAGConfig;
+}
+
+export interface RAGConfig {
+  timeouts?: {
+    stream?: number;  // Timeout between stream chunks in ms
+    request?: number; // Overall request timeout in ms
+  }
 }
