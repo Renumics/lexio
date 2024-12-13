@@ -56,7 +56,7 @@ export const addMessageAtom = atom(
 
 
 // Generate
-export const createGenerateAtom = (generateFn: (input: GenerateInput) => Promise<GenerateResponse>) => {
+export const createGenerateAtom = (generateFn: (input: GenerateInput) => GenerateResponse) => {
   return atom(
     null,
     async (_get, set, input: GenerateInput) => {
@@ -128,58 +128,72 @@ export const createRetrieveAndGenerateAtom = (
 ) => {
   return atom(
     null,
-    (_get, set, query: string, metadata?: Record<string, any>) => {
+    async (_get, set, query: string, metadata?: Record<string, any>) => {
       set(loadingAtom, true);
+      set(errorAtom, null);
 
-      const response = retrieveAndGenerateFn(query, metadata);
-      let accumulatedContent = '';
+      try {
+        const response = retrieveAndGenerateFn(query, metadata);
+        let accumulatedContent = '';
 
-      // Handle sources if present
-      if (response.sources) {
-        response.sources.then(resolvedSources => {
-          set(retrievedSourcesAtom, resolvedSources);
-        });
-      }
+        // Handle sources if present
+        if (response.sources) {
+          response.sources.catch(err => {
+            set(errorAtom, `Failed to fetch sources: ${err.message}`);
+          });
+          
+          response.sources.then(resolvedSources => {
+            set(retrievedSourcesAtom, resolvedSources);
+          });
+        }
 
-      const responseObject = response.response;
-      // Handle response based on type
-      if (responseObject instanceof Promise) {
-        // Handle Promise response
-        responseObject.then(resolvedResponse => {
-          set(currentStreamAtom, { role: 'assistant', content: resolvedResponse });
-          set(completedMessagesAtom, (prev) => [...prev, { 
-            role: 'assistant', 
-            content: resolvedResponse 
-          }]);
-          set(currentStreamAtom, null);
-          set(loadingAtom, false);
-        });
-      } else if (Symbol.asyncIterator in responseObject) {
-        // Handle AsyncIterator response
-        (async () => {
-          for await (const chunk of responseObject) {
-            accumulatedContent += chunk.content;
-            set(currentStreamAtom, { 
-              role: 'assistant', 
-              content: accumulatedContent 
-            });
-            
-            if (chunk.done) {
+        const responseObject = response.response;
+        
+        if (responseObject instanceof Promise) {
+          await responseObject
+            .then(resolvedResponse => {
+              set(currentStreamAtom, { role: 'assistant', content: resolvedResponse });
               set(completedMessagesAtom, (prev) => [...prev, { 
                 role: 'assistant', 
-                content: accumulatedContent 
+                content: resolvedResponse 
               }]);
               set(currentStreamAtom, null);
-              break;
+            })
+            .catch(err => {
+              set(errorAtom, `Generation failed: ${err.message}`);
+            });
+        } else if (Symbol.asyncIterator in responseObject) {
+          try {
+            for await (const chunk of responseObject) {
+              accumulatedContent += chunk.content;
+              set(currentStreamAtom, { 
+                role: 'assistant', 
+                content: accumulatedContent 
+              });
+              
+              if (chunk.done) {
+                set(completedMessagesAtom, (prev) => [...prev, { 
+                  role: 'assistant', 
+                  content: accumulatedContent 
+                }]);
+                set(currentStreamAtom, null);
+                break;
+              }
             }
+          } catch (err: any) {
+            set(errorAtom, `Streaming failed: ${err.message}`);
           }
-          set(loadingAtom, false);
-        })();
-      } else {
-        set(errorAtom, 'Invalid response type');
-      }
+        } else {
+          set(errorAtom, 'Invalid response type');
+        }
 
-      return response;
+        return response;
+      } catch (err: any) {
+        set(errorAtom, `RAG operation failed: ${err.message}`);
+        throw err;
+      } finally {
+        set(loadingAtom, false);
+      }
     }
   );
 };

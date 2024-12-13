@@ -29,6 +29,8 @@ export interface SourceContent {
   type?: 'pdf';
 }
 
+export type GetDataSourceResponse = Promise<SourceContent>;
+
 export interface GenerateStreamChunk {
   content: string;
   done?: boolean;
@@ -40,18 +42,21 @@ export interface RetrieveAndGenerateResponse {
 }
 
 export type RetrievalResult = SourceReference | TextContent;
+
+export type RetrieveResponse = Promise<RetrievalResult[]>;
+
 export type GenerateInput = string | Message[];
-export type GenerateResponse = string | AsyncIterable<GenerateStreamChunk>;
+export type GenerateResponse = Promise<string> | AsyncIterable<GenerateStreamChunk>;
 
 export interface RAGProviderProps<T = Record<string, any>, M = Record<string, any>> {
   children: React.ReactNode;
-  retrieve: (query: string, metadata?: T) => Promise<RetrievalResult[]>;
+  retrieve: (query: string, metadata?: T) => RetrieveResponse;
   retrieveAndGenerate: (
     query: string,
     metadata?: T
-  ) => RetrieveAndGenerateResponse
-  generate: (input: GenerateInput) => Promise<GenerateResponse>;
-  getDataSource: (metadata: M) => Promise<SourceContent>;
+  ) => RetrieveAndGenerateResponse;
+  generate: (input: GenerateInput) => GenerateResponse;
+  getDataSource: (metadata: M) => GetDataSourceResponse;
   config?: RAGConfig;
 }
 
