@@ -130,6 +130,10 @@ export const createRetrieveAndGenerateAtom = (
     set(loadingAtom, true);
     set(errorAtom, null);
 
+    // Track if we should abort processing
+    let aborted = false;
+    const abortController = new AbortController();
+
     try {
       const config = _get(ragConfigAtom);
       let accumulatedContent = '';
@@ -141,7 +145,8 @@ export const createRetrieveAndGenerateAtom = (
         const sourcesWithTimeout = addTimeout(
           response.sources.then(sources => set(retrievedSourcesAtom, sources)),
           config.timeouts?.request,
-          'Sources request timeout exceeded'
+          'Sources request timeout exceeded',
+          abortController.signal
         );
         await sourcesWithTimeout;
       }
@@ -153,6 +158,11 @@ export const createRetrieveAndGenerateAtom = (
           const streamTimeout = new StreamTimeout(config.timeouts?.stream);
           
           for await (const chunk of streamIterator) {
+            // Check if we should abort
+            if (aborted || abortController.signal.aborted) {
+              break;
+            }
+
             streamTimeout.check();
             accumulatedContent += chunk.content;
             
@@ -174,18 +184,46 @@ export const createRetrieveAndGenerateAtom = (
         await addTimeout(
           processStream(),
           config.timeouts?.request,
-          'Request timeout exceeded'
+          'Request timeout exceeded',
+          abortController.signal
         );
       }
 
       return response;
     } catch (err: any) {
+      // Mark as aborted and abort any ongoing operations
+      aborted = true;
+      abortController.abort();
+
       set(errorAtom, `RAG operation failed: ${err.message}`);
       throw err;
     } finally {
       set(loadingAtom, false);
     }
   });
+};
+
+const addTimeout = <T>(
+  promise: Promise<T>, 
+  timeout?: number, 
+  message?: string,
+  signal?: AbortSignal
+): Promise<T> => {
+  if (!timeout) return promise;
+  
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(message));
+      }, timeout);
+
+      // Clean up timeout if aborted
+      signal?.addEventListener('abort', () => {
+        clearTimeout(timeoutId);
+      });
+    })
+  ]);
 };
 
 // Helper classes/functions
@@ -204,17 +242,6 @@ class StreamTimeout {
     this.lastCheck = now;
   }
 }
-
-const addTimeout = <T>(promise: Promise<T>, timeout?: number, message?: string): Promise<T> => {
-  if (!timeout) return promise;
-  
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(message)), timeout);
-    })
-  ]);
-};
 
 export const createGetDataSourceAtom = (getDataSourceFn: (metadata: Record<string, any>) => Promise<SourceContent>) => {
   return atom(
