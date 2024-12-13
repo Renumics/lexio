@@ -1,5 +1,5 @@
 import './App.css'
-import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, GenerateResponse, RetrievalResult, SourceContent, SourcesDisplay } from '../lib/main'
+import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, GenerateResponse, RetrievalResult, SourceContent, SourcesDisplay, ErrorDisplay } from '../lib/main'
 import { GenerateInput, GenerateStreamChunk } from '../lib/main'
 
 function App() {
@@ -133,6 +133,12 @@ const getDataSource = async (metadata: Record<string, any>): Promise<SourceConte
     retrieveAndGenerate={retrieveAndGenerate}
     generate={generateText}
     getDataSource={getDataSource}
+    config={{
+      timeouts: {
+        stream: 2000,
+        request: 2000
+      }
+    }}
   >
     <div className="w-full max-w-6xl h-full flex gap-4">
       {/* Left side: Chat and Query */}
@@ -149,6 +155,7 @@ const getDataSource = async (metadata: Record<string, any>): Promise<SourceConte
       <div className="w-1/3 h-full"> {/* Sources panel */}
         <SourcesDisplay />
       </div>
+      <ErrorDisplay />
     </div>
   </RAGProvider>
 </div>

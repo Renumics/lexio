@@ -16,7 +16,8 @@
     "jotai": "^2.10.3",
     "pdfjs-dist": "^4.9.155",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-toastify": "^10.0.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",

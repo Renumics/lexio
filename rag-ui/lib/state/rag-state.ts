@@ -1,5 +1,5 @@
 import { atom, WritableAtom } from 'jotai'
-import { GenerateInput, GenerateResponse, GenerateStreamChunk, Message, RAGConfig, RetrievalResult, RetrieveAndGenerateResponse, SourceContent, WorkflowMode } from '../types';
+import { GenerateInput, GenerateResponse, GenerateStreamChunk, GetDataSourceResponse, Message, RAGConfig, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, WorkflowMode } from '../types';
 
 export const workflowModeAtom = atom<WorkflowMode>('init');
 
@@ -128,13 +128,26 @@ export const createRetrieveAndGenerateAtom = (
 ) => {
   return atom(
     null,
-    async (_get, set, query: string, metadata?: Record<string, any>) => {
+    (_get, set, query: string, metadata?: Record<string, any>): RetrieveAndGenerateResponse => {
       set(loadingAtom, true);
       set(errorAtom, null);
 
+      const config = _get(ragConfigAtom);
+      let lastChunkTime = Date.now();
+
       try {
         const response = retrieveAndGenerateFn(query, metadata);
-        let accumulatedContent = '';
+        
+        if (config.timeouts?.request) {
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Request timeout exceeded')), config.timeouts!.request);
+          });
+        
+          // Only wrap if it's a Promise
+          if (response.response instanceof Promise) {
+            response.response = Promise.race([response.response, timeoutPromise]);
+          }
+        }
 
         // Handle sources if present
         if (response.sources) {
@@ -147,52 +160,66 @@ export const createRetrieveAndGenerateAtom = (
           });
         }
 
+        // Handle response based on type
+        let accumulatedContent = '';
         const responseObject = response.response;
         
         if (responseObject instanceof Promise) {
-          await responseObject
-            .then(resolvedResponse => {
-              set(currentStreamAtom, { role: 'assistant', content: resolvedResponse });
-              set(completedMessagesAtom, (prev) => [...prev, { 
-                role: 'assistant', 
-                content: resolvedResponse 
-              }]);
-              set(currentStreamAtom, null);
-            })
-            .catch(err => {
-              set(errorAtom, `Generation failed: ${err.message}`);
-            });
+          responseObject.then(resolvedResponse => {
+            set(currentStreamAtom, { role: 'assistant', content: resolvedResponse });
+            set(completedMessagesAtom, (prev) => [...prev, { 
+              role: 'assistant', 
+              content: resolvedResponse 
+            }]);
+            set(currentStreamAtom, null);
+            set(loadingAtom, false);
+          }).catch(err => {
+            set(errorAtom, `Generation failed: ${err.message}`);
+            set(loadingAtom, false);
+          });
         } else if (Symbol.asyncIterator in responseObject) {
-          try {
-            for await (const chunk of responseObject) {
-              accumulatedContent += chunk.content;
-              set(currentStreamAtom, { 
-                role: 'assistant', 
-                content: accumulatedContent 
-              });
-              
-              if (chunk.done) {
-                set(completedMessagesAtom, (prev) => [...prev, { 
+          (async () => {
+            try {
+              for await (const chunk of responseObject) {
+                if (config.timeouts?.stream) {
+                  const now = Date.now();
+                  if (now - lastChunkTime > config.timeouts.stream) {
+                    throw new Error('Stream timeout exceeded');
+                  }
+                  lastChunkTime = now;
+                }
+
+                accumulatedContent += chunk.content;
+                set(currentStreamAtom, { 
                   role: 'assistant', 
                   content: accumulatedContent 
-                }]);
-                set(currentStreamAtom, null);
-                break;
+                });
+                
+                if (chunk.done) {
+                  set(completedMessagesAtom, (prev) => [...prev, { 
+                    role: 'assistant', 
+                    content: accumulatedContent 
+                  }]);
+                  set(currentStreamAtom, null);
+                  break;
+                }
               }
+            } catch (err: any) {
+              set(errorAtom, `Streaming failed: ${err.message}`);
+            } finally {
+              set(loadingAtom, false);
             }
-          } catch (err: any) {
-            set(errorAtom, `Streaming failed: ${err.message}`);
-          }
+          })();
         } else {
           set(errorAtom, 'Invalid response type');
+          set(loadingAtom, false);
         }
 
         return response;
       } catch (err: any) {
         set(errorAtom, `RAG operation failed: ${err.message}`);
-        throw err;
-      } finally {
         set(loadingAtom, false);
+        throw err;
       }
     }
   );
@@ -231,13 +258,13 @@ type RetrieveAndGenerateAtom = WritableAtom<
 type RetrieveSourcesAtom = WritableAtom<
   null,
   [string, Record<string, any>?],
-  Promise<RetrievalResult[]>
+  RetrieveResponse
 >;
 
 type GetDataSourceAtom = WritableAtom<
   null,
   [string, Record<string, any>?],
-  Promise<SourceContent>
+  GetDataSourceResponse
 >;
 
 
