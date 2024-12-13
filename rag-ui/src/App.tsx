@@ -136,7 +136,7 @@ const getDataSource = async (metadata: Record<string, any>): Promise<SourceConte
     config={{
       timeouts: {
         stream: 2000,
-        request: 2000
+        request: 3000
       }
     }}
   >

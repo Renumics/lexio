@@ -126,103 +126,94 @@ export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?:
 export const createRetrieveAndGenerateAtom = (
   retrieveAndGenerateFn: (query: string, metadata?: Record<string, any>) => RetrieveAndGenerateResponse
 ) => {
-  return atom(
-    null,
-    (_get, set, query: string, metadata?: Record<string, any>): RetrieveAndGenerateResponse => {
-      set(loadingAtom, true);
-      set(errorAtom, null);
+  return atom(null, async (_get, set, query: string, metadata?: Record<string, any>) => {
+    set(loadingAtom, true);
+    set(errorAtom, null);
 
+    try {
       const config = _get(ragConfigAtom);
-      let lastChunkTime = Date.now();
+      let accumulatedContent = '';
+      
+      const response = retrieveAndGenerateFn(query, metadata);
 
-      try {
-        const response = retrieveAndGenerateFn(query, metadata);
-        
-        if (config.timeouts?.request) {
-          const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Request timeout exceeded')), config.timeouts!.request);
-          });
-        
-          // Only wrap if it's a Promise
-          if (response.response instanceof Promise) {
-            response.response = Promise.race([response.response, timeoutPromise]);
-          }
-        }
-
-        // Handle sources if present
-        if (response.sources) {
-          response.sources.catch(err => {
-            set(errorAtom, `Failed to fetch sources: ${err.message}`);
-          });
-          
-          response.sources.then(resolvedSources => {
-            set(retrievedSourcesAtom, resolvedSources);
-          });
-        }
-
-        // Handle response based on type
-        let accumulatedContent = '';
-        const responseObject = response.response;
-        
-        if (responseObject instanceof Promise) {
-          responseObject.then(resolvedResponse => {
-            set(currentStreamAtom, { role: 'assistant', content: resolvedResponse });
-            set(completedMessagesAtom, (prev) => [...prev, { 
-              role: 'assistant', 
-              content: resolvedResponse 
-            }]);
-            set(currentStreamAtom, null);
-            set(loadingAtom, false);
-          }).catch(err => {
-            set(errorAtom, `Generation failed: ${err.message}`);
-            set(loadingAtom, false);
-          });
-        } else if (Symbol.asyncIterator in responseObject) {
-          (async () => {
-            try {
-              for await (const chunk of responseObject) {
-                if (config.timeouts?.stream) {
-                  const now = Date.now();
-                  if (now - lastChunkTime > config.timeouts.stream) {
-                    throw new Error('Stream timeout exceeded');
-                  }
-                  lastChunkTime = now;
-                }
-
-                accumulatedContent += chunk.content;
-                set(currentStreamAtom, { 
-                  role: 'assistant', 
-                  content: accumulatedContent 
-                });
-                
-                if (chunk.done) {
-                  set(completedMessagesAtom, (prev) => [...prev, { 
-                    role: 'assistant', 
-                    content: accumulatedContent 
-                  }]);
-                  set(currentStreamAtom, null);
-                  break;
-                }
-              }
-            } catch (err: any) {
-              set(errorAtom, `Streaming failed: ${err.message}`);
-            } finally {
-              set(loadingAtom, false);
-            }
-          })();
-        } else {
-          set(errorAtom, 'Invalid response type');
-          set(loadingAtom, false);
-        }
-
-        return response;
-      } catch (err: any) {
-        set(errorAtom, `RAG operation failed: ${err.message}`);
-        set(loadingAtom, false);
-        throw err;
+      // Handle sources
+      if (response.sources) {
+        const sourcesWithTimeout = addTimeout(
+          response.sources.then(sources => set(retrievedSourcesAtom, sources)),
+          config.timeouts?.request,
+          'Sources request timeout exceeded'
+        );
+        await sourcesWithTimeout;
       }
+
+      // Handle streaming
+      const streamIterator = response.response;
+      if (Symbol.asyncIterator in streamIterator) {
+        const processStream = async () => {
+          const streamTimeout = new StreamTimeout(config.timeouts?.stream);
+          
+          for await (const chunk of streamIterator) {
+            streamTimeout.check();
+            accumulatedContent += chunk.content;
+            
+            set(currentStreamAtom, { 
+              role: 'assistant', 
+              content: accumulatedContent 
+            });
+
+            if (chunk.done) {
+              set(completedMessagesAtom, prev => [...prev, { 
+                role: 'assistant', 
+                content: accumulatedContent 
+              }]);
+              set(currentStreamAtom, null);
+            }
+          }
+        };
+
+        await addTimeout(
+          processStream(),
+          config.timeouts?.request,
+          'Request timeout exceeded'
+        );
+      }
+
+      return response;
+    } catch (err: any) {
+      set(errorAtom, `RAG operation failed: ${err.message}`);
+      throw err;
+    } finally {
+      set(loadingAtom, false);
     }
-  );
+  });
+};
+
+// Helper classes/functions
+class StreamTimeout {
+  private lastCheck = Date.now();
+  
+  constructor(private timeout?: number) {}
+  
+  check() {
+    if (!this.timeout) return;
+    
+    const now = Date.now();
+    if (now - this.lastCheck > this.timeout) {
+      throw new Error('Stream timeout exceeded');
+    }
+    this.lastCheck = now;
+  }
+}
+
+const addTimeout = <T>(promise: Promise<T>, timeout?: number, message?: string): Promise<T> => {
+  if (!timeout) return promise;
+  
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), timeout);
+    })
+  ]);
 };
 
 export const createGetDataSourceAtom = (getDataSourceFn: (metadata: Record<string, any>) => Promise<SourceContent>) => {
