@@ -15,35 +15,37 @@ export const currentStreamAtom = atom<Message | null>(null);
 export const loadingAtom = atom(false);
 export const errorAtom = atom<string | null>(null);
 
+// In rag-state.ts
 export const addMessageAtom = atom(
   null,
   async (_get, set, message: Message) => {
     const currentMode = _get(workflowModeAtom);
     const ragAtoms = _get(ragAtomsAtom);
+    const previousMessages = _get(completedMessagesAtom);
 
     if (!ragAtoms) {
       throw new Error('RAG atoms not initialized');
     }
 
     // Add the message to the history
-    set(completedMessagesAtom, (prev) => [...prev, message]);
+    const updatedMessages = [...previousMessages, message];
+    set(completedMessagesAtom, updatedMessages);
 
     // Handle workflow transitions and actions
     switch (currentMode) {
       case 'init':
         // First message triggers retrieveAndGenerate
-        await set(ragAtoms.retrieveAndGenerateAtom, message.content);
-        set(workflowModeAtom, 'follow-up');
+        set(ragAtoms.retrieveAndGenerateAtom, updatedMessages);
         break;  
 
       case 'follow-up':
         // Continue with generate
-        await set(ragAtoms.generateAtom, message.content);
+        set(ragAtoms.generateAtom, updatedMessages);
         break;
 
       case 'reretrieve':
         // Get new sources while preserving history
-        await set(ragAtoms.retrieveAndGenerateAtom, message.content);
+        set(ragAtoms.retrieveAndGenerateAtom, updatedMessages);
         set(workflowModeAtom, 'follow-up');
         break;
 
@@ -54,51 +56,102 @@ export const addMessageAtom = atom(
   }
 );
 
-
 // Generate
 export const createGenerateAtom = (generateFn: (input: GenerateInput) => GenerateResponse) => {
-  return atom(
+  return atom<null, [GenerateInput], GenerateResponse>(
     null,
-    async (_get, set, input: GenerateInput) => {
+    (_get, set, input: GenerateInput): GenerateResponse => {
       set(loadingAtom, true);
-      
-      try {
-        const response = await generateFn(input);
-        
-        if (typeof response === 'string') {
-          // For non-streaming responses
-          set(currentStreamAtom, { role: 'assistant', content: response });
-          set(completedMessagesAtom, (prev) => [...prev, { 
-            role: 'assistant', 
-            content: response 
-          }]);
-          set(currentStreamAtom, null);
-        } else {
-          // For streaming responses
-          let accumulatedContent = '';
-          
-          for await (const chunk of response) {
-            accumulatedContent += chunk.content;
+      set(errorAtom, null);
+
+      // Track if we should abort processing
+      let aborted = false;
+      const abortController = new AbortController();
+
+      const config = _get(ragConfigAtom);
+      let accumulatedContent = '';
+
+      const response = generateFn(input);
+
+      // Function to handle errors uniformly
+      const handleError = (err: any) => {
+        aborted = true;
+        abortController.abort();
+        set(errorAtom, `Generate operation failed: ${err.message}`);
+        set(loadingAtom, false);
+      };
+
+      if (typeof response === 'string' || response instanceof Promise) {
+        // Handle non-streaming or Promise<string> responses
+        (response as Promise<string>)
+          .then(content => {
             set(currentStreamAtom, { 
               role: 'assistant', 
-              content: accumulatedContent 
+              content 
             });
-            
-            // Optional: Update completed messages only on stream end
-            if (chunk.done) {
-              set(completedMessagesAtom, (prev) => [...prev, { 
+            set(completedMessagesAtom, prev => [...prev, { 
+              role: 'assistant', 
+              content 
+            }]);
+            set(currentStreamAtom, null);
+          })
+          .catch(handleError)
+          .finally(() => {
+            set(loadingAtom, false);
+          });
+
+        return response;
+      } else if (Symbol.asyncIterator in response) {
+        // Handle streaming responses
+        const streamIterator = response as AsyncIterable<GenerateStreamChunk>;
+
+        const processStream = async () => {
+          const streamTimeout = new StreamTimeout(config.timeouts?.stream);
+
+          try {
+            for await (const chunk of streamIterator) {
+              if (aborted || abortController.signal.aborted) {
+                break;
+              }
+
+              streamTimeout.check();
+              accumulatedContent += chunk.content;
+              
+              set(currentStreamAtom, { 
                 role: 'assistant', 
                 content: accumulatedContent 
-              }]);
-              set(currentStreamAtom, null);
+              });
+
+              if (chunk.done) {
+                set(completedMessagesAtom, prev => [...prev, { 
+                  role: 'assistant', 
+                  content: accumulatedContent 
+                }]);
+                set(currentStreamAtom, null);
+              }
             }
+          } catch (err: any) {
+            handleError(err);
+          } finally {
+            set(loadingAtom, false);
           }
-        }
-        
+        };
+
+        // Apply overall request timeout
+        addTimeout(
+          processStream(),
+          config.timeouts?.request,
+          'Generate request timeout exceeded',
+          abortController.signal
+        ).catch(handleError);
+
         return response;
-      } finally {
-        set(loadingAtom, false);
       }
+
+      // In case response doesn't match expected types
+      set(errorAtom, 'Invalid GenerateResponse type.');
+      set(loadingAtom, false);
+      return response;
     }
   );
 };
@@ -124,45 +177,34 @@ export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?:
 };
 
 export const createRetrieveAndGenerateAtom = (
-  retrieveAndGenerateFn: (query: string, metadata?: Record<string, any>) => RetrieveAndGenerateResponse
+  retrieveAndGenerateFn: (query: GenerateInput, metadata?: Record<string, any>) => RetrieveAndGenerateResponse
 ) => {
-  return atom(null, async (_get, set, query: string, metadata?: Record<string, any>) => {
+  return atom(null, (_get, set, query: GenerateInput, metadata?: Record<string, any>) => {
     set(loadingAtom, true);
     set(errorAtom, null);
 
-    // Track if we should abort processing
-    let aborted = false;
-    const abortController = new AbortController();
+    const config = _get(ragConfigAtom);
+    let accumulatedContent = '';
+    
+    const response = retrieveAndGenerateFn(query, metadata);
 
-    try {
-      const config = _get(ragConfigAtom);
-      let accumulatedContent = '';
-      
-      const response = retrieveAndGenerateFn(query, metadata);
-
+    // Create a promise that handles both sources and response
+    const processingPromise = (async () => {
       // Handle sources
       if (response.sources) {
-        const sourcesWithTimeout = addTimeout(
+        await addTimeout(
           response.sources.then(sources => set(retrievedSourcesAtom, sources)),
           config.timeouts?.request,
-          'Sources request timeout exceeded',
-          abortController.signal
+          'Sources request timeout exceeded'
         );
-        await sourcesWithTimeout;
       }
 
-      // Handle streaming
-      const streamIterator = response.response;
-      if (Symbol.asyncIterator in streamIterator) {
+      // Handle streaming response
+      if (Symbol.asyncIterator in response.response) {
         const processStream = async () => {
           const streamTimeout = new StreamTimeout(config.timeouts?.stream);
           
-          for await (const chunk of streamIterator) {
-            // Check if we should abort
-            if (aborted || abortController.signal.aborted) {
-              break;
-            }
-
+          for await (const chunk of response.response as AsyncIterable<GenerateStreamChunk>) {
             streamTimeout.check();
             accumulatedContent += chunk.content;
             
@@ -177,6 +219,7 @@ export const createRetrieveAndGenerateAtom = (
                 content: accumulatedContent 
               }]);
               set(currentStreamAtom, null);
+              set(workflowModeAtom, 'follow-up');
             }
           }
         };
@@ -184,22 +227,29 @@ export const createRetrieveAndGenerateAtom = (
         await addTimeout(
           processStream(),
           config.timeouts?.request,
-          'Request timeout exceeded',
-          abortController.signal
+          'Stream processing timeout exceeded'
         );
+      } else {
+        // Handle Promise<string> response
+        const content = await addTimeout(
+          response.response as Promise<string>,
+          config.timeouts?.request,
+          'Response timeout exceeded'
+        );
+        
+        set(currentStreamAtom, { role: 'assistant', content });
+        set(completedMessagesAtom, prev => [...prev, { role: 'assistant', content }]);
+        set(currentStreamAtom, null);
       }
+    })();
 
-      return response;
-    } catch (err: any) {
-      // Mark as aborted and abort any ongoing operations
-      aborted = true;
-      abortController.abort();
-
+    // Start the processing but handle errors
+    processingPromise.catch(err => {
       set(errorAtom, `RAG operation failed: ${err.message}`);
-      throw err;
-    } finally {
       set(loadingAtom, false);
-    }
+    });
+
+    return response;
   });
 };
 
@@ -265,11 +315,11 @@ export const createGetDataSourceAtom = (getDataSourceFn: (metadata: Record<strin
 };
 
 
-type GenerateAtom = WritableAtom<null, [GenerateInput], Promise<GenerateResponse>>;
+type GenerateAtom = WritableAtom<null, [GenerateInput], GenerateResponse>;
 
 type RetrieveAndGenerateAtom = WritableAtom<
   null,
-  [string, Record<string, any>?],
+  [GenerateInput, Record<string, any>?],
   RetrieveAndGenerateResponse
 >;
 

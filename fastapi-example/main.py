@@ -9,6 +9,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette import EventSourceResponse
 import asyncio
 
+
+class RetrievalResult(BaseModel):
+    source: str
+    type: str
+
+class Message(BaseModel):
+    role: str
+    content: str
+
+class MessageHistory(BaseModel):
+    messages: List[Message]
+
 app = FastAPI()
 
 app.add_middleware(
@@ -63,28 +75,46 @@ def retrieve_helper(query: str):
 async def retrieve(request: QueryRequest):
     return retrieve_helper(request.query)
 
-# Endpoint to generate text
-@app.post("/generate")
-async def generate_text(query: str) -> StreamingResponse:
-    # Mock text generation
+# Update the generate endpoint to use GET
+@app.get("/generate")
+async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
+    try:
+        message_history = MessageHistory.model_validate_json(messages)
+        print(message_history)
+        query = message_history.messages[-1].content if message_history.messages else ""
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
+    
     async def stream():
-        yield {"content": f"Generated text based on query: {query}", "done": False}
-        yield {"content": "", "done": True}
+        yield {"data": json.dumps({
+            "content": f"Generated text based on query: {query}",
+            "done": False
+        })}
+        yield {"data": json.dumps({
+            "content": "",
+            "done": True
+        })}
 
-    return StreamingResponse(stream(), media_type="text/event-stream")
+    return EventSourceResponse(stream())
 
-# Combined endpoint to retrieve and generate text
-
-import asyncio  # Add this import at the top
-
+# Update the retrieve-and-generate endpoint to use GET
 @app.get("/retrieve-and-generate")
-async def retrieve_and_generate(query: str):
+async def retrieve_and_generate(messages: str = Query(...)):
+    # Parse the URL-encoded JSON string back to MessageHistory
+    try:
+        print(messages)
+        message_history = MessageHistory.model_validate_json(messages)
+        query = message_history.messages[-1].content if message_history.messages else ""
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
+    
     async def event_generator():
         retrieved_sources = retrieve_helper(query)
         
         # Send sources first
         yield {
             "data": json.dumps({
+                "role": "assistant",
                 "sources": retrieved_sources,
                 "content": "",
                 "done": False
@@ -104,9 +134,10 @@ async def retrieve_and_generate(query: str):
         
         # Stream each chunk with a delay
         for chunk in text_chunks:
-            await asyncio.sleep(0.7)  # 0.7s * 7 chunks ≈ 5 seconds total
+            await asyncio.sleep(0.7)
             yield {
                 "data": json.dumps({
+                    "role": "assistant",
                     "content": chunk,
                     "done": False
                 })
@@ -115,6 +146,7 @@ async def retrieve_and_generate(query: str):
         # Send completion message
         yield {
             "data": json.dumps({
+                "role": "assistant",
                 "content": "",
                 "done": True
             })

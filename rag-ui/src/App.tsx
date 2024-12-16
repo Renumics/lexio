@@ -12,42 +12,62 @@ const retrieveSources = async (query: string): Promise<RetrievalResult[]> => {
   return await response.json();
 };
 
-// Function to generate text from the server
-const generateText = async (input: GenerateInput): Promise<GenerateResponse> => {
-  const response = await fetch(`http://localhost:8000/generate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query: typeof input === 'string' ? input : input.map(msg => msg.content).join(' ') }),
-  });
+// In App.tsx
+const generateText = (input: GenerateInput): AsyncIterable<GenerateStreamChunk> => {
+  // Convert input messages array to URL-safe format
+  const query = encodeURIComponent(JSON.stringify({ messages: input }));
+  
+  const eventSource = new EventSource(
+    `http://localhost:8000/generate?messages=${query}`
+  );
 
-  if (!response.ok) {
-    throw new Error('Failed to generate text');
-  }
+  const messageQueue: GenerateStreamChunk[] = [];
+  let resolveNext: (() => void) | null = null;
 
-  const reader = response.body?.getReader();
-  const decoder = new TextDecoder('utf-8');
+  const handleMessage = (event: MessageEvent) => {
+    const data = JSON.parse(event.data);
+    const chunk: GenerateStreamChunk = {
+      content: data.content || '',
+      done: data.done || false
+    };
+    messageQueue.push(chunk);
+    resolveNext?.();
+  };
+
+  eventSource.addEventListener('message', handleMessage);
 
   async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-    while (true) {
-      const { done, value } = await reader?.read() || {};
-      if (done) break;
-      const text = decoder.decode(value, { stream: true });
-      yield { content: text, done: false };
+    try {
+      while (true) {
+        if (messageQueue.length === 0) {
+          await new Promise(resolve => { resolveNext = resolve; });
+        }
+
+        const chunk = messageQueue.shift()!;
+        yield chunk;
+        if (chunk.done) {
+          break;
+        }
+    
+      }
+    } finally {
+      eventSource.removeEventListener('message', handleMessage);
+      eventSource.close();
     }
-    yield { content: '', done: true };
   }
 
   return streamChunks();
 };
 
-const retrieveAndGenerate = (query: string): RetrieveAndGenerateResponse => {
+const retrieveAndGenerate = (messages: GenerateInput): RetrieveAndGenerateResponse => {
+  // Convert messages array to URL-safe format
+  const query = encodeURIComponent(JSON.stringify({messages: messages}));
+
   const eventSource = new EventSource(
-    `http://localhost:8000/retrieve-and-generate?query=${encodeURIComponent(query)}`
+    `http://localhost:8000/retrieve-and-generate?messages=${query}`
   );
 
-  // Create a promise to resolve sources
+  // Rest of the function remains the same
   const sourcesPromise = new Promise<RetrievalResult[]>((resolve, reject) => {
     const handleSources = (event: MessageEvent) => {
       const data = JSON.parse(event.data);
@@ -65,7 +85,6 @@ const retrieveAndGenerate = (query: string): RetrieveAndGenerateResponse => {
     };
   });
 
-  // Create the response stream
   const messageQueue: GenerateStreamChunk[] = [];
   let resolveNext: (() => void) | null = null;
 
@@ -73,7 +92,7 @@ const retrieveAndGenerate = (query: string): RetrieveAndGenerateResponse => {
     const data = JSON.parse(event.data);
     // Skip source-only messages
     if (!data.content && !data.done) return;
-    
+
     const chunk: GenerateStreamChunk = {
       content: data.content || '',
       done: data.done || false
@@ -92,10 +111,11 @@ const retrieveAndGenerate = (query: string): RetrieveAndGenerateResponse => {
         }
 
         const chunk = messageQueue.shift()!;
+        yield chunk;
         if (chunk.done) {
           break;
         }
-        yield chunk;
+        
       }
     } finally {
       eventSource.removeEventListener('message', handleContent);
@@ -135,8 +155,8 @@ const getDataSource = async (metadata: Record<string, any>): Promise<SourceConte
     getDataSource={getDataSource}
     config={{
       timeouts: {
-        stream: 2000,
-        request: 3000
+        stream: 10000,
+        request: 60000
       }
     }}
   >

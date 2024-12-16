@@ -6,7 +6,6 @@ export type WorkflowMode =
 export interface Message {
   role: string;
   content: string;
-  sources?: RetrievalResult[];
 }
 
 export interface BaseRetrievalResult {
@@ -45,14 +44,14 @@ export type RetrievalResult = SourceReference | TextContent;
 
 export type RetrieveResponse = Promise<RetrievalResult[]>;
 
-export type GenerateInput = string | Message[];
+export type GenerateInput = Message[];
 export type GenerateResponse = Promise<string> | AsyncIterable<GenerateStreamChunk>;
 
 export interface RAGProviderProps<T = Record<string, any>, M = Record<string, any>> {
   children: React.ReactNode;
   retrieve: (query: string, metadata?: T) => RetrieveResponse;
   retrieveAndGenerate: (
-    query: string,
+    query: GenerateInput,
     metadata?: T
   ) => RetrieveAndGenerateResponse;
   generate: (input: GenerateInput) => GenerateResponse;
