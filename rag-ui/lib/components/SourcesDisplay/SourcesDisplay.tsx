@@ -9,6 +9,8 @@ const SourcesDisplay = () => {
     return 'source' in source;
   };
 
+  console.log(retrievedSources);
+
   return (
     <div className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg">
       <h2 className="text-lg font-semibold mb-4 text-gray-700">Retrieved Sources</h2>

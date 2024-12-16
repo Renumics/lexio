@@ -1,3 +1,4 @@
+import random
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from typing import List, AsyncIterable, Dict, Any
@@ -67,7 +68,11 @@ class QueryRequest(BaseModel):
 def retrieve_helper(query: str):
     # Mock retrieval based on the presence of the query in the filename
     pdf_files = list_pdf_files()
-    retrieved_sources = [file for file in pdf_files if any(query_part.lower() in file["source"].lower() for query_part in query.split())]
+    retrieved_sources = [
+        {**file, "page": random.randint(1, 3)} 
+        for file in pdf_files 
+        if any(query_part.lower() in file["source"].lower() for query_part in query.split())
+    ]
     return retrieved_sources
 
 # Endpoint to retrieve sources
@@ -80,7 +85,6 @@ async def retrieve(request: QueryRequest):
 async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
     try:
         message_history = MessageHistory.model_validate_json(messages)
-        print(message_history)
         query = message_history.messages[-1].content if message_history.messages else ""
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
@@ -102,7 +106,6 @@ async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
 async def retrieve_and_generate(messages: str = Query(...)):
     # Parse the URL-encoded JSON string back to MessageHistory
     try:
-        print(messages)
         message_history = MessageHistory.model_validate_json(messages)
         query = message_history.messages[-1].content if message_history.messages else ""
     except Exception as e:
@@ -114,10 +117,7 @@ async def retrieve_and_generate(messages: str = Query(...)):
         # Send sources first
         yield {
             "data": json.dumps({
-                "role": "assistant",
                 "sources": retrieved_sources,
-                "content": "",
-                "done": False
             })
         }
 
@@ -134,7 +134,7 @@ async def retrieve_and_generate(messages: str = Query(...)):
         
         # Stream each chunk with a delay
         for chunk in text_chunks:
-            await asyncio.sleep(0.7)
+            await asyncio.sleep(random.uniform(0.1, 0.5))
             yield {
                 "data": json.dumps({
                     "role": "assistant",

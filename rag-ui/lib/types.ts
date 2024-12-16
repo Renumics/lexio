@@ -28,6 +28,8 @@ export interface SourceContent {
   type?: 'pdf';
 }
 
+export type RetrievalResult = SourceReference | TextContent;
+
 export type GetDataSourceResponse = Promise<SourceContent>;
 
 export interface GenerateStreamChunk {
@@ -39,8 +41,6 @@ export interface RetrieveAndGenerateResponse {
   sources?: Promise<RetrievalResult[]>;
   response: Promise<string> | AsyncIterable<GenerateStreamChunk>;
 }
-
-export type RetrievalResult = SourceReference | TextContent;
 
 export type RetrieveResponse = Promise<RetrievalResult[]>;
 

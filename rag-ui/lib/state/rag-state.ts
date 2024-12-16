@@ -1,6 +1,8 @@
 import { atom, WritableAtom } from 'jotai'
 import { GenerateInput, GenerateResponse, GenerateStreamChunk, GetDataSourceResponse, Message, RAGConfig, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, WorkflowMode } from '../types';
 import { toast } from 'react-toastify';
+import { validateRetrievalResults } from './data_validation';
+
 export const workflowModeAtom = atom<WorkflowMode>('init');
 
 export const ragConfigAtom = atom<RAGConfig>({
@@ -15,7 +17,11 @@ export const currentStreamAtom = atom<Message | null>(null);
 export const loadingAtom = atom(false);
 export const errorAtom = atom<string | null>(null);
 
-// In rag-state.ts
+
+// Add active source atom
+export const activeSourceAtom = atom<string | null>(null);
+
+// Add message atom
 export const addMessageAtom = atom(
   null,
   async (_get, set, message: Message) => {
@@ -168,6 +174,8 @@ export const createGenerateAtom = (generateFn: (input: GenerateInput) => Generat
 export const retrievedSourcesAtom = atom<RetrievalResult[]>([]);
 export const currentSourcesAtom = atom<RetrievalResult[]>([]);
 
+
+
 export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?: Record<string, any>) => Promise<RetrievalResult[]>) => {
   return atom(
     null,
@@ -203,7 +211,7 @@ export const createRetrieveAndGenerateAtom = (
       // Handle sources
       if (response.sources) {
         await addTimeout(
-          response.sources.then(sources => set(retrievedSourcesAtom, sources)),
+          response.sources.then(sources => set(retrievedSourcesAtom, validateRetrievalResults(sources))),
           config.timeouts?.request,
           'Sources request timeout exceeded'
         );
