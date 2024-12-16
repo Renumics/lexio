@@ -1,6 +1,6 @@
 import { atom, WritableAtom } from 'jotai'
 import { GenerateInput, GenerateResponse, GenerateStreamChunk, GetDataSourceResponse, Message, RAGConfig, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, WorkflowMode } from '../types';
-
+import { toast } from 'react-toastify';
 export const workflowModeAtom = atom<WorkflowMode>('init');
 
 export const ragConfigAtom = atom<RAGConfig>({
@@ -19,6 +19,14 @@ export const errorAtom = atom<string | null>(null);
 export const addMessageAtom = atom(
   null,
   async (_get, set, message: Message) => {
+
+
+    // Check if loading atom is true and throw error if that is the case
+    if (_get(loadingAtom)) {
+      toast.error('RAG operation already in progress');
+      throw new Error('RAG operation already in progress');
+    }
+
     const currentMode = _get(workflowModeAtom);
     const ragAtoms = _get(ragAtomsAtom);
     const previousMessages = _get(completedMessagesAtom);
@@ -180,6 +188,7 @@ export const createRetrieveAndGenerateAtom = (
   retrieveAndGenerateFn: (query: GenerateInput, metadata?: Record<string, any>) => RetrieveAndGenerateResponse
 ) => {
   return atom(null, (_get, set, query: GenerateInput, metadata?: Record<string, any>) => {
+
     set(loadingAtom, true);
     set(errorAtom, null);
 
@@ -190,6 +199,7 @@ export const createRetrieveAndGenerateAtom = (
 
     // Create a promise that handles both sources and response
     const processingPromise = (async () => {
+
       // Handle sources
       if (response.sources) {
         await addTimeout(
@@ -246,6 +256,7 @@ export const createRetrieveAndGenerateAtom = (
     // Start the processing but handle errors
     processingPromise.catch(err => {
       set(errorAtom, `RAG operation failed: ${err.message}`);
+    }).finally(() => {
       set(loadingAtom, false);
     });
 
