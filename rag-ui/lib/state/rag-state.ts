@@ -273,9 +273,10 @@ export const createRetrieveAndGenerateAtom = (
           'Response timeout exceeded'
         );
         
-        set(currentStreamAtom, { role: 'assistant', content });
+        
         set(completedMessagesAtom, prev => [...prev, { role: 'assistant', content }]);
         set(currentStreamAtom, null);
+        set(workflowModeAtom, 'follow-up');
       }
     })();
 
