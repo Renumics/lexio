@@ -28,13 +28,13 @@ const PdfViewer = ({ data }: PdfViewerProps) => {
     }
 
     // Get the original viewport at scale 1.0
-    const originalViewport = page.getViewport(1.0);
+    const originalViewport = page.getViewport({ scale: 1.0 });
     
     // Calculate scale to fit width
     const scale = width / originalViewport.width;
     
     // Get the scaled viewport
-    const viewport = page.getViewport(scale);
+    const viewport = page.getViewport({ scale, rotation: 0, dontFlip: false });
 
     // Set canvas dimensions
     canvas.height = viewport.height;
@@ -50,7 +50,7 @@ const PdfViewer = ({ data }: PdfViewerProps) => {
     };
 
     await page.render(renderContext).promise;
-  };
+};
 
   // Initial PDF load
   useEffect(() => {
