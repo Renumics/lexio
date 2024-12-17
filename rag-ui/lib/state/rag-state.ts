@@ -1,5 +1,5 @@
 import { atom, WritableAtom } from 'jotai'
-import { GenerateInput, GenerateResponse, GenerateStreamChunk, GetDataSourceResponse, Message, RAGConfig, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, WorkflowMode } from '../types';
+import { GenerateInput, GenerateResponse, GenerateStreamChunk, GetDataSourceResponse, Message, RAGConfig, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, SourceReference, WorkflowMode } from '../types';
 import { toast } from 'react-toastify';
 import { validateRetrievalResults } from './data_validation';
 
@@ -18,8 +18,25 @@ export const loadingAtom = atom(false);
 export const errorAtom = atom<string | null>(null);
 
 
-// Add active source atom
-export const activeSourceAtom = atom<string | null>(null);
+// Active source index atom
+export const activeSourceIndexAtom = atom<number | null>(null);
+
+// Update setActiveSourceIndexAtom to use getDataSourceAtom directly
+export const setActiveSourceIndexAtom = atom(
+  null,
+  (_get, set, index: number | null) => {
+    console.log('setActiveSourceIndexAtom', index);
+    set(activeSourceIndexAtom, index);
+    if (index !== null) {
+      const sources = _get(retrievedSourcesAtom);
+      const ragAtoms = _get(ragAtomsAtom);
+      if (ragAtoms?.getDataSourceAtom && sources[index]) {
+        set(ragAtoms.getDataSourceAtom, sources[index]);
+      }
+    }
+  }
+);
+
 
 // Add message atom
 export const addMessageAtom = atom(
@@ -312,19 +329,23 @@ class StreamTimeout {
   }
 }
 
-export const createGetDataSourceAtom = (getDataSourceFn: (metadata: Record<string, any>) => Promise<SourceContent>) => {
+export const createGetDataSourceAtom = (getDataSourceFn: (source: SourceReference) => GetDataSourceResponse) => {
   return atom(
     null,
-    async (_get, set, source: string, metadata?: Record<string, any>) => {
+    async (_get, set, retrievalResult: RetrievalResult) => {
       set(loadingAtom, true);
       
       try {
-        const mergedMetadata = {
-          source,
-          ...metadata
-        };
+        // If it's a TextContent, convert it directly to SourceContent
+        if ('text' in retrievalResult) {
+          return {
+            content: retrievalResult.text,
+            metadata: retrievalResult.metadata
+          };
+        }
         
-        const response = await getDataSourceFn(mergedMetadata);
+        // Otherwise, use the getDataSourceFn for SourceReference
+        const response = await getDataSourceFn(retrievalResult);
         return response;
       } finally {
         set(loadingAtom, false);
@@ -350,7 +371,7 @@ type RetrieveSourcesAtom = WritableAtom<
 
 type GetDataSourceAtom = WritableAtom<
   null,
-  [string, Record<string, any>?],
+  [RetrievalResult],
   GetDataSourceResponse
 >;
 

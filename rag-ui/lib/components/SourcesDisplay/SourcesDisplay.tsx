@@ -1,15 +1,17 @@
-import { useAtomValue } from "jotai";
-import { retrievedSourcesAtom } from "../../state/rag-state";
-import { RetrievalResult } from "../../types";
+import { useAtomValue, useSetAtom } from "jotai";
+import { retrievedSourcesAtom, setActiveSourceIndexAtom } from "../../state/rag-state";
+import { RetrievalResult, SourceReference } from "../../types";
 
 const SourcesDisplay = () => {
   const retrievedSources = useAtomValue(retrievedSourcesAtom);
+
+  const setActiveSourceIndex = useSetAtom(setActiveSourceIndexAtom);
+  
 
   const isSourceReference = (source: RetrievalResult): source is SourceReference => {
     return 'source' in source;
   };
 
-  console.log(retrievedSources);
 
   return (
     <div className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg">
@@ -21,7 +23,8 @@ const SourcesDisplay = () => {
           {retrievedSources.map((source, index) => (
             <li 
               key={index}
-              className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 transition-colors"
+              className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer"
+              onClick={() => setActiveSourceIndex(index)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">

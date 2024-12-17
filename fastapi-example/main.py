@@ -69,7 +69,7 @@ def retrieve_helper(query: str):
     # Mock retrieval based on the presence of the query in the filename
     pdf_files = list_pdf_files()
     retrieved_sources = [
-        {**file, "page": random.randint(1, 3)} 
+        {**file, "metadata": {"page": random.randint(1, 3)}} 
         for file in pdf_files 
         if any(query_part.lower() in file["source"].lower() for query_part in query.split())
     ]

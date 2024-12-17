@@ -1,5 +1,5 @@
 import './App.css'
-import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, GenerateResponse, RetrievalResult, SourceContent, SourcesDisplay, ErrorDisplay } from '../lib/main'
+import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, RetrievalResult, SourceContent, SourcesDisplay, ErrorDisplay, GetDataSourceResponse, SourceReference } from '../lib/main'
 import { GenerateInput, GenerateStreamChunk } from '../lib/main'
 
 function App() {
@@ -129,19 +129,18 @@ const retrieveAndGenerate = (messages: GenerateInput): RetrieveAndGenerateRespon
   };
 };
 
-const getDataSource = async (metadata: Record<string, any>): Promise<SourceContent> => {
-  const url = `http://localhost:8000/pdfs/${encodeURIComponent(metadata.source)}${metadata.page !== undefined ? `?page=${metadata.page}` : ''}`;
+const getDataSource = async (source: SourceReference): Promise<GetDataSourceResponse> => {
+  const url = `http://localhost:8000/pdfs/${encodeURIComponent(source.source)}${source.metadata?.page !== undefined ? `?page=${source.metadata.page}` : ''}`;
   const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error('Failed to get data source');
   }
 
-  const content = await response.text();
   return {
-    content,
-    metadata: {},
-    type: 'pdf',
+    content: await response.text(),
+    metadata: source.metadata || {},
+    type: source.type,
   };
 };
 
