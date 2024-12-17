@@ -1,3 +1,4 @@
+from io import BytesIO
 import random
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
@@ -33,7 +34,7 @@ app.add_middleware(
 )
 
 # Helper function to extract a specific page from a PDF and save it as a new PDF
-def extract_pdf_page(file_path: str, page_number: int) -> str:
+def extract_pdf_page(file_path: str, page_number: int) -> BytesIO:
     try:
         reader = PdfReader(file_path)
         if page_number < 0 or page_number >= len(reader.pages):
@@ -43,12 +44,12 @@ def extract_pdf_page(file_path: str, page_number: int) -> str:
         writer = PdfWriter()
         writer.add_page(reader.pages[page_number])
         
-        # Save the new PDF to a temporary file
-        temp_file_path = f"temp_page_{page_number}.pdf"
-        with open(temp_file_path, "wb") as temp_file:
-            writer.write(temp_file)
+        # Write the new PDF to an in-memory bytes buffer
+        pdf_buffer = BytesIO()
+        writer.write(pdf_buffer)
+        pdf_buffer.seek(0)  # Reset buffer position to the beginning
         
-        return temp_file_path
+        return pdf_buffer
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -161,8 +162,10 @@ async def get_pdf(filename: str, page: int = Query(None, description="Page numbe
     file_path = os.path.join(pdf_directory, filename)
     if os.path.exists(file_path):
         if page is not None:
-            temp_file_path = extract_pdf_page(file_path, page)
-            return FileResponse(temp_file_path, media_type='application/pdf', filename=f"page_{page}.pdf")
+            pdf_buffer = extract_pdf_page(file_path, page)
+            return StreamingResponse(pdf_buffer, media_type='application/pdf', headers={
+                "Content-Disposition": f"attachment; filename=page_{page}.pdf"
+            })
         else:
             return FileResponse(file_path, media_type='application/pdf', filename=filename)
     else:

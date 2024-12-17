@@ -23,7 +23,7 @@ export interface TextContent extends BaseRetrievalResult {
 }
 
 export interface SourceContent {
-  content: string;
+  content: Uint8Array;
   metadata?: Record<string, any>;
   type?: 'pdf';
 }

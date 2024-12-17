@@ -1,5 +1,5 @@
 import './App.css'
-import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, RetrievalResult, SourceContent, SourcesDisplay, ErrorDisplay, GetDataSourceResponse, SourceReference } from '../lib/main'
+import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, RetrievalResult, SourceContent, SourcesDisplay, ErrorDisplay, GetDataSourceResponse, SourceReference, ContentDisplay } from '../lib/main'
 import { GenerateInput, GenerateStreamChunk } from '../lib/main'
 
 function App() {
@@ -137,8 +137,11 @@ const getDataSource = async (source: SourceReference): Promise<GetDataSourceResp
     throw new Error('Failed to get data source');
   }
 
+  const arrayBuffer = await response.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
+
   return {
-    content: await response.text(),
+    content: uint8Array, // Store as Uint8Array
     metadata: source.metadata || {},
     type: source.type,
   };
@@ -173,6 +176,7 @@ const getDataSource = async (source: SourceReference): Promise<GetDataSourceResp
       {/* Right side: Sources */}
       <div className="w-1/3 h-full"> {/* Sources panel */}
         <SourcesDisplay />
+        <ContentDisplay />
       </div>
       <ErrorDisplay />
     </div>

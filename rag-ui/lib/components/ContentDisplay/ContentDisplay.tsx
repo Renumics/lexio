@@ -1,11 +1,26 @@
 import { useAtomValue } from "jotai";
-import { activeSourceIndexAtom, retrievedSourcesAtom } from "../../state/rag-state";
+import { currentSourceContentAtom } from "../../state/rag-state";
+import { PdfViewer } from "../PdfViewer/PdfViewer";
+import { SourceContent } from "../../types";
 
 const ContentDisplay = () => {
-  const activeSourceIndex = useAtomValue(activeSourceIndexAtom);
-  const retrievedSources = useAtomValue(retrievedSourcesAtom);
+  const currentSourceContent = useAtomValue<SourceContent | null>(currentSourceContentAtom);
 
-  return <div>ContentDisplay</div>;
+  console.log(currentSourceContent);
+
+  if (!currentSourceContent) {
+    return null;
+  }
+
+  return (
+    <div className="w-full h-full">
+      {currentSourceContent.type === 'pdf' ? (
+        <PdfViewer data={currentSourceContent.content} />
+      ) : (
+        <div>{currentSourceContent.content}</div>
+      )}
+    </div>
+  );
 };
 
 export { ContentDisplay };

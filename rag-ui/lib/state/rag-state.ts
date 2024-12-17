@@ -25,7 +25,6 @@ export const activeSourceIndexAtom = atom<number | null>(null);
 export const setActiveSourceIndexAtom = atom(
   null,
   (_get, set, index: number | null) => {
-    console.log('setActiveSourceIndexAtom', index);
     set(activeSourceIndexAtom, index);
     if (index !== null) {
       const sources = _get(retrievedSourcesAtom);
@@ -36,6 +35,8 @@ export const setActiveSourceIndexAtom = atom(
     }
   }
 );
+
+export const currentSourceContentAtom = atom<SourceContent | null>(null);
 
 
 // Add message atom
@@ -336,16 +337,21 @@ export const createGetDataSourceAtom = (getDataSourceFn: (source: SourceReferenc
       set(loadingAtom, true);
       
       try {
+        let response: SourceContent;
+        
         // If it's a TextContent, convert it directly to SourceContent
         if ('text' in retrievalResult) {
-          return {
+          response = {
             content: retrievalResult.text,
             metadata: retrievalResult.metadata
           };
+        } else {
+          // Otherwise, use the getDataSourceFn for SourceReference
+          response = await getDataSourceFn(retrievalResult);
         }
         
-        // Otherwise, use the getDataSourceFn for SourceReference
-        const response = await getDataSourceFn(retrievalResult);
+        // Store the fetched content
+        set(currentSourceContentAtom, response);
         return response;
       } finally {
         set(loadingAtom, false);
