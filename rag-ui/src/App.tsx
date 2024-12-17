@@ -129,7 +129,7 @@ const retrieveAndGenerate = (messages: GenerateInput): RetrieveAndGenerateRespon
   };
 };
 
-const getDataSource = async (source: SourceReference): Promise<GetDataSourceResponse> => {
+const getDataSource = async (source: SourceReference): GetDataSourceResponse => {
   const url = `http://localhost:8000/pdfs/${encodeURIComponent(source.source)}${source.metadata?.page !== undefined ? `?page=${source.metadata.page}` : ''}`;
   const response = await fetch(url);
 

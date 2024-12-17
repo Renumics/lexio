@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import * as pdfjs from "pdfjs-dist";
-import pdfJSWorkerURL from "pdfjs-dist/build/pdf.worker?url";
 import useResizeObserver from '@react-hook/resize-observer';
+import pdfjsWorkerURL from 'pdfjs-dist/build/pdf.worker?url';
 
-pdfjs.GlobalWorkerOptions.workerSrc = pdfJSWorkerURL;
+let pdfjs: typeof import('pdfjs-dist');
+
+// Initialize PDF.js
+const initPdfJs = async () => {
+  pdfjs = await import(/* @vite-ignore */ 'pdfjs-dist');
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorkerURL;
+};
+
+// Initialize immediately
+initPdfJs().catch(console.error);
 
 interface PdfViewerProps {
   data: Uint8Array;
