@@ -16,23 +16,29 @@ const PdfViewer = ({ data }: PdfViewerProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfPage, setPdfPage] = useState<any>(null);
+  const renderTaskRef = useRef<pdfjs.RenderTask | null>(null);
 
   const renderPage = async (page: any, width: number) => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
-    
+
     if (!context) {
       throw new Error('Canvas context not available');
     }
 
+    // Cancel any ongoing render task
+    if (renderTaskRef.current) {
+      renderTaskRef.current.cancel();
+    }
+
     // Get the original viewport at scale 1.0
     const originalViewport = page.getViewport({ scale: 1.0 });
-    
+
     // Calculate scale to fit width
     const scale = width / originalViewport.width;
-    
+
     // Get the scaled viewport
     const viewport = page.getViewport({ scale, rotation: 0, dontFlip: false });
 
@@ -49,8 +55,11 @@ const PdfViewer = ({ data }: PdfViewerProps) => {
       viewport: viewport,
     };
 
-    await page.render(renderContext).promise;
-};
+    // Start a new render task
+    renderTaskRef.current = page.render(renderContext);
+    if (!renderTaskRef.current) return;
+    await renderTaskRef.current.promise;
+  };
 
   // Initial PDF load
   useEffect(() => {
@@ -71,8 +80,8 @@ const PdfViewer = ({ data }: PdfViewerProps) => {
         if (currentRenderID !== renderIdRef.current) return;
 
         setPdfPage(page);
-        await renderPage(page, containerRef.current.clientWidth);
-        
+        renderPage(page, containerRef.current.clientWidth);
+
         if (currentRenderID === renderIdRef.current) {
           setLoading(false);
         }
