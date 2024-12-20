@@ -23,7 +23,7 @@ const mockStreamingFn = vi.fn((messages: GenerateInput): RetrieveAndGenerateResp
 describe('Atom State Tests', () => {
   let store: ReturnType<typeof createStore>;
   let wrapper: React.FC<{ children: React.ReactNode }>;
-  
+
   beforeEach(() => {
     store = createStore();
     wrapper = ({ children }) => (
@@ -89,14 +89,14 @@ describe('Atom State Tests', () => {
     });
 
     expect(errorResult.current[0]).toBe(null);
-});
+  });
 
   it('should handle errors correctly and update errorAtom', async () => {
     const errorFn = vi.fn((messages: GenerateInput): RetrieveAndGenerateResponse => ({
       sources: Promise.reject(new Error('Test error')),
       response: Promise.reject(new Error('Test error'))
     }));
-    
+
     const retrieveAndGenerateAtom = createRetrieveAndGenerateAtom(errorFn);
     const { result: retrieveResult } = renderHook(() => useAtom(retrieveAndGenerateAtom), { wrapper });
     const { result: errorResult } = renderHook(() => useAtom(errorAtom), { wrapper });
@@ -116,14 +116,19 @@ describe('Atom State Tests', () => {
     });
   });
 
-  it('should handle timeouts correctly and update errorAtom', async () => {
+  it('should handle stream timeout correctly', async () => {
     vi.useFakeTimers();
-    
-    const retrieveAndGenerateAtom = createRetrieveAndGenerateAtom((messages: GenerateInput): RetrieveAndGenerateResponse => ({
-      sources: new Promise(() => {}),
-      response: new Promise(() => {})
+    const mockSlowStreamFn = vi.fn((messages: GenerateInput): RetrieveAndGenerateResponse => ({
+      sources: Promise.resolve([{ text: 'test source', metadata: {} }]),
+      response: (async function* () {
+        yield { content: 'Part 1', done: false };
+        // Simulate delay between chunks
+        await new Promise(resolve => setTimeout(resolve, 11000)); // > 10s stream timeout
+        yield { content: 'Part 2', done: true };
+      })()
     }));
 
+    const retrieveAndGenerateAtom = createRetrieveAndGenerateAtom(mockSlowStreamFn);
     const { result: retrieveResult } = renderHook(() => useAtom(retrieveAndGenerateAtom), { wrapper });
     const { result: errorResult } = renderHook(() => useAtom(errorAtom), { wrapper });
     const { result: workflowResult } = renderHook(() => useAtom(workflowModeAtom), { wrapper });
@@ -134,19 +139,57 @@ describe('Atom State Tests', () => {
       retrieveResult.current[1](testMessages);
     });
 
-    // Advance time and run timers in small increments
-    for (let i = 0; i < 31; i++) {
-      await act(async () => {
-        vi.advanceTimersByTime(1000);
-        await vi.runAllTimersAsync();
-      });
-    }
+    // Advance timers in small increments to handle stream timeout
+    await advanceTimersBySmallIncrements(11000);
 
-    // Check final state
-    expect(errorResult.current[0]).toBe('RAG operation failed: Sources request timeout exceeded');
-    // Workflow mode should not change on timeout
+    expect(errorResult.current[0]).toBe('RAG operation failed: Stream timeout exceeded');
     expect(workflowResult.current[0]).toBe('init');
-    
+
+    vi.useRealTimers();
+  });
+
+  it('should handle request timeout correctly', async () => {
+    vi.useFakeTimers();
+    const mockSlowRequestFn = vi.fn((messages: GenerateInput): RetrieveAndGenerateResponse => ({
+      sources: Promise.resolve([{ text: 'test source', metadata: {} }]),
+      response: (async function* () {
+        // Simulate an extremely slow stream that exceeds request timeout
+        await new Promise(resolve => setTimeout(resolve, 31000)); // > 30s request timeout
+        yield { content: 'Part 1', done: false };
+        yield { content: 'Part 2', done: true };
+      })()
+    }));
+
+    const retrieveAndGenerateAtom = createRetrieveAndGenerateAtom(mockSlowRequestFn);
+    const { result: retrieveResult } = renderHook(() => useAtom(retrieveAndGenerateAtom), { wrapper });
+    const { result: errorResult } = renderHook(() => useAtom(errorAtom), { wrapper });
+    const { result: workflowResult } = renderHook(() => useAtom(workflowModeAtom), { wrapper });
+    const { result: loadingResult } = renderHook(() => useAtom(loadingAtom), { wrapper });
+
+    const testMessages: Message[] = [{ role: 'user', content: 'test query' }];
+
+    await act(async () => {
+      retrieveResult.current[1](testMessages);
+    });
+
+    // Advance timers in small increments to handle request timeout
+    await advanceTimersBySmallIncrements(31000);
+
+    expect(errorResult.current[0]).toBe('RAG operation failed: Stream processing timeout exceeded');
+    expect(workflowResult.current[0]).toBe('init');
+    expect(loadingResult.current[0]).toBe(false);
+
     vi.useRealTimers();
   });
 });
+
+// Helper to advance timers in small increments
+const advanceTimersBySmallIncrements = async (totalMs: number, incrementMs = 1000) => {
+  const iterations = totalMs / incrementMs;
+  for (let i = 0; i < iterations; i++) {
+    await act(async () => {
+      vi.advanceTimersByTime(incrementMs);
+      await vi.runAllTimersAsync();
+    });
+  }
+};
