@@ -214,6 +214,10 @@ export const createRetrieveAndGenerateAtom = (
   retrieveAndGenerateFn: (query: GenerateInput, metadata?: Record<string, any>) => RetrieveAndGenerateResponse
 ) => {
   return atom(null, (_get, set, query: GenerateInput, metadata?: Record<string, any>) => {
+    // Store initial states
+    const initialWorkflowMode = _get(workflowModeAtom);
+    const initialMessages = _get(completedMessagesAtom);
+    const initialSources = _get(retrievedSourcesAtom);
 
     set(loadingAtom, true);
     set(errorAtom, null);
@@ -225,58 +229,67 @@ export const createRetrieveAndGenerateAtom = (
 
     // Create a promise that handles both sources and response
     const processingPromise = (async () => {
+      try {
+        // Handle sources
+        if (response.sources) {
+          await addTimeout(
+            response.sources.then(sources => set(retrievedSourcesAtom, validateRetrievalResults(sources))),
+            config.timeouts?.request,
+            'Sources request timeout exceeded'
+          );
+        }
 
-      // Handle sources
-      if (response.sources) {
-        await addTimeout(
-          response.sources.then(sources => set(retrievedSourcesAtom, validateRetrievalResults(sources))),
-          config.timeouts?.request,
-          'Sources request timeout exceeded'
-        );
-      }
-
-      // Handle streaming response
-      if (Symbol.asyncIterator in response.response) {
-        const processStream = async () => {
-          const streamTimeout = new StreamTimeout(config.timeouts?.stream);
-          
-          for await (const chunk of response.response as AsyncIterable<GenerateStreamChunk>) {
-            streamTimeout.check();
-            accumulatedContent += chunk.content;
+        // Handle streaming response
+        if (Symbol.asyncIterator in response.response) {
+          const processStream = async () => {
+            const streamTimeout = new StreamTimeout(config.timeouts?.stream);
             
-            set(currentStreamAtom, { 
-              role: 'assistant', 
-              content: accumulatedContent 
-            });
-
-            if (chunk.done) {
-              set(completedMessagesAtom, prev => [...prev, { 
+            for await (const chunk of response.response as AsyncIterable<GenerateStreamChunk>) {
+              streamTimeout.check();
+              accumulatedContent += chunk.content;
+              
+              set(currentStreamAtom, { 
                 role: 'assistant', 
                 content: accumulatedContent 
-              }]);
-              set(currentStreamAtom, null);
-              set(workflowModeAtom, 'follow-up');
-            }
-          }
-        };
+              });
 
-        await addTimeout(
-          processStream(),
-          config.timeouts?.request,
-          'Stream processing timeout exceeded'
-        );
-      } else {
-        // Handle Promise<string> response
-        const content = await addTimeout(
-          response.response as Promise<string>,
-          config.timeouts?.request,
-          'Response timeout exceeded'
-        );
-        
-        
-        set(completedMessagesAtom, prev => [...prev, { role: 'assistant', content }]);
+              if (chunk.done) {
+                set(completedMessagesAtom, prev => [...prev, { 
+                  role: 'assistant', 
+                  content: accumulatedContent 
+                }]);
+                set(currentStreamAtom, null);
+              }
+            }
+          };
+
+          await addTimeout(
+            processStream(),
+            config.timeouts?.request,
+            'Stream processing timeout exceeded'
+          );
+          // Only set workflow mode after successful completion
+          set(workflowModeAtom, 'follow-up');
+        } else {
+          // Handle Promise<string> response
+          const content = await addTimeout(
+            response.response as Promise<string>,
+            config.timeouts?.request,
+            'Response timeout exceeded'
+          );
+          
+          set(completedMessagesAtom, prev => [...prev, { role: 'assistant', content }]);
+          set(currentStreamAtom, null);
+          // Only set workflow mode after successful completion
+          set(workflowModeAtom, 'follow-up');
+        }
+      } catch (err) {
+        // Restore initial states on error
+        set(workflowModeAtom, initialWorkflowMode);
+        set(completedMessagesAtom, initialMessages);
+        set(retrievedSourcesAtom, initialSources);
         set(currentStreamAtom, null);
-        set(workflowModeAtom, 'follow-up');
+        throw err;
       }
     })();
 
