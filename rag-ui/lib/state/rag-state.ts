@@ -94,6 +94,9 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
   return atom<null, [Message[]], GenerateResponse>(
     null,
     (_get, set, messages: Message[]): GenerateResponse => {
+      // Store initial states
+      const initialMessages = _get(completedMessagesAtom);
+  
       set(loadingAtom, true);
       set(errorAtom, null);
 
@@ -118,6 +121,9 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
       const handleError = (err: any) => {
         aborted = true;
         abortController.abort();
+        // Restore initial states on error
+        set(completedMessagesAtom, initialMessages);
+        set(currentStreamAtom, null);
         set(errorAtom, `Generate operation failed: ${err.message}`);
         set(loadingAtom, false);
       };
