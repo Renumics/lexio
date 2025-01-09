@@ -44,8 +44,16 @@ export interface RetrieveAndGenerateResponse {
 
 export type RetrieveResponse = Promise<RetrievalResult[]>;
 
+// ----- Types for the generate function -----
 export type GenerateInput = Message[];
 export type GenerateResponse = Promise<string> | AsyncIterable<GenerateStreamChunk>;
+export type GenerateSimple = (messages: Message[]) => GenerateResponse;
+export type GenerateWithSources = (messages: Message[], sources: RetrievalResult[]) => GenerateResponse;
+
+// Type guard to check if the supplied generate function accepts sources
+export const acceptsSources = (
+  fn: GenerateSimple | GenerateWithSources
+): fn is GenerateWithSources => fn.length === 2;
 
 export interface RAGProviderProps {
   children: React.ReactNode;
@@ -54,7 +62,7 @@ export interface RAGProviderProps {
     query: GenerateInput,
     metadata?: Record<string, any>
   ) => RetrieveAndGenerateResponse;
-  generate: (input: GenerateInput) => GenerateResponse;
+  generate: GenerateSimple | GenerateWithSources;
   getDataSource: (source: SourceReference) => GetDataSourceResponse;
   config?: RAGConfig;
 }

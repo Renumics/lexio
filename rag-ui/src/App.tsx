@@ -1,5 +1,5 @@
 import './App.css'
-import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, RetrievalResult, SourceContent, SourcesDisplay, ErrorDisplay, GetDataSourceResponse, SourceReference, ContentDisplay } from '../lib/main'
+import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, RetrievalResult, SourceContent, SourcesDisplay, ErrorDisplay, GetDataSourceResponse, SourceReference, ContentDisplay, Message } from '../lib/main'
 import { GenerateInput, GenerateStreamChunk } from '../lib/main'
 
 function App() {
@@ -13,9 +13,9 @@ const retrieveSources = async (query: string): Promise<RetrievalResult[]> => {
 };
 
 // In App.tsx
-const generateText = (input: GenerateInput): AsyncIterable<GenerateStreamChunk> => {
+const generateText = (messages: Message[]): AsyncIterable<GenerateStreamChunk> => {
   // Convert input messages array to URL-safe format
-  const query = encodeURIComponent(JSON.stringify({ messages: input }));
+  const query = encodeURIComponent(JSON.stringify({ messages: messages }));
   
   const eventSource = new EventSource(
     `http://localhost:8000/generate?messages=${query}`
@@ -49,6 +49,60 @@ const generateText = (input: GenerateInput): AsyncIterable<GenerateStreamChunk> 
           break;
         }
     
+      }
+    } finally {
+      eventSource.removeEventListener('message', handleMessage);
+      eventSource.close();
+    }
+  }
+
+  return streamChunks();
+};
+
+const generateTextWithSources = (
+  messages: Message[],
+  sources: RetrievalResult[]
+): AsyncIterable<GenerateStreamChunk> => {
+  // Convert both messages and sources to URL-safe format
+  console.log(messages, sources);
+  const query = encodeURIComponent(
+    JSON.stringify({
+      messages: messages,
+      sources: sources
+    })
+  );
+  
+  const eventSource = new EventSource(
+    `http://localhost:8000/generate?input=${query}`
+  );
+
+  const messageQueue: GenerateStreamChunk[] = [];
+  let resolveNext: (() => void) | null = null;
+
+  const handleMessage = (event: MessageEvent) => {
+    const data = JSON.parse(event.data);
+    const chunk: GenerateStreamChunk = {
+      content: data.content || '',
+      done: data.done || false
+    };
+    messageQueue.push(chunk);
+    resolveNext?.();
+  };
+
+  eventSource.addEventListener('message', handleMessage);
+
+  async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
+    try {
+      while (true) {
+        if (messageQueue.length === 0) {
+          await new Promise(resolve => { resolveNext = resolve; });
+        }
+
+        const chunk = messageQueue.shift()!;
+        yield chunk;
+        if (chunk.done) {
+          break;
+        }
       }
     } finally {
       eventSource.removeEventListener('message', handleMessage);

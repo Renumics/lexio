@@ -1,5 +1,5 @@
 import { atom, WritableAtom } from 'jotai'
-import { GenerateInput, GenerateResponse, GenerateStreamChunk, GetDataSourceResponse, Message, RAGConfig, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, SourceReference, WorkflowMode } from '../types';
+import { acceptsSources, GenerateInput, GenerateResponse, GenerateSimple, GenerateStreamChunk, GenerateWithSources, GetDataSourceResponse, Message, RAGConfig, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, SourceReference, WorkflowMode } from '../types';
 import { toast } from 'react-toastify';
 import { validateRetrievalResults } from './data_validation';
 
@@ -89,10 +89,11 @@ export const addMessageAtom = atom(
 );
 
 // Generate
-export const createGenerateAtom = (generateFn: (input: GenerateInput) => GenerateResponse) => {
-  return atom<null, [GenerateInput], GenerateResponse>(
+// Generate
+export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSources) => {
+  return atom<null, [Message[]], GenerateResponse>(
     null,
-    (_get, set, input: GenerateInput): GenerateResponse => {
+    (_get, set, messages: Message[]): GenerateResponse => {
       set(loadingAtom, true);
       set(errorAtom, null);
 
@@ -103,7 +104,15 @@ export const createGenerateAtom = (generateFn: (input: GenerateInput) => Generat
       const config = _get(ragConfigAtom);
       let accumulatedContent = '';
 
-      const response = generateFn(input);
+      // Call generate function based on its type
+      let response: GenerateResponse;
+      if (acceptsSources(generateFn)) {
+        console.log('generateFn accepts sources');
+        response = (generateFn as GenerateWithSources)(messages, _get(retrievedSourcesAtom));
+      } else {
+        console.log('generateFn does not accept sources');
+        response = (generateFn as GenerateSimple)(messages);
+      }
 
       // Function to handle errors uniformly
       const handleError = (err: any) => {

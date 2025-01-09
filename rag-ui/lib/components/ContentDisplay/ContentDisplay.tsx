@@ -6,8 +6,6 @@ import { SourceContent } from "../../types";
 const ContentDisplay = () => {
   const currentSourceContent = useAtomValue<SourceContent | null>(currentSourceContentAtom);
 
-  console.log(currentSourceContent);
-
   if (!currentSourceContent) {
     return null;
   }
