@@ -1,5 +1,5 @@
 import './App.css'
-import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, RetrievalResult, SourceContent, SourcesDisplay, ErrorDisplay, GetDataSourceResponse, SourceReference, ContentDisplay, Message } from '../lib/main'
+import { QueryField, ChatWindow, RAGProvider, RetrieveAndGenerateResponse, RetrievalResult, SourceContent, SourcesDisplay, ErrorDisplay, GetDataSourceResponse, SourceReference, ContentDisplay, Message, AdvancedQueryField } from '../lib/main'
 import { GenerateInput, GenerateStreamChunk } from '../lib/main'
 
 function App() {
@@ -229,7 +229,8 @@ const getDataSource = async (source: SourceReference): GetDataSourceResponse => 
           <ChatWindow />
         </div>
         <div className="h-1/3 min-h-0"> {/* Query field */}
-          <QueryField onSubmit={() => {}} />
+           {/* <QueryField onSubmit={() => {}} /> */}
+          <AdvancedQueryField />
         </div>
       </div>
       
