@@ -215,6 +215,12 @@ const getDataSource = async (source: SourceReference): GetDataSourceResponse => 
         request: 60000
       }
     }}
+    onAddMessage={() => {
+      return {
+        type: 'reretrieve',
+        preserveHistory: false
+      }
+    }}
   >
     <div className="w-full max-w-6xl h-full flex gap-4">
       {/* Left side: Chat and Query */}

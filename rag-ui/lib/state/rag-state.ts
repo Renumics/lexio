@@ -1,5 +1,5 @@
 import { atom, WritableAtom } from 'jotai'
-import { acceptsSources, GenerateInput, GenerateResponse, GenerateSimple, GenerateStreamChunk, GenerateWithSources, GetDataSourceResponse, Message, RAGConfig, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, SourceReference, WorkflowMode } from '../types';
+import { acceptsSources, GenerateInput, GenerateResponse, GenerateSimple, GenerateStreamChunk, GenerateWithSources, GetDataSourceResponse, Message, RAGConfig, RAGWorkflowActionOnAddMessage, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, SourceReference, WorkflowMode } from '../types';
 import { toast } from 'react-toastify';
 import { validateRetrievalResults } from './data_validation';
 
@@ -11,6 +11,9 @@ export const ragConfigAtom = atom<RAGConfig>({
     request: 30000  // 30 seconds default
   }
 });
+
+// Current definition (might be wrong)
+export const onAddMessageAtom = atom<((message: Message, previousMessages: Message[]) => RAGWorkflowActionOnAddMessage) | null>(null);
 
 export const completedMessagesAtom = atom<Message[]>([]);
 export const currentStreamAtom = atom<Message | null>(null);
@@ -43,9 +46,6 @@ export const currentSourceContentAtom = atom<SourceContent | null>(null);
 export const addMessageAtom = atom(
   null,
   async (_get, set, message: Message) => {
-
-
-    // Check if loading atom is true and throw error if that is the case
     if (_get(loadingAtom)) {
       toast.error('RAG operation already in progress');
       throw new Error('RAG operation already in progress');
@@ -53,32 +53,51 @@ export const addMessageAtom = atom(
 
     const currentMode = _get(workflowModeAtom);
     const ragAtoms = _get(ragAtomsAtom);
+    const onAddMessage = _get(onAddMessageAtom);
     const previousMessages = _get(completedMessagesAtom);
 
     if (!ragAtoms) {
       throw new Error('RAG atoms not initialized');
     }
 
-    // Add the message to the history
+    
+    // Check for custom handler first
+    if (onAddMessage) {
+      
+      const action = onAddMessage(message, previousMessages);
+      if (action.type === 'follow-up') {
+        const updatedMessages = [...previousMessages, message];
+        set(ragAtoms.generateAtom, updatedMessages);
+        return;
+      } else if (action.type === 'reretrieve') { // reretrieve
+        const updatedMessages = action.preserveHistory ? [...previousMessages, message] : [message];
+        set(workflowModeAtom, 'reretrieve');
+        set(completedMessagesAtom, updatedMessages);
+        set(ragAtoms.retrieveAndGenerateAtom, updatedMessages); // TODO: potentially pass source filters here
+        return;
+      } else {
+        toast.error('Unexpected workflow action');
+        throw new Error('Unexpected workflow action');
+      }
+    } 
+
     const updatedMessages = [...previousMessages, message];
+
+    
     set(completedMessagesAtom, updatedMessages);
 
-    // Handle workflow transitions and actions
+    // Default workflow transitions if no handler or handler skipped
     switch (currentMode) {
       case 'init':
-        // First message triggers retrieveAndGenerate
         set(ragAtoms.retrieveAndGenerateAtom, updatedMessages);
         break;  
 
       case 'follow-up':
-        // Continue with generate
         set(ragAtoms.generateAtom, updatedMessages);
         break;
 
       case 'reretrieve':
-        // Get new sources while preserving history
         set(ragAtoms.retrieveAndGenerateAtom, updatedMessages);
-        set(workflowModeAtom, 'follow-up');
         break;
 
       default:
@@ -88,7 +107,6 @@ export const addMessageAtom = atom(
   }
 );
 
-// Generate
 // Generate
 export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSources) => {
   return atom<null, [Message[]], GenerateResponse>(
@@ -110,10 +128,8 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
       // Call generate function based on its type
       let response: GenerateResponse;
       if (acceptsSources(generateFn)) {
-        console.log('generateFn accepts sources');
         response = (generateFn as GenerateWithSources)(messages, _get(retrievedSourcesAtom));
       } else {
-        console.log('generateFn does not accept sources');
         response = (generateFn as GenerateSimple)(messages);
       }
 
@@ -299,7 +315,7 @@ export const createRetrieveAndGenerateAtom = (
           set(workflowModeAtom, 'follow-up');
         }
       } catch (err) {
-        // Restore initial states on error
+        // Always restore workflow mode
         set(workflowModeAtom, initialWorkflowMode);
         set(completedMessagesAtom, initialMessages);
         set(retrievedSourcesAtom, initialSources);

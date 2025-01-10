@@ -3,16 +3,16 @@ import { createRetrieveAndGenerateAtom, loadingAtom, errorAtom, workflowModeAtom
 import { useAtom } from 'jotai';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { Provider, createStore } from 'jotai';
-import type { GenerateInput, RetrieveAndGenerateResponse, Message, GenerateStreamChunk } from '../types';
+import type { GenerateInput, RetrieveAndGenerateResponse, Message} from '../types';
 import React from 'react';
 
 // Mock functions
-const mockPromiseBasedFn = vi.fn((messages: GenerateInput): RetrieveAndGenerateResponse => ({
+const mockPromiseBasedFn = vi.fn((_messages: GenerateInput): RetrieveAndGenerateResponse => ({
   sources: Promise.resolve([{ text: 'test source', metadata: {} }]),
   response: Promise.resolve('Generated content')
 }));
 
-const mockStreamingFn = vi.fn((messages: GenerateInput): RetrieveAndGenerateResponse => ({
+const mockStreamingFn = vi.fn((_messages: GenerateInput): RetrieveAndGenerateResponse => ({
   sources: Promise.resolve([{ text: 'test source', metadata: {} }]),
   response: (async function* () {
     yield { content: 'Part 1', done: false };
@@ -92,7 +92,7 @@ describe('Atom State Tests', () => {
   });
 
   it('should handle errors correctly and update errorAtom', async () => {
-    const errorFn = vi.fn((messages: GenerateInput): RetrieveAndGenerateResponse => ({
+    const errorFn = vi.fn((_messages: GenerateInput): RetrieveAndGenerateResponse => ({
       sources: Promise.reject(new Error('Test error')),
       response: Promise.reject(new Error('Test error'))
     }));
@@ -118,7 +118,7 @@ describe('Atom State Tests', () => {
 
   it('should handle stream timeout correctly', async () => {
     vi.useFakeTimers();
-    const mockSlowStreamFn = vi.fn((messages: GenerateInput): RetrieveAndGenerateResponse => ({
+    const mockSlowStreamFn = vi.fn((_messages: GenerateInput): RetrieveAndGenerateResponse => ({
       sources: Promise.resolve([{ text: 'test source', metadata: {} }]),
       response: (async function* () {
         yield { content: 'Part 1', done: false };
@@ -150,7 +150,7 @@ describe('Atom State Tests', () => {
 
   it('should handle request timeout correctly', async () => {
     vi.useFakeTimers();
-    const mockSlowRequestFn = vi.fn((messages: GenerateInput): RetrieveAndGenerateResponse => ({
+    const mockSlowRequestFn = vi.fn((_messages: GenerateInput): RetrieveAndGenerateResponse => ({
       sources: Promise.resolve([{ text: 'test source', metadata: {} }]),
       response: (async function* () {
         // Simulate an extremely slow stream that exceeds request timeout

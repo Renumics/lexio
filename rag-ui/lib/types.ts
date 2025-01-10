@@ -55,6 +55,13 @@ export const acceptsSources = (
   fn: GenerateSimple | GenerateWithSources
 ): fn is GenerateWithSources => fn.length === 2;
 
+// ----- Workflow Action Types -----
+export type RAGWorkflowActionOnAddMessage = 
+  | { type: 'follow-up' }
+  | { type: 'reretrieve', preserveHistory: boolean }
+
+
+// ----- RAG Provider Types -----
 export interface RAGProviderProps {
   children: React.ReactNode;
   retrieve: (query: string, metadata?: Record<string, any>) => RetrieveResponse;
@@ -65,11 +72,13 @@ export interface RAGProviderProps {
   generate: GenerateSimple | GenerateWithSources;
   getDataSource: (source: SourceReference) => GetDataSourceResponse;
   config?: RAGConfig;
+  onAddMessage?: (message: Message, previousMessages: Message[]) => RAGWorkflowActionOnAddMessage;
 }
 
 export interface RAGConfig {
   timeouts?: {
     stream?: number;  // Timeout between stream chunks in ms
     request?: number; // Overall request timeout in ms
-  }
+  },
+
 }

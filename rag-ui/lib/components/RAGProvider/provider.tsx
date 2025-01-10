@@ -3,7 +3,7 @@ import type { RAGProviderProps } from '../../types';
 export { useRAG } from './hooks';
 export * from '../../types';
 import { Provider, createStore } from 'jotai';
-import { createGenerateAtom, createGetDataSourceAtom, createRetrieveAndGenerateAtom, createRetrieveSourcesAtom, ragAtomsAtom, ragConfigAtom } from '../../state/rag-state';
+import { createGenerateAtom, createGetDataSourceAtom, createRetrieveAndGenerateAtom, createRetrieveSourcesAtom, onAddMessageAtom, ragAtomsAtom, ragConfigAtom } from '../../state/rag-state';
 
 const RAGProvider = ({ 
   children,
@@ -12,6 +12,7 @@ const RAGProvider = ({
   generate,
   getDataSource,
   config,
+  onAddMessage,
 }: RAGProviderProps) => {
 
   const store = useMemo(() => createStore(), [])
@@ -21,7 +22,6 @@ const RAGProvider = ({
   const retrieveSourcesAtom = useMemo(() => createRetrieveSourcesAtom(retrieve), [retrieve]);
   const getDataSourceAtom = useMemo(() => createGetDataSourceAtom(getDataSource), [getDataSource]);
   const memoizedConfig = useMemo(() => config, [config]);
-  
 
   useEffect(() => {
     store.set(ragAtomsAtom, {
@@ -33,7 +33,10 @@ const RAGProvider = ({
     if (memoizedConfig) {
       store.set(ragConfigAtom, memoizedConfig);
     }
-  }, [store, generateAtom, retrieveAndGenerateAtom, retrieveSourcesAtom, getDataSourceAtom, memoizedConfig]);
+    if (onAddMessage) {
+      store.set(onAddMessageAtom, () => onAddMessage); // need to wrap in a function to avoid confusion with state updater function
+    }
+  }, [store, generateAtom, retrieveAndGenerateAtom, retrieveSourcesAtom, getDataSourceAtom, memoizedConfig, onAddMessage]);
 
   return (
     <Provider store={store}>
