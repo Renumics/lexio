@@ -248,18 +248,18 @@ function App() {
                         <div className="h-1/3 min-h-0"> {/* Chat window */}
                             <ChatWindow/>
                         </div>
-                        <div className="h-1/6 min-h-0"> {/* Query field */}
+                        <div className="min-h-0"> {/* Query field */}
                             <QueryField onSubmit={() => {
                             }}/>
                             {/* <AdvancedQueryField /> */}
                         </div>
 
-                        <div className="h-1/3 min-h-0"> {/* Sources panel */}
+                        <div className="h-1/3 flex-1"> {/* Sources panel */}
                             <SourcesDisplay/>
                         </div>
                     </div>
 
-                    <div className="w-2/3"> {/* Sources panel */}
+                    <div className="w-2/3 h-full"> {/* Sources panel */}
                         <ContentDisplay/>
                     </div>
                     <ErrorDisplay/>

@@ -117,7 +117,7 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
         };
     }, [zoomIn, zoomOut]); // Dependencies on zoomIn and zoomOut
 
-    const PDFViewerNavigation = () => {
+    const Toolbar = () => {
         return (
             <div className="px-2 bg-gray-400 gap-x-1 flex flex-row justify-between text-gray-700"
                 style={{
@@ -170,7 +170,7 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
 
     return (
         <div className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg">
-            <PDFViewerNavigation/>
+            <Toolbar />
             <div className="flex justify-center items-start flex-grow overflow-auto relative w-full"
                 ref={documentContainerRef}
                 style={{ textAlign: 'center' }}

@@ -1,4 +1,5 @@
 import { PdfViewer } from "../PdfViewer/PdfViewer";
+import { HtmlViewer } from "../HtmlViewer/HtmlViewer";
 import { useRAGSources } from "../RAGProvider/hooks";
 
 const ContentDisplay = () => {
@@ -8,15 +9,34 @@ const ContentDisplay = () => {
     return null;
   }
 
-  return (
-    <div className="w-full h-full">
-      {currentSourceContent.type === 'pdf' && typeof currentSourceContent.content === 'object' ? (
-        <PdfViewer data={currentSourceContent.content} page={currentSourceContent.metadata?.page}/>
-      ) : (
-        <div>{currentSourceContent.content}</div>
-      )}
-    </div>
-  );
+  const { type, content, metadata } = currentSourceContent;
+
+  const renderContent = () => {
+    if (type === "pdf" && typeof content === "object") {
+
+      return <HtmlViewer htmlContent={`
+        <h2>Test HTML Content</h2>
+        <p>This is a paragraph of <strong>test</strong> HTML content.</p>
+        <ul>
+          <li>List item 1</li>
+          <li>List item 2</li>
+        </ul>
+      `} />;
+      return <PdfViewer data={content} page={metadata?.page} />;
+    }
+
+    if (type === "html" && typeof content === "object") {
+      return <HtmlViewer data={content} />;
+    }
+
+    if (typeof content === "string") {
+      return <div>{content}</div>;
+    }
+
+    return <div>Unsupported content type</div>;
+  };
+
+  return <div className="w-full h-full">{renderContent()}</div>;
 };
 
 export { ContentDisplay };
