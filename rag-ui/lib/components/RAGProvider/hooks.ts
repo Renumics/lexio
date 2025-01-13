@@ -8,7 +8,8 @@ import {
   activeSourceIndexAtom,
   setActiveSourceIndexAtom,
   workflowModeAtom,
-  errorAtom
+  errorAtom,
+  createRetrieveSourcesAtom
 } from '../../state/rag-state';
 import { useAtom, useSetAtom } from 'jotai';
 import { Message } from '../../types';
@@ -30,12 +31,14 @@ export const useRAGSources = () => {
   const [currentSourceContent] = useAtom(currentSourceContentAtom);
   const [activeSourceIndex] = useAtom(activeSourceIndexAtom);
   const setActiveSourceIndex = useSetAtom(setActiveSourceIndexAtom);
+  const retrieveSources = useSetAtom(createRetrieveSourcesAtom);
   
   return {
     sources,
     currentSourceContent,
     activeSourceIndex,
     setActiveSourceIndex,
+    retrieveSources,
   };
 };
 
