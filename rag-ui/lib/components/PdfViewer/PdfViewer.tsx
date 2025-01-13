@@ -3,7 +3,11 @@ import * as pdfjs from "pdfjs-dist";
 import pdfJSWorkerURL from "pdfjs-dist/build/pdf.worker?url";
 import useResizeObserver from '@react-hook/resize-observer';
 
-pdfjs.GlobalWorkerOptions.workerSrc = pdfJSWorkerURL;
+// pdfjs.GlobalWorkerOptions.workerSrc = pdfJSWorkerURL;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(  // todo: check if this works for our use case
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 interface PdfViewerProps {
   data: Uint8Array;

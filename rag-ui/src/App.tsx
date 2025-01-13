@@ -225,18 +225,20 @@ const getDataSource = async (source: SourceReference): GetDataSourceResponse => 
     <div className="w-full max-w-6xl h-full flex gap-4">
       {/* Left side: Chat and Query */}
       <div className="flex-1 flex flex-col gap-4">
-        <div className="h-2/3 min-h-0"> {/* Chat window */}
+        <div className="h-1/3 min-h-0"> {/* Chat window */}
           <ChatWindow />
         </div>
-        <div className="h-1/3 min-h-0"> {/* Query field */}
+        <div className="h-1/6 min-h-0"> {/* Query field */}
            <QueryField onSubmit={() => {}} />
           {/* <AdvancedQueryField /> */}
         </div>
+
+        <div className="h-1/3 min-h-0"> {/* Sources panel */}
+          <SourcesDisplay />
+        </div>
       </div>
-      
-      {/* Right side: Sources */}
-      <div className="w-1/3 h-full"> {/* Sources panel */}
-        <SourcesDisplay />
+
+      <div className="w-2/3 h-full"> {/* Sources panel */}
         <ContentDisplay />
       </div>
       <ErrorDisplay />

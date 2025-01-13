@@ -21,6 +21,7 @@
     "pdfjs-dist": "^4.9.155",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-pdf": "^9.2.1",
     "react-toastify": "^10.0.6"
   },
   "devDependencies": {
@@ -46,6 +47,7 @@
     "vite": "^6.0.1",
     "vite-plugin-css-injected-by-js": "^3.5.2",
     "vite-plugin-dts": "^4.3.0",
+    "vite-plugin-static-copy": "^2.2.0",
     "vitest": "^2.1.8"
   }
 }

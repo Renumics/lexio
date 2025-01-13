@@ -6,6 +6,17 @@ import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
 import replace from '@rollup/plugin-replace'
 import pkg from './package.json'
 
+
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { defineConfig, normalizePath } from 'vite';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
+
+const require = createRequire(import.meta.url);
+
+const pdfjsDistPath = path.dirname(require.resolve('pdfjs-dist/package.json'));
+const cMapsDir = normalizePath(path.join(pdfjsDistPath, 'cmaps'));
+
 export default defineConfig({
   plugins: [
     react(),
@@ -18,6 +29,14 @@ export default defineConfig({
     process.env.NODE_ENV === 'production' && replace({
       'process.env.NODE_ENV': JSON.stringify('production'),
       preventAssignment: true
+    }),
+    viteStaticCopy({
+      targets: [
+        {
+          src: cMapsDir,
+          dest: '',
+        },
+      ],
     })
   ],
   build: {
