@@ -62,9 +62,6 @@ def list_pdf_files() -> List[Dict[str, Any]]:
             files.append({"source": filename, "type": "pdf"})
     return files
 
-# Create a model for the request body
-class QueryRequest(BaseModel):
-    query: str
 
 def retrieve_helper(query: str):
     # Mock retrieval based on the presence of the query in the filename
@@ -78,8 +75,8 @@ def retrieve_helper(query: str):
 
 # Endpoint to retrieve sources
 @app.get("/retrieve", response_model=List[Dict[str, Any]])
-async def retrieve(request: QueryRequest):
-    return retrieve_helper(request.query)
+async def retrieve(query: str = Query(...)):
+    return retrieve_helper(query)
 
 # Update the generate endpoint to use GET
 @app.get("/generate")

@@ -236,10 +236,51 @@ export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?:
         return sources; // Add this return statement
       } finally {
         set(loadingAtom, false);
+        set(workflowModeAtom, 'follow-up');
       }
     }
   );
 };
+
+export const retrieveSourcesAtom = atom(
+  null,
+  async (_get, set, query: string, metadata?: Record<string, any>) => {
+    // Validate processing state
+    if (_get(loadingAtom)) {
+      toast.error('RAG operation already in progress');
+      throw new Error('RAG operation already in progress');
+    }
+
+    // Get current state
+    const ragAtoms = _get(ragAtomsAtom);
+    const currentSources = _get(retrievedSourcesAtom);
+    const currentMode = _get(workflowModeAtom);
+
+    if (!ragAtoms) {
+      throw new Error('RAG atoms not initialized');
+    }
+
+    // Prepare rollback state
+    const rollbackState = {
+      workflowMode: currentMode,
+      sources: currentSources
+    };
+
+    try {
+      // Trigger the retrieve operation
+      const sources = await set(ragAtoms.retrieveSourcesAtom, query, metadata);
+      return sources;
+    } catch (err: any) {
+      // Rollback state on error
+      set(workflowModeAtom, rollbackState.workflowMode);
+      set(retrievedSourcesAtom, rollbackState.sources);
+      set(errorAtom, `Retrieve sources operation failed: ${err.message}`);
+      throw err;
+    }
+  }
+);
+
+// Retrieve and generate
 
 interface RollbackState {
   messages: Message[];
