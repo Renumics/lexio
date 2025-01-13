@@ -14,14 +14,6 @@ const ContentDisplay = () => {
   const renderContent = () => {
     if (type === "pdf" && typeof content === "object") {
 
-      return <HtmlViewer htmlContent={`
-        <h2>Test HTML Content</h2>
-        <p>This is a paragraph of <strong>test</strong> HTML content.</p>
-        <ul>
-          <li>List item 1</li>
-          <li>List item 2</li>
-        </ul>
-      `} />;
       return <PdfViewer data={content} page={metadata?.page} />;
     }
 
