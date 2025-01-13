@@ -10,7 +10,7 @@ export interface Message {
 
 export interface BaseRetrievalResult {
   relevanceScore?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, any>;  // todo: define abstract type for metadata ? makes it easier to use
 }
 
 export interface SourceReference extends BaseRetrievalResult {

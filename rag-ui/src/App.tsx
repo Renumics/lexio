@@ -184,7 +184,7 @@ const retrieveAndGenerate = (messages: GenerateInput): RetrieveAndGenerateRespon
 };
 
 const getDataSource = async (source: SourceReference): GetDataSourceResponse => {
-  const url = `http://localhost:8000/pdfs/${encodeURIComponent(source.source)}${source.metadata?.page !== undefined ? `?page=${source.metadata.page}` : ''}`;
+  const url = `http://localhost:8000/pdfs/${encodeURIComponent(source.source)}`;
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -224,7 +224,7 @@ const getDataSource = async (source: SourceReference): GetDataSourceResponse => 
   >
     <div className="w-full max-w-6xl h-full flex gap-4">
       {/* Left side: Chat and Query */}
-      <div className="flex-1 flex flex-col gap-4">
+      <div className="flex flex-1 flex-col gap-4 w-1/3">
         <div className="h-1/3 min-h-0"> {/* Chat window */}
           <ChatWindow />
         </div>
@@ -238,7 +238,7 @@ const getDataSource = async (source: SourceReference): GetDataSourceResponse => 
         </div>
       </div>
 
-      <div className="w-2/3 h-full"> {/* Sources panel */}
+      <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
         <ContentDisplay />
       </div>
       <ErrorDisplay />

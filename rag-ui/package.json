@@ -18,10 +18,10 @@
     "@heroicons/react": "^2.2.0",
     "@react-hook/resize-observer": "^2.0.2",
     "jotai": "^2.10.3",
-    "pdfjs-dist": "^4.9.155",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-pdf": "^9.2.1",
+    "react-pdf": "^9.1.1",
+    "react-pdf-highlighter": "^8.0.0-rc.0",
     "react-toastify": "^10.0.6"
   },
   "devDependencies": {

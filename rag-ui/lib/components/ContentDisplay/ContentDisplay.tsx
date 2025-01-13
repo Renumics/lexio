@@ -11,7 +11,7 @@ const ContentDisplay = () => {
   return (
     <div className="w-full h-full">
       {currentSourceContent.type === 'pdf' && typeof currentSourceContent.content === 'object' ? (
-        <PdfViewer data={currentSourceContent.content} />
+        <PdfViewer data={currentSourceContent.content} page={currentSourceContent.metadata?.page}/>
       ) : (
         <div>{currentSourceContent.content}</div>
       )}

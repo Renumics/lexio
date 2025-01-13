@@ -7,15 +7,16 @@ import replace from '@rollup/plugin-replace'
 import pkg from './package.json'
 
 
-import path from 'node:path';
-import { createRequire } from 'node:module';
-import { defineConfig, normalizePath } from 'vite';
-import { viteStaticCopy } from 'vite-plugin-static-copy';
-
-const require = createRequire(import.meta.url);
-
-const pdfjsDistPath = path.dirname(require.resolve('pdfjs-dist/package.json'));
-const cMapsDir = normalizePath(path.join(pdfjsDistPath, 'cmaps'));
+// config to allow non-latin characters and standard fonts in pdf
+// import path from 'node:path';
+// import { createRequire } from 'node:module';
+// import { defineConfig, normalizePath } from 'vite';
+// import { viteStaticCopy } from 'vite-plugin-static-copy';
+//
+// const require = createRequire(import.meta.url);
+// const pdfjsDistPath = path.dirname(require.resolve('pdfjs-dist/package.json'));
+// const cMapsDir = normalizePath(path.join(pdfjsDistPath, 'cmaps'));
+// const standardFontsDir = normalizePath(path.join(pdfjsDistPath, 'standard_fonts'));
 
 export default defineConfig({
   plugins: [
@@ -30,14 +31,22 @@ export default defineConfig({
       'process.env.NODE_ENV': JSON.stringify('production'),
       preventAssignment: true
     }),
-    viteStaticCopy({
-      targets: [
-        {
-          src: cMapsDir,
-          dest: '',
-        },
-      ],
-    })
+    // viteStaticCopy({
+    //   targets: [
+    //     {
+    //       src: cMapsDir,
+    //       dest: '',
+    //     },
+    //   ],
+    // }),
+    // viteStaticCopy({
+    //   targets: [
+    //     {
+    //       src: standardFontsDir,
+    //       dest: '',
+    //     },
+    //   ],
+    // })
   ],
   build: {
     copyPublicDir: false,
