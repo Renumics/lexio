@@ -44,6 +44,8 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
     const [pageDimensions, setPageDimensions] = useState({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef(null); // Ref to the container to calculate the size dynamically
     const pageContainerRef = useRef(null); // Ref to the page container to calculate the size dynamically
+    const [isFirstLoad, setIsFirstLoad] = useState(true); // Track if it's the first load
+
 
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
@@ -56,6 +58,7 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
     useEffect(() => {
         if (data && page) {
             setPageNumber(page + 1);
+            fitParent();
         }
     }, [data]);
 
@@ -161,24 +164,35 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
     }
 
     return (
-        <div className="h-full w-full flex flex-col min-w-[400px] bg-gray-50 text-gray-700 rounded-lg">
+        <div className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg">
             <PDFViewerNavigation/>
-            <div ref={documentContainerRef} className="flex-grow relative overflow-scroll w-full">
+            <div className="flex justify-center items-start flex-grow overflow-auto relative w-full"
+                ref={documentContainerRef}
+                style={{ textAlign: 'center' }}
+            >
                 <Document
                     file={file}
                     onLoadSuccess={onDocumentLoadSuccess}
-                    className="w-full h-full flex justify-center items-center"
-                    noData={<div variant="body2">No data</div>}
+                    className="w-full h-full"
+                    noData={<div>No data</div>}
                     options={options}
                 >
                     <div style={{position: 'relative'}} ref={pageContainerRef}>
-                        <Page
-                            pageNumber={pageNumber}
-                            scale={scale}
-                            className="max-w-full max-h-full display-block m-auto "
-                            renderMode="svg"
-                            onLoadSuccess={onPageLoadSuccess}
-                        />
+                        <div
+                            ref={pageContainerRef}
+                            style={{
+                                position: 'relative',
+                                display: 'inline-block',  // so it can be centered by text-align
+                            }}
+                        >
+                            <Page
+                                pageNumber={pageNumber}
+                                scale={scale}
+                                className="max-w-full max-h-full block"
+                                renderMode="svg"
+                                onLoadSuccess={onPageLoadSuccess}
+                            />
+                        </div>
                     </div>
                 </Document>
             </div>
