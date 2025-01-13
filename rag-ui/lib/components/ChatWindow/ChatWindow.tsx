@@ -1,10 +1,8 @@
 import React from 'react';
-import { useAtom } from 'jotai';
-import { completedMessagesAtom, currentStreamAtom } from '../../state/rag-state';
+import { useRAGMessages } from '../RAGProvider/hooks';
 
 const ChatWindow: React.FC = () => {
-  const [messages] = useAtom(completedMessagesAtom);
-  const [currentStream] = useAtom(currentStreamAtom);
+  const { messages, currentStream } = useRAGMessages();
 
   return (
     <div className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg">

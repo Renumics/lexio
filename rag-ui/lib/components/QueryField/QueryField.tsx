@@ -1,8 +1,7 @@
-import { useSetAtom, useAtomValue } from 'jotai';
 import React, { useState, useRef, useEffect } from 'react';
-import { addMessageAtom, workflowModeAtom } from '../../state/rag-state';
 import useResizeObserver from '@react-hook/resize-observer';
 import type { WorkflowMode } from '../../types';
+import { useRAGMessages, useRAGStatus } from '../RAGProvider/hooks';
 
 // Add status configuration
 const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
@@ -22,8 +21,11 @@ const QueryField: React.FC<QueryFieldProps> = ({
   placeholder = 'Type a message...',
   disabled = false,
 }) => {
-  const addMessage = useSetAtom(addMessageAtom);
-  const workflowMode = useAtomValue(workflowModeAtom);
+
+
+  const { addMessage } = useRAGMessages();
+  const { workflowMode } = useRAGStatus();
+  
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);

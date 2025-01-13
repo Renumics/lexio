@@ -1,10 +1,8 @@
-import { useAtomValue } from "jotai";
-import { currentSourceContentAtom } from "../../state/rag-state";
 import { PdfViewer } from "../PdfViewer/PdfViewer";
-import { SourceContent } from "../../types";
+import { useRAGSources } from "../RAGProvider/hooks";
 
 const ContentDisplay = () => {
-  const currentSourceContent = useAtomValue<SourceContent | null>(currentSourceContentAtom);
+  const { currentSourceContent } = useRAGSources();
 
   if (!currentSourceContent) {
     return null;
