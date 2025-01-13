@@ -119,7 +119,12 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
 
     const PDFViewerNavigation = () => {
         return (
-            <div className="px-1 bg-gray-400 gap-x-1 flex flex-row justify-between text-gray-700">
+            <div className="px-2 bg-gray-400 gap-x-1 flex flex-row justify-between text-gray-700"
+                style={{
+                    borderTopLeftRadius: '0.5rem',
+                    borderTopRightRadius: '0.5rem',
+                }}
+            >
                 <div className="flex flex-row gap-x-1 text-md">
                     <button
                         className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -183,12 +188,13 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
                             style={{
                                 position: 'relative',
                                 display: 'inline-block',  // so it can be centered by text-align
+                                padding: "0.5rem",
                             }}
                         >
                             <Page
                                 pageNumber={pageNumber}
                                 scale={scale}
-                                className="max-w-full max-h-full block"
+                                className="max-w-full max-h-full block shadow-lg"
                                 renderMode="svg"
                                 onLoadSuccess={onPageLoadSuccess}
                             />
