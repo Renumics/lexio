@@ -424,7 +424,6 @@ export const createGetDataSourceAtom = (getDataSourceFn: (source: SourceReferenc
   );
 };
 
-
 type GenerateAtom = WritableAtom<null, [GenerateInput, RollbackState?], GenerateResponse>;
 
 type RetrieveAndGenerateAtom = WritableAtom<

@@ -1,4 +1,4 @@
 import { RAGProvider } from './provider';
-import { useRAG } from './hooks';
+import { useRAGMessages, useRAGSources, useRAGStatus } from './hooks';
 
-export { RAGProvider, useRAG };
+export { RAGProvider, useRAGMessages, useRAGSources, useRAGStatus };

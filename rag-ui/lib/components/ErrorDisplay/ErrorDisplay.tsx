@@ -1,11 +1,10 @@
-import { useAtom } from 'jotai';
 import { useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
-import { errorAtom } from '../../state/rag-state';
 import 'react-toastify/dist/ReactToastify.css';
+import { useRAGStatus } from '../RAGProvider/hooks';
 
 const ErrorDisplay = () => {
-  const [error] = useAtom(errorAtom);
+  const { error } = useRAGStatus();
 
   useEffect(() => {
     if (error) {

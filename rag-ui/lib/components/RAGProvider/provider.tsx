@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
 import type { RAGProviderProps } from '../../types';
-export { useRAG } from './hooks';
 export * from '../../types';
 import { Provider, createStore } from 'jotai';
 import { createGenerateAtom, createGetDataSourceAtom, createRetrieveAndGenerateAtom, createRetrieveSourcesAtom, onAddMessageAtom, ragAtomsAtom, ragConfigAtom } from '../../state/rag-state';
