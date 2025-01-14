@@ -9,6 +9,7 @@ import {
 import { useRAGSources, useRAGMessages, useRAGStatus } from '../RAGProvider/hooks';
 import { RetrievalResult, SourceReference, WorkflowMode } from '../../types';
 import useResizeObserver from '@react-hook/resize-observer';
+import ReactDOM from 'react-dom';
 
 // --- Type Definitions ---
 interface Mention {
@@ -50,7 +51,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     const [filterValue, setFilterValue] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentions, setMentions] = useState<Mention[]>([]);
-    const [localSourceIndices, setLocalSourceIndices] = useState<number[]>([]);
+    const [_, setLocalSourceIndices] = useState<number[]>([]);
     const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
     const [cursorPosition, setCursorPosition] = useState<CursorPosition | null>(null);
     
@@ -95,65 +96,85 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         return 'source' in source;
     };
 
-    const getSourceId = (source: RetrievalResult): string => {
-        return isSourceReference(source) ? source.source : source.text;
+    const getSourceId = (source: RetrievalResult, index?: number): string => {
+        const baseId = isSourceReference(source) ? source.source : source.text;
+        // If index is provided, make the ID unique by including it
+        return index !== undefined ? `${baseId}#${index}` : baseId;
     };
 
     const getDisplayName = (source: RetrievalResult): string => {
-        return isSourceReference(source) ? source.source : source.text.slice(0, 20);
+        if (isSourceReference(source)) {
+            // Include metadata in display name if available
+            const metadataStr = source.metadata ? 
+                ` (${Object.entries(source.metadata)
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join(', ')})` : 
+                '';
+            return source.source + metadataStr;
+        }
+        return source.text.slice(0, 20);
     };
 
-    // Helper to check if a source has other mentions in the editor
-    const hasOtherMentions = (sourceId: string, currentChip: HTMLSpanElement): boolean => {
+    // Helper to check if a source index has other mentions in the editor
+    const hasOtherMentions = (sourceIndex: number, currentChip: HTMLSpanElement): boolean => {
         if (!editorRef.current) return false;
-        const allMentions = Array.from(editorRef.current.querySelectorAll('span[data-mention-id]'));
-        // Count mentions of this source, excluding the chip we're about to delete
+        const allMentions = Array.from(editorRef.current.querySelectorAll('span[data-source-index]'));
+        // Count mentions of this source index, excluding the chip we're about to delete
         return allMentions
             .filter(chip => chip !== currentChip)
-            .some(chip => chip.getAttribute('data-mention-id') === sourceId);
+            .some(chip => {
+                const index = chip.getAttribute('data-source-index');
+                return index !== null && parseInt(index) === sourceIndex;
+            });
     };
 
     // Helper to get all currently mentioned source indices
     const getCurrentSourceIndices = (): number[] => {
         if (!editorRef.current) return [];
-        const mentionedIds = new Set(
-            Array.from(editorRef.current.querySelectorAll('span[data-mention-id]'))
-                .map(chip => chip.getAttribute('data-mention-id'))
-                .filter(Boolean) as string[]
+        const indices = new Set(
+            Array.from(editorRef.current.querySelectorAll('span[data-source-index]'))
+                .map(chip => chip.getAttribute('data-source-index'))
+                .filter((index): index is string => index !== null)
+                .map(index => parseInt(index))
         );
-        return sources
-            .map((source, index) => ({ index, id: getSourceId(source) }))
-            .filter(({ id }) => mentionedIds.has(id))
-            .map(({ index }) => index);
+        return Array.from(indices);
     };
+
+    // Helper to update source indices
+    const updateSourceIndices = useCallback(() => {
+        const newSourceIndices = getCurrentSourceIndices();
+        // Use flushSync to ensure immediate update
+        ReactDOM.flushSync(() => {
+            setLocalSourceIndices(newSourceIndices);
+            setCurrentSourceIndices(newSourceIndices);
+        });
+    }, [setCurrentSourceIndices]);
+
+    // Effect to update indices whenever editor content changes
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            // Ensure the callback runs in the next microtask to allow DOM to settle
+            queueMicrotask(() => {
+                updateSourceIndices();
+            });
+        });
+
+        if (editorRef.current) {
+            observer.observe(editorRef.current, {
+                childList: true,
+                subtree: true,
+                characterData: true
+            });
+        }
+
+        return () => observer.disconnect();
+    }, [updateSourceIndices]);
 
     const filteredSources = sources.filter((source) =>
         (isSourceReference(source) ? source.source : source.text)
             .toLowerCase()
             .includes(filterValue.toLowerCase())
     );
-
-    // Effect to maintain current sources based on mentions
-    useEffect(() => {
-        // Get current source IDs from mentions
-        const currentSourceIds = new Set(mentions.map(m => getSourceId(m.source)));
-        
-        // Get indices of sources that are currently mentioned
-        const newIndices = sources
-            .map((source, index) => ({ index, id: getSourceId(source) }))
-            .filter(({ id }) => currentSourceIds.has(id))
-            .map(({ index }) => index);
-
-        // Only update if the indices have actually changed
-        const hasIndicesChanged = 
-            localSourceIndices.length !== newIndices.length ||
-            !localSourceIndices.every(idx => newIndices.includes(idx));
-
-        if (hasIndicesChanged) {
-            setLocalSourceIndices(newIndices);
-            setCurrentSourceIndices(newIndices);
-        }
-    }, [mentions, sources]); // Only depend on mentions and sources, not the indices themselves
 
     // --- Event Handlers ---
     const handleSubmit = (e: React.FormEvent) => {
@@ -340,48 +361,46 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                             return nextNode;
                         }
                     }
+                    return null;
                 }
                 
-                // If we're in a text node, start from there
+                // If we're in a text node, check if we're at the boundary
                 if (node.nodeType === Node.TEXT_NODE) {
-                    // For backspace, only look backward if we're at the start of the text node
-                    if (direction === 'backward' && range.startOffset > 0) {
-                        return null;
+                    const text = node.textContent || '';
+                    if (direction === 'backward') {
+                        // Only look backward if we're at the start of the text node
+                        if (range.startOffset > 0) {
+                            // If there's text before the cursor, don't delete anything
+                            if (text.slice(0, range.startOffset).trim()) {
+                                return null;
+                            }
+                        }
+                        // Check previous sibling if it's a mention chip
+                        if (node.previousSibling instanceof HTMLSpanElement && 
+                            node.previousSibling.hasAttribute('data-mention-id')) {
+                            return node.previousSibling;
+                        }
+                    } else { // forward
+                        // Only look forward if we're at the end of the text node
+                        if (range.startOffset < text.length) {
+                            // If there's text after the cursor, don't delete anything
+                            if (text.slice(range.startOffset).trim()) {
+                                return null;
+                            }
+                        }
+                        // Check next sibling if it's a mention chip
+                        if (node.nextSibling instanceof HTMLSpanElement && 
+                            node.nextSibling.hasAttribute('data-mention-id')) {
+                            return node.nextSibling;
+                        }
                     }
-                    // For delete, only look forward if we're at the end of the text node
-                    if (direction === 'forward' && range.startOffset < node.textContent!.length) {
-                        return null;
-                    }
+                    return null;
                 }
 
-                // Special handling for empty text nodes
-                if (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) {
-                    // For backspace, check the previous sibling directly
-                    if (direction === 'backward' && node.previousSibling instanceof HTMLSpanElement && node.previousSibling.hasAttribute('data-mention-id')) {
-                        return node.previousSibling;
-                    }
-                    // For delete, check the next sibling directly
-                    if (direction === 'forward' && node.nextSibling instanceof HTMLSpanElement && node.nextSibling.hasAttribute('data-mention-id')) {
-                        return node.nextSibling;
-                    }
-                }
-
-                // Walk the DOM tree to find the nearest chip
-                while (node && node !== editorRef.current) {
-                    const sibling = direction === 'backward' ? 
-                        node.previousSibling : 
-                        node.nextSibling;
-
-                    if (sibling instanceof HTMLSpanElement && sibling.hasAttribute('data-mention-id')) {
-                        return sibling;
-                    }
-
-                    if (!sibling) {
-                        node = node.parentNode!;
-                        continue;
-                    }
-
-                    node = sibling;
+                // If we're in any other type of node, only check immediate siblings
+                const sibling = direction === 'backward' ? node.previousSibling : node.nextSibling;
+                if (sibling instanceof HTMLSpanElement && sibling.hasAttribute('data-mention-id')) {
+                    return sibling;
                 }
 
                 return null;
@@ -397,43 +416,39 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             // Prevent the default deletion behavior
             e.preventDefault();
 
-            // Get the mention ID
-            const mentionId = chipToDelete.getAttribute('data-mention-id');
-            if (!mentionId) return;
+            // Get the source index
+            const sourceIndexStr = chipToDelete.getAttribute('data-source-index');
+            if (!sourceIndexStr) return;
+            const sourceIndex = parseInt(sourceIndexStr);
 
-            // Check if this is the last instance of this mention
-            const isLastInstance = Array.from(editorRef.current.querySelectorAll(`span[data-mention-id="${mentionId}"]`)).length === 1;
+            // Store the position context before removal
+            const isFirstPosition = !chipToDelete.previousSibling || chipToDelete.previousSibling.nodeName === 'BR';
+            const parent = chipToDelete.parentNode || editorRef.current;
+            const nextSibling = chipToDelete.nextSibling;
+
+            // Check if this is the last instance of this source index
+            const isLastInstance = !hasOtherMentions(sourceIndex, chipToDelete);
 
             // Remove the chip
             chipToDelete.remove();
 
-            // Update mentions state only if this was the last instance
+            // Update mentions state only if this is the last instance
             if (isLastInstance) {
-                const updatedMentions = mentions.filter(m => m.id !== mentionId);
-                setMentions(updatedMentions);
+                const mentionId = chipToDelete.getAttribute('data-mention-id');
+                if (mentionId) {
+                    const updatedMentions = mentions.filter(m => m.id !== mentionId);
+                    setMentions(updatedMentions);
+                }
             }
 
-            // Get all currently mentioned source IDs after deletion
-            const remainingMentionIds = new Set(
-                Array.from(editorRef.current.querySelectorAll('span[data-mention-id]'))
-                    .map(span => span.getAttribute('data-mention-id'))
-                    .filter((id): id is string => id !== null)
-            );
-
-            // Update source indices based on remaining mentions
-            const newSourceIndices = sources
-                .map((source, index) => ({ index, id: getSourceId(source) }))
-                .filter(({ id }) => remainingMentionIds.has(id))
-                .map(({ index }) => index);
-
-            setLocalSourceIndices(newSourceIndices);
-            setCurrentSourceIndices(newSourceIndices);
+            // Note: We don't need to call updateSourceIndices here
+            // as it will be triggered by the MutationObserver
 
             // Ensure there's a text node for the cursor
             const textNode = document.createTextNode('');
             
             // Special handling for first position
-            if (e.key === 'Backspace' && (!chipToDelete.previousSibling || chipToDelete.previousSibling.nodeName === 'BR')) {
+            if (e.key === 'Backspace' && isFirstPosition) {
                 // If we're deleting the first chip, insert text node at the start
                 if (editorRef.current.firstChild) {
                     editorRef.current.insertBefore(textNode, editorRef.current.firstChild);
@@ -442,9 +457,8 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                 }
             } else {
                 // Normal case - insert before or after based on deletion direction
-                const parent = chipToDelete.parentNode || editorRef.current;
                 if (e.key === 'Backspace') {
-                    parent.insertBefore(textNode, chipToDelete.nextSibling);
+                    parent.insertBefore(textNode, nextSibling);
                 } else {
                     parent.insertBefore(textNode, chipToDelete);
                 }
@@ -493,10 +507,13 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             const editorElement = editorRef.current as HTMLDivElement | null;
             if (!editorElement || !cursorPosition) return;
 
-            // Create the new mention using full source ID
-            const sourceId = getSourceId(source);
+            // Find source index
+            const sourceIndex = sources.findIndex(s => getSourceId(s) === getSourceId(source));
+            if (sourceIndex === -1) return;
+
+            // Create the new mention using index-based unique ID
             const newMention = {
-                id: sourceId,
+                id: getSourceId(source, sourceIndex),
                 name: getDisplayName(source),
                 source
             };
@@ -508,7 +525,8 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             const chip = document.createElement('span');
             chip.contentEditable = 'false';
             chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 rounded bg-blue-100 text-blue-800 text-sm select-none align-baseline';
-            chip.setAttribute('data-mention-id', sourceId);
+            chip.setAttribute('data-mention-id', getSourceId(source, sourceIndex));
+            chip.setAttribute('data-source-index', sourceIndex.toString());
             chip.textContent = `@${getDisplayName(source)}`;
 
             // Get the text node and create the wrapper
@@ -601,8 +619,13 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             if (onChange) {
                 onChange(editorElement.textContent || '', [...mentions, newMention]);
             }
+
+            // Update source indices immediately after DOM manipulation
+            queueMicrotask(() => {
+                updateSourceIndices();
+            });
         },
-        [cursorPosition, mentions, onChange, setCurrentSourceIndices]
+        [cursorPosition, mentions, sources, updateSourceIndices]
     );
 
     // --- Render Component ---
