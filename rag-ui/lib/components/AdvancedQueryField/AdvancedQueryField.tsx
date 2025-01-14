@@ -22,6 +22,12 @@ interface Mention {
     source: RetrievalResult;
 }
 
+// Add new interface to store cursor position
+interface CursorPosition {
+    node: Node;
+    offset: number;
+}
+
 interface AdvancedQueryFieldProps {
     onSubmit?: (message: string, mentions: Mention[]) => void;
     value?: string;
@@ -44,8 +50,8 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     const [filterValue, setFilterValue] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentions, setMentions] = useState<Mention[]>([]);
-    const [triggerPosition, setTriggerPosition] = useState<number | null>(null);
     const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
+    const [cursorPosition, setCursorPosition] = useState<CursorPosition | null>(null);
     const filterInputRef = useRef<HTMLInputElement>(null);
     const editorRef = useRef<HTMLDivElement>(null);
     const formRef = useRef<HTMLFormElement>(null);
@@ -58,7 +64,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     const dismiss = useDismiss(context);
     const role = useRole(context);
 
-    const { getReferenceProps, getFloatingProps } = useInteractions([
+    const { getFloatingProps } = useInteractions([
         dismiss,
         role,
     ]);
@@ -118,77 +124,99 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     const insertMention = useCallback(
         (source: RetrievalResult) => {
             const editorElement = editorRef.current as HTMLDivElement | null;
-            if (!editorElement || triggerPosition === null) return;
-
-            // Get the current selection
-            const selection = window.getSelection();
-            if (!selection || !selection.rangeCount) return;
-
-            // Find the correct text node and offset
-            const findPositionInTextNodes = (
-                node: Node,
-                targetPosition: number
-            ): { node: Node; offset: number } | null => {
-                let currentPosition = 0;
-                const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-
-                while (walker.nextNode()) {
-                    const currentNode = walker.currentNode;
-                    const length = currentNode.textContent?.length || 0;
-
-                    if (currentPosition + length >= targetPosition) {
-                        return {
-                            node: currentNode,
-                            offset: targetPosition - currentPosition
-                        };
-                    }
-                    currentPosition += length;
-                }
-                return null;
-            };
-
-            const position = findPositionInTextNodes(editorElement, triggerPosition);
-            if (!position) return;
-
-            const textNode = position.node;
-            if (textNode.nodeType !== Node.TEXT_NODE) return;
+            if (!editorElement || !cursorPosition) return;
 
             // Create and style the chip
             const chip = document.createElement('span');
             chip.contentEditable = 'false';
-            chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 rounded bg-blue-100 text-blue-800 text-sm select-none';
+            chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 rounded bg-blue-100 text-blue-800 text-sm select-none align-baseline';
             const sourceId = isSourceReference(source) ? source.source : source.text.slice(0, 20);
             chip.setAttribute('data-mention-id', sourceId);
             chip.textContent = `@${getSourceDisplayName(source)}`;
 
-            // Split the text and insert the chip
-            const beforeText = textNode.textContent?.slice(0, position.offset - 1) || ''; // Remove the @ symbol
-            const afterText = textNode.textContent?.slice(position.offset + 1) || '';     // Skip the @ symbol
-            textNode.textContent = beforeText;
+            // Get the text node and create the wrapper
+            const textNode = cursorPosition.node;
 
-            const parent = textNode.parentNode;
-            if (!parent) return;
+            // Handle text node splitting
+            if (textNode.nodeType === Node.TEXT_NODE) {
+                const parent = textNode.parentNode;
+                if (!parent) return;
 
-            // Create a wrapper span for better cursor positioning
-            const wrapper = document.createElement('span');
-            wrapper.className = 'inline-flex items-center';
+                // Helper to check if node is effectively empty
+                const isEmpty = (n: Node): boolean => {
+                    return n.nodeType === Node.TEXT_NODE && !n.textContent?.trim() ||
+                           n.nodeType === Node.ELEMENT_NODE && !n.textContent?.trim();
+                };
 
-            const afterTextNode = document.createTextNode('\u00A0'); // Use non-breaking space
-            wrapper.appendChild(chip);
-            wrapper.appendChild(afterTextNode);
+                // Find line start by walking backwards
+                const findLineStart = (node: Node): { br: Node | null; isStartOfLine: boolean } => {
+                    let current = node;
+                    let foundContent = false;
 
-            parent.insertBefore(wrapper, textNode.nextSibling);
+                    while (current.previousSibling) {
+                        current = current.previousSibling;
+                        if (current.nodeName === 'BR') {
+                            return { br: current, isStartOfLine: !foundContent };
+                        }
+                        if (!isEmpty(current)) {
+                            foundContent = true;
+                        }
+                        // Check inside spans
+                        if (current.nodeName === 'SPAN') {
+                            const hasContent = Array.from(current.childNodes).some(child => 
+                                child.nodeName !== 'BR' && !isEmpty(child)
+                            );
+                            if (hasContent) foundContent = true;
+                        }
+                    }
+                    return { br: null, isStartOfLine: false };
+                };
 
-            if (afterText.trim()) {
-                parent.insertBefore(document.createTextNode(afterText), wrapper.nextSibling);
+                const { br: lineStartBR, isStartOfLine } = findLineStart(textNode);
+
+                // Split text and handle empty cases
+                const beforeText = textNode.textContent?.slice(0, cursorPosition.offset) || '';
+                const afterText = textNode.textContent?.slice(cursorPosition.offset) || '';
+
+                // Update the original text node with content before the chip
+                textNode.textContent = beforeText;
+
+                // Determine insertion point and parent
+                let insertionParent = parent;
+                let insertionPoint = textNode.nextSibling;
+
+                if (isStartOfLine && lineStartBR) {
+                    // If we're at the start of a line, insert after the BR
+                    insertionParent = lineStartBR.parentNode || parent;
+                    insertionPoint = lineStartBR.nextSibling;
+                    // If the text node is empty and not needed, remove it
+                    if (!beforeText && textNode.previousSibling !== lineStartBR) {
+                        textNode.parentNode?.removeChild(textNode);
+                    }
+                }
+
+                // Insert the chip directly (without wrapper)
+                insertionParent.insertBefore(chip, insertionPoint);
+                // Add a space after the chip
+                const spaceNode = document.createTextNode('\u00A0');
+                insertionParent.insertBefore(spaceNode, chip.nextSibling);
+
+                // Add the remaining text if any
+                if (afterText) {
+                    const afterNode = document.createTextNode(afterText);
+                    insertionParent.insertBefore(afterNode, spaceNode.nextSibling);
+                }
+
+                // Set cursor position after the space
+                const selection = window.getSelection();
+                if (selection) {
+                    const newRange = document.createRange();
+                    newRange.setStartAfter(spaceNode);
+                    newRange.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                }
             }
-
-            // Set cursor position after the chip
-            const newRange = document.createRange();
-            newRange.setStartAfter(wrapper);
-            newRange.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(newRange);
 
             // Update state
             const newMention = {
@@ -199,7 +227,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             setMentions(prev => [...prev, newMention]);
             setIsOpen(false);
             setFilterValue('');
-            setTriggerPosition(null);
+            setCursorPosition(null);
 
             // Focus back on the editor
             editorElement.focus();
@@ -208,47 +236,148 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                 onChange(editorElement.textContent || '', [...mentions, newMention]);
             }
         },
-        [triggerPosition, mentions, onChange, editorRef]
+        [cursorPosition, mentions, onChange, editorRef]
     );
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
         if (e.key === '@') {
+            e.preventDefault();
             const selection = window.getSelection();
             if (!selection || !selection.anchorNode) return;
 
-            // Calculate absolute position by traversing nodes
-            const calculateAbsolutePosition = (node: Node, targetNode: Node, offset: number): number => {
-                let position = 0;
-                const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+            const range = selection.getRangeAt(0);
+            const editorRect = editorRef.current?.getBoundingClientRect();
+            if (!editorRect) return;
 
-                while (walker.nextNode()) {
-                    const currentNode = walker.currentNode;
-                    if (currentNode === targetNode) {
-                        return position + offset;
+            // Handle empty nodes or start of lines
+            let targetNode = selection.anchorNode;
+            let targetOffset = selection.anchorOffset;
+
+            // Find the nearest BR and determine if we're at start of line
+            const findLineStart = (node: Node): { br: Node | null; isStartOfLine: boolean; brSequence: Node[] } => {
+                if (node === editorRef.current) return { br: null, isStartOfLine: false, brSequence: [] };
+
+                // Helper to check if node is effectively empty
+                const isEmpty = (n: Node): boolean => {
+                    return n.nodeType === Node.TEXT_NODE && !n.textContent?.trim() ||
+                           n.nodeType === Node.ELEMENT_NODE && !n.textContent?.trim();
+                };
+
+                // Walk backwards through siblings until we find content or BR
+                const walkBackwards = (startNode: Node): { br: Node | null; isStartOfLine: boolean; brSequence: Node[] } => {
+                    let current = startNode;
+                    let foundContent = false;
+                    let brSequence: Node[] = [];
+
+                    while (current.previousSibling) {
+                        current = current.previousSibling;
+
+                        // If we find a BR
+                        if (current.nodeName === 'BR') {
+                            brSequence.unshift(current);
+                            // If we haven't found content yet, this BR marks our line start
+                            if (!foundContent) {
+                                return { br: current, isStartOfLine: true, brSequence };
+                            }
+                        }
+                        // If we find non-empty content before a BR
+                        else if (!isEmpty(current)) {
+                            foundContent = true;
+                            // Keep looking for BRs to track sequence
+                            continue;
+                        }
+                        // For spans, check their content
+                        else if (current.nodeName === 'SPAN') {
+                            const hasContent = Array.from(current.childNodes).some(child => 
+                                child.nodeName !== 'BR' && !isEmpty(child)
+                            );
+                            if (hasContent) {
+                                foundContent = true;
+                                continue;
+                            }
+                        }
                     }
-                    position += currentNode.textContent?.length || 0;
+
+                    // If we're at the start of the editor with no content
+                    if (!foundContent && brSequence.length > 0) {
+                        return { br: brSequence[0], isStartOfLine: true, brSequence };
+                    }
+
+                    return { br: null, isStartOfLine: false, brSequence };
+                };
+
+                // Start from current node
+                let result = walkBackwards(node);
+                
+                // If we didn't find anything and we're in a nested structure
+                if (!result.br && node.parentNode && node.parentNode !== editorRef.current) {
+                    result = walkBackwards(node.parentNode);
                 }
-                return position;
+
+                return result;
             };
 
-            const range = selection.getRangeAt(0);
-            const absolutePosition = calculateAbsolutePosition(
-                editorRef.current!,
-                selection.anchorNode,
-                range.startOffset
-            );
-            setTriggerPosition(absolutePosition);
+            const { br: lineStartBR, isStartOfLine, brSequence } = findLineStart(targetNode);
 
-            // Get cursor position for menu placement
-            const rect = range.getBoundingClientRect();
-            const editorRect = editorRef.current?.getBoundingClientRect();
+            // Create text node for insertion
+            const textNode = document.createTextNode('');
 
-            if (editorRect) {
-                setMenuPosition({
-                    x: rect.left - editorRect.left,
-                    y: rect.bottom - editorRect.top
-                });
+            if (isStartOfLine && lineStartBR) {
+                // Find the correct insertion point in BR sequence
+                const brIndex = brSequence.indexOf(lineStartBR);
+                const nextNode = brSequence[brIndex + 1] || lineStartBR.nextSibling;
+
+                if (nextNode) {
+                    lineStartBR.parentNode?.insertBefore(textNode, nextNode);
+                } else {
+                    lineStartBR.parentNode?.appendChild(textNode);
+                }
+                targetNode = textNode;
+                targetOffset = 0;
+            } else if (targetNode === editorRef.current) {
+                // If we're in the editor directly
+                const childNodes = Array.from(editorRef.current.childNodes);
+                if (targetOffset >= childNodes.length) {
+                    editorRef.current.appendChild(textNode);
+                } else {
+                    editorRef.current.insertBefore(textNode, childNodes[targetOffset]);
+                }
+                targetNode = textNode;
+                targetOffset = 0;
+            } else if (targetNode.nodeType !== Node.TEXT_NODE || targetNode.textContent === '') {
+                // If we're in an empty node
+                targetNode.parentNode?.insertBefore(textNode, targetNode.nextSibling);
+                targetNode = textNode;
+                targetOffset = 0;
             }
+
+            // Store the cursor position
+            setCursorPosition({
+                node: targetNode,
+                offset: targetOffset
+            });
+
+            // Create a temporary span for accurate positioning
+            const tempSpan = document.createElement('span');
+            tempSpan.textContent = '@';
+            tempSpan.style.visibility = 'hidden';
+            range.insertNode(tempSpan);
+            
+            // Get position for the menu
+            const tempRect = tempSpan.getBoundingClientRect();
+
+            // Remove the temporary span
+            tempSpan.remove();
+
+            // Restore the original selection
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            // Position the menu
+            setMenuPosition({
+                x: tempRect.left - editorRect.left,
+                y: tempRect.bottom - editorRect.top
+            });
 
             setIsOpen(true);
             setSelectedIndex(0);
@@ -284,18 +413,12 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         }
     };
 
-    const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-        if (onChange) {
-            onChange(e.currentTarget.textContent || '', mentions);
-        }
-    };
-
     return (
         <form ref={formRef} onSubmit={handleSubmit} className="w-full flex flex-col">
             <div className="relative">
                 <div
                     ref={editorRef}
-                    className="w-full resize-none px-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none min-h-[2.5rem] max-h-[200px] empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400"
+                    className="w-full resize-none px-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none min-h-[2.5rem] max-h-[200px] empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 whitespace-pre-wrap break-words"
                     contentEditable={!disabled}
                     onInput={(e) => {
                         if (onChange) {
