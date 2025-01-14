@@ -108,11 +108,12 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
 
     const Toolbar = () => {
         return (
-            <div className="px-2 bg-gray-400 gap-x-1 flex flex-row justify-between text-gray-700"
+            <div className="px-2 bg-gray-400 gap-x-1 flex flex-row justify-between text-gray-700 z-10"
                  style={{
                      borderTopLeftRadius: '0.5rem',
                      borderTopRightRadius: '0.5rem',
-                 }}
+                     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)', // Improved shadow
+                }}
             >
                 <div className="flex flex-row gap-x-1 text-md">
                     <button
