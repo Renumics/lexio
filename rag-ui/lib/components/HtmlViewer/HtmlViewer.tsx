@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState} from 'react';
+import './HtmlViewer.css';
 import DOMPurify from 'dompurify';
 import {
     ArrowPathIcon,
@@ -110,7 +111,7 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
             >
                 <div
                     ref={contentRef}
-                    className="relative inline-block"
+                    className="relative inline-block html-viewer-content"
                     dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(htmlContent)}}  // Sanitize the HTML content
                 />
             </div>

@@ -17,12 +17,14 @@ const ContentDisplay = () => {
       return <PdfViewer data={content} page={metadata?.page} />;
     }
 
-    if (type === "html" && typeof content === "string") {
-      return <HtmlViewer htmlContent={content} />;
+    if (type === "html" && content instanceof Uint8Array) {
+        const decoder = new TextDecoder("utf-8");
+        const htmlContent = decoder.decode(content);
+        return <HtmlViewer htmlContent={htmlContent}/>;
     }
 
     if (typeof content === "string") {
-      return <div>{content}</div>;
+      return <HtmlViewer htmlContent={content}/>;
     }
 
     return <div>Unsupported content type</div>;

@@ -14,7 +14,7 @@ export interface BaseRetrievalResult {
 }
 
 export interface SourceReference extends BaseRetrievalResult {
-  type?: 'pdf';
+  type?: 'pdf' | 'html';
   source: string;
 }
 
@@ -22,10 +22,28 @@ export interface TextContent extends BaseRetrievalResult {
   text: string;
 }
 
-export interface SourceContent {
-  content: Uint8Array | string;
-  metadata?: Record<string, any>;
-  type?: 'pdf';
+export type SourceContent =
+  | {
+      content: Uint8Array | string;
+      metadata?: Record<string, any>;
+      type?: 'html';
+    }
+  | PdfSourceContent; // PdfSourceContent already includes `type: 'pdf'` and `highlights`.
+
+export interface Highlight {
+  page: number;
+  rect: {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  };
+  comment?: string;
+}
+
+export interface PdfSourceContent extends SourceContent {
+  type: 'pdf';
+  highlights?: Highlight[];
 }
 
 export type GetDataSourceResponse = Promise<SourceContent>;

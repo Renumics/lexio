@@ -62,6 +62,15 @@ def list_pdf_files() -> List[Dict[str, Any]]:
             files.append({"source": filename, "type": "pdf"})
     return files
 
+# Helper function to list HTML files in the data directory
+def list_html_files() -> List[Dict[str, Any]]:
+    html_directory = "data"
+    files = []
+    for filename in os.listdir(html_directory):
+        if filename.endswith(".html"):
+            files.append({"source": filename, "type": "html"})
+    return files
+
 # Create a model for the request body
 class QueryRequest(BaseModel):
     query: str
@@ -69,11 +78,17 @@ class QueryRequest(BaseModel):
 def retrieve_helper(query: str):
     # Mock retrieval based on the presence of the query in the filename
     pdf_files = list_pdf_files()
+    html_files = list_html_files()
     retrieved_sources = [
         {**file, "metadata": {"page": random.randint(1, 3)}} 
         for file in pdf_files 
         if any(query_part.lower() in file["source"].lower() for query_part in query.split())
     ]
+    retrieved_sources.extend([
+        {**file, "metadata": dict()}
+        for file in html_files
+        if any(query_part.lower() in file["source"].lower() for query_part in query.split())
+    ])
     return retrieved_sources
 
 # Endpoint to retrieve sources
@@ -170,3 +185,14 @@ async def get_pdf(filename: str, page: int = Query(None, description="Page numbe
             return FileResponse(file_path, media_type='application/pdf', filename=filename)
     else:
         raise HTTPException(status_code=404, detail="PDF not found")
+
+
+# Endpoint to access HTML files
+@app.get("/htmls/{filename}")
+async def get_html(filename: str):
+    html_directory = "data"
+    file_path = os.path.join(html_directory, filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type='text/html', filename=filename)
+    else:
+        raise HTTPException(status_code=404, detail="HTML file not found")

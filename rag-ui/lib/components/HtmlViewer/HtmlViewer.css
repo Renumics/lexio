@@ -1,0 +1,40 @@
+/* Default styles for HTML elements inside the viewer */
+.html-viewer-content {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+.html-viewer-content h1 {
+    font-size: 2em;
+    margin-bottom: 0.5em;
+}
+
+.html-viewer-content h2 {
+    font-size: 1.75em;
+    margin-bottom: 0.5em;
+}
+
+.html-viewer-content h3 {
+    font-size: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+.html-viewer-content p {
+    font-size: 1em;
+    margin-bottom: 1em;
+}
+
+.html-viewer-content ul, .html-viewer-content ol {
+    padding-left: 1.5em;
+    margin-bottom: 1em;
+}
+
+.html-viewer-content a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.html-viewer-content a:hover {
+    text-decoration: underline;
+}
