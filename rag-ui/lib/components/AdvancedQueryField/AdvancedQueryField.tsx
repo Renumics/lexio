@@ -94,15 +94,10 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         return 'source' in source;
     };
 
-    const getSourceDisplayName = (source: RetrievalResult): string => {
-        if (isSourceReference(source)) {
-            return source.source;
-        }
-        return source.text.slice(0, 50) + (source.text.length > 50 ? '...' : '');
-    };
-
     const filteredSources = sources.filter((source) =>
-        getSourceDisplayName(source).toLowerCase().includes(filterValue.toLowerCase())
+        (isSourceReference(source) ? source.source : source.text)
+            .toLowerCase()
+            .includes(filterValue.toLowerCase())
     );
 
     // --- Event Handlers ---
@@ -138,7 +133,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 rounded bg-blue-100 text-blue-800 text-sm select-none align-baseline';
             const sourceId = isSourceReference(source) ? source.source : source.text.slice(0, 20);
             chip.setAttribute('data-mention-id', sourceId);
-            chip.textContent = `@${getSourceDisplayName(source)}`;
+            chip.textContent = `@${isSourceReference(source) ? source.source : source.text}`;
 
             // Get the text node and create the wrapper
             const textNode = cursorPosition.node;
@@ -222,7 +217,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             // Update state
             const newMention = {
                 id: sourceId,
-                name: getSourceDisplayName(source),
+                name: source.text,
                 source
             };
             setMentions(prev => [...prev, newMention]);
@@ -451,7 +446,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                                 <div className="px-4 py-2 text-gray-500">No matches found</div>
                             ) : (
                                 filteredSources.map((source, index) => {
-                                    const displayName = getSourceDisplayName(source);
                                     const sourceType = isSourceReference(source) ? source.type : 'text';
                                     const relevanceScore = source.relevanceScore;
                                     
@@ -466,16 +460,21 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                                             }}
                                             onMouseEnter={() => setSelectedIndex(index)}
                                         >
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">{displayName}</span>
+                                            <div className="flex flex-col max-w-full">
+                                                <span 
+                                                    className="font-medium truncate max-w-full" 
+                                                    title={isSourceReference(source) ? source.source : source.text}
+                                                >
+                                                    {isSourceReference(source) ? source.source : source.text}
+                                                </span>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     {sourceType && (
-                                                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
+                                                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded whitespace-nowrap">
                                                             {sourceType}
                                                         </span>
                                                     )}
                                                     {relevanceScore !== undefined && (
-                                                        <span className="text-xs text-gray-500">
+                                                        <span className="text-xs text-gray-500 whitespace-nowrap">
                                                             Score: {Math.round(relevanceScore * 100)}%
                                                         </span>
                                                     )}
