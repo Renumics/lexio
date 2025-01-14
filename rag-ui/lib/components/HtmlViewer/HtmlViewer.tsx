@@ -17,7 +17,6 @@ interface HTMLViewerProps {
 }
 
 const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
-    console.log(htmlContent);
     const [scale, setScale] = useState(1);
     const documentContainerRef = useRef<HTMLDivElement>(null);
 

@@ -9,12 +9,12 @@ const ContentDisplay = () => {
     return null;
   }
 
-  const { type, content, metadata } = currentSourceContent;
+  const { type, content, metadata, highlights } = currentSourceContent;
 
   const renderContent = () => {
     if (type === "pdf" && typeof content === "object") {
 
-      return <PdfViewer data={content} page={metadata?.page} />;
+      return <PdfViewer data={content} page={metadata?.page} highlights={highlights} />;
     }
 
     if (type === "html" && content instanceof Uint8Array) {

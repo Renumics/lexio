@@ -10,28 +10,24 @@ const highlightStyleDefaults = {
     zIndex: 100,
 };
 
-const Highlight = ({ rect, scale, pageDimensions }) => {
+const Highlight = ({rect, scale, pageDimensions}) => {
     const [highlightStyle, setHighlightStyle] = useState({});
 
     useEffect(() => {
         const newStyle = {
             ...highlightStyleDefaults,
-            top: `${(rect.top / 100) * pageDimensions.height * scale}px`, // Adjust top position
-            left: `${(rect.left / 100) * pageDimensions.width  * scale}px`, // Adjust left position
-            width: `${(rect.width / 100) * pageDimensions.width * scale}px`, // Adjust width
-            height: `${(rect.height / 100) * pageDimensions.height * scale}px`, // Adjust height
+            top: `${(rect.top) * pageDimensions.height * scale}px`, // Adjust top position
+            left: `${(rect.left) * pageDimensions.width * scale}px`, // Adjust left position
+            width: `${(rect.width) * pageDimensions.width * scale}px`, // Adjust width
+            height: `${(rect.height) * pageDimensions.height * scale}px`, // Adjust height
         };
 
         setHighlightStyle(newStyle);
     }, [rect, scale, pageDimensions]);
 
     return (
-        // <Tooltip title={rect?.comment}>
-            <div style={highlightStyle}>
-
-            </div>
-        // </Tooltip>
+        <div style={highlightStyle}></div>
     )
 };
 
-export { Highlight };
+export {Highlight};

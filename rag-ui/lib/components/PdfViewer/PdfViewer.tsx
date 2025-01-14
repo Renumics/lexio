@@ -46,7 +46,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
 
     useEffect(() => {
         if (data && page) {
-            setPageNumber(page + 1);
+            setPageNumber(page);
             fitParent();
         }
     }, [data]);
@@ -177,7 +177,6 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                             style={{
                                 position: 'relative',
                                 display: 'inline-block',  // so it can be centered by text-align
-                                padding: "0.5rem",
                             }}
                         >
                             <Page
@@ -187,10 +186,10 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                                 renderMode="svg"
                                 onLoadSuccess={onPageLoadSuccess}
                             />
-                            {highlights && highlights.filter((highlight) => highlight.page + 1 === pageNumber).map((highlight, index) => (
+                            {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
                                 <Highlight
                                     key={index}
-                                    rect={highlight}
+                                    rect={highlight.rect}
                                     scale={scale}
                                     pageDimensions={pageDimensions}
                                 />

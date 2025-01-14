@@ -203,22 +203,43 @@ function App() {
         };
     };
 
-    const getDataSource = async (source: SourceReference): GetDataSourceResponse => {
-        const url = `http://localhost:8000/pdfs/${encodeURIComponent(source.source)}`;
-        const response = await fetch(url);
+    const getDataSource = async (source: SourceReference): Promise<GetDataSourceResponse> => {
+        let url: string;
 
-        if (!response.ok) {
-            throw new Error('Failed to get data source');
+        if (source.type === "pdf") {
+            url = `http://localhost:8000/pdfs/${encodeURIComponent(source.source)}`;
+        } else if (source.type === "html") {
+            url = `http://localhost:8000/htmls/${encodeURIComponent(source.source)}`;
+        } else {
+            throw new Error(`Unsupported source type: ${source.type}`);
         }
 
-        const arrayBuffer = await response.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
+        }
 
-        return {
-            content: uint8Array, // Store as Uint8Array
-            metadata: source.metadata || {},
-            type: source.type,
-        };
+        if (source.type === "html") {
+            const text = await response.text();
+            return {
+                content: text, // Store as string
+                metadata: source.metadata || {},
+                type: source.type,
+            };
+        } else if (source.type === "pdf") {
+            const arrayBuffer = await response.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+
+            return {
+                content: uint8Array, // Store as Uint8Array
+                metadata: source.metadata || {},
+                highlights: source.highlights || [],
+                type: source.type,
+            };
+        }
+
+        // This block should never be reached due to earlier checks
+        throw new Error("Unexpected source type");
     };
 
 

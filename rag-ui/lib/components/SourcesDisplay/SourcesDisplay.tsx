@@ -27,10 +27,10 @@ const SourcesDisplay = () => {
               onClick={() => setActiveSourceIndex(index)}
             >
               <div className="flex items-start justify-between">
-                <div className="flex-1">
+                <div className="overflow-hidden">
                   {isSourceReference(source) ? (
                     <>
-                      <p className="font-medium text-gray-800">{source.source}</p>
+                      <p className="font-medium text-gray-800 truncate">{source.source}</p>
                       {source.type && (
                         <span className="inline-block px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full mt-1">
                           {source.type}
