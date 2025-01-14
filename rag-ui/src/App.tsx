@@ -229,8 +229,8 @@ const getDataSource = async (source: SourceReference): GetDataSourceResponse => 
           <ChatWindow />
         </div>
         <div className="h-1/3 min-h-0"> {/* Query field */}
-           <QueryField onSubmit={() => {}} />
-          {/* <AdvancedQueryField /> */}
+           {/* <QueryField onSubmit={() => {}} /> */}
+          <AdvancedQueryField />
         </div>
       </div>
       

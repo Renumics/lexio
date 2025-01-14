@@ -3,7 +3,7 @@ import { RetrievalResult, SourceReference } from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
 
 const SourcesDisplay = () => {
-  const { sources, setActiveSourceIndex, retrieveSources } = useRAGSources();
+  const { sources, currentSources, activeSourceIndex, setActiveSourceIndex, retrieveSources } = useRAGSources();
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -54,7 +54,14 @@ const SourcesDisplay = () => {
           {sources.map((source, index) => (
             <li
               key={index}
-              className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer"
+              className={`p-4 rounded-lg shadow-sm border transition-all cursor-pointer ${index === activeSourceIndex
+                  ? 'bg-blue-50 border-blue-500' // Currently viewed source - lighter blue with matching border
+                  : currentSources.includes(source)
+                    ? 'bg-green-50 border-green-500'   // Source selected for questions - success state
+                    : currentSources.length > 0
+                      ? 'bg-gray-50 border-gray-200 opacity-60' // Unselected when some sources are selected
+                      : 'bg-white border-gray-200 hover:border-blue-400' // Default state with matching hover
+                }`}
               onClick={() => setActiveSourceIndex(index)}
             >
               <div className="flex items-start justify-between">

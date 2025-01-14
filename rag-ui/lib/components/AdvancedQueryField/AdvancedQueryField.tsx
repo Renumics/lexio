@@ -1,46 +1,45 @@
-import React, { useCallback, useRef, useState, KeyboardEvent } from 'react';
+import React, { useCallback, useRef, useState, KeyboardEvent, useEffect } from 'react';
 import {
     useFloating,
-    autoUpdate,
-    offset,
-    flip,
-    shift,
     useDismiss,
     useRole,
     useInteractions,
-    FloatingFocusManager,
-    FloatingPortal,
 } from '@floating-ui/react';
+import { useRAGSources, useRAGMessages, useRAGStatus } from '../RAGProvider/hooks';
+import { RetrievalResult, SourceReference, WorkflowMode } from '../../types';
+import useResizeObserver from '@react-hook/resize-observer';
 
-interface Source {
-    id: string;
-    name: string;
-}
-
-// Example sources - replace with your actual data
-const SOURCES: Source[] = [
-    { id: '1', name: 'Documentation' },
-    { id: '2', name: 'Knowledge Base' },
-    { id: '3', name: 'FAQ' },
-    { id: '4', name: 'Support Tickets' },
-];
+// Add status configuration
+const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
+    'init': { label: 'New Conversation', color: 'bg-blue-500' },
+    'follow-up': { label: 'Follow-up', color: 'bg-green-500' },
+    'reretrieve': { label: 'New Search', color: 'bg-purple-500' }
+};
 
 interface Mention {
     id: string;
     name: string;
+    source: RetrievalResult;
 }
 
 interface AdvancedQueryFieldProps {
+    onSubmit?: (message: string, mentions: Mention[]) => void;
     value?: string;
     onChange?: (value: string, mentions: Mention[]) => void;
     placeholder?: string;
+    disabled?: boolean;
 }
 
 const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
+    onSubmit,
     value = '',
     onChange,
     placeholder = 'Type @ to mention a source...',
+    disabled = false,
 }) => {
+    const { sources } = useRAGSources();
+    const { addMessage } = useRAGMessages();
+    const { workflowMode } = useRAGStatus();
     const [isOpen, setIsOpen] = useState(false);
     const [filterValue, setFilterValue] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -49,6 +48,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
     const filterInputRef = useRef<HTMLInputElement>(null);
     const editorRef = useRef<HTMLDivElement>(null);
+    const formRef = useRef<HTMLFormElement>(null);
 
     const { refs, context } = useFloating({
         open: isOpen,
@@ -63,12 +63,60 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         role,
     ]);
 
-    const filteredSources = SOURCES.filter((source) =>
-        source.name.toLowerCase().includes(filterValue.toLowerCase())
+    const adjustEditorHeight = useCallback(() => {
+        if (editorRef.current && formRef.current) {
+            const editor = editorRef.current;
+            editor.style.height = 'auto';
+            const scrollHeight = editor.scrollHeight;
+            editor.style.height = `${scrollHeight}px`;
+            editor.style.overflowY = scrollHeight > 200 ? 'auto' : 'hidden'; // Set a reasonable max height
+        }
+    }, []);
+
+    useEffect(() => {
+        adjustEditorHeight();
+    }, [value, adjustEditorHeight]);
+
+    // Use the custom hook to adjust height on resize
+    useResizeObserver(formRef, adjustEditorHeight);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const content = editorRef.current?.textContent || '';
+        if (content.trim()) {
+            if (onSubmit) {
+                onSubmit(content, mentions);
+            }
+            addMessage({
+                role: 'user',
+                content: content
+            });
+            // Clear the editor
+            if (editorRef.current) {
+                editorRef.current.textContent = '';
+            }
+            setMentions([]);
+            adjustEditorHeight();
+        }
+    };
+
+    const isSourceReference = (source: RetrievalResult): source is SourceReference => {
+        return 'source' in source;
+    };
+
+    const getSourceDisplayName = (source: RetrievalResult): string => {
+        if (isSourceReference(source)) {
+            return source.source;
+        }
+        return source.text.slice(0, 50) + (source.text.length > 50 ? '...' : '');
+    };
+
+    const filteredSources = sources.filter((source) =>
+        getSourceDisplayName(source).toLowerCase().includes(filterValue.toLowerCase())
     );
 
     const insertMention = useCallback(
-        (source: Source) => {
+        (source: RetrievalResult) => {
             const editorElement = editorRef.current as HTMLDivElement | null;
             if (!editorElement || triggerPosition === null) return;
 
@@ -109,8 +157,9 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             const chip = document.createElement('span');
             chip.contentEditable = 'false';
             chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 rounded bg-blue-100 text-blue-800 text-sm select-none';
-            chip.setAttribute('data-mention-id', source.id);
-            chip.textContent = `@${source.name}`;
+            const sourceId = isSourceReference(source) ? source.source : source.text.slice(0, 20);
+            chip.setAttribute('data-mention-id', sourceId);
+            chip.textContent = `@${getSourceDisplayName(source)}`;
 
             // Split the text and insert the chip
             const beforeText = textNode.textContent?.slice(0, position.offset - 1) || ''; // Remove the @ symbol
@@ -142,7 +191,12 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             selection.addRange(newRange);
 
             // Update state
-            setMentions(prev => [...prev, { id: source.id, name: source.name }]);
+            const newMention = {
+                id: sourceId,
+                name: getSourceDisplayName(source),
+                source
+            };
+            setMentions(prev => [...prev, newMention]);
             setIsOpen(false);
             setFilterValue('');
             setTriggerPosition(null);
@@ -151,7 +205,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             editorElement.focus();
 
             if (onChange) {
-                onChange(editorElement.textContent || '', [...mentions, { id: source.id, name: source.name }]);
+                onChange(editorElement.textContent || '', [...mentions, newMention]);
             }
         },
         [triggerPosition, mentions, onChange, editorRef]
@@ -203,6 +257,9 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             setTimeout(() => {
                 filterInputRef.current?.focus();
             }, 0);
+        } else if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit(e);
         }
     };
 
@@ -234,64 +291,106 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     };
 
     return (
-        <div className="relative">
-            <div
-                ref={editorRef}
-                className="min-h-[100px] p-3 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400"
-                contentEditable
-                onInput={handleInput}
-                onKeyDown={handleKeyDown}
-                data-placeholder={placeholder}
-                suppressContentEditableWarning
-            />
-
-            {isOpen && menuPosition && (
+        <form ref={formRef} onSubmit={handleSubmit} className="w-full flex flex-col">
+            <div className="relative">
                 <div
-                    ref={refs.setFloating}
-                    style={{
-                        position: 'absolute',
-                        left: `${menuPosition.x}px`,
-                        top: `${menuPosition.y}px`,
-                        width: '256px',
+                    ref={editorRef}
+                    className="w-full resize-none px-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none min-h-[2.5rem] max-h-[200px] empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400"
+                    contentEditable={!disabled}
+                    onInput={(e) => {
+                        if (onChange) {
+                            onChange(e.currentTarget.textContent || '', mentions);
+                        }
+                        adjustEditorHeight();
                     }}
-                    className="z-50 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
-                    {...getFloatingProps()}
-                >
-                    <div className="p-2 border-b">
-                        <input
-                            ref={filterInputRef}
-                            type="text"
-                            className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Filter sources..."
-                            value={filterValue}
-                            onChange={(e) => setFilterValue(e.target.value)}
-                            onKeyDown={handleFilterKeyDown}
-                        />
+                    onKeyDown={handleKeyDown}
+                    data-placeholder={placeholder}
+                    suppressContentEditableWarning
+                />
+
+                {isOpen && menuPosition && (
+                    <div
+                        ref={refs.setFloating}
+                        style={{
+                            position: 'absolute',
+                            left: `${menuPosition.x}px`,
+                            top: `${menuPosition.y}px`,
+                            width: '256px',
+                            zIndex: 50,
+                        }}
+                        className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+                        {...getFloatingProps()}
+                    >
+                        <div className="p-2 border-b">
+                            <input
+                                ref={filterInputRef}
+                                type="text"
+                                className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Filter sources..."
+                                value={filterValue}
+                                onChange={(e) => setFilterValue(e.target.value)}
+                                onKeyDown={handleFilterKeyDown}
+                            />
+                        </div>
+                        <div className="max-h-48 overflow-y-auto">
+                            {filteredSources.length === 0 ? (
+                                <div className="px-4 py-2 text-gray-500">No matches found</div>
+                            ) : (
+                                filteredSources.map((source, index) => {
+                                    const displayName = getSourceDisplayName(source);
+                                    const sourceType = isSourceReference(source) ? source.type : 'text';
+                                    const relevanceScore = source.relevanceScore;
+                                    
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`px-4 py-2 cursor-pointer ${selectedIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                insertMention(source);
+                                            }}
+                                            onMouseEnter={() => setSelectedIndex(index)}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{displayName}</span>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    {sourceType && (
+                                                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
+                                                            {sourceType}
+                                                        </span>
+                                                    )}
+                                                    {relevanceScore !== undefined && (
+                                                        <span className="text-xs text-gray-500">
+                                                            Score: {Math.round(relevanceScore * 100)}%
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
                     </div>
-                    <div className="max-h-48 overflow-y-auto">
-                        {filteredSources.length === 0 ? (
-                            <div className="px-4 py-2 text-gray-500">No matches found</div>
-                        ) : (
-                            filteredSources.map((source, index) => (
-                                <div
-                                    key={source.id}
-                                    className={`px-4 py-2 cursor-pointer ${selectedIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'
-                                        }`}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        insertMention(source);
-                                    }}
-                                    onMouseEnter={() => setSelectedIndex(index)}
-                                >
-                                    {source.name}
-                                </div>
-                            ))
-                        )}
-                    </div>
+                )}
+            </div>
+            <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-2">
+                    <div className={`h-2.5 w-2.5 rounded-full ${workflowStatus[workflowMode].color} animate-pulse`} />
+                    <span className="text-sm font-medium text-gray-600">
+                        {workflowStatus[workflowMode].label}
+                    </span>
                 </div>
-            )}
-        </div>
+                <button
+                    type="submit"
+                    disabled={disabled || !(editorRef.current?.textContent?.trim())}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Send
+                </button>
+            </div>
+        </form>
     );
 };
 
