@@ -5,6 +5,7 @@ import {
     ChevronRightIcon, MagnifyingGlassMinusIcon,
     MagnifyingGlassPlusIcon
 } from "@heroicons/react/24/solid";
+import {Highlight} from "./Highlight";
 import {pdfjs, Document, Page} from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -21,31 +22,19 @@ const options = {
     withCredentials: true,
 }
 
-const highlightStyleDefaults = {
-    position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 0, 0.3)',
-    border: '1px solid rgba(255, 255, 0, 0.6)',
-    pointerEvents: 'none',
-    pointer: 'select',
-    borderRadius: '5px',
-    zIndex: 100,
-}
-
 interface PdfViewerProps {
     data: Uint8Array;
+    highlights?: any[];
     page?: number;
 }
 
-const PdfViewer = ({data, page}: PdfViewerProps) => {
+const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [numPages, setNumPages] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1); // Scale of the PDF page
-    const [pageContainerDimensions, setPageContainerDimensions] = useState({width: 600, height: 800}); // Store page size
     const [pageDimensions, setPageDimensions] = useState({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef(null); // Ref to the container to calculate the size dynamically
     const pageContainerRef = useRef(null); // Ref to the page container to calculate the size dynamically
-    const [isFirstLoad, setIsFirstLoad] = useState(true); // Track if it's the first load
-
 
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
@@ -120,10 +109,10 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
     const Toolbar = () => {
         return (
             <div className="px-2 bg-gray-400 gap-x-1 flex flex-row justify-between text-gray-700"
-                style={{
-                    borderTopLeftRadius: '0.5rem',
-                    borderTopRightRadius: '0.5rem',
-                }}
+                 style={{
+                     borderTopLeftRadius: '0.5rem',
+                     borderTopRightRadius: '0.5rem',
+                 }}
             >
                 <div className="flex flex-row gap-x-1 text-md">
                     <button
@@ -131,8 +120,7 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
                         disabled={pageNumber <= 1 || data === null}
                         onClick={previousPage}
                     >
-                        <ChevronLeftIcon className="size-4 text-black" />
-                        {/*<ArrowBackIcon />*/}
+                        <ChevronLeftIcon className="size-4 text-black"/>
                     </button>
                     <div className="m-auto min-w-14 text-center bg-gray-100 rounded-md">
                         {pageNumber || (numPages ? 1 : '--')} / {numPages || '--'}
@@ -142,13 +130,14 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
                         disabled={pageNumber >= numPages}
                         onClick={nextPage}
                     >
-                        <ChevronRightIcon className="size-4 text-black" />
+                        <ChevronRightIcon className="size-4 text-black"/>
                     </button>
                 </div>
                 <div className="flex flex-row gap-x-1">
                     <button
-                        className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"onClick={zoomIn}>
-                        <MagnifyingGlassPlusIcon className="size-5 text-black" />
+                        className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={zoomIn}>
+                        <MagnifyingGlassPlusIcon className="size-5 text-black"/>
                     </button>
                     <div className="m-auto min-w-14 text-center bg-gray-100 rounded-md">
                         {documentContainerRef.current ? `${((scale * pageDimensions.width) / documentContainerRef.current.clientWidth * 100).toFixed(0)}%` : '--'}
@@ -156,12 +145,12 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
                     <button
                         className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={zoomOut}>
-                        <MagnifyingGlassMinusIcon className="size-5 text-black" />
+                        <MagnifyingGlassMinusIcon className="size-5 text-black"/>
                     </button>
                     <button
                         className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={fitParent}>
-                        <ArrowsPointingOutIcon className="size-5 text-black" />
+                        <ArrowsPointingOutIcon className="size-5 text-black"/>
                     </button>
                 </div>
             </div>
@@ -170,10 +159,10 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
 
     return (
         <div className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg">
-            <Toolbar />
+            <Toolbar/>
             <div className="flex justify-center items-start flex-grow overflow-auto relative w-full"
-                ref={documentContainerRef}
-                style={{ textAlign: 'center' }}
+                 ref={documentContainerRef}
+                 style={{textAlign: 'center'}}
             >
                 <Document
                     file={file}
@@ -198,13 +187,21 @@ const PdfViewer = ({data, page}: PdfViewerProps) => {
                                 renderMode="svg"
                                 onLoadSuccess={onPageLoadSuccess}
                             />
+                            {highlights && highlights.filter((highlight) => highlight.page + 1 === pageNumber).map((highlight, index) => (
+                                <Highlight
+                                    key={index}
+                                    rect={highlight}
+                                    scale={scale}
+                                    pageDimensions={pageDimensions}
+                                />
+                            ))
+                            }
                         </div>
                     </div>
                 </Document>
             </div>
         </div>
     );
-
 }
 
 export {PdfViewer};

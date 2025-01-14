@@ -17,8 +17,8 @@ const ContentDisplay = () => {
       return <PdfViewer data={content} page={metadata?.page} />;
     }
 
-    if (type === "html" && typeof content === "object") {
-      return <HtmlViewer data={content} />;
+    if (type === "html" && typeof content === "string") {
+      return <HtmlViewer htmlContent={content} />;
     }
 
     if (typeof content === "string") {

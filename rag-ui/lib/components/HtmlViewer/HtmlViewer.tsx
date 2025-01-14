@@ -1,7 +1,7 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState} from 'react';
+import DOMPurify from 'dompurify';
 import {
     ArrowPathIcon,
-    ArrowsPointingOutIcon,
     MagnifyingGlassMinusIcon,
     MagnifyingGlassPlusIcon
 } from "@heroicons/react/24/solid";
@@ -106,13 +106,12 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
             <Toolbar/>
             <div
                 ref={documentContainerRef}
-                className="px-1 flex-grow overflow-auto flex bg-gray-100"
+                className="p-2 flex-grow overflow-auto flex bg-gray-100"
             >
                 <div
                     ref={contentRef}
                     className="relative inline-block"
-                    // Dangerously set HTML if you trust the source
-                    dangerouslySetInnerHTML={{__html: htmlContent}}
+                    dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(htmlContent)}}  // Sanitize the HTML content
                 />
             </div>
         </div>
