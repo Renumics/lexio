@@ -1,3 +1,4 @@
+// --- Imports ---
 import React, { useCallback, useRef, useState, KeyboardEvent, useEffect } from 'react';
 import {
     useFloating,
@@ -9,20 +10,13 @@ import { useRAGSources, useRAGMessages, useRAGStatus } from '../RAGProvider/hook
 import { RetrievalResult, SourceReference, WorkflowMode } from '../../types';
 import useResizeObserver from '@react-hook/resize-observer';
 
-// Add status configuration
-const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
-    'init': { label: 'New Conversation', color: 'bg-blue-500' },
-    'follow-up': { label: 'Follow-up', color: 'bg-green-500' },
-    'reretrieve': { label: 'New Search', color: 'bg-purple-500' }
-};
-
+// --- Type Definitions ---
 interface Mention {
     id: string;
     name: string;
     source: RetrievalResult;
 }
 
-// Add new interface to store cursor position
 interface CursorPosition {
     node: Node;
     offset: number;
@@ -36,6 +30,14 @@ interface AdvancedQueryFieldProps {
     disabled?: boolean;
 }
 
+// --- Constants and Configurations ---
+const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
+    'init': { label: 'New Conversation', color: 'bg-blue-500' },
+    'follow-up': { label: 'Follow-up', color: 'bg-green-500' },
+    'reretrieve': { label: 'New Search', color: 'bg-purple-500' }
+};
+
+// --- Main Component ---
 const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     onSubmit,
     value = '',
@@ -43,19 +45,24 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     placeholder = 'Type @ to mention a source...',
     disabled = false,
 }) => {
-    const { sources } = useRAGSources();
-    const { addMessage } = useRAGMessages();
-    const { workflowMode } = useRAGStatus();
+    // --- State and Refs ---
     const [isOpen, setIsOpen] = useState(false);
     const [filterValue, setFilterValue] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentions, setMentions] = useState<Mention[]>([]);
     const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
     const [cursorPosition, setCursorPosition] = useState<CursorPosition | null>(null);
+    
     const filterInputRef = useRef<HTMLInputElement>(null);
     const editorRef = useRef<HTMLDivElement>(null);
     const formRef = useRef<HTMLFormElement>(null);
 
+    // --- Hooks and Context ---
+    const { sources } = useRAGSources();
+    const { addMessage } = useRAGMessages();
+    const { workflowMode } = useRAGStatus();
+
+    // Floating UI setup
     const { refs, context } = useFloating({
         open: isOpen,
         onOpenChange: setIsOpen,
@@ -63,19 +70,16 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
 
     const dismiss = useDismiss(context);
     const role = useRole(context);
+    const { getFloatingProps } = useInteractions([dismiss, role]);
 
-    const { getFloatingProps } = useInteractions([
-        dismiss,
-        role,
-    ]);
-
+    // --- Effects and Observers ---
     const adjustEditorHeight = useCallback(() => {
         if (editorRef.current && formRef.current) {
             const editor = editorRef.current;
             editor.style.height = 'auto';
             const scrollHeight = editor.scrollHeight;
             editor.style.height = `${scrollHeight}px`;
-            editor.style.overflowY = scrollHeight > 200 ? 'auto' : 'hidden'; // Set a reasonable max height
+            editor.style.overflowY = scrollHeight > 200 ? 'auto' : 'hidden';
         }
     }, []);
 
@@ -83,9 +87,25 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         adjustEditorHeight();
     }, [value, adjustEditorHeight]);
 
-    // Use the custom hook to adjust height on resize
     useResizeObserver(formRef, adjustEditorHeight);
 
+    // --- Helper Functions ---
+    const isSourceReference = (source: RetrievalResult): source is SourceReference => {
+        return 'source' in source;
+    };
+
+    const getSourceDisplayName = (source: RetrievalResult): string => {
+        if (isSourceReference(source)) {
+            return source.source;
+        }
+        return source.text.slice(0, 50) + (source.text.length > 50 ? '...' : '');
+    };
+
+    const filteredSources = sources.filter((source) =>
+        getSourceDisplayName(source).toLowerCase().includes(filterValue.toLowerCase())
+    );
+
+    // --- Event Handlers ---
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const content = editorRef.current?.textContent || '';
@@ -106,21 +126,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         }
     };
 
-    const isSourceReference = (source: RetrievalResult): source is SourceReference => {
-        return 'source' in source;
-    };
-
-    const getSourceDisplayName = (source: RetrievalResult): string => {
-        if (isSourceReference(source)) {
-            return source.source;
-        }
-        return source.text.slice(0, 50) + (source.text.length > 50 ? '...' : '');
-    };
-
-    const filteredSources = sources.filter((source) =>
-        getSourceDisplayName(source).toLowerCase().includes(filterValue.toLowerCase())
-    );
-
+    // --- Mention Handling ---
     const insertMention = useCallback(
         (source: RetrievalResult) => {
             const editorElement = editorRef.current as HTMLDivElement | null;
@@ -161,7 +167,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                         if (!isEmpty(current)) {
                             foundContent = true;
                         }
-                        // Check inside spans
                         if (current.nodeName === 'SPAN') {
                             const hasContent = Array.from(current.childNodes).some(child => 
                                 child.nodeName !== 'BR' && !isEmpty(child)
@@ -186,22 +191,18 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                 let insertionPoint = textNode.nextSibling;
 
                 if (isStartOfLine && lineStartBR) {
-                    // If we're at the start of a line, insert after the BR
                     insertionParent = lineStartBR.parentNode || parent;
                     insertionPoint = lineStartBR.nextSibling;
-                    // If the text node is empty and not needed, remove it
                     if (!beforeText && textNode.previousSibling !== lineStartBR) {
                         textNode.parentNode?.removeChild(textNode);
                     }
                 }
 
-                // Insert the chip directly (without wrapper)
+                // Insert the chip and spacing
                 insertionParent.insertBefore(chip, insertionPoint);
-                // Add a space after the chip
                 const spaceNode = document.createTextNode('\u00A0');
                 insertionParent.insertBefore(spaceNode, chip.nextSibling);
 
-                // Add the remaining text if any
                 if (afterText) {
                     const afterNode = document.createTextNode(afterText);
                     insertionParent.insertBefore(afterNode, spaceNode.nextSibling);
@@ -236,9 +237,10 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                 onChange(editorElement.textContent || '', [...mentions, newMention]);
             }
         },
-        [cursorPosition, mentions, onChange, editorRef]
+        [cursorPosition, mentions, onChange]
     );
 
+    // --- Keyboard Event Handlers ---
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
         if (e.key === '@') {
             e.preventDefault();
@@ -257,13 +259,11 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             const findLineStart = (node: Node): { br: Node | null; isStartOfLine: boolean; brSequence: Node[] } => {
                 if (node === editorRef.current) return { br: null, isStartOfLine: false, brSequence: [] };
 
-                // Helper to check if node is effectively empty
                 const isEmpty = (n: Node): boolean => {
                     return n.nodeType === Node.TEXT_NODE && !n.textContent?.trim() ||
                            n.nodeType === Node.ELEMENT_NODE && !n.textContent?.trim();
                 };
 
-                // Walk backwards through siblings until we find content or BR
                 const walkBackwards = (startNode: Node): { br: Node | null; isStartOfLine: boolean; brSequence: Node[] } => {
                     let current = startNode;
                     let foundContent = false;
@@ -272,21 +272,16 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                     while (current.previousSibling) {
                         current = current.previousSibling;
 
-                        // If we find a BR
                         if (current.nodeName === 'BR') {
                             brSequence.unshift(current);
-                            // If we haven't found content yet, this BR marks our line start
                             if (!foundContent) {
                                 return { br: current, isStartOfLine: true, brSequence };
                             }
                         }
-                        // If we find non-empty content before a BR
                         else if (!isEmpty(current)) {
                             foundContent = true;
-                            // Keep looking for BRs to track sequence
                             continue;
                         }
-                        // For spans, check their content
                         else if (current.nodeName === 'SPAN') {
                             const hasContent = Array.from(current.childNodes).some(child => 
                                 child.nodeName !== 'BR' && !isEmpty(child)
@@ -298,7 +293,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                         }
                     }
 
-                    // If we're at the start of the editor with no content
                     if (!foundContent && brSequence.length > 0) {
                         return { br: brSequence[0], isStartOfLine: true, brSequence };
                     }
@@ -306,10 +300,8 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                     return { br: null, isStartOfLine: false, brSequence };
                 };
 
-                // Start from current node
                 let result = walkBackwards(node);
                 
-                // If we didn't find anything and we're in a nested structure
                 if (!result.br && node.parentNode && node.parentNode !== editorRef.current) {
                     result = walkBackwards(node.parentNode);
                 }
@@ -323,7 +315,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             const textNode = document.createTextNode('');
 
             if (isStartOfLine && lineStartBR) {
-                // Find the correct insertion point in BR sequence
                 const brIndex = brSequence.indexOf(lineStartBR);
                 const nextNode = brSequence[brIndex + 1] || lineStartBR.nextSibling;
 
@@ -335,7 +326,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                 targetNode = textNode;
                 targetOffset = 0;
             } else if (targetNode === editorRef.current) {
-                // If we're in the editor directly
                 const childNodes = Array.from(editorRef.current.childNodes);
                 if (targetOffset >= childNodes.length) {
                     editorRef.current.appendChild(textNode);
@@ -345,7 +335,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                 targetNode = textNode;
                 targetOffset = 0;
             } else if (targetNode.nodeType !== Node.TEXT_NODE || targetNode.textContent === '') {
-                // If we're in an empty node
                 targetNode.parentNode?.insertBefore(textNode, targetNode.nextSibling);
                 targetNode = textNode;
                 targetOffset = 0;
@@ -413,6 +402,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         }
     };
 
+    // --- Render Component ---
     return (
         <form ref={formRef} onSubmit={handleSubmit} className="w-full flex flex-col">
             <div className="relative">
@@ -431,6 +421,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                     suppressContentEditableWarning
                 />
 
+                {/* Mention Dropdown Menu */}
                 {isOpen && menuPosition && (
                     <div
                         ref={refs.setFloating}
@@ -498,6 +489,8 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* Footer with Status and Submit Button */}
             <div className="flex items-center justify-between mt-2">
                 <div className="flex items-center gap-2">
                     <div className={`h-2.5 w-2.5 rounded-full ${workflowStatus[workflowMode].color} animate-pulse`} />
