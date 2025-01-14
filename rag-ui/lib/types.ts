@@ -16,6 +16,7 @@ export interface BaseRetrievalResult {
 export interface SourceReference extends BaseRetrievalResult {
   type?: 'pdf' | 'html';
   source: string;
+  highlights?: Highlight[];
 }
 
 export interface TextContent extends BaseRetrievalResult {

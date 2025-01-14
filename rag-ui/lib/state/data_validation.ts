@@ -11,7 +11,7 @@ function hasOnlyAllowedKeys<T>(obj: Record<string, any>, allowedKeys: (keyof T)[
 function isSourceReference(result: unknown): result is SourceReference {
     if (!isRecord(result)) return false;
 
-    const allowedKeys: (keyof SourceReference)[] = ['source', 'type', 'relevanceScore', 'metadata'];
+    const allowedKeys: (keyof SourceReference)[] = ['source', 'type', 'relevanceScore', 'metadata', 'highlights'];
     if (!hasOnlyAllowedKeys<SourceReference>(result, allowedKeys)) {
         return false;
     }

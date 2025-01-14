@@ -80,7 +80,7 @@ def retrieve_helper(query: str):
     pdf_files = list_pdf_files()
     html_files = list_html_files()
     retrieved_sources = [
-        {**file, "metadata": {"page": random.randint(1, 3)}} 
+        {**file, "metadata": {"page": random.randint(1, 3)}, "highlights": []}
         for file in pdf_files 
         if any(query_part.lower() in file["source"].lower() for query_part in query.split())
     ]
