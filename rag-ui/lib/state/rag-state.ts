@@ -137,7 +137,7 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
       let accumulatedContent = '';
 
       const response = acceptsSources(generateFn)
-        ? (generateFn as GenerateWithSources)(messages, _get(retrievedSourcesAtom))
+        ? (generateFn as GenerateWithSources)(messages, _get(currentSourcesAtom))
         : (generateFn as GenerateSimple)(messages);
 
       const processingPromise = (async () => {
@@ -210,6 +210,7 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
       // Handle errors and loading state
       processingPromise.catch(err => {
         set(errorAtom, `Generate operation failed: ${err.message}`);
+        set(currentStreamAtom, null);
       }).finally(() => {
         set(loadingAtom, false);
       });
@@ -258,7 +259,9 @@ export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?:
       try {
         const sources = await retrieveFn(query, metadata);
         set(retrievedSourcesAtom, sources);
-        return sources; // Add this return statement
+        set(currentSourceIndicesAtom, []); // Reset active source indices
+        set(activeSourceIndexAtom, null);  // Reset active source index
+        return sources;
       } finally {
         set(loadingAtom, false);
         set(workflowModeAtom, 'follow-up');
@@ -337,7 +340,11 @@ export const createRetrieveAndGenerateAtom = (
         // Handle sources
         if (response.sources) {
           await addTimeout(
-            response.sources.then(sources => set(retrievedSourcesAtom, validateRetrievalResults(sources))),
+            response.sources.then(sources => {
+              set(retrievedSourcesAtom, validateRetrievalResults(sources));
+              set(currentSourceIndicesAtom, []); // Reset active source indices
+              set(activeSourceIndexAtom, null);  // Reset active source index
+            }),
             config.timeouts?.request,
             'Sources request timeout exceeded',
             abortController.signal

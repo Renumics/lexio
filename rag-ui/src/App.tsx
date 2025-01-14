@@ -65,6 +65,7 @@ const generateTextWithSources = (
 ): AsyncIterable<GenerateStreamChunk> => {
   // Convert both messages and sources to URL-safe format
   console.log(messages, sources);
+  
   const query = encodeURIComponent(
     JSON.stringify({
       messages: messages,
@@ -73,7 +74,7 @@ const generateTextWithSources = (
   );
   
   const eventSource = new EventSource(
-    `http://localhost:8000/generate?input=${query}`
+    `http://localhost:8000/generate?messages=${query}`  // Changed from 'input' to 'messages'
   );
 
   const messageQueue: GenerateStreamChunk[] = [];
@@ -207,7 +208,7 @@ const getDataSource = async (source: SourceReference): GetDataSourceResponse => 
   <RAGProvider
     retrieve={retrieveSources}
     retrieveAndGenerate={retrieveAndGenerate}
-    generate={generateText}
+    generate={generateTextWithSources}
     getDataSource={getDataSource}
     config={{
       timeouts: {
