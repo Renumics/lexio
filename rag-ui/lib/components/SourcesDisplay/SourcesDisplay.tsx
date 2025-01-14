@@ -28,18 +28,18 @@ const SourcesDisplay = () => {
     <div className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg">
       <h2 className="text-lg font-semibold mb-4 text-gray-700">Retrieved Sources</h2>
       {/* Search field and button */}
-      <div className="flex gap-2 mb-4">
+      <div className="w-full flex gap-2 mb-4">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Search sources..."
-          className="flex-1 px-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          className="w-full flex-1 px-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
         <button
           onClick={handleSearch}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="whitespace-nowrap px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
         >
           Search
         </button>

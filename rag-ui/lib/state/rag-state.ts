@@ -221,8 +221,33 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
 
 // Retrieve sources
 export const retrievedSourcesAtom = atom<RetrievalResult[]>([]);
-export const currentSourcesAtom = atom<RetrievalResult[]>([]);
+export const currentSourceIndicesAtom = atom<number[]>([]);
 
+// Derive current sources from the selected indices
+export const currentSourcesAtom = atom((get) => {
+  const sources = get(retrievedSourcesAtom);
+  const indices = get(currentSourceIndicesAtom);
+  
+  if (indices.length === 0) {
+    return [];
+  }
+  
+  // Filter and sort indices to ensure they're valid and in order
+  const validIndices = indices
+    .filter(index => index >= 0 && index < sources.length)
+    .sort((a, b) => a - b);
+    
+  // Return current sources in order
+  return validIndices.map(index => sources[index]);
+});
+
+// Update setter atom to handle multiple indices
+export const setCurrentSourceIndicesAtom = atom(
+  null,
+  (_get, set, indices: number[]) => {
+    set(currentSourceIndicesAtom, indices);
+  }
+);
 
 
 export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?: Record<string, any>) => Promise<RetrievalResult[]>) => {
@@ -241,6 +266,8 @@ export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?:
     }
   );
 };
+
+
 
 export const retrieveSourcesAtom = atom(
   null,
