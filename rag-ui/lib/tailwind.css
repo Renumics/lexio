@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.react-pdf__Page__canvas,
+.react-pdf__Page__svg {
+  transform-origin: top left !important;
+}
