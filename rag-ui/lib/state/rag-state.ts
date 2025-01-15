@@ -407,7 +407,8 @@ export const createGetDataSourceAtom = (getDataSourceFn: (source: SourceReferenc
         if ('text' in retrievalResult) {
           response = {
             content: retrievalResult.text,
-            metadata: retrievalResult.metadata
+            metadata: retrievalResult.metadata,
+            type: 'html'
           };
         } else {
           // Otherwise, use the getDataSourceFn for SourceReference
