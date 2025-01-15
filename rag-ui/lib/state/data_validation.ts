@@ -1,4 +1,4 @@
-import {SourceReference, TextContent, SourceContent, PdfSourceContent, RetrievalResult, Highlight} from '../types';
+import {SourceReference, TextContent, SourceContent, PDFSourceContent, RetrievalResult, PDFHighlight, HTMLSourceContent} from '../types';
 
 function isRecord(value: unknown): value is Record<string, any> {
     return typeof value === 'object' && value !== null;
@@ -42,16 +42,16 @@ function isTextContent(result: unknown): result is TextContent {
 function isHighlight(value: unknown): value is Highlight {
     if (!isRecord(value)) return false;
 
-    const allowedKeys: (keyof Highlight)[] = ['page', 'rect', 'comment'];
-    if (!hasOnlyAllowedKeys<Highlight>(value, allowedKeys)) {
+    const allowedKeys: (keyof PDFHighlight)[] = ['page', 'rect', 'comment'];
+    if (!hasOnlyAllowedKeys<PDFHighlight>(value, allowedKeys)) {
         return false;
     }
 
     const {rect, comment} = value;
     if (!isRecord(rect)) return false;
 
-    const rectKeys: (keyof Highlight['rect'])[] = ['top', 'left', 'width', 'height'];
-    if (!hasOnlyAllowedKeys<Highlight['rect']>(rect, rectKeys)) {
+    const rectKeys: (keyof PDFHighlight['rect'])[] = ['top', 'left', 'width', 'height'];
+    if (!hasOnlyAllowedKeys<PDFHighlight['rect']>(rect, rectKeys)) {
         return false;
     }
 
@@ -100,6 +100,11 @@ export function validateSourceContent(content: unknown): SourceContent {
     }
 
     if (content.type === 'pdf') {
+        // Enforce Uint8Array content for PDF
+        if (!(content.content instanceof Uint8Array)) {
+            throw new Error('PDF source content must have a Uint8Array content field');
+        }
+
         // Validate `highlights` for PDF
         if (content.highlights !== undefined) {
             if (!Array.isArray(content.highlights) || !content.highlights.every(isHighlight)) {
@@ -108,21 +113,26 @@ export function validateSourceContent(content: unknown): SourceContent {
         }
 
         // Define allowed keys specifically for `type: 'pdf'`
-        const allowedKeys = ['content', 'metadata', 'type', 'highlights'] as (keyof PdfSourceContent)[];
-        if (!hasOnlyAllowedKeys<PdfSourceContent>(content, allowedKeys)) {
+        const allowedKeys = ['content', 'metadata', 'type', 'highlights'] as (keyof PDFSourceContent)[];
+        if (!hasOnlyAllowedKeys<PDFSourceContent>(content, allowedKeys)) {
             throw new Error(`Source content contains extra fields. Allowed fields are: ${allowedKeys.join(', ')}`);
         }
 
-        return content as PdfSourceContent;
-    } else if (content.type === 'html' || content.type === undefined) {
-        // Define allowed keys specifically for `type: 'html'` or undefined
-        const allowedKeys = ['content', 'metadata', 'type'] as (keyof SourceContent)[];
-        if (!hasOnlyAllowedKeys<SourceContent>(content, allowedKeys)) {
+        return content as PDFSourceContent;
+    } else if (content.type === 'html') {
+        // Enforce string content for HTML
+        if (typeof content.content !== 'string') {
+            throw new Error('HTML source content must have a string content field');
+        }
+
+        // Define allowed keys specifically for `type: 'html'`
+        const allowedKeys = ['content', 'metadata', 'type'] as (keyof HTMLSourceContent)[];
+        if (!hasOnlyAllowedKeys<HTMLSourceContent>(content, allowedKeys)) {
             throw new Error(`Source content contains extra fields. Allowed fields are: ${allowedKeys.join(', ')}`);
         }
 
-        return content as SourceContent;
+        return content as HTMLSourceContent;
     } else {
-        throw new Error('Source content type must be undefined, "pdf", or "html"');
+        throw new Error('Source content type must be "pdf" or "html"');
     }
 }

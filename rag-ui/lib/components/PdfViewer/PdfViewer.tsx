@@ -9,6 +9,7 @@ import {Highlight} from "./Highlight";
 import {pdfjs, Document, Page} from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import { PDFPageProxy } from 'pdfjs-dist/types/src/display/api'; //TODO: use import from react-pdf
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -29,19 +30,19 @@ interface PdfViewerProps {
 }
 
 const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
-    const [numPages, setNumPages] = useState(null);
+    const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1); // Scale of the PDF page
     const [rotate, setRotate] = useState(0);
     const [pageDimensions, setPageDimensions] = useState({width: 600, height: 800}); // Store page size
-    const documentContainerRef = useRef(null); // Ref to the container to calculate the size dynamically
-    const pageContainerRef = useRef(null); // Ref to the page container to calculate the size dynamically
+    const documentContainerRef = useRef<HTMLDivElement>(null); // Ref to the container to calculate the size dynamically
+    const pageContainerRef = useRef<HTMLDivElement>(null); // Ref to the page container to calculate the size dynamically
 
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
 
     // Function to handle successful loading of the document
-    const onDocumentLoadSuccess = ({numPages}) => {
+    const onDocumentLoadSuccess = ({numPages}: {numPages: number}) => {
         setNumPages(numPages);
     };
 
@@ -53,7 +54,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     }, [data]);
 
     // Function to handle successful loading of the PDF page and retrieve its original dimensions
-    const onPageLoadSuccess = (page) => {
+    const onPageLoadSuccess = (page: PDFPageProxy) => {
         const {width: pageWidth, height: pageHeight} = page.getViewport({scale: 1}); // Get original page width and height
         if (pageWidth !== pageDimensions.width || pageHeight !== pageDimensions.height) {
             setPageDimensions({width: pageWidth, height: pageHeight});
@@ -74,7 +75,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         }
     }, [pageDimensions, rotate]);
 
-    const changePage = (offset) => setPageNumber(prevPageNumber => prevPageNumber + offset);
+    const changePage = (offset: number) => setPageNumber(prevPageNumber => prevPageNumber + offset);
     const previousPage = () => changePage(-1);
     const nextPage = () => changePage(1);
     const zoomIn = () => {
@@ -92,7 +93,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
 
     // Hook to zoom when the mouse wheel is used, but only when the cursor is over the PDF container
     useEffect(() => {
-        const handleWheel = (event) => {
+        const handleWheel = (event: WheelEvent) => {
             if (event.deltaY < 0) {
                 zoomIn();
             } else {
@@ -135,7 +136,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                     </div>
                     <button
                         className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={pageNumber >= numPages}
+                        disabled={numPages === null || pageNumber >= numPages}
                         onClick={nextPage}
                     >
                         <ChevronRightIcon className="size-4 text-black"/>
