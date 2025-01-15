@@ -137,7 +137,7 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
       let accumulatedContent = '';
 
       const response = acceptsSources(generateFn)
-        ? (generateFn as GenerateWithSources)(messages, _get(retrievedSourcesAtom))
+        ? (generateFn as GenerateWithSources)(messages, _get(currentSourcesAtom))
         : (generateFn as GenerateSimple)(messages);
 
       const processingPromise = (async () => {
@@ -210,6 +210,7 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
       // Handle errors and loading state
       processingPromise.catch(err => {
         set(errorAtom, `Generate operation failed: ${err.message}`);
+        set(currentStreamAtom, null);
       }).finally(() => {
         set(loadingAtom, false);
       });
@@ -221,8 +222,33 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
 
 // Retrieve sources
 export const retrievedSourcesAtom = atom<RetrievalResult[]>([]);
-export const currentSourcesAtom = atom<RetrievalResult[]>([]);
+export const currentSourceIndicesAtom = atom<number[]>([]);
 
+// Derive current sources from the selected indices
+export const currentSourcesAtom = atom((get) => {
+  const sources = get(retrievedSourcesAtom);
+  const indices = get(currentSourceIndicesAtom);
+  
+  if (indices.length === 0) {
+    return [];
+  }
+  
+  // Filter and sort indices to ensure they're valid and in order
+  const validIndices = indices
+    .filter(index => index >= 0 && index < sources.length)
+    .sort((a, b) => a - b);
+    
+  // Return current sources in order
+  return validIndices.map(index => sources[index]);
+});
+
+// Update setter atom to handle multiple indices
+export const setCurrentSourceIndicesAtom = atom(
+  null,
+  (_get, set, indices: number[]) => {
+    set(currentSourceIndicesAtom, indices);
+  }
+);
 
 
 export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?: Record<string, any>) => Promise<RetrievalResult[]>) => {
@@ -233,13 +259,58 @@ export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?:
       try {
         const sources = await retrieveFn(query, metadata);
         set(retrievedSourcesAtom, sources);
-        return sources; // Add this return statement
+        set(currentSourceIndicesAtom, []); // Reset active source indices
+        set(activeSourceIndexAtom, null);  // Reset active source index
+        return sources;
       } finally {
         set(loadingAtom, false);
+        set(workflowModeAtom, 'follow-up');
       }
     }
   );
 };
+
+
+
+export const retrieveSourcesAtom = atom(
+  null,
+  async (_get, set, query: string, metadata?: Record<string, any>) => {
+    // Validate processing state
+    if (_get(loadingAtom)) {
+      toast.error('RAG operation already in progress');
+      throw new Error('RAG operation already in progress');
+    }
+
+    // Get current state
+    const ragAtoms = _get(ragAtomsAtom);
+    const currentSources = _get(retrievedSourcesAtom);
+    const currentMode = _get(workflowModeAtom);
+
+    if (!ragAtoms) {
+      throw new Error('RAG atoms not initialized');
+    }
+
+    // Prepare rollback state
+    const rollbackState = {
+      workflowMode: currentMode,
+      sources: currentSources
+    };
+
+    try {
+      // Trigger the retrieve operation
+      const sources = await set(ragAtoms.retrieveSourcesAtom, query, metadata);
+      return sources;
+    } catch (err: any) {
+      // Rollback state on error
+      set(workflowModeAtom, rollbackState.workflowMode);
+      set(retrievedSourcesAtom, rollbackState.sources);
+      set(errorAtom, `Retrieve sources operation failed: ${err.message}`);
+      throw err;
+    }
+  }
+);
+
+// Retrieve and generate
 
 interface RollbackState {
   messages: Message[];
@@ -269,7 +340,11 @@ export const createRetrieveAndGenerateAtom = (
         // Handle sources
         if (response.sources) {
           await addTimeout(
-            response.sources.then(sources => set(retrievedSourcesAtom, validateRetrievalResults(sources))),
+            response.sources.then(sources => {
+              set(retrievedSourcesAtom, validateRetrievalResults(sources));
+              set(currentSourceIndicesAtom, []); // Reset active source indices
+              set(activeSourceIndexAtom, null);  // Reset active source index
+            }),
             config.timeouts?.request,
             'Sources request timeout exceeded',
             abortController.signal

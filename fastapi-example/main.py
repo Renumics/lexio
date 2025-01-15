@@ -103,8 +103,8 @@ def retrieve_helper(query: str):
 
 # Endpoint to retrieve sources
 @app.get("/retrieve", response_model=List[Dict[str, Any]])
-async def retrieve(request: QueryRequest):
-    return retrieve_helper(request.query)
+async def retrieve(query: str = Query(...)):
+    return retrieve_helper(query)
 
 # Update the generate endpoint to use GET
 @app.get("/generate")
