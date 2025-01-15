@@ -194,7 +194,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                     noData={<div>No data</div>}
                     options={options}
                 >
-                    <div style={{position: 'relative'}} ref={pageContainerRef}>
+                    <div style={{position: 'relative'}}>
                         <div
                             ref={pageContainerRef}
                             style={{
