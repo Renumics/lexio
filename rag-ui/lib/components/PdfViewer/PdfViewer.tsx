@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
-    ArrowsPointingOutIcon,
+    ArrowsPointingOutIcon, ArrowUturnDownIcon,
     ChevronLeftIcon,
     ChevronRightIcon, MagnifyingGlassMinusIcon,
     MagnifyingGlassPlusIcon
@@ -32,6 +32,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [numPages, setNumPages] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1); // Scale of the PDF page
+    const [rotate, setRotate] = useState(0);
     const [pageDimensions, setPageDimensions] = useState({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef(null); // Ref to the container to calculate the size dynamically
     const pageContainerRef = useRef(null); // Ref to the page container to calculate the size dynamically
@@ -64,11 +65,14 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         if (documentContainerRef.current) {
             const containerWidth = documentContainerRef.current.clientWidth;
             const containerHeight = documentContainerRef.current.clientHeight;
+            const isRotated = rotate % 180 !== 0;
+            const pageWidth = isRotated ? pageDimensions.height : pageDimensions.width;
+            const pageHeight = isRotated ? pageDimensions.width : pageDimensions.height;
             // Set scale based on the container size to fill the width or height while maintaining aspect ratio
-            const calculatedScale = Math.min(containerWidth / pageDimensions.width, containerHeight / pageDimensions.height);
+            const calculatedScale = Math.min(containerWidth / pageWidth, containerHeight / pageHeight);
             setScale(calculatedScale);
         }
-    }, [pageDimensions]);
+    }, [pageDimensions, rotate]);
 
     const changePage = (offset) => setPageNumber(prevPageNumber => prevPageNumber + offset);
     const previousPage = () => changePage(-1);
@@ -82,6 +86,9 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const fitParent = () => {
         calculateScale();
     };
+    const rotatePage = () => {
+        setRotate((prevRotate) => (prevRotate - 90) % 360);
+    }
 
     // Hook to zoom when the mouse wheel is used, but only when the cursor is over the PDF container
     useEffect(() => {
@@ -153,6 +160,11 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                         onClick={fitParent}>
                         <ArrowsPointingOutIcon className="size-5 text-black"/>
                     </button>
+                    <button
+                        className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={rotatePage}>
+                        <ArrowUturnDownIcon className="size-5 text-black"/>
+                    </button>
                 </div>
             </div>
         );
@@ -184,7 +196,8 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                                 pageNumber={pageNumber}
                                 scale={scale}
                                 className="max-w-full max-h-full block shadow-lg"
-                                renderMode="svg"
+                                renderMode="canvas"
+                                rotate={rotate}
                                 onLoadSuccess={onPageLoadSuccess}
                             />
                             {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
