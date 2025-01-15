@@ -51,6 +51,18 @@ export interface PDFSourceContent extends BaseSourceContent {
 
 export type SourceContent = HTMLSourceContent | PDFSourceContent;
 
+export const isPDFContent = (content: SourceContent): content is PDFSourceContent => {
+  return content.type === 'pdf';
+};
+
+export const isHTMLContent = (content: SourceContent): content is HTMLSourceContent => {
+  return content.type === 'html';
+};
+
+export const isTextContent = (content: RetrievalResult): content is TextContent => {
+  return 'text' in content;
+};
+
 export type GetDataSourceResponse = Promise<SourceContent>;
 
 export interface GenerateStreamChunk {
