@@ -99,17 +99,21 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     // Hook to zoom when the mouse wheel is used, but only when the cursor is over the PDF container
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
-            if (event.deltaY < 0) {
-                zoomIn();
-            } else {
-                zoomOut();
+            // Prevent default scrolling behavior when zooming
+            if (event.ctrlKey || event.metaKey) {
+                event.preventDefault();
+                if (event.deltaY < 0) {
+                    zoomIn();
+                } else {
+                    zoomOut();
+                }
             }
         };
 
         const pdfContainer = documentContainerRef.current;
 
         if (pdfContainer) {
-            pdfContainer.addEventListener('wheel', handleWheel);
+            pdfContainer.addEventListener('wheel', handleWheel, { passive: false });
         }
 
         return () => {
