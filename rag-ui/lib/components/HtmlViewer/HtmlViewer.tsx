@@ -71,7 +71,7 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
 
     // Simple toolbar, similar to your PDF toolbar
     const Toolbar = () => (
-        <div className="px-2 bg-gray-400 gap-x-1 flex flex-row justify-end text-gray-700 z-10"
+        <div className="px-2 bg-gray-400 gap-x-1 flex flex-row justify-end text-gray-700 z-10 py-0.5"
              style={{
                  borderTopLeftRadius: '0.5rem',
                  borderTopRightRadius: '0.5rem',
@@ -107,11 +107,11 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
             <Toolbar/>
             <div
                 ref={documentContainerRef}
-                className="p-2 flex-grow overflow-auto flex bg-gray-100"
+                className="p-2 flex-grow overflow-hidden bg-gray-100"
             >
                 <div
                     ref={contentRef}
-                    className="relative inline-block html-viewer-content"
+                    className="relative inline-block html-viewer-content "
                     dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(htmlContent)}}  // Sanitize the HTML content
                 />
             </div>

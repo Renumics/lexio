@@ -7,18 +7,18 @@ import {
 } from "@heroicons/react/24/solid";
 import {Highlight} from "./Highlight";
 import {pdfjs, Document, Page} from 'react-pdf';
+import type { PDFPageProxy } from 'pdfjs-dist';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import { PDFPageProxy } from 'pdfjs-dist/types/src/display/api'; //TODO: use import from react-pdf
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
     import.meta.url,
 ).toString();
 
-const ZOOM_STEP = 0.2;  // Zoom step for increasing or decreasing scale
-const MIN_SCALE = 0.5;  // Minimum scale to prevent too much zoom out
-const MAX_SCALE = 3;    // Maximum scale to prevent excessive zoom in
+const ZOOM_STEP = 0.1;  // Zoom step for increasing or decreasing scale
+const MIN_SCALE = 0.25;  // Minimum scale to prevent too much zoom out
+const MAX_SCALE = 5;    // Maximum scale to prevent excessive zoom in
 const options = {
     withCredentials: true,
 }
@@ -34,14 +34,14 @@ export interface PageDimensions {
     height: number;
 }
 
+// todo: fix highlights + rotate
 const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
-    const [pageNumber, setPageNumber] = useState(1);
-    const [scale, setScale] = useState(1); // Scale of the PDF page
-    const [rotate, setRotate] = useState(0);
+    const [pageNumber, setPageNumber] = useState<number>(1);
+    const [scale, setScale] = useState<number>(1); // Scale of the PDF page
+    const [rotate, setRotate] = useState<number>(0);
     const [pageDimensions, setPageDimensions] = useState<PageDimensions>({width: 600, height: 800}); // Store page size
-    const documentContainerRef = useRef<HTMLDivElement>(null); // Ref to the container to calculate the size dynamically
-    const pageContainerRef = useRef<HTMLDivElement>(null); // Ref to the page container to calculate the size dynamically
+    const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
 
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
@@ -66,14 +66,22 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         }
     };
 
+    // Function to handle errors when loading a page
+    const onDocumentLoadError = () => {
+        setNumPages(null);
+    };
+
     // Function to calculate the scale based on the container size
     const calculateScale = useCallback(() => {
         if (documentContainerRef.current) {
-            const containerWidth = documentContainerRef.current.clientWidth;
-            const containerHeight = documentContainerRef.current.clientHeight;
+            const containerWidth = documentContainerRef.current?.clientWidth;
+            const containerHeight = documentContainerRef.current?.clientHeight;
+
+            // Check if the page is rotated
             const isRotated = rotate % 180 !== 0;
             const pageWidth = isRotated ? pageDimensions.height : pageDimensions.width;
             const pageHeight = isRotated ? pageDimensions.width : pageDimensions.height;
+
             // Set scale based on the container size to fill the width or height while maintaining aspect ratio
             const calculatedScale = Math.min(containerWidth / pageWidth, containerHeight / pageHeight);
             setScale(calculatedScale);
@@ -123,9 +131,28 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         };
     }, [zoomIn, zoomOut]); // Dependencies on zoomIn and zoomOut
 
+    const setPageNumberFromInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            const inputValue = (e.target as HTMLInputElement).value;
+            if (inputValue === '') {
+                setPageNumber(1); // Default to page 1 if input is empty
+                return;
+            }
+            if (numPages === null) {
+                return;
+            }
+            const newPageNumber = parseInt(inputValue, 10);
+            if (!isNaN(newPageNumber)) {
+                // Clamp value between 1 and numPages
+                const clampedPageNumber = Math.max(1, Math.min(newPageNumber, numPages!));
+                setPageNumber(clampedPageNumber);
+            }
+        }
+    };
+
     const Toolbar = () => {
         return (
-            <div className="px-2 bg-gray-400 gap-x-1 flex flex-row justify-between text-gray-700 z-10"
+            <div className="px-2 bg-gray-400 gap-x-1 flex flex-row justify-between text-gray-700 z-10 py-0.5"
                  style={{
                      borderTopLeftRadius: '0.5rem',
                      borderTopRightRadius: '0.5rem',
@@ -140,38 +167,63 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                     >
                         <ChevronLeftIcon className="size-4 text-black"/>
                     </button>
-                    <div className="m-auto min-w-14 text-center bg-gray-100 rounded-md">
-                        {pageNumber || (numPages ? 1 : '--')} / {numPages || '--'}
+                    <div className="p-1">
+                        <div className="m-auto min-w-14 flex items-center justify-center bg-gray-200 rounded-md">
+                            {numPages !== null ? (
+                                <>
+                                    <input
+                                        className="text-center w-8 bg-gray-100 rounded-md mr-1"
+                                        onKeyDown={setPageNumberFromInput}
+                                        defaultValue={pageNumber || (numPages ? 1 : '--')}
+                                        placeholder="Page"
+                                        aria-label="Enter page number"
+                                        aria-live="polite"
+                                    /> /
+                                    <span className="text-gray-600 ml-1 w-8"> {numPages || '--'}</span>
+                                </>
+                            ) : '--'
+                            }
+                        </div>
                     </div>
                     <button
-                        className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={numPages === null || pageNumber >= numPages}
                         onClick={nextPage}
                     >
                         <ChevronRightIcon className="size-4 text-black"/>
                     </button>
                 </div>
-                <div className="flex flex-row gap-x-1">
+                <div className="flex flex-row  gap-x-1">
                     <button
-                        className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={zoomIn}>
                         <MagnifyingGlassPlusIcon className="size-5 text-black"/>
                     </button>
                     <div className="m-auto min-w-14 text-center bg-gray-100 rounded-md">
-                        {documentContainerRef.current ? `${((scale * pageDimensions.width) / documentContainerRef.current.clientWidth * 100).toFixed(0)}%` : '--'}
+                        {numPages !== null && documentContainerRef.current ? (
+                            (() => {
+                                const isRotated = rotate % 180 !== 0;
+                                const pageWidth = isRotated ? pageDimensions.height : pageDimensions.width;
+                                const containerWidth = documentContainerRef.current?.clientWidth;
+                                const scalePercentage = ((scale * pageWidth) / containerWidth) * 100;
+                                return `${scalePercentage.toFixed(0)}%`;
+                            })()
+                        ) : (
+                            '--'
+                        )}
                     </div>
                     <button
-                        className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={zoomOut}>
                         <MagnifyingGlassMinusIcon className="size-5 text-black"/>
                     </button>
                     <button
-                        className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={fitParent}>
                         <ArrowsPointingOutIcon className="size-5 text-black"/>
                     </button>
                     <button
-                        className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={rotatePage}>
                         <ArrowUturnDownIcon className="size-5 text-black"/>
                     </button>
@@ -184,42 +236,41 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         <div className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg">
             <Toolbar/>
             <div className="flex justify-center items-start flex-grow overflow-auto relative w-full"
-                 ref={documentContainerRef}
-                 style={{textAlign: 'center'}}
+                style={{textAlign: 'center'}}
+                ref={documentContainerRef}
             >
                 <Document
                     file={file}
                     onLoadSuccess={onDocumentLoadSuccess}
+                    onLoadError={onDocumentLoadError}
                     className="w-full h-full"
                     noData={<div>No data</div>}
                     options={options}
                 >
-                    <div style={{position: 'relative'}}>
-                        <div
-                            ref={pageContainerRef}
-                            style={{
-                                position: 'relative',
-                                display: 'inline-block',  // so it can be centered by text-align
-                            }}
-                        >
-                            <Page
-                                pageNumber={pageNumber}
+                    <div
+                        style={{
+                            position: 'relative',
+                            display: 'inline-block',
+                        }}
+                    >
+                        <Page
+                            pageNumber={pageNumber}
+                            scale={scale}
+                            className="max-w-full max-h-full block shadow-lg"
+                            renderMode="canvas"
+                            rotate={rotate}
+                            onLoadSuccess={onPageLoadSuccess}
+                        />
+                        {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
+                            <Highlight
+                                key={index}
+                                rect={highlight.rect}
                                 scale={scale}
-                                className="max-w-full max-h-full block shadow-lg"
-                                renderMode="canvas"
                                 rotate={rotate}
-                                onLoadSuccess={onPageLoadSuccess}
+                                pageDimensions={pageDimensions}
                             />
-                            {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
-                                <Highlight
-                                    key={index}
-                                    rect={highlight.rect}
-                                    scale={scale}
-                                    pageDimensions={pageDimensions}
-                                />
-                            ))
-                            }
-                        </div>
+                        ))
+                        }
                     </div>
                 </Document>
             </div>
