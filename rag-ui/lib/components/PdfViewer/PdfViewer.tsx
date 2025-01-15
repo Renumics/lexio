@@ -29,12 +29,17 @@ interface PdfViewerProps {
     page?: number;
 }
 
+export interface PageDimensions {
+    width: number;
+    height: number;
+}
+
 const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1); // Scale of the PDF page
     const [rotate, setRotate] = useState(0);
-    const [pageDimensions, setPageDimensions] = useState({width: 600, height: 800}); // Store page size
+    const [pageDimensions, setPageDimensions] = useState<PageDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement>(null); // Ref to the container to calculate the size dynamically
     const pageContainerRef = useRef<HTMLDivElement>(null); // Ref to the page container to calculate the size dynamically
 

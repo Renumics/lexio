@@ -1,5 +1,6 @@
 import {useEffect, useState} from "react";
-
+import {PDFHighlight } from "../../types";
+import {PageDimensions} from "./PdfViewer";
 const highlightStyleDefaults = {
     position: 'absolute',
     backgroundColor: 'rgba(255, 255, 0, 0.3)',
@@ -10,7 +11,7 @@ const highlightStyleDefaults = {
     zIndex: 100,
 };
 
-const Highlight = ({rect, scale, pageDimensions}) => {
+const Highlight = ({rect, scale, pageDimensions}: {rect: PDFHighlight['rect'], scale: number, pageDimensions: PageDimensions}) => {
     const [highlightStyle, setHighlightStyle] = useState({});
 
     useEffect(() => {
