@@ -141,6 +141,67 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         }
     };
 
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            // Only handle keyboard events if PDF is loaded
+            if (numPages === null) return;
+
+            // Handle zoom controls with Ctrl/Cmd + Up/Down
+            if (event.ctrlKey || event.metaKey) {
+                switch (event.key) {
+                    case 'ArrowUp':
+                        event.preventDefault();
+                        zoomIn();
+                        return;
+                    case 'ArrowDown':
+                        event.preventDefault();
+                        zoomOut();
+                        return;
+                    case '0':
+                        event.preventDefault();
+                        fitParent();
+                        return;
+                }
+            }
+
+            // Handle page navigation
+            switch (event.key) {
+                case 'ArrowRight':
+                case ' ': // Spacebar
+                    if (pageNumber < numPages) {
+                        event.preventDefault(); // Prevent scrolling with space
+                        nextPage();
+                    }
+                    break;
+                case 'ArrowLeft':
+                case 'Backspace':
+                    if (pageNumber > 1) {
+                        event.preventDefault();
+                        previousPage();
+                    }
+                    break;
+                case 'Home':
+                    event.preventDefault();
+                    setPageNumber(1);
+                    break;
+                case 'End':
+                    event.preventDefault();
+                    setPageNumber(numPages);
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        // Add event listener to window to catch keyboard events
+        window.addEventListener('keydown', handleKeyDown);
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [pageNumber, numPages, nextPage, previousPage, zoomIn, zoomOut, fitParent]);
+
     const Toolbar = () => {
         // Initialize scalePercentage with scale
         let scalePercentage = scale;
