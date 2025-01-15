@@ -1,37 +1,28 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
-    ArrowsPointingOutIcon, ArrowUturnDownIcon,
+    ArrowUturnDownIcon,
     ChevronLeftIcon,
-    ChevronRightIcon, MagnifyingGlassMinusIcon,
-    MagnifyingGlassPlusIcon
+    ChevronRightIcon,
 } from "@heroicons/react/24/solid";
-import {Highlight} from "./Highlight";
+import {Highlight} from "./Highlight.tsx";
 import {pdfjs, Document, Page} from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import { ViewerToolbar } from "../ViewerToolbar";
+import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
     import.meta.url,
 ).toString();
 
-const ZOOM_STEP = 0.1;  // Zoom step for increasing or decreasing scale
-const MIN_SCALE = 0.25;  // Minimum scale to prevent too much zoom out
-const MAX_SCALE = 5;    // Maximum scale to prevent excessive zoom in
-const options = {
-    withCredentials: true,
-}
+const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 
 interface PdfViewerProps {
     data: Uint8Array;
     highlights?: any[];
     page?: number;
-}
-
-export interface PageDimensions {
-    width: number;
-    height: number;
 }
 
 // todo: fix highlights + rotate
@@ -40,7 +31,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [scale, setScale] = useState<number>(1); // Scale of the PDF page
     const [rotate, setRotate] = useState<number>(0);
-    const [pageDimensions, setPageDimensions] = useState<PageDimensions>({width: 600, height: 800}); // Store page size
+    const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
 
     // parse data object to file object which can be consumed by react-pdf
@@ -61,8 +52,8 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     // Function to handle successful loading of the PDF page and retrieve its original dimensions
     const onPageLoadSuccess = (page: PDFPageProxy) => {
         const {width: pageWidth, height: pageHeight} = page.getViewport({scale: 1}); // Get original page width and height
-        if (pageWidth !== pageDimensions.width || pageHeight !== pageDimensions.height) {
-            setPageDimensions({width: pageWidth, height: pageHeight});
+        if (pageWidth !== canvasDimensions.width || pageHeight !== canvasDimensions.height) {
+            setCanvasDimensions({width: pageWidth, height: pageHeight});
         }
     };
 
@@ -79,14 +70,14 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
 
             // Check if the page is rotated
             const isRotated = rotate % 180 !== 0;
-            const pageWidth = isRotated ? pageDimensions.height : pageDimensions.width;
-            const pageHeight = isRotated ? pageDimensions.width : pageDimensions.height;
+            const pageWidth = isRotated ? canvasDimensions.height : canvasDimensions.width;
+            const pageHeight = isRotated ? canvasDimensions.width : canvasDimensions.height;
 
             // Set scale based on the container size to fill the width or height while maintaining aspect ratio
             const calculatedScale = Math.min(containerWidth / pageWidth, containerHeight / pageHeight);
             setScale(calculatedScale);
         }
-    }, [pageDimensions, rotate]);
+    }, [canvasDimensions, rotate]);
 
     const changePage = (offset: number) => setPageNumber(prevPageNumber => prevPageNumber + offset);
     const previousPage = () => changePage(-1);
@@ -151,23 +142,35 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     };
 
     const Toolbar = () => {
+        // Initialize scalePercentage with scale
+        let scalePercentage = scale;
+        
+        // Calculate actual scale percentage if we have the container width
+        if (documentContainerRef.current && canvasDimensions.width > 0 && numPages !== null) {
+            const isRotated = rotate % 180 !== 0;
+            const pageWidth = isRotated ? canvasDimensions.height : canvasDimensions.width;
+            const containerWidth = documentContainerRef.current?.clientWidth;
+            if (containerWidth > 0) {
+                scalePercentage = (scale * pageWidth) / containerWidth;
+            }
+        }
+
         return (
-            <div className="px-2 bg-gray-400 gap-x-1 flex flex-row justify-between text-gray-700 z-10 py-0.5"
-                 style={{
-                     borderTopLeftRadius: '0.5rem',
-                     borderTopRightRadius: '0.5rem',
-                     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)', // Improved shadow
-                }}
+            <ViewerToolbar 
+                zoomIn={zoomIn} 
+                zoomOut={zoomOut} 
+                scale={scalePercentage} 
+                fitParent={fitParent}
+                isLoaded={numPages !== null}
             >
-                <div className="flex flex-row gap-x-1 text-md">
-                    <button
-                        className="px-2 py-1 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={pageNumber <= 1 || data === null}
-                        onClick={previousPage}
-                    >
-                        <ChevronLeftIcon className="size-4 text-black"/>
-                    </button>
-                    <div className="p-1">
+                <div className="flex flex-row justify-between w-full">
+                    <div className="flex flex-row gap-x-1 text-md">
+                        <button
+                            className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={pageNumber <= 1 || data === null}
+                            onClick={previousPage}>
+                            <ChevronLeftIcon className="size-4 text-black"/>
+                        </button>
                         <div className="m-auto min-w-14 flex items-center justify-center bg-gray-200 rounded-md">
                             {numPages !== null ? (
                                 <>
@@ -184,51 +187,20 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                             ) : '--'
                             }
                         </div>
+                        <button
+                            className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={numPages === null || pageNumber >= numPages}
+                            onClick={nextPage}>
+                            <ChevronRightIcon className="size-4 text-black"/>
+                        </button>
                     </div>
-                    <button
-                        className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={numPages === null || pageNumber >= numPages}
-                        onClick={nextPage}
-                    >
-                        <ChevronRightIcon className="size-4 text-black"/>
-                    </button>
-                </div>
-                <div className="flex flex-row  gap-x-1">
-                    <button
-                        className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={zoomIn}>
-                        <MagnifyingGlassPlusIcon className="size-5 text-black"/>
-                    </button>
-                    <div className="m-auto min-w-14 text-center bg-gray-100 rounded-md">
-                        {numPages !== null && documentContainerRef.current ? (
-                            (() => {
-                                const isRotated = rotate % 180 !== 0;
-                                const pageWidth = isRotated ? pageDimensions.height : pageDimensions.width;
-                                const containerWidth = documentContainerRef.current?.clientWidth;
-                                const scalePercentage = ((scale * pageWidth) / containerWidth) * 100;
-                                return `${scalePercentage.toFixed(0)}%`;
-                            })()
-                        ) : (
-                            '--'
-                        )}
-                    </div>
-                    <button
-                        className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={zoomOut}>
-                        <MagnifyingGlassMinusIcon className="size-5 text-black"/>
-                    </button>
-                    <button
-                        className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={fitParent}>
-                        <ArrowsPointingOutIcon className="size-5 text-black"/>
-                    </button>
                     <button
                         className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={rotatePage}>
                         <ArrowUturnDownIcon className="size-5 text-black"/>
                     </button>
                 </div>
-            </div>
+            </ViewerToolbar>
         );
     }
 
@@ -245,7 +217,6 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                     onLoadError={onDocumentLoadError}
                     className="w-full h-full"
                     noData={<div>No data</div>}
-                    options={options}
                 >
                     <div
                         style={{
@@ -267,10 +238,9 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                                 rect={highlight.rect}
                                 scale={scale}
                                 rotate={rotate}
-                                pageDimensions={pageDimensions}
+                                canvasDimensions={canvasDimensions}
                             />
-                        ))
-                        }
+                        ))}
                     </div>
                 </Document>
             </div>
