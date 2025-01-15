@@ -8,30 +8,7 @@ export interface Message {
   content: string;
 }
 
-export interface BaseRetrievalResult {
-  relevanceScore?: number;
-  metadata?: Record<string, any>;
-}
-
-export interface SourceReference extends BaseRetrievalResult {
-  type?: 'pdf' | 'html';
-  source: string;
-  highlights?: Highlight[];
-}
-
-export interface TextContent extends BaseRetrievalResult {
-  text: string;
-}
-
-export type SourceContent =
-  | {
-      content: Uint8Array | string;
-      metadata?: Record<string, any>;
-      type?: 'html';
-    }
-  | PdfSourceContent; // PdfSourceContent already includes `type: 'pdf'` and `highlights`.
-
-export interface Highlight {
+export interface PDFHighlight {
   page: number;
   rect: {
     top: number;
@@ -42,10 +19,37 @@ export interface Highlight {
   comment?: string;
 }
 
-export interface PdfSourceContent extends SourceContent {
-  type: 'pdf';
-  highlights?: Highlight[];
+export interface BaseRetrievalResult {
+  relevanceScore?: number;
+  metadata?: Record<string, any>;
+  highlights?: PDFHighlight[];
 }
+
+export interface SourceReference extends BaseRetrievalResult {
+  type?: 'pdf' | 'html';
+  source: string;
+}
+
+export interface TextContent extends BaseRetrievalResult {
+  text: string;
+}
+
+interface BaseSourceContent {
+  metadata?: Record<string, any>;
+}
+
+export interface HTMLSourceContent extends BaseSourceContent {
+  content: string;
+  type: 'html';
+}
+
+export interface PDFSourceContent extends BaseSourceContent {
+  content: Uint8Array;
+  type: 'pdf';
+  highlights?: PDFHighlight[];
+}
+
+export type SourceContent = HTMLSourceContent | PDFSourceContent;
 
 export type GetDataSourceResponse = Promise<SourceContent>;
 
