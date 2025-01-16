@@ -104,9 +104,9 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
             if (event.ctrlKey || event.metaKey) {
                 event.preventDefault();
                 if (event.deltaY < 0) {
-                    zoomIn();
+                    wrappedActions.zoomIn();
                 } else {
-                    zoomOut();
+                    wrappedActions.zoomOut();
                 }
             }
         };

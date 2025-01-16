@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useHotkeys, Options } from 'react-hotkeys-hook';
 import { ViewerToolbar } from "../ViewerToolbar";
 import { ZOOM_CONSTANTS } from "../types";
@@ -14,6 +14,32 @@ interface HTMLViewerProps {
 const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
     const [scale, setScale] = React.useState(1);
     const containerRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
+
+    // Optional: Handle mouse wheel zoom
+    useEffect(() => {
+        const handleWheel = (event: WheelEvent) => {
+            if (event.deltaY < 0) {
+                wrappedActions.zoomIn();
+            } else {
+                wrappedActions.zoomOut();
+            }
+            // Prevent page scroll while zooming if desired
+            event.preventDefault();
+        };
+
+        const container = containerRef.current;
+        if (container) {
+            container.addEventListener('wheel', handleWheel, {passive: false});
+        }
+
+        return () => {
+            if (container) {
+                container.removeEventListener('wheel', handleWheel);
+            }
+        };
+    }, []);
+
+    // ---- Hotkeys ----
 
     const zoomIn = () => {
         setScale((prevScale) => Math.min(prevScale + ZOOM_STEP, MAX_SCALE));
