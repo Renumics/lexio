@@ -3,6 +3,7 @@ import './HtmlViewer.css';
 import DOMPurify from 'dompurify';
 import { ViewerToolbar } from "../ViewerToolbar";
 import { ZOOM_CONSTANTS } from "../types";
+import {useHotkeys, Options} from 'react-hotkeys-hook';
 
 const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 
@@ -60,6 +61,53 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
         };
     }, []);
 
+    // ---- Hotkeys ----
+    // Common options for hotkeys
+    const hotkeyOptions: Options = {
+        enableOnFormTags: false,
+        enabled: true,
+        // No need for filter function as the ref handles the scoping
+    };
+
+    // Use the ref returned by useHotkeys
+    const zoomInRef = useHotkeys('ctrl+up, cmd+up', 
+        (event) => {
+            event.preventDefault();
+            zoomIn();
+        }, 
+        hotkeyOptions,
+        [zoomIn]
+    );
+
+    const zoomOutRef = useHotkeys('ctrl+down, cmd+down', 
+        (event) => {
+            event.preventDefault();
+            zoomOut();
+        }, 
+        hotkeyOptions,
+        [zoomOut]
+    );
+
+    const fitRef = useHotkeys('ctrl+0, cmd+0', 
+        (event) => {
+            event.preventDefault();
+            setScale(1.0);
+        }, 
+        hotkeyOptions,
+        []
+    );
+
+    // Combine all refs into one using callback ref
+    const combineRefs = (element: HTMLDivElement) => {
+        [zoomInRef, zoomOutRef, fitRef].forEach(ref => {
+            if (typeof ref === 'function') {
+                ref(element);
+            } else if (ref) {
+                (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
+            }
+        });
+    };
+
     // Simple toolbar, similar to your PDF toolbar
     const Toolbar = () => (
         <ViewerToolbar zoomIn={zoomIn} zoomOut={zoomOut} scale={scale} fitParent={() => setScale(1.0)}>
@@ -68,7 +116,10 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
     );
 
     return (
-        <div className="h-full w-full flex flex-col">
+        <div className="h-full w-full flex flex-col focus:outline-none"
+            ref={combineRefs}
+            tabIndex={-1}
+        >
             <Toolbar/>
             <div
                 ref={documentContainerRef}

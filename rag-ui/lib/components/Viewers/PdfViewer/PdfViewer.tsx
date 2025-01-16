@@ -34,6 +34,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [rotate, setRotate] = useState<number>(0);
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
+    const [isHovered, setIsHovered] = useState(false);
     
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
@@ -96,6 +97,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         setRotate((prevRotate) => (prevRotate - 90) % 360);
     }
 
+    // ---- Mouse wheel zoom ----
     // Hook to zoom when the mouse wheel is used, but only when the cursor is over the PDF container
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
@@ -121,7 +123,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                 pdfContainer.removeEventListener('wheel', handleWheel);
             }
         };
-    }, [zoomIn, zoomOut]); // Dependencies on zoomIn and zoomOut
+    }, [zoomIn, zoomOut]); 
 
     const setPageNumberFromInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -142,36 +144,17 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         }
     };
 
+
+    // ---- Hotkeys ----
     // Common options for hotkeys
     const hotkeyOptions: Options = {
         enableOnFormTags: false,
         enabled: numPages !== null,
-        enableOnContentEditable: false,
-        filter: (event) => {
-            const target = event.target as Node;
-            const container = viewerContainerRef.current;
-            
-            // Check if target is the container or a descendant
-            if (!container?.contains(target)) {
-                return false;
-            }
-
-            // Don't trigger on input elements
-            if (target instanceof HTMLElement) {
-                const isInput = target.tagName === 'INPUT' || 
-                              target.tagName === 'TEXTAREA' || 
-                              target.isContentEditable;
-                if (isInput) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
+        // No need for filter function as the ref handles the scoping
     };
 
-    // define hotkeys with the options
-    useHotkeys('ctrl+up, cmd+up', 
+    // Use the ref returned by useHotkeys
+    const zoomInRef = useHotkeys('ctrl+up, cmd+up', 
         (event) => {
             event.preventDefault();
             zoomIn();
@@ -180,7 +163,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         [zoomIn]
     );
 
-    useHotkeys('ctrl+down, cmd+down', 
+    const zoomOutRef = useHotkeys('ctrl+down, cmd+down', 
         (event) => {
             event.preventDefault();
             zoomOut();
@@ -189,7 +172,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         [zoomOut]
     );
 
-    useHotkeys('ctrl+0, cmd+0', 
+    const fitRef = useHotkeys('ctrl+0, cmd+0', 
         (event) => {
             event.preventDefault();
             fitParent();
@@ -198,7 +181,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         [fitParent]
     );
 
-    useHotkeys('right, space', 
+    const nextRef = useHotkeys('right, space', 
         (event) => {
             if (pageNumber < numPages!) {
                 event.preventDefault();
@@ -209,7 +192,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         [nextPage, pageNumber, numPages]
     );
 
-    useHotkeys('left, backspace', 
+    const prevRef = useHotkeys('left, backspace', 
         (event) => {
             if (pageNumber > 1) {
                 event.preventDefault();
@@ -220,7 +203,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         [previousPage, pageNumber]
     );
 
-    useHotkeys('home', 
+    const homeRef = useHotkeys('home', 
         (event) => {
             event.preventDefault();
             setPageNumber(1);
@@ -229,7 +212,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         []
     );
 
-    useHotkeys('end', 
+    const endRef = useHotkeys('end', 
         (event) => {
             event.preventDefault();
             setPageNumber(numPages!);
@@ -237,6 +220,26 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         hotkeyOptions,
         [numPages]
     );
+
+    const rotateRef = useHotkeys('.', 
+        (event) => {
+            event.preventDefault();
+            rotatePage();
+        }, 
+        hotkeyOptions,
+        [rotatePage]
+    );
+
+    // Combine all refs into one using callback ref
+    const combineRefs = (element: HTMLDivElement) => {
+        [zoomInRef, zoomOutRef, fitRef, nextRef, prevRef, homeRef, endRef, rotateRef].forEach(ref => {
+            if (typeof ref === 'function') {
+                ref(element);
+            } else if (ref) {
+                (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
+            }
+        });
+    };
 
     const Toolbar = () => {
         // Initialize scalePercentage with scale
@@ -303,10 +306,13 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
 
     return (
         <div 
-            className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg"
-             >
+            className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg focus:outline-none"
+            ref={combineRefs}
+            tabIndex={-1}
+        >
             <Toolbar/>
-            <div className="flex justify-center items-start flex-grow overflow-auto relative w-full"
+            <div 
+                className="flex justify-center items-start flex-grow overflow-auto relative w-full"
                 style={{textAlign: 'center'}}
                 ref={documentContainerRef}
             >
