@@ -1,5 +1,5 @@
-import { PdfViewer } from "../Viewers/PdfViewer/PdfViewer";
-import { HtmlViewer } from "../Viewers/HtmlViewer/HtmlViewer";
+import { PdfViewer } from "../Viewers/PdfViewer";
+import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { useRAGSources } from "../RAGProvider/hooks";
 import { isPDFContent, isHTMLContent } from "../../types";
 
