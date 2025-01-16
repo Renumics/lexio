@@ -278,7 +278,7 @@ function App() {
                         </div>
                     </div>
 
-                    <div className="w-2/3 h-full"> {/* Sources panel */}
+                    <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
                         <ContentDisplay />
                     </div>
                     <ErrorDisplay />

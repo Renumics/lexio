@@ -87,7 +87,7 @@ def retrieve_helper(query: str):
                     "top": 0.1,
                     "left": 0.25,
                     "width": 0.5,
-                    "height": 0.8,
+                    "height": 0.6,
                 }
             }
         ]}
