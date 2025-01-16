@@ -34,7 +34,6 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [rotate, setRotate] = useState<number>(0);
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
-    const [isHovered, setIsHovered] = useState(false);
     
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
