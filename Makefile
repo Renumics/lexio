@@ -1,34 +1,6 @@
 # Variables
 BACKEND_DIR = fastapi-example
-FRONTEND_DIR = rag-ui
-
-# Check for required commands
-PYTHON := $(shell command -v python3 2> /dev/null)
-NPM := $(shell command -v npm 2> /dev/null)
-
-ifndef PYTHON
-$(error "Python3 is not installed. Please install Python3 first.")
-endif
-
-ifndef NPM
-$(error "npm is not installed. Please install Node.js and npm first.")
-endif
-
-# Installation targets
-.PHONY: install
-install: install-backend install-frontend
-
-.PHONY: install-backend
-install-backend: create-data-dir
-	cd $(BACKEND_DIR) && \
-	python3 -m venv .venv && \
-	. .venv/bin/activate && \
-	pip install -r requirements.txt
-
-.PHONY: create-data-dir
-create-data-dir:
-	mkdir -p $(BACKEND_DIR)/data
-
+FRONTEND_DIR = rag- das
 .PHONY: install-frontend
 install-frontend:
 	cd $(FRONTEND_DIR) && \

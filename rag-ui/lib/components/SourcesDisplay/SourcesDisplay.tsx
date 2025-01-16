@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { RetrievalResult, SourceReference } from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
+import { useEventScope } from "../../hooks/useEventScope";
 
 const SourcesDisplay = () => {
   const { sources, currentSources, activeSourceIndex, setActiveSourceIndex, retrieveSources } = useRAGSources();
   const [searchQuery, setSearchQuery] = useState("");
+
+  // --- Focus Scope ---
+  const { handleKeyboardEvent } = useEventScope();
 
   const isSourceReference = (source: RetrievalResult): source is SourceReference => {
     return 'source' in source;
@@ -17,11 +21,12 @@ const SourcesDisplay = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    handleKeyboardEvent(e);  // Stop propagation first
+    
     if (e.key === 'Enter') {
       handleSearch();
     }
   };
-
 
   return (
     <div className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg">
@@ -31,8 +36,10 @@ const SourcesDisplay = () => {
         <input
           type="text"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+          }}
           placeholder="Search sources..."
           className="w-full flex-1 px-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
