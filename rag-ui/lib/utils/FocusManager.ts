@@ -1,3 +1,20 @@
+/**
+ * FocusManager is a utility class that manages focus scopes within an application.
+ * It allows for the registration and prioritization of focus scopes, enabling
+ * components to determine whether they should handle specific events based on
+ * their focus state and priority.
+ *
+ * The class maintains a map of registered focus scopes, each identified by a unique
+ * ID and associated with a priority level. It also tracks the currently active focus
+ * scope, allowing components to query and modify the active state.
+ *
+ * Key functionalities include:
+ * - Registering and unregistering focus scopes with optional priority levels.
+ * - Setting and clearing the active focus scope.
+ * - Determining if a scope should handle a given event based on its priority and
+ *   the current active scope.
+ * - Checking if an element or its parents have scrollable content to decide event handling.
+ */
 type FocusScope = {
   id: string;
   priority: number;
