@@ -11,6 +11,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { ViewerToolbar } from "../ViewerToolbar";
 import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
+import {useHotkeys, Options} from 'react-hotkeys-hook';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -33,7 +34,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [rotate, setRotate] = useState<number>(0);
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
-
+    
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
 
@@ -141,66 +142,101 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         }
     };
 
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            // Only handle keyboard events if PDF is loaded
-            if (numPages === null) return;
+    // Common options for hotkeys
+    const hotkeyOptions: Options = {
+        enableOnFormTags: false,
+        enabled: numPages !== null,
+        enableOnContentEditable: false,
+        filter: (event) => {
+            const target = event.target as Node;
+            const container = viewerContainerRef.current;
+            
+            // Check if target is the container or a descendant
+            if (!container?.contains(target)) {
+                return false;
+            }
 
-            // Handle zoom controls with Ctrl/Cmd + Up/Down
-            if (event.ctrlKey || event.metaKey) {
-                switch (event.key) {
-                    case 'ArrowUp':
-                        event.preventDefault();
-                        zoomIn();
-                        return;
-                    case 'ArrowDown':
-                        event.preventDefault();
-                        zoomOut();
-                        return;
-                    case '0':
-                        event.preventDefault();
-                        fitParent();
-                        return;
+            // Don't trigger on input elements
+            if (target instanceof HTMLElement) {
+                const isInput = target.tagName === 'INPUT' || 
+                              target.tagName === 'TEXTAREA' || 
+                              target.isContentEditable;
+                if (isInput) {
+                    return false;
                 }
             }
 
-            // Handle page navigation
-            switch (event.key) {
-                case 'ArrowRight':
-                case ' ': // Spacebar
-                    if (pageNumber < numPages) {
-                        event.preventDefault(); // Prevent scrolling with space
-                        nextPage();
-                    }
-                    break;
-                case 'ArrowLeft':
-                case 'Backspace':
-                    if (pageNumber > 1) {
-                        event.preventDefault();
-                        previousPage();
-                    }
-                    break;
-                case 'Home':
-                    event.preventDefault();
-                    setPageNumber(1);
-                    break;
-                case 'End':
-                    event.preventDefault();
-                    setPageNumber(numPages);
-                    break;
-                default:
-                    break;
+            return true;
+        }
+    };
+
+    // define hotkeys with the options
+    useHotkeys('ctrl+up, cmd+up', 
+        (event) => {
+            event.preventDefault();
+            zoomIn();
+        }, 
+        hotkeyOptions,
+        [zoomIn]
+    );
+
+    useHotkeys('ctrl+down, cmd+down', 
+        (event) => {
+            event.preventDefault();
+            zoomOut();
+        }, 
+        hotkeyOptions,
+        [zoomOut]
+    );
+
+    useHotkeys('ctrl+0, cmd+0', 
+        (event) => {
+            event.preventDefault();
+            fitParent();
+        }, 
+        hotkeyOptions,
+        [fitParent]
+    );
+
+    useHotkeys('right, space', 
+        (event) => {
+            if (pageNumber < numPages!) {
+                event.preventDefault();
+                nextPage();
             }
-        };
+        }, 
+        hotkeyOptions,
+        [nextPage, pageNumber, numPages]
+    );
 
-        // Add event listener to window to catch keyboard events
-        window.addEventListener('keydown', handleKeyDown);
+    useHotkeys('left, backspace', 
+        (event) => {
+            if (pageNumber > 1) {
+                event.preventDefault();
+                previousPage();
+            }
+        }, 
+        hotkeyOptions,
+        [previousPage, pageNumber]
+    );
 
-        // Cleanup
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [pageNumber, numPages, nextPage, previousPage, zoomIn, zoomOut, fitParent]);
+    useHotkeys('home', 
+        (event) => {
+            event.preventDefault();
+            setPageNumber(1);
+        }, 
+        hotkeyOptions,
+        []
+    );
+
+    useHotkeys('end', 
+        (event) => {
+            event.preventDefault();
+            setPageNumber(numPages!);
+        }, 
+        hotkeyOptions,
+        [numPages]
+    );
 
     const Toolbar = () => {
         // Initialize scalePercentage with scale
@@ -266,7 +302,9 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     }
 
     return (
-        <div className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg">
+        <div 
+            className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg"
+             >
             <Toolbar/>
             <div className="flex justify-center items-start flex-grow overflow-auto relative w-full"
                 style={{textAlign: 'center'}}
