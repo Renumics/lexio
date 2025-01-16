@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import useResizeObserver from '@react-hook/resize-observer';
 import type { WorkflowMode } from '../../types';
 import { useRAGMessages, useRAGStatus } from '../RAGProvider/hooks';
-import { useFocusScope } from '../../hooks/useFocusScope';
+import { useEventScope } from '../../hooks/useEventScope';
 
 // Add status configuration
 const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
@@ -31,11 +31,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const { handleKeyboardEvent, setActive, clearActive } = useFocusScope({
-    scopeId: 'query-field',
-    priority: 2,
-    stopPropagation: true
-  });
+  const { handleKeyboardEvent } = useEventScope();
 
   const adjustTextareaHeight = () => {
     if (textareaRef.current && formRef.current) {
@@ -65,7 +61,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!handleKeyboardEvent(e)) return;
+    handleKeyboardEvent(e);  // Stop propagation first
     
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -76,7 +72,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
   const shouldShowScrollbar = formRef.current && textareaRef.current && textareaRef.current.scrollHeight > formRef.current.clientHeight - 50;
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="w-full h-full flex flex-col" onMouseEnter={setActive} onMouseLeave={clearActive}>
+    <form ref={formRef} onSubmit={handleSubmit} className="w-full h-full flex flex-col">
       <textarea
         ref={textareaRef}
         value={message}

@@ -10,7 +10,7 @@ import { useRAGSources, useRAGMessages, useRAGStatus } from '../RAGProvider/hook
 import { RetrievalResult, SourceReference, WorkflowMode } from '../../types';
 import useResizeObserver from '@react-hook/resize-observer';
 import ReactDOM from 'react-dom';
-import { useFocusScope } from '../../hooks/useFocusScope';
+import { useEventScope } from '../../hooks/useEventScope';
 
 // --- Type Definitions ---
 interface Mention {
@@ -67,11 +67,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     const { workflowMode } = useRAGStatus();
 
     // --- Focus Scope ---
-    const { handleKeyboardEvent, setActive, clearActive } = useFocusScope({
-        scopeId: 'advanced-query-field',
-        priority: 2,
-        stopPropagation: true
-    });
+    const { handleKeyboardEvent } = useEventScope();
 
     // --- Floating UI Setup ---
     const { refs, context } = useFloating({
@@ -351,7 +347,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
 
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-        if (!handleKeyboardEvent(e)) return;
+        handleKeyboardEvent(e);  // Stop propagation first
         
         if (e.key === '@') {
             e.preventDefault();
@@ -470,8 +466,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             ref={formRef} 
             onSubmit={handleSubmit} 
             className="w-full flex flex-col"
-            onMouseEnter={setActive}
-            onMouseLeave={clearActive}
         >
             <div className="relative">
                 <div

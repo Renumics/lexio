@@ -11,7 +11,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { ViewerToolbar } from "../ViewerToolbar";
 import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
-import { useFocusScope } from '../../../hooks/useFocusScope';
+import { useEventScope } from '../../../hooks/useEventScope';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -34,10 +34,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
 
-    const { handleKeyboardEvent, handleWheelEvent, setActive, clearActive } = useFocusScope({
-        scopeId: 'pdf-viewer',
-        priority: 1
-    });
+    const { handleWheelEvent } = useEventScope();
 
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
@@ -103,11 +100,9 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     // Hook to zoom when the mouse wheel is used, but only when the cursor is over the PDF container
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
-            if (!handleWheelEvent(event)) return;
+            handleWheelEvent(event);  // Handle propagation
             
-            // Prevent default scrolling behavior when zooming
             if (event.ctrlKey || event.metaKey) {
-                event.preventDefault();
                 if (event.deltaY < 0) {
                     zoomIn();
                 } else {
@@ -127,7 +122,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                 pdfContainer.removeEventListener('wheel', handleWheel);
             }
         };
-    }, [zoomIn, zoomOut, handleWheelEvent]); // Dependencies on zoomIn and zoomOut
+    }, [zoomIn, zoomOut]); // Dependencies on zoomIn and zoomOut
 
     const setPageNumberFromInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -150,8 +145,6 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (!handleKeyboardEvent(event)) return;
-            
             // Only handle keyboard events if PDF is loaded
             if (numPages === null) return;
 
@@ -209,7 +202,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [pageNumber, numPages, nextPage, previousPage, zoomIn, zoomOut, fitParent, handleKeyboardEvent]);
+    }, [pageNumber, numPages, nextPage, previousPage, zoomIn, zoomOut, fitParent]);
 
     const Toolbar = () => {
         // Initialize scalePercentage with scale
@@ -275,11 +268,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     }
 
     return (
-        <div 
-            className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg"
-            onMouseEnter={setActive}
-            onMouseLeave={clearActive}
-        >
+        <div className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg">
             <Toolbar/>
             <div className="flex justify-center items-start flex-grow overflow-auto relative w-full"
                 style={{textAlign: 'center'}}
