@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { RetrievalResult, SourceReference } from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
+import { useFocusScope } from '../../hooks/useFocusScope';
 
 const SourcesDisplay = () => {
   const { sources, currentSources, activeSourceIndex, setActiveSourceIndex, retrieveSources } = useRAGSources();
+  const { setActive, clearActive } = useFocusScope({
+    scopeId: 'sources-display',
+    priority: 1,
+    stopPropagation: true
+  });
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -25,7 +31,11 @@ const SourcesDisplay = () => {
 
 
   return (
-    <div className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg">
+    <div 
+      className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg"
+      onMouseEnter={setActive}
+      onMouseLeave={clearActive}
+    >
       <h2 className="text-lg font-semibold mb-4 text-gray-700">Retrieved Sources</h2>
       {/* Search field and button */}
       <div className="w-full flex gap-2 mb-4">

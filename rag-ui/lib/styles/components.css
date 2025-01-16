@@ -1,0 +1,25 @@
+.scroll-container {
+  isolation: isolate;
+  contain: strict;
+  overflow: auto;
+  position: relative;
+  
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  
+  overscroll-behavior: contain;
+}
+
+.scroll-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+} 

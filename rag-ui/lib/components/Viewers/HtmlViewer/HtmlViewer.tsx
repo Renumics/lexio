@@ -3,6 +3,7 @@ import './HtmlViewer.css';
 import DOMPurify from 'dompurify';
 import { ViewerToolbar } from "../ViewerToolbar";
 import { ZOOM_CONSTANTS } from "../types";
+import { useFocusScope } from '../../../hooks/useFocusScope';
 
 const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 
@@ -14,6 +15,11 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
     const [scale, setScale] = useState(1);
     const documentContainerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
+
+    const { handleWheelEvent, setActive, clearActive } = useFocusScope({
+        scopeId: 'html-viewer',
+        priority: 1
+    });
 
     const zoomIn = () => setScale((prev) => Math.min(prev + ZOOM_STEP, MAX_SCALE));
     const zoomOut = () => setScale((prev) => Math.max(prev - ZOOM_STEP, MIN_SCALE));
@@ -39,12 +45,13 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
     // Optional: Handle mouse wheel zoom
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
+            if (!handleWheelEvent(event)) return;
+            
             if (event.deltaY < 0) {
                 zoomIn();
             } else {
                 zoomOut();
             }
-            // Prevent page scroll while zooming if desired
             event.preventDefault();
         };
 
@@ -68,7 +75,11 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
     );
 
     return (
-        <div className="h-full w-full flex flex-col">
+        <div 
+            className="h-full w-full flex flex-col"
+            onMouseEnter={setActive}
+            onMouseLeave={clearActive}
+        >
             <Toolbar/>
             <div
                 ref={documentContainerRef}
