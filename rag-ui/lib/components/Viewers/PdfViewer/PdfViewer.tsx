@@ -267,7 +267,8 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                         <button
                             className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={pageNumber <= 1 || data === null}
-                            onClick={previousPage}>
+                            onClick={previousPage}
+                            title="Previous Page (Left Arrow, Backspace)">
                             <ChevronLeftIcon className="size-4 text-black"/>
                         </button>
                         <div className="m-auto min-w-14 flex items-center justify-center bg-gray-200 rounded-md">
@@ -289,13 +290,15 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                         <button
                             className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={numPages === null || pageNumber >= numPages}
-                            onClick={nextPage}>
+                            onClick={nextPage}
+                            title="Next Page (Right Arrow, Space)">
                             <ChevronRightIcon className="size-4 text-black"/>
                         </button>
                     </div>
                     <button
                         className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={rotatePage}>
+                        onClick={rotatePage}
+                        title="Rotate Page (.)">
                         <ArrowUturnDownIcon className="size-5 text-black"/>
                     </button>
                 </div>
