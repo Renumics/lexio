@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState} from 'react';
-import './HtmlViewer.css';
-import DOMPurify from 'dompurify';
+import React, { useRef } from 'react';
+import { useHotkeys, Options } from 'react-hotkeys-hook';
 import { ViewerToolbar } from "../ViewerToolbar";
 import { ZOOM_CONSTANTS } from "../types";
-import {useHotkeys, Options} from 'react-hotkeys-hook';
+import './HtmlViewer.css';
+import DOMPurify from 'dompurify';
 
 const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 
@@ -12,61 +12,46 @@ interface HTMLViewerProps {
 }
 
 const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
-    const [scale, setScale] = useState(1);
-    const documentContainerRef = useRef<HTMLDivElement>(null);
-    const contentRef = useRef<HTMLDivElement>(null);
+    const [scale, setScale] = React.useState(1);
+    const containerRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
 
-    const zoomIn = () => setScale((prev) => Math.min(prev + ZOOM_STEP, MAX_SCALE));
-    const zoomOut = () => setScale((prev) => Math.max(prev - ZOOM_STEP, MIN_SCALE));
+    const zoomIn = () => {
+        setScale((prevScale) => Math.min(prevScale + ZOOM_STEP, MAX_SCALE));
+    };
 
-    // Measure the natural size of the HTML block so we know how to scale it
-    useEffect(() => {
-        if (contentRef.current) {
-            // Force scale = 1 temporarily to measure natural width/height
-            contentRef.current.style.transform = 'scale(1)';
-            contentRef.current.style.transformOrigin = 'top left';
+    const zoomOut = () => {
+        setScale((prevScale) => Math.max(prevScale - ZOOM_STEP, MIN_SCALE));
+    };
+
+    const fitParent = () => {
+        setScale(1);
+    };
+
+    // Helper function to focus the container
+    const focusContainer = () => {
+        containerRef.current?.focus();
+    };
+
+    // Wrap the existing actions with focus
+    const wrappedActions = {
+        zoomIn: () => {
+            zoomIn();
+            focusContainer();
+        },
+        zoomOut: () => {
+            zoomOut();
+            focusContainer();
+        },
+        fitParent: () => {
+            fitParent();
+            focusContainer();
         }
-    }, [htmlContent]);
+    };
 
-    // Re-apply the actual scale
-    useEffect(() => {
-        if (contentRef.current) {
-            contentRef.current.style.transform = `scale(${scale})`;
-            // Ensure top-left origin so we can scroll to all corners
-            contentRef.current.style.transformOrigin = 'top left';
-        }
-    }, [scale]);
-
-    // Optional: Handle mouse wheel zoom
-    useEffect(() => {
-        const handleWheel = (event: WheelEvent) => {
-            if (event.deltaY < 0) {
-                zoomIn();
-            } else {
-                zoomOut();
-            }
-            // Prevent page scroll while zooming if desired
-            event.preventDefault();
-        };
-
-        const container = documentContainerRef.current;
-        if (container) {
-            container.addEventListener('wheel', handleWheel, {passive: false});
-        }
-
-        return () => {
-            if (container) {
-                container.removeEventListener('wheel', handleWheel);
-            }
-        };
-    }, []);
-
-    // ---- Hotkeys ----
     // Common options for hotkeys
     const hotkeyOptions: Options = {
         enableOnFormTags: false,
         enabled: true,
-        // No need for filter function as the ref handles the scoping
     };
 
     // Use the ref returned by useHotkeys
@@ -91,10 +76,10 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
     const fitRef = useHotkeys('ctrl+0, cmd+0', 
         (event) => {
             event.preventDefault();
-            setScale(1.0);
+            fitParent();
         }, 
         hotkeyOptions,
-        []
+        [fitParent]
     );
 
     // Combine all refs into one using callback ref
@@ -108,31 +93,34 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
         });
     };
 
-    // Simple toolbar, similar to your PDF toolbar
-    const Toolbar = () => (
-        <ViewerToolbar zoomIn={zoomIn} zoomOut={zoomOut} scale={scale} fitParent={() => setScale(1.0)}>
-            <div></div>
-        </ViewerToolbar>
-    );
-
     return (
-        <div className="h-full w-full flex flex-col focus:outline-none"
-            ref={combineRefs}
+        <div 
+            className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg focus:outline-none"
+            ref={(element: HTMLDivElement | null) => {
+                if (element) {
+                    containerRef.current = element;
+                    combineRefs(element);
+                }
+            }}
             tabIndex={-1}
         >
-            <Toolbar/>
-            <div
-                ref={documentContainerRef}
-                className="p-2 flex-grow overflow-auto bg-gray-100"
-            >
-                <div
-                    ref={contentRef}
-                    className="relative inline-block html-viewer-content"
-                    dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(htmlContent)}}
-                />
-            </div>
+            <ViewerToolbar
+                zoomIn={wrappedActions.zoomIn}
+                zoomOut={wrappedActions.zoomOut}
+                scale={scale}
+                fitParent={wrappedActions.fitParent}
+                isLoaded={true}
+            />
+            <div 
+                className="flex-grow overflow-auto p-4"
+                style={{ 
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left'
+                }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
+            />
         </div>
     );
-}
+};
 
-export {HtmlViewer};
+export { HtmlViewer };

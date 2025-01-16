@@ -240,6 +240,42 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         });
     };
 
+    // Change the ref type to be mutable
+    const containerRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
+
+    // Helper function to focus the container
+    const focusContainer = () => {
+        containerRef.current?.focus();
+    };
+
+    // Wrap the existing actions with focus
+    const wrappedActions = {
+        previousPage: () => {
+            previousPage();
+            focusContainer();
+        },
+        nextPage: () => {
+            nextPage();
+            focusContainer();
+        },
+        zoomIn: () => {
+            zoomIn();
+            focusContainer();
+        },
+        zoomOut: () => {
+            zoomOut();
+            focusContainer();
+        },
+        fitParent: () => {
+            fitParent();
+            focusContainer();
+        },
+        rotatePage: () => {
+            rotatePage();
+            focusContainer();
+        }
+    };
+
     const Toolbar = () => {
         // Initialize scalePercentage with scale
         let scalePercentage = scale;
@@ -256,10 +292,10 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
 
         return (
             <ViewerToolbar 
-                zoomIn={zoomIn} 
-                zoomOut={zoomOut} 
+                zoomIn={wrappedActions.zoomIn} 
+                zoomOut={wrappedActions.zoomOut} 
                 scale={scalePercentage} 
-                fitParent={fitParent}
+                fitParent={wrappedActions.fitParent}
                 isLoaded={numPages !== null}
             >
                 <div className="flex flex-row justify-between w-full">
@@ -267,7 +303,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                         <button
                             className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={pageNumber <= 1 || data === null}
-                            onClick={previousPage}
+                            onClick={wrappedActions.previousPage}
                             title="Previous Page (Left Arrow, Backspace)">
                             <ChevronLeftIcon className="size-4 text-black"/>
                         </button>
@@ -290,14 +326,14 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                         <button
                             className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={numPages === null || pageNumber >= numPages}
-                            onClick={nextPage}
+                            onClick={wrappedActions.nextPage}
                             title="Next Page (Right Arrow, Space)">
                             <ChevronRightIcon className="size-4 text-black"/>
                         </button>
                     </div>
                     <button
                         className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={rotatePage}
+                        onClick={wrappedActions.rotatePage}
                         title="Rotate Page (.)">
                         <ArrowUturnDownIcon className="size-5 text-black"/>
                     </button>
@@ -309,7 +345,12 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     return (
         <div 
             className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg focus:outline-none"
-            ref={combineRefs}
+            ref={(element: HTMLDivElement | null) => {
+                if (element) {
+                    containerRef.current = element;
+                    combineRefs(element);
+                }
+            }}
             tabIndex={-1}
         >
             <Toolbar/>
