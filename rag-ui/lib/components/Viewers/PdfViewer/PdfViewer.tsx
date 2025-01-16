@@ -11,6 +11,8 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { ViewerToolbar } from "../ViewerToolbar";
 import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
+import { PDFHighlight } from "../../../types.ts";
+import { createPdfSearcher } from '../../../utils/pdf-search';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -25,7 +27,7 @@ interface PdfViewerProps {
     page?: number;
 }
 
-// todo: fix highlights + rotate
+// todo: enable searchText via Highlights
 const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
@@ -33,14 +35,67 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [rotate, setRotate] = useState<number>(0);
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
+    const [searchHighlights, setSearchHighlights] = useState<PDFHighlight[]>([]);
+    const [searcher, setSearcher] = useState<ReturnType<typeof createPdfSearcher> extends Promise<infer T> ? T : never | null>(null);
+    const [searchTerm, setSearchTerm] = useState<string>("The");
 
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
 
     // Function to handle successful loading of the document
-    const onDocumentLoadSuccess = ({numPages}: {numPages: number}) => {
-        setNumPages(numPages);
+    const onDocumentLoadSuccess = async (pdf: pdfjs.PDFDocumentProxy) => {
+        setNumPages(pdf.numPages);
+        console.log("onDocumentLoadSuccess", pdf);
+    
+        try {
+            // Extract text from all pages and perform search
+            const searchHighlights: PDFHighlight[] = [];
+            for (let pageIndex = 0; pageIndex < pdf.numPages; pageIndex++) {
+                const page = await pdf.getPage(pageIndex + 1);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map((item: any) => item.str).join(" "); // Combine text items
+                
+                // Perform search in the page text
+                let match;
+                const regex = new RegExp(searchTerm, "gi");
+                while ((match = regex.exec(pageText)) !== null) {
+                    const startIndex = match.index;
+                    const endIndex = startIndex + match[0].length;
+                    
+                    // Extract bounding boxes for the match
+                    const highlightRects = textContent.items
+                        .filter((item: any) => {
+                            const itemStart = pageText.indexOf(item.str);
+                            const itemEnd = itemStart + item.str.length;
+                            return itemStart >= startIndex && itemEnd <= endIndex;
+                        })
+                        .map((item: any) => ({
+                            left: item.transform[4],
+                            top: item.transform[5],
+                            width: item.width,
+                            height: item.height,
+                        }));
+    
+                    // Add highlights for the match
+                    searchHighlights.push({
+                        page: pageIndex + 1,
+                        rect: highlightRects,
+                    });
+                }
+            }
+    
+            // Update state with highlights
+            setSearchHighlights(searchHighlights);
+            console.log("searchHighlights", searchHighlights);
+        } catch (error) {
+            console.error("Error initializing PDF search:", error);
+        }
     };
+
+    // Combine provided highlights with search highlights
+    const allHighlights = useMemo(() => {
+        return [...(highlights || []), ...searchHighlights];
+    }, [highlights, searchHighlights]);
 
     useEffect(() => {
         if (data && page) {
@@ -224,7 +279,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                 fitParent={fitParent}
                 isLoaded={numPages !== null}
             >
-                <div className="flex flex-row justify-between w-full">
+                <div className="flex flex-row justify-between w-full gap-2">
                     <div className="flex flex-row gap-x-1 text-md">
                         <button
                             className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -265,6 +320,13 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         );
     }
 
+    const renderHighlight = (highlight: PDFHighlight) => {
+        if (typeof highlight === 'object' && 'rect' in highlight) {
+            return <Highlight rect={highlight.rect} scale={scale} rotate={rotate} canvasDimensions={canvasDimensions} />;
+        }
+        return null;
+    }
+
     return (
         <div className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg">
             <Toolbar/>
@@ -293,15 +355,11 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                             rotate={rotate}
                             onLoadSuccess={onPageLoadSuccess}
                         />
-                        {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
-                            <Highlight
-                                key={index}
-                                rect={highlight.rect}
-                                scale={scale}
-                                rotate={rotate}
-                                canvasDimensions={canvasDimensions}
-                            />
-                        ))}
+                        {allHighlights && allHighlights.filter((highlight) => {
+                            if (typeof highlight === 'string') return false;
+                            if ('text' in highlight) return highlight.page === pageNumber;
+                            return highlight.page === pageNumber;
+                        }).map(renderHighlight)}
                     </div>
                 </Document>
             </div>

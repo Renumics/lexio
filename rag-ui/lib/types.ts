@@ -8,16 +8,21 @@ export interface Message {
   content: string;
 }
 
-export interface PDFHighlight {
-  page: number;
-  rect: {
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-  };
-  comment?: string;
-}
+export type PDFHighlight = 
+  | {
+      page: number;
+      rect: {
+        top: number;
+        left: number;
+        width: number;
+        height: number;
+      };
+    }
+  | string
+  | {
+      text: string;
+      page: number;
+    };
 
 export interface BaseRetrievalResult {
   relevanceScore?: number;
