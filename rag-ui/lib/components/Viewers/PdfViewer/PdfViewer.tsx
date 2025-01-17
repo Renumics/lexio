@@ -229,19 +229,21 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         [rotatePage]
     );
 
-    // Combine all refs into one using callback ref
-    const combineRefs = (element: HTMLDivElement) => {
-        [zoomInRef, zoomOutRef, fitRef, nextRef, prevRef, homeRef, endRef, rotateRef].forEach(ref => {
-            if (typeof ref === 'function') {
-                ref(element);
-            } else if (ref) {
-                (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
-            }
-        });
-    };
+    // Each useHotkeys() call returns a function ref that activates its hotkey when the element receives focus
+    // See: https://react-hotkeys-hook.vercel.app/docs/documentation/useHotkeys/scoping-hotkeys
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
-    // Change the ref type to be mutable
-    const containerRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
+    // Combines multiple hotkey refs into a single ref callback
+    // This is necessary because each useHotkeys() returns its own ref,
+    // but we can only attach one ref to a DOM element
+    // Triggering all hotkey refs activates them all
+    const combineRefs = (element: HTMLDivElement) => {
+        [zoomInRef, zoomOutRef, fitRef, nextRef, prevRef, homeRef, endRef, rotateRef]
+            .forEach(ref => {
+                if (typeof ref === 'function') ref(element);
+                else if (ref) ref.current = element;
+            });
+    };
 
     // Helper function to focus the container
     const focusContainer = () => {
@@ -345,13 +347,14 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     return (
         <div 
             className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg focus:outline-none"
+            // tabIndex enables the div to receive focus, -1 keeps it out of tab order
+            tabIndex={-1}
             ref={(element: HTMLDivElement | null) => {
                 if (element) {
                     containerRef.current = element;
                     combineRefs(element);
                 }
             }}
-            tabIndex={-1}
         >
             <Toolbar/>
             <div 
