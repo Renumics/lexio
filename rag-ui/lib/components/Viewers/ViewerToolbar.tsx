@@ -19,6 +19,7 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
                 <button
                     className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={zoomIn}
+                    title="Zoom In (Ctrl+Up, Cmd+Up)"
                     disabled={!isLoaded}>
                     <MagnifyingGlassPlusIcon className="size-5 text-black"/>
                 </button>
@@ -28,13 +29,15 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
                 <button
                     className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={zoomOut}
-                    disabled={!isLoaded}>
+                    title="Zoom Out (Ctrl+Down, Cmd+Down)"
+                    disabled={!isLoaded}>                        
                     <MagnifyingGlassMinusIcon className="size-5 text-black"/>
                 </button>
                 {fitParent && (
                     <button
                         className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={fitParent}
+                        title="Fit to Parent (Ctrl+0, Cmd+0)"
                         disabled={!isLoaded}>
                         <ArrowsPointingOutIcon className="size-5 text-black"/>
                     </button>

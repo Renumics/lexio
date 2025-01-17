@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState} from 'react';
-import './HtmlViewer.css';
-import DOMPurify from 'dompurify';
+import React, { useEffect, useRef } from 'react';
+import { useHotkeys, Options } from 'react-hotkeys-hook';
 import { ViewerToolbar } from "../ViewerToolbar";
 import { ZOOM_CONSTANTS } from "../types";
+import './HtmlViewer.css';
+import DOMPurify from 'dompurify';
 
 const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 
@@ -11,44 +12,22 @@ interface HTMLViewerProps {
 }
 
 const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
-    const [scale, setScale] = useState(1);
-    const documentContainerRef = useRef<HTMLDivElement>(null);
-    const contentRef = useRef<HTMLDivElement>(null);
-
-    const zoomIn = () => setScale((prev) => Math.min(prev + ZOOM_STEP, MAX_SCALE));
-    const zoomOut = () => setScale((prev) => Math.max(prev - ZOOM_STEP, MIN_SCALE));
-
-    // Measure the natural size of the HTML block so we know how to scale it
-    useEffect(() => {
-        if (contentRef.current) {
-            // Force scale = 1 temporarily to measure natural width/height
-            contentRef.current.style.transform = 'scale(1)';
-            contentRef.current.style.transformOrigin = 'top left';
-        }
-    }, [htmlContent]);
-
-    // Re-apply the actual scale
-    useEffect(() => {
-        if (contentRef.current) {
-            contentRef.current.style.transform = `scale(${scale})`;
-            // Ensure top-left origin so we can scroll to all corners
-            contentRef.current.style.transformOrigin = 'top left';
-        }
-    }, [scale]);
+    const [scale, setScale] = React.useState(1);
+    const containerRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
 
     // Optional: Handle mouse wheel zoom
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
             if (event.deltaY < 0) {
-                zoomIn();
+                wrappedActions.zoomIn();
             } else {
-                zoomOut();
+                wrappedActions.zoomOut();
             }
             // Prevent page scroll while zooming if desired
             event.preventDefault();
         };
 
-        const container = documentContainerRef.current;
+        const container = containerRef.current;
         if (container) {
             container.addEventListener('wheel', handleWheel, {passive: false});
         }
@@ -60,28 +39,114 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
         };
     }, []);
 
-    // Simple toolbar, similar to your PDF toolbar
-    const Toolbar = () => (
-        <ViewerToolbar zoomIn={zoomIn} zoomOut={zoomOut} scale={scale} fitParent={() => setScale(1.0)}>
-            <div></div>
-        </ViewerToolbar>
+    // ---- Hotkeys ----
+
+    const zoomIn = () => {
+        setScale((prevScale) => Math.min(prevScale + ZOOM_STEP, MAX_SCALE));
+    };
+
+    const zoomOut = () => {
+        setScale((prevScale) => Math.max(prevScale - ZOOM_STEP, MIN_SCALE));
+    };
+
+    const fitParent = () => {
+        setScale(1);
+    };
+
+    // Helper function to focus the container
+    const focusContainer = () => {
+        containerRef.current?.focus();
+    };
+
+    // Wrap the existing actions with focus
+    const wrappedActions = {
+        zoomIn: () => {
+            zoomIn();
+            focusContainer();
+        },
+        zoomOut: () => {
+            zoomOut();
+            focusContainer();
+        },
+        fitParent: () => {
+            fitParent();
+            focusContainer();
+        }
+    };
+
+    // Common options for hotkeys
+    const hotkeyOptions: Options = {
+        enableOnFormTags: false,
+        enabled: true,
+    };
+
+    // Use the ref returned by useHotkeys
+    const zoomInRef = useHotkeys('ctrl+up, cmd+up', 
+        (event) => {
+            event.preventDefault();
+            zoomIn();
+        }, 
+        hotkeyOptions,
+        [zoomIn]
     );
+
+    const zoomOutRef = useHotkeys('ctrl+down, cmd+down', 
+        (event) => {
+            event.preventDefault();
+            zoomOut();
+        }, 
+        hotkeyOptions,
+        [zoomOut]
+    );
+
+    const fitRef = useHotkeys('ctrl+0, cmd+0', 
+        (event) => {
+            event.preventDefault();
+            fitParent();
+        }, 
+        hotkeyOptions,
+        [fitParent]
+    );
+
+    // Combine all refs into one using callback ref
+    const combineRefs = (element: HTMLDivElement) => {
+        [zoomInRef, zoomOutRef, fitRef].forEach(ref => {
+            if (typeof ref === 'function') {
+                ref(element);
+            } else if (ref) {
+                (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
+            }
+        });
+    };
 
     return (
-        <div className="h-full w-full flex flex-col">
-            <Toolbar/>
-            <div
-                ref={documentContainerRef}
-                className="p-2 flex-grow overflow-auto bg-gray-100"
-            >
-                <div
-                    ref={contentRef}
-                    className="relative inline-block html-viewer-content"
-                    dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(htmlContent)}}
-                />
-            </div>
+        <div 
+            className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg focus:outline-none"
+            ref={(element: HTMLDivElement | null) => {
+                if (element) {
+                    containerRef.current = element;
+                    combineRefs(element);
+                }
+            }}
+            tabIndex={-1}
+        >
+            <ViewerToolbar
+                zoomIn={wrappedActions.zoomIn}
+                zoomOut={wrappedActions.zoomOut}
+                scale={scale}
+                fitParent={wrappedActions.fitParent}
+                isLoaded={true}
+            />
+            <div 
+                className="flex-grow overflow-auto p-4"
+                style={{ 
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left'
+                }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
+            />
         </div>
     );
-}
+};
 
-export {HtmlViewer};
+export { HtmlViewer };
