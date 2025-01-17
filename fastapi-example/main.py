@@ -13,32 +13,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette import EventSourceResponse
 import asyncio
 
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext, load_index_from_storage
 
+persist_dir = "index_storage"
+try:
+    storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
+    index = load_index_from_storage(storage_context)
+except FileNotFoundError:
+    index = VectorStoreIndex.from_documents(SimpleDirectoryReader("data").load_data())
+    index.storage_context.persist(persist_dir=persist_dir)
 
-
-
-if os.environ.get("OPENAI_API_KEY") is not None:
-    # Define the path for the stored index
-    index_file_path = "index.pkl"
-
-    # Check if the index file exists
-    if os.path.exists(index_file_path):
-        # Load the index from the file
-        with open(index_file_path, "rb") as f:
-            index = pickle.load(f)
-    else:
-        # Load documents and create index
-        documents = SimpleDirectoryReader("data").load_data()
-        index = VectorStoreIndex.from_documents(documents)
-        
-        # Store the index to disk
-        with open(index_file_path, "wb") as f:
-            pickle.dump(index, f)
-
-    query_engine = index.as_query_engine()
-else:
-    query_engine = None
+query_engine = index.as_query_engine()
 
 
 
@@ -57,11 +42,13 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5175"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 
 # Helper function to extract a specific page from a PDF and save it as a new PDF
 def extract_pdf_page(file_path: str, page_number: int) -> BytesIO:
@@ -159,13 +146,17 @@ async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
 
 # convert page label (e.g. IV or 10) to page number (e.g. 4 or 10)
 def convert_to_page_number(page_label: str) -> int:
-    roman_to_int = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+    roman_to_int = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000, 'U': 1}
     
     def roman_to_integer(roman: str) -> int:
-        return sum(
-            roman_to_int[char] if roman_to_int[char] >= roman_to_int.get(next_char, 0) else -roman_to_int[char]
-            for char, next_char in zip(roman, roman[1:] + ' ')
-        )
+        try:
+            return sum(
+                roman_to_int[char] if roman_to_int[char] >= roman_to_int.get(next_char, 0) else -roman_to_int[char]
+                for char, next_char in zip(roman, roman[1:] + ' ')
+            )
+        except Exception as e:
+            print(f"Error converting {roman} to integer: {e}")
+            return 1
 
     return int(page_label) if page_label.isdigit() else roman_to_integer(page_label.upper())
 
