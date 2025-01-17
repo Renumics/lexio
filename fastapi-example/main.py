@@ -1,3 +1,5 @@
+import pickle
+from pathlib import Path
 from io import BytesIO
 import random
 from fastapi import FastAPI, HTTPException, Query
@@ -10,6 +12,34 @@ from pypdf import PdfReader, PdfWriter
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette import EventSourceResponse
 import asyncio
+
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+
+
+
+
+if os.environ.get("OPENAI_API_KEY") is not None:
+    # Define the path for the stored index
+    index_file_path = "index.pkl"
+
+    # Check if the index file exists
+    if os.path.exists(index_file_path):
+        # Load the index from the file
+        with open(index_file_path, "rb") as f:
+            index = pickle.load(f)
+    else:
+        # Load documents and create index
+        documents = SimpleDirectoryReader("data").load_data()
+        index = VectorStoreIndex.from_documents(documents)
+        
+        # Store the index to disk
+        with open(index_file_path, "wb") as f:
+            pickle.dump(index, f)
+
+    query_engine = index.as_query_engine()
+else:
+    query_engine = None
+
 
 
 class RetrievalResult(BaseModel):
@@ -27,7 +57,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5175"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -127,6 +157,18 @@ async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
 
     return EventSourceResponse(stream())
 
+# convert page label (e.g. IV or 10) to page number (e.g. 4 or 10)
+def convert_to_page_number(page_label: str) -> int:
+    roman_to_int = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+    
+    def roman_to_integer(roman: str) -> int:
+        return sum(
+            roman_to_int[char] if roman_to_int[char] >= roman_to_int.get(next_char, 0) else -roman_to_int[char]
+            for char, next_char in zip(roman, roman[1:] + ' ')
+        )
+
+    return int(page_label) if page_label.isdigit() else roman_to_integer(page_label.upper())
+
 # Update the retrieve-and-generate endpoint to use GET
 @app.get("/retrieve-and-generate")
 async def retrieve_and_generate(messages: str = Query(...)):
@@ -138,8 +180,35 @@ async def retrieve_and_generate(messages: str = Query(...)):
         raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
     
     async def event_generator():
-        retrieved_sources = retrieve_helper(query)
+        if query_engine is None:
+            raise HTTPException(status_code=500, detail="Query engine not initialized")
+        response = query_engine.query(query)
         
+        # Extract source nodes from the response
+        source_nodes = response.source_nodes
+
+        # Iterate over each node to retrieve and format the necessary information
+        retrieved_sources = []
+        for node_with_score in source_nodes:
+            node = node_with_score.node
+            metadata = node.metadata
+            retrieved_sources.append({
+                # make path relative to data directory
+                'source': str(os.path.relpath(metadata['file_path'], "data")),
+                'type': str(Path(metadata['file_path']).suffix[1:]),
+                "metadata": {"page": convert_to_page_number(metadata['page_label'])}, "highlights": [
+            {
+                "page": convert_to_page_number(metadata['page_label']),
+                "rect": {
+                    "top": 0.1,
+                    "left": 0.02,
+                    "width": 0.96,
+                    "height": 0.4,
+                        }
+                    }
+                ]
+            })
+
         # Send sources first
         yield {
             "data": json.dumps({
@@ -148,19 +217,11 @@ async def retrieve_and_generate(messages: str = Query(...)):
         }
 
         # Simulate streaming text generation
-        text_chunks = [
-            "Generated text ",
-            "based on ",
-            f"query: {query}. ",
-            "This is some additional ",
-            "streaming content ",
-            "being generated ",
-            "word by word..."
-        ]
+        text_chunks = str(response.response)
         
         # Stream each chunk with a delay
         for chunk in text_chunks:
-            await asyncio.sleep(random.uniform(0.1, 0.5))
+            await asyncio.sleep(random.uniform(0.001, 0.005))
             yield {
                 "data": json.dumps({
                     "role": "assistant",
