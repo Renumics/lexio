@@ -24,10 +24,10 @@ const RAGProvider = ({
 
   useEffect(() => {
     store.set(ragAtomsAtom, {
-      generateAtom: generateAtom || atom(null),
-      retrieveAndGenerateAtom: retrieveAndGenerateAtom || atom(null),
-      retrieveSourcesAtom: retrieveSourcesAtom || atom(null),
-      getDataSourceAtom: getDataSourceAtom || atom(null)
+      generateAtom: generateAtom,
+      retrieveAndGenerateAtom: retrieveAndGenerateAtom,
+      retrieveSourcesAtom: retrieveSourcesAtom,
+      getDataSourceAtom: getDataSourceAtom
     });
     if (memoizedConfig) {
       store.set(ragConfigAtom, memoizedConfig);
