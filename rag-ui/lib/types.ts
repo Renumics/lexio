@@ -99,13 +99,13 @@ export type RAGWorkflowActionOnAddMessage =
 // ----- RAG Provider Types -----
 export interface RAGProviderProps {
   children: React.ReactNode;
-  retrieve: (query: string, metadata?: Record<string, any>) => RetrieveResponse;
-  retrieveAndGenerate: (
+  retrieve?: (query: string, metadata?: Record<string, any>) => RetrieveResponse;
+  retrieveAndGenerate?: (
     query: GenerateInput,
     metadata?: Record<string, any>
   ) => RetrieveAndGenerateResponse;
-  generate: GenerateSimple | GenerateWithSources;
-  getDataSource: (source: SourceReference) => GetDataSourceResponse;
+  generate?: GenerateSimple | GenerateWithSources;
+  getDataSource?: (source: SourceReference) => GetDataSourceResponse;
   config?: RAGConfig;
   onAddMessage?: (message: Message, previousMessages: Message[]) => RAGWorkflowActionOnAddMessage;
 }

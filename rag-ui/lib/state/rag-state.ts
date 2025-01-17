@@ -1,4 +1,4 @@
-import { atom, WritableAtom } from 'jotai'
+import { atom, PrimitiveAtom, WritableAtom } from 'jotai'
 import { acceptsSources, GenerateInput, GenerateResponse, GenerateSimple, GenerateStreamChunk, GenerateWithSources, GetDataSourceResponse, Message, RAGConfig, RAGWorkflowActionOnAddMessage, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, SourceReference, WorkflowMode } from '../types';
 import { toast } from 'react-toastify';
 import { validateRetrievalResults } from './data_validation';
@@ -32,7 +32,7 @@ export const setActiveSourceIndexAtom = atom(
     if (index !== null) {
       const sources = _get(retrievedSourcesAtom);
       const ragAtoms = _get(ragAtomsAtom);
-      if (ragAtoms?.getDataSourceAtom && sources[index]) {
+      if (ragAtoms?.getDataSourceAtom && sources[index] && isGetDataSourceAtom(ragAtoms.getDataSourceAtom)) {
         set(ragAtoms.getDataSourceAtom, sources[index]);
       }
     }
@@ -63,6 +63,18 @@ export const addMessageAtom = atom(
       throw new Error('RAG atoms not initialized');
     }
 
+    // Check available atoms for workflow management
+    const hasGenerateAtom = isGenerateAtom(ragAtoms.generateAtom);
+    const hasRetrieveAndGenerateAtom = isRetrieveAndGenerateAtom(ragAtoms.retrieveAndGenerateAtom);
+
+    console.log("hasRetrieveAndGenerateAtom", hasRetrieveAndGenerateAtom);
+
+    // Check if we have any generation capability
+    if (!hasRetrieveAndGenerateAtom && !hasGenerateAtom) {
+      toast.error('No generation capability available');
+      throw new Error('No generation capability available');
+    }
+
     // Prepare rollback state
     const rollbackState = {
       messages: previousMessages,
@@ -70,69 +82,99 @@ export const addMessageAtom = atom(
       sources: currentSources
     };
 
-    // Handle custom workflow actions
-    if (onAddMessage) {
-      const action = onAddMessage(message, previousMessages);
-      
-      if (action.type === 'follow-up') {
-        const updatedMessages = [...previousMessages, message];
+    try {
+      // Handle custom workflow actions if provided
+      if (onAddMessage) {
+        const action = onAddMessage(message, previousMessages);
+        const updatedMessages = action.type === 'reretrieve' && !action.preserveHistory ?
+          [message] :
+          [...previousMessages, message];
+
         set(completedMessagesAtom, updatedMessages);
-        set(ragAtoms.generateAtom, updatedMessages, rollbackState);
-        return;
-      } 
-      
-      if (action.type === 'reretrieve') {
-        const updatedMessages = action.preserveHistory ? 
-          [...previousMessages, message] : 
-          [message];
-        
-        // Update UI state
-        set(workflowModeAtom, 'reretrieve');
-        set(completedMessagesAtom, updatedMessages);
-        
-        // Trigger processing
-        set(ragAtoms.retrieveAndGenerateAtom, updatedMessages, undefined, rollbackState);
+
+        if (action.type === 'reretrieve') {
+          if (!hasRetrieveAndGenerateAtom) {
+            toast.error('Retrieval and generation not available');
+            throw new Error('Retrieval and generation not available');
+          }
+          set(workflowModeAtom, 'reretrieve');
+          const retrieveAndGenerateAtom = ragAtoms.retrieveAndGenerateAtom as RetrieveAndGenerateAtom;
+          await set(retrieveAndGenerateAtom, updatedMessages, undefined,);
+          return;
+        }
+
+        if (action.type === 'follow-up') {
+          if (hasGenerateAtom && currentMode === 'follow-up') {
+            const generateAtom = ragAtoms.generateAtom as GenerateAtom;
+            await set(generateAtom, updatedMessages);
+            return;
+          }
+          // Fall back to retrieveAndGenerate if not in follow-up mode or generate not available
+          if (hasRetrieveAndGenerateAtom) {
+            const retrieveAndGenerateAtom = ragAtoms.retrieveAndGenerateAtom as RetrieveAndGenerateAtom;
+            await set(retrieveAndGenerateAtom, updatedMessages, undefined);
+            if (hasGenerateAtom) {
+              set(workflowModeAtom, 'follow-up');
+            }
+            return;
+          }
+          toast.error('No generation capability available');
+          throw new Error('No generation capability available');
+        }
+
+        toast.error('Unexpected workflow action');
+        throw new Error('Unexpected workflow action');
+      }
+
+      // Handle default workflow
+      const updatedMessages = [...previousMessages, message];
+      set(completedMessagesAtom, updatedMessages);
+
+      // If retrieveAndGenerate is available, always use it in init/reretrieve mode
+      if (hasRetrieveAndGenerateAtom && (currentMode === 'init' || currentMode === 'reretrieve')) {
+        const retrieveAndGenerateAtom = ragAtoms.retrieveAndGenerateAtom as RetrieveAndGenerateAtom;
+        await set(retrieveAndGenerateAtom, updatedMessages, undefined);
+        // Switch to follow-up mode if generate is available
+        if (hasGenerateAtom) {
+          set(workflowModeAtom, 'follow-up');
+        }
         return;
       }
-      
-      toast.error('Unexpected workflow action');
-      throw new Error('Unexpected workflow action');
-    }
 
-    // Handle default workflow
-    const updatedMessages = [...previousMessages, message];
-    set(completedMessagesAtom, updatedMessages);
+      // Use generate for follow-up if available
+      if (hasGenerateAtom && currentMode === 'follow-up') {
+        const generateAtom = ragAtoms.generateAtom as GenerateAtom;
+        await set(generateAtom, updatedMessages);
+        return;
+      }
 
-    // Default workflow transitions
-    switch (currentMode) {
-      case 'init':
-      case 'reretrieve':
-        set(ragAtoms.retrieveAndGenerateAtom, updatedMessages, undefined, rollbackState);
-        break;
+      // If we only have retrieveAndGenerate, use it for everything
+      if (hasRetrieveAndGenerateAtom) {
+        const retrieveAndGenerateAtom = ragAtoms.retrieveAndGenerateAtom as RetrieveAndGenerateAtom;
+        await set(retrieveAndGenerateAtom, updatedMessages, undefined);
+        return;
+      }
 
-      case 'follow-up':
-        set(ragAtoms.generateAtom, updatedMessages, rollbackState);
-        break;
-
-      default:
-        console.warn(`Unexpected workflow mode: ${currentMode}`);
-        break;
+    } catch (err) {
+      // On failure, rollback state
+      set(workflowModeAtom, rollbackState.workflowMode);
+      set(completedMessagesAtom, rollbackState.messages);
+      set(retrievedSourcesAtom, rollbackState.sources);
+      throw err;
     }
   }
 );
 
 // Generate
 export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSources) => {
-  return atom<null, [GenerateInput, RollbackState?], GenerateResponse>(
+  return atom<null, [GenerateInput], GenerateResponse>(
     null,
-    (_get, set, messages: GenerateInput, rollbackState?: RollbackState): GenerateResponse => {
+    (_get, set, messages: GenerateInput): GenerateResponse => {
       set(loadingAtom, true);
       set(errorAtom, null);
 
-      // Add back abort tracking
       let aborted = false;
       const abortController = new AbortController();
-
       const config = _get(ragConfigAtom);
       let accumulatedContent = '';
 
@@ -143,39 +185,37 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
       const processingPromise = (async () => {
         try {
           if (typeof response === 'string' || response instanceof Promise) {
-            // Handle Promise<string> response
             const content = await addTimeout(
               response as Promise<string>,
               config.timeouts?.request,
               'Response timeout exceeded',
               abortController.signal
             );
-            
+
             set(currentStreamAtom, { role: 'assistant', content });
             set(completedMessagesAtom, prev => [...prev, { role: 'assistant', content }]);
             set(currentStreamAtom, null);
           } else if (Symbol.asyncIterator in response) {
             const processStream = async () => {
               const streamTimeout = new StreamTimeout(config.timeouts?.stream);
-              
+
               for await (const chunk of response as AsyncIterable<GenerateStreamChunk>) {
-                // Add back abort check
                 if (aborted || abortController.signal.aborted) {
                   break;
                 }
 
                 streamTimeout.check();
                 accumulatedContent += chunk.content;
-                
-                set(currentStreamAtom, { 
-                  role: 'assistant', 
-                  content: accumulatedContent 
+
+                set(currentStreamAtom, {
+                  role: 'assistant',
+                  content: accumulatedContent
                 });
 
                 if (chunk.done) {
-                  set(completedMessagesAtom, prev => [...prev, { 
-                    role: 'assistant', 
-                    content: accumulatedContent 
+                  set(completedMessagesAtom, prev => [...prev, {
+                    role: 'assistant',
+                    content: accumulatedContent
                   }]);
                   set(currentStreamAtom, null);
                 }
@@ -192,22 +232,13 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
             throw new Error('Invalid GenerateResponse type');
           }
         } catch (err) {
-          // Abort on error
           aborted = true;
           abortController.abort();
-          
-          // Rollback state
-          if (rollbackState) {
-            set(workflowModeAtom, rollbackState.workflowMode);
-            set(completedMessagesAtom, rollbackState.messages);
-            set(retrievedSourcesAtom, rollbackState.sources);
-          }
           set(currentStreamAtom, null);
           throw err;
         }
       })();
 
-      // Handle errors and loading state
       processingPromise.catch(err => {
         set(errorAtom, `Generate operation failed: ${err.message}`);
         set(currentStreamAtom, null);
@@ -228,16 +259,16 @@ export const currentSourceIndicesAtom = atom<number[]>([]);
 export const currentSourcesAtom = atom((get) => {
   const sources = get(retrievedSourcesAtom);
   const indices = get(currentSourceIndicesAtom);
-  
+
   if (indices.length === 0) {
     return [];
   }
-  
+
   // Filter and sort indices to ensure they're valid and in order
   const validIndices = indices
     .filter(index => index >= 0 && index < sources.length)
     .sort((a, b) => a - b);
-    
+
   // Return current sources in order
   return validIndices.map(index => sources[index]);
 });
@@ -270,8 +301,6 @@ export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?:
   );
 };
 
-
-
 export const retrieveSourcesAtom = atom(
   null,
   async (_get, set, query: string, metadata?: Record<string, any>) => {
@@ -290,6 +319,10 @@ export const retrieveSourcesAtom = atom(
       throw new Error('RAG atoms not initialized');
     }
 
+    if (!isRetrieveSourcesAtom(ragAtoms.retrieveSourcesAtom)) {
+      throw new Error('Retrieve sources not available');
+    }
+
     // Prepare rollback state
     const rollbackState = {
       workflowMode: currentMode,
@@ -298,7 +331,8 @@ export const retrieveSourcesAtom = atom(
 
     try {
       // Trigger the retrieve operation
-      const sources = await set(ragAtoms.retrieveSourcesAtom, query, metadata);
+      const retrieveSourcesAtom = ragAtoms.retrieveSourcesAtom as RetrieveSourcesAtom;
+      const sources = await set(retrieveSourcesAtom, query, metadata);
       return sources;
     } catch (err: any) {
       // Rollback state on error
@@ -321,18 +355,16 @@ interface RollbackState {
 export const createRetrieveAndGenerateAtom = (
   retrieveAndGenerateFn: (query: GenerateInput, metadata?: Record<string, any>) => RetrieveAndGenerateResponse
 ) => {
-  return atom(null, (_get, set, messages: GenerateInput, metadata?: Record<string, any>, rollbackState?: RollbackState) => {
+  return atom(null, (_get, set, messages: GenerateInput, metadata?: Record<string, any>) => {
     // Initialize processing state
     set(loadingAtom, true);
     set(errorAtom, null);
-    
-    // Add abort tracking
+
     let aborted = false;
     const abortController = new AbortController();
-    
     const config = _get(ragConfigAtom);
     let accumulatedContent = '';
-    
+
     const response = retrieveAndGenerateFn(messages, metadata);
 
     const processingPromise = (async () => {
@@ -342,8 +374,8 @@ export const createRetrieveAndGenerateAtom = (
           await addTimeout(
             response.sources.then(sources => {
               set(retrievedSourcesAtom, validateRetrievalResults(sources));
-              set(currentSourceIndicesAtom, []); // Reset active source indices
-              set(activeSourceIndexAtom, null);  // Reset active source index
+              set(currentSourceIndicesAtom, []);
+              set(activeSourceIndexAtom, null);
             }),
             config.timeouts?.request,
             'Sources request timeout exceeded',
@@ -351,11 +383,21 @@ export const createRetrieveAndGenerateAtom = (
           );
         }
 
-        // Handle streaming response
-        if (Symbol.asyncIterator in response.response) {
+        // Handle response
+        if (typeof response.response === 'string' || response.response instanceof Promise) {
+          const content = await addTimeout(
+            Promise.resolve(response.response),
+            config.timeouts?.request,
+            'Response timeout exceeded',
+            abortController.signal
+          );
+
+          set(completedMessagesAtom, prev => [...prev, { role: 'assistant', content }]);
+          set(currentStreamAtom, null);
+        } else if (Symbol.asyncIterator in response.response) {
           const processStream = async () => {
             const streamTimeout = new StreamTimeout(config.timeouts?.stream);
-            
+
             for await (const chunk of response.response as AsyncIterable<GenerateStreamChunk>) {
               // Check for abort
               if (aborted || abortController.signal.aborted) {
@@ -364,16 +406,16 @@ export const createRetrieveAndGenerateAtom = (
 
               streamTimeout.check();
               accumulatedContent += chunk.content;
-              
-              set(currentStreamAtom, { 
-                role: 'assistant', 
-                content: accumulatedContent 
+
+              set(currentStreamAtom, {
+                role: 'assistant',
+                content: accumulatedContent
               });
 
               if (chunk.done) {
-                set(completedMessagesAtom, prev => [...prev, { 
-                  role: 'assistant', 
-                  content: accumulatedContent 
+                set(completedMessagesAtom, prev => [...prev, {
+                  role: 'assistant',
+                  content: accumulatedContent
                 }]);
                 set(currentStreamAtom, null);
               }
@@ -386,39 +428,15 @@ export const createRetrieveAndGenerateAtom = (
             'Stream processing timeout exceeded',
             abortController.signal
           );
-          // Success state
-          set(workflowModeAtom, 'follow-up');
-        } else {
-          // Handle Promise<string> response
-          const content = await addTimeout(
-            response.response as Promise<string>,
-            config.timeouts?.request,
-            'Response timeout exceeded',
-            abortController.signal
-          );
-          
-          set(completedMessagesAtom, prev => [...prev, { role: 'assistant', content }]);
-          set(currentStreamAtom, null);
-          // Success state
-          set(workflowModeAtom, 'follow-up');
         }
       } catch (err) {
-        // Abort on error
         aborted = true;
         abortController.abort();
-
-        // Rollback all state on error
-        if (rollbackState) {
-          set(workflowModeAtom, rollbackState.workflowMode);
-          set(completedMessagesAtom, rollbackState.messages);
-          set(retrievedSourcesAtom, rollbackState.sources);
-        }
         set(currentStreamAtom, null);
         throw err;
       }
     })();
 
-    // Handle errors and loading state
     processingPromise.catch(err => {
       set(errorAtom, `RAG operation failed: ${err.message}`);
     }).finally(() => {
@@ -430,13 +448,13 @@ export const createRetrieveAndGenerateAtom = (
 };
 
 const addTimeout = <T>(
-  promise: Promise<T>, 
-  timeout?: number, 
+  promise: Promise<T>,
+  timeout?: number,
   message?: string,
   signal?: AbortSignal
 ): Promise<T> => {
   if (!timeout) return promise;
-  
+
   return Promise.race([
     promise,
     new Promise<never>((_, reject) => {
@@ -455,12 +473,12 @@ const addTimeout = <T>(
 // Helper classes/functions
 class StreamTimeout {
   private lastCheck = Date.now();
-  
-  constructor(private timeout?: number) {}
-  
+
+  constructor(private timeout?: number) { }
+
   check() {
     if (!this.timeout) return;
-    
+
     const now = Date.now();
     if (now - this.lastCheck > this.timeout) {
       throw new Error('Stream timeout exceeded');
@@ -474,10 +492,10 @@ export const createGetDataSourceAtom = (getDataSourceFn: (source: SourceReferenc
     null,
     async (_get, set, retrievalResult: RetrievalResult) => {
       set(loadingAtom, true);
-      
+
       try {
         let response: SourceContent;
-        
+
         // If it's a TextContent, convert it directly to SourceContent
         if ('text' in retrievalResult) {
           response = {
@@ -489,7 +507,7 @@ export const createGetDataSourceAtom = (getDataSourceFn: (source: SourceReferenc
           // Otherwise, use the getDataSourceFn for SourceReference
           response = await getDataSourceFn(retrievalResult);
         }
-        
+
         // Store the fetched content
         set(currentSourceContentAtom, response);
         return response;
@@ -500,11 +518,11 @@ export const createGetDataSourceAtom = (getDataSourceFn: (source: SourceReferenc
   );
 };
 
-type GenerateAtom = WritableAtom<null, [GenerateInput, RollbackState?], GenerateResponse>;
+type GenerateAtom = WritableAtom<null, [GenerateInput], GenerateResponse>;
 
 type RetrieveAndGenerateAtom = WritableAtom<
   null,
-  [GenerateInput, Record<string, any>?, RollbackState?],
+  [GenerateInput, Record<string, any>?],
   RetrieveAndGenerateResponse
 >;
 
@@ -520,13 +538,38 @@ type GetDataSourceAtom = WritableAtom<
   GetDataSourceResponse
 >;
 
+type NullAtom = PrimitiveAtom<null>;
+
+const isGetDataSourceAtom = (atom: NullAtom | GetDataSourceAtom): atom is GetDataSourceAtom => {
+  return 'write' in atom && atom.write.length === 3; // WritableAtom with 3 parameters (get, set, value)
+};
+
+const isGenerateAtom = (
+  atom: NullAtom | GenerateAtom
+): atom is WritableAtom<null, [Message[], RollbackState?], GenerateResponse> => {
+  return 'write' in atom && atom.write.length === 4;
+};
+
+const isRetrieveAndGenerateAtom = (
+  atom: NullAtom | RetrieveAndGenerateAtom
+): atom is RetrieveAndGenerateAtom => {
+  console.log("atom.write", atom.write);
+  console.log("atom.write length", atom.write.length);
+  return 'write' in atom && atom.write.length === 4;
+};
+
+const isRetrieveSourcesAtom = (
+  atom: NullAtom | RetrieveSourcesAtom
+): atom is WritableAtom<null, [string, Record<string, any>?], RetrieveResponse> => {
+  return 'write' in atom && atom.write.length === 3;
+};
 
 // Container for all RAG atoms. This is necessary since the atoms are created dynamically but need to be referenced form other atoms
 interface RAGAtoms {
-  generateAtom: GenerateAtom;
-  retrieveAndGenerateAtom: RetrieveAndGenerateAtom;
-  retrieveSourcesAtom: RetrieveSourcesAtom;
-  getDataSourceAtom: GetDataSourceAtom;
+  generateAtom: GenerateAtom | NullAtom;
+  retrieveAndGenerateAtom: RetrieveAndGenerateAtom | NullAtom;
+  retrieveSourcesAtom: RetrieveSourcesAtom | NullAtom;
+  getDataSourceAtom: GetDataSourceAtom | NullAtom;
 }
 
 export const ragAtomsAtom = atom<RAGAtoms | null>(null);
