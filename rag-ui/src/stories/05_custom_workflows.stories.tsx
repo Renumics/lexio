@@ -4,13 +4,33 @@ import type { Message, GenerateInput } from '../../lib/main';
 import { useCallback, useState } from 'react';
 
 // Simple toggle for reretrieve mode
-const ReretrieveToggle = ({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) => (
+const ReretrieveToggle = ({ enabled, onToggle, preserveHistory, onPreserveHistoryToggle }: { 
+  enabled: boolean; 
+  onToggle: () => void;
+  preserveHistory: boolean;
+  onPreserveHistoryToggle: () => void;
+}) => (
   <div style={{ padding: '10px', background: '#f5f5f5', marginBottom: '20px' }}>
-    <button onClick={onToggle} style={{ background: enabled ? '#4CAF50' : '#f44336', color: 'white', border: 'none', padding: '8px 16px' }}>
-      Force Reretrieve: {enabled ? 'ON' : 'OFF'}
-    </button>
+    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+      <button 
+        onClick={onToggle} 
+        style={{ background: enabled ? '#4CAF50' : '#f44336', color: 'white', border: 'none', padding: '8px 16px' }}
+      >
+        Force Reretrieve: {enabled ? 'ON' : 'OFF'}
+      </button>
+      <button 
+        onClick={onPreserveHistoryToggle} 
+        style={{ background: preserveHistory ? '#2196F3' : '#9E9E9E', color: 'white', border: 'none', padding: '8px 16px' }}
+      >
+        Preserve History: {preserveHistory ? 'ON' : 'OFF'}
+      </button>
+    </div>
     <div style={{ marginTop: '8px', fontSize: '14px', color: '#666' }}>
-      Try sending a message containing "search" or toggle this button
+      Try these:
+      <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
+        <li>Type "search documents" - to maake the workflow reretrieve</li>
+        <li>Toggle history preservation to see different chat behaviors</li>
+      </ul>
     </div>
   </div>
 );
@@ -28,48 +48,116 @@ const Layout = ({ children }: { children: React.ReactNode }) => (
     boxSizing: 'border-box'
   }}>
     {children}
-    <div style={{ display: 'grid', flexGrow: 1, gap: '20px', gridTemplateColumns: '2fr 1fr', minHeight: 0 }}>
-      <ChatWindow />
-      <SourcesDisplay />
-    </div>
-    <div style={{ marginTop: '20px' }}>
-      <AdvancedQueryField />
-    </div>
   </div>
 );
 
 const WorkflowExample = () => {
   const [forceReretrieve, setForceReretrieve] = useState(false);
+  const [preserveHistory, setPreserveHistory] = useState(true);
+
+  const getSourcesForQuery = useCallback((query: string) => {
+    // Add timestamp to show when sources were retrieved
+    const timestamp = new Date().toLocaleTimeString();
+    
+    if (query.toLowerCase().includes('web')) {
+      return [
+        {
+          text: 'This source was retrieved at ' + timestamp,
+          sourceName: `Web Search Result #${Math.floor(Math.random() * 100)}`,
+          metadata: { 
+            type: 'web', 
+            url: 'https://example.com/search',
+            retrievedAt: timestamp,
+            confidence: Math.random().toFixed(2)
+          }
+        },
+        {
+          text: 'Another source retrieved at ' + timestamp,
+          sourceName: `Blog Post #${Math.floor(Math.random() * 100)}`,
+          metadata: { 
+            type: 'web', 
+            url: 'https://blog.example.com',
+            retrievedAt: timestamp,
+            confidence: Math.random().toFixed(2)
+          }
+        }
+      ];
+    }
+    if (query.toLowerCase().includes('document')) {
+      return [
+        {
+          text: 'PDF content retrieved at ' + timestamp,
+          sourceName: `Document-${Math.floor(Math.random() * 100)}.pdf`,
+          metadata: { 
+            type: 'pdf', 
+            pages: [Math.floor(Math.random() * 10) + 1],
+            retrievedAt: timestamp,
+            confidence: Math.random().toFixed(2)
+          }
+        },
+        {
+          text: 'Another document retrieved at ' + timestamp,
+          sourceName: `Report-${Math.floor(Math.random() * 100)}.pdf`,
+          metadata: { 
+            type: 'pdf', 
+            pages: [Math.floor(Math.random() * 10) + 1],
+            retrievedAt: timestamp,
+            confidence: Math.random().toFixed(2)
+          }
+        }
+      ];
+    }
+    return [
+      {
+        text: 'Default source retrieved at ' + timestamp,
+        sourceName: `Source-${Math.floor(Math.random() * 100)}`,
+        metadata: { 
+          type: 'default',
+          retrievedAt: timestamp,
+          confidence: Math.random().toFixed(2)
+        }
+      }
+    ];
+  }, []);
 
   const onAddMessage = useCallback((message: Message, previousMessages: Message[]) => {
-    // Reretrieve if forced by toggle or if message contains "search"
     const shouldReretrieve = forceReretrieve || message.content.toLowerCase().includes('search');
     return shouldReretrieve 
-      ? { type: 'reretrieve', preserveHistory: true }
-      : { type: 'follow-up' };
-  }, [forceReretrieve]);
+      ? { type: 'reretrieve' as const, preserveHistory }
+      : { type: 'follow-up' as const };
+  }, [forceReretrieve, preserveHistory]);
 
   return (
     <Layout>
       <ReretrieveToggle 
         enabled={forceReretrieve} 
-        onToggle={() => setForceReretrieve(prev => !prev)} 
+        onToggle={() => setForceReretrieve(prev => !prev)}
+        preserveHistory={preserveHistory}
+        onPreserveHistoryToggle={() => setPreserveHistory(prev => !prev)}
       />
       <RAGProvider
-        // onAddMessage={onAddMessage}
+        onAddMessage={onAddMessage}
         retrieveAndGenerate={(messages: GenerateInput) => ({
-          sources: Promise.resolve([
-            {
-              text: 'Sample source content',
-              sourceName: 'Document 1',
-              metadata: { type: 'sample' }
-            }
-          ]),
-          response: Promise.resolve('Response: ' + (forceReretrieve ? 'Forced reretrieve mode!' : 'Normal mode'))
+          sources: Promise.resolve(getSourcesForQuery(messages[messages.length - 1].content)),
+          response: Promise.resolve(
+            `Response: ${forceReretrieve ? 'Forced reretrieve mode!' : 'Normal mode'}\n` +
+            `${preserveHistory ? 'Keeping chat history.' : 'Started fresh conversation.'}\n` +
+            `Each source now includes:\n` +
+            `- Random source name\n` +
+            `- Timestamp when retrieved\n` +
+            `- Random confidence score\n` +
+            `Try the same query multiple times to see different sources!`
+          )
         })}
-        generate={(messages: Message[]) => Promise.resolve("Follow-up response")}
+        generate={(messages: Message[]) => Promise.resolve("This is a follow-up response using existing sources.")}
       >
-        <div />
+        <div style={{ display: 'grid', flexGrow: 1, gap: '20px', gridTemplateColumns: '2fr 1fr', minHeight: 0 }}>
+          <ChatWindow />
+          <SourcesDisplay />
+        </div>
+        <div style={{ marginTop: '20px' }}>
+          <AdvancedQueryField />
+        </div>
       </RAGProvider>
     </Layout>
   );
