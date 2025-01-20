@@ -23,6 +23,7 @@ const RAGProvider = ({
   const memoizedConfig = useMemo(() => config, [config]);
 
   useEffect(() => {
+    console.log("retrieveAndGenerateAtom", retrieveAndGenerateAtom);
     store.set(ragAtomsAtom, {
       generateAtom: generateAtom,
       retrieveAndGenerateAtom: retrieveAndGenerateAtom,

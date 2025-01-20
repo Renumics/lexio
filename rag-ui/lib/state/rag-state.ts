@@ -59,6 +59,8 @@ export const addMessageAtom = atom(
     const previousMessages = _get(completedMessagesAtom);
     const currentSources = _get(retrievedSourcesAtom);
 
+    console.log("ragAtoms", ragAtoms);
+
     if (!ragAtoms) {
       throw new Error('RAG atoms not initialized');
     }
