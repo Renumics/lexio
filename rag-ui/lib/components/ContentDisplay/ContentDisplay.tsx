@@ -1,5 +1,6 @@
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
+import { MarkdownViewer } from "../Viewers/MarkdownViewer";
 import { useRAGSources } from "../RAGProvider/hooks";
 import { isPDFContent, isHTMLContent } from "../../types";
 
@@ -22,6 +23,7 @@ const ContentDisplay = () => {
     }
 
     if (isHTMLContent(currentSourceContent)) {
+      return <MarkdownViewer markdownContent={currentSourceContent.content} />;
       return <HtmlViewer htmlContent={currentSourceContent.content} />;
     }
 
