@@ -20,6 +20,7 @@ export interface PDFHighlight {
 }
 
 export interface BaseRetrievalResult {
+  sourceName?: string;
   relevanceScore?: number;
   metadata?: Record<string, any>;
   highlights?: PDFHighlight[];
@@ -27,7 +28,7 @@ export interface BaseRetrievalResult {
 
 export interface SourceReference extends BaseRetrievalResult {
   type?: 'pdf' | 'html';
-  source: string;
+  sourceReference: string;
 }
 
 export interface TextContent extends BaseRetrievalResult {
@@ -99,13 +100,13 @@ export type RAGWorkflowActionOnAddMessage =
 // ----- RAG Provider Types -----
 export interface RAGProviderProps {
   children: React.ReactNode;
-  retrieve: (query: string, metadata?: Record<string, any>) => RetrieveResponse;
-  retrieveAndGenerate: (
+  retrieve?: (query: string, metadata?: Record<string, any>) => RetrieveResponse;
+  retrieveAndGenerate?: (
     query: GenerateInput,
     metadata?: Record<string, any>
   ) => RetrieveAndGenerateResponse;
-  generate: GenerateSimple | GenerateWithSources;
-  getDataSource: (source: SourceReference) => GetDataSourceResponse;
+  generate?: GenerateSimple | GenerateWithSources;
+  getDataSource?: (source: SourceReference) => GetDataSourceResponse;
   config?: RAGConfig;
   onAddMessage?: (message: Message, previousMessages: Message[]) => RAGWorkflowActionOnAddMessage;
 }

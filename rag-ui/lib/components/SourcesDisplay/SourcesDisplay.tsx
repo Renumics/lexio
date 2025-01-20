@@ -8,7 +8,7 @@ const SourcesDisplay = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const isSourceReference = (source: RetrievalResult): source is SourceReference => {
-    return 'source' in source;
+    return 'sourceReference' in source;
   };
 
   const handleSearch = () => {
@@ -22,7 +22,6 @@ const SourcesDisplay = () => {
       handleSearch();
     }
   };
-
 
   return (
     <div className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg">
@@ -45,8 +44,6 @@ const SourcesDisplay = () => {
         </button>
       </div>
 
-
-
       {sources.length === 0 ? (
         <p className="text-gray-500 italic">No sources available</p>
       ) : (
@@ -55,28 +52,24 @@ const SourcesDisplay = () => {
             <li
               key={index}
               className={`p-4 rounded-lg shadow-sm border transition-all cursor-pointer ${index === activeSourceIndex
-                  ? 'bg-blue-50 border-blue-500' // Currently viewed source - lighter blue with matching border
-                  : currentSources.includes(source)
-                    ? 'bg-green-50 border-green-500'   // Source selected for questions - success state
-                    : currentSources.length > 0
-                      ? 'bg-gray-50 border-gray-200 opacity-60' // Unselected when some sources are selected
-                      : 'bg-white border-gray-200 hover:border-blue-400' // Default state with matching hover
-                }`}
+                ? 'bg-blue-50 border-blue-500' // Currently viewed source - lighter blue with matching border
+                : currentSources.includes(source)
+                  ? 'bg-green-50 border-green-500'   // Source selected for questions - success state
+                  : currentSources.length > 0
+                    ? 'bg-gray-50 border-gray-200 opacity-60' // Unselected when some sources are selected
+                    : 'bg-white border-gray-200 hover:border-blue-400' // Default state with matching hover
+              }`}
               onClick={() => setActiveSourceIndex(index)}
             >
               <div className="flex items-start justify-between">
                 <div className="overflow-hidden">
-                  {isSourceReference(source) ? (
-                    <>
-                      <p className="font-medium text-gray-800 truncate">{source.source}</p>
-                      {source.type && (
-                        <span className="inline-block px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full mt-1">
-                          {source.type}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-gray-700 whitespace-pre-wrap">{source.text}</p>
+                  <p className="font-medium text-gray-800 truncate">
+                    {source.sourceName || (isSourceReference(source) ? source.sourceReference : source.text.slice(0, 50))}
+                  </p>
+                  {isSourceReference(source) && source.type && (
+                    <span className="inline-block px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full mt-1">
+                      {source.type}
+                    </span>
                   )}
                   {source.relevanceScore !== undefined && (
                     <div className="mt-2 flex items-center">
