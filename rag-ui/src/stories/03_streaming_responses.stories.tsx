@@ -51,17 +51,26 @@ const ExampleComponent = () => (
 );
 
 const meta = {
-  title: 'RAG/Streaming',
+  title: 'Getting Started/03. Streaming Responses',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',
     docs: {
       description: {
         component: `
-The RAG UI supports streaming responses for a more interactive experience. Instead of returning a Promise<string>,
-you can return an AsyncIterable that yields chunks of the response as they become available.
+# Streaming Responses
 
+Now that you understand sources, let's make the UI more interactive with streaming responses.
+This guide will show you how to:
+- Stream responses word by word
+- Handle streaming in both initial queries and follow-ups
+- Properly structure streaming chunks
+
+## Streaming Format
+
+Instead of returning a Promise<string>, you can return an AsyncIterable that yields chunks of the response as they become available.
 Each chunk should have this shape:
+
 \`\`\`typescript
 interface GenerateStreamChunk {
   content: string;   // The text content to append
@@ -69,7 +78,7 @@ interface GenerateStreamChunk {
 }
 \`\`\`
 
-### Example Implementation
+## Example Implementation
 
 \`\`\`tsx
 <RAGProvider
@@ -113,6 +122,8 @@ interface GenerateStreamChunk {
 Try it out:
 1. Ask a question - notice how the response appears word by word
 2. Ask a follow-up - both initial and follow-up responses support streaming
+
+Next, move on to "04. Follow-up Questions" to learn how to handle follow-up questions with existing context.
         `
       }
     }

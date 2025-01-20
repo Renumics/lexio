@@ -1,148 +1,53 @@
 import './App.css'
 import {
-    QueryField,
     ChatWindow,
     RAGProvider,
-    RetrieveAndGenerateResponse,
-    RetrievalResult,
-    SourceContent,
     SourcesDisplay,
-    ErrorDisplay,
-    GetDataSourceResponse,
-    SourceReference,
     ContentDisplay,
     Message,
-    AdvancedQueryField
+    AdvancedQueryField,
+    RetrievalResult,
+    SourceReference,
+    SourceContent,
+    HTMLSourceContent,
+    PDFSourceContent,
+    isTextContent,
+    GenerateStreamChunk,
+    TextContent
 } from '../lib/main'
-import { GenerateInput, GenerateStreamChunk } from '../lib/main'
 
 function App() {
-    // Function to retrieve sources from the server
-    const retrieveSources = async (query: string): Promise<RetrievalResult[]> => {
-        const response = await fetch(`http://localhost:8000/retrieve?query=${encodeURIComponent(query)}`);
-        if (!response.ok) {
-            throw new Error('Failed to retrieve sources');
-        }
-        return await response.json();
-    };
-
-    // In App.tsx
-    const generateText = (messages: Message[]): AsyncIterable<GenerateStreamChunk> => {
-        // Convert input messages array to URL-safe format
-        const query = encodeURIComponent(JSON.stringify({ messages: messages }));
-
-        const eventSource = new EventSource(
-            `http://localhost:8000/generate?messages=${query}`
-        );
-
-        const messageQueue: GenerateStreamChunk[] = [];
-        let resolveNext: (() => void) | null = null;
-
-        const handleMessage = (event: MessageEvent) => {
-            const data = JSON.parse(event.data);
-            const chunk: GenerateStreamChunk = {
-                content: data.content || '',
-                done: data.done || false
-            };
-            messageQueue.push(chunk);
-            resolveNext?.();
-        };
-
-        eventSource.addEventListener('message', handleMessage);
-
-        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-            try {
-                while (true) {
-                    if (messageQueue.length === 0) {
-                        await new Promise(resolve => {
-                            resolveNext = resolve;
-                        });
-                    }
-
-                    const chunk = messageQueue.shift()!;
-                    yield chunk;
-                    if (chunk.done) {
-                        break;
-                    }
-                }
-            } finally {
-                eventSource.removeEventListener('message', handleMessage);
-                eventSource.close();
-            }
-        }
-
-        return streamChunks();
-    };
-
-    const generateTextWithSources = (
-        messages: Message[],
-        sources: RetrievalResult[]
-    ): AsyncIterable<GenerateStreamChunk> => {
-        console.log(messages, sources);
-        const query = encodeURIComponent(
-            JSON.stringify({
-                messages: messages,
-                sources: sources
-            })
-        );
-
-        const eventSource = new EventSource(
-            `http://localhost:8000/generate?messages=${query}`  // Using 'messages' parameter
-        );
-
-        const messageQueue: GenerateStreamChunk[] = [];
-        let resolveNext: (() => void) | null = null;
-
-        const handleMessage = (event: MessageEvent) => {
-            const data = JSON.parse(event.data);
-            const chunk: GenerateStreamChunk = {
-                content: data.content || '',
-                done: data.done || false
-            };
-            messageQueue.push(chunk);
-            resolveNext?.();
-        };
-
-        eventSource.addEventListener('message', handleMessage);
-
-        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-            try {
-                while (true) {
-                    if (messageQueue.length === 0) {
-                        await new Promise(resolve => {
-                            resolveNext = resolve;
-                        });
-                    }
-
-                    const chunk = messageQueue.shift()!;
-                    yield chunk;
-                    if (chunk.done) {
-                        break;
-                    }
-                }
-            } finally {
-                eventSource.removeEventListener('message', handleMessage);
-                eventSource.close();
-            }
-        }
-
-        return streamChunks();
-    };
-
-    const retrieveAndGenerate = (messages: GenerateInput): RetrieveAndGenerateResponse => {
-        // Convert messages array to URL-safe format
-        const query = encodeURIComponent(JSON.stringify({ messages: messages }));
-
+    const retrieveAndGenerate = (messages: Message[]) => {
+        const query = encodeURIComponent(JSON.stringify({ messages }));
         const eventSource = new EventSource(
             `http://localhost:8000/retrieve-and-generate?messages=${query}`
         );
 
-        // Rest of the function remains the same
         const sourcesPromise = new Promise<RetrievalResult[]>((resolve, reject) => {
             const handleSources = (event: MessageEvent) => {
                 const data = JSON.parse(event.data);
                 if (data.sources) {
-                    resolve(data.sources);
+                    // Transform sources to match the expected format
+                    const transformedSources = data.sources.map((source: any) => {
+                        if ('text' in source) {
+                            return {
+                                text: source.text,
+                                sourceName: source.sourceName,
+                                relevanceScore: source.relevanceScore,
+                                metadata: source.metadata || {}
+                            } as TextContent;
+                        } else {
+                            return {
+                                sourceReference: source.sourceReference,
+                                type: source.type,
+                                sourceName: source.sourceName,
+                                relevanceScore: source.relevanceScore,
+                                metadata: source.metadata || {},
+                                highlights: source.highlights || []
+                            } as SourceReference;
+                        }
+                    });
+                    resolve(transformedSources);
                     eventSource.removeEventListener('message', handleSources);
                 }
             };
@@ -163,9 +68,10 @@ function App() {
             // Skip source-only messages
             if (!data.content && !data.done) return;
 
+            // Only use content and done fields, ignore role
             const chunk: GenerateStreamChunk = {
                 content: data.content || '',
-                done: data.done || false
+                done: !!data.done
             };
             messageQueue.push(chunk);
             resolveNext?.();
@@ -177,7 +83,7 @@ function App() {
             try {
                 while (true) {
                     if (messageQueue.length === 0) {
-                        await new Promise(resolve => {
+                        await new Promise<void>(resolve => {
                             resolveNext = resolve;
                         });
                     }
@@ -187,7 +93,6 @@ function App() {
                     if (chunk.done) {
                         break;
                     }
-
                 }
             } finally {
                 eventSource.removeEventListener('message', handleContent);
@@ -197,17 +102,78 @@ function App() {
 
         return {
             sources: sourcesPromise,
-            response: streamChunks(),
+            response: streamChunks()
         };
     };
 
-    const getDataSource = async (source: SourceReference): Promise<GetDataSourceResponse> => {
-        let url: string;
+    const generate = (messages: Message[], sources: RetrievalResult[]) => {
+        const query = encodeURIComponent(
+            JSON.stringify({
+                messages,
+                sources
+            })
+        );
 
+        const eventSource = new EventSource(
+            `http://localhost:8000/generate?messages=${query}`
+        );
+
+        const messageQueue: GenerateStreamChunk[] = [];
+        let resolveNext: (() => void) | null = null;
+
+        const handleMessage = (event: MessageEvent) => {
+            const data = JSON.parse(event.data);
+            // Only use content and done fields, ignore role
+            const chunk: GenerateStreamChunk = {
+                content: data.content || '',
+                done: !!data.done
+            };
+            messageQueue.push(chunk);
+            resolveNext?.();
+        };
+
+        eventSource.addEventListener('message', handleMessage);
+
+        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
+            try {
+                while (true) {
+                    if (messageQueue.length === 0) {
+                        await new Promise<void>(resolve => {
+                            resolveNext = resolve;
+                        });
+                    }
+
+                    const chunk = messageQueue.shift()!;
+                    yield chunk;
+                    if (chunk.done) {
+                        break;
+                    }
+                }
+            } finally {
+                eventSource.removeEventListener('message', handleMessage);
+                eventSource.close();
+            }
+        }
+
+        return streamChunks();
+    };
+
+    const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
+        // Handle text content directly
+        if (isTextContent(source)) {
+            const htmlContent: HTMLSourceContent = {
+                type: 'html',
+                content: source.text,
+                metadata: source.metadata || {}
+            };
+            return htmlContent;
+        }
+
+        let url: string;
         if (source.type === "pdf") {
-            url = `http://localhost:8000/pdfs/${encodeURIComponent(source.source)}`;
+            url = `http://localhost:8000/pdfs/${encodeURIComponent(source.sourceReference)}`;
         } else if (source.type === "html") {
-            url = `http://localhost:8000/htmls/${encodeURIComponent(source.source)}`;
+            url = `http://localhost:8000/htmls/${encodeURIComponent(source.sourceReference)}`;
         } else {
             throw new Error(`Unsupported source type: ${source.type}`);
         }
@@ -219,34 +185,31 @@ function App() {
 
         if (source.type === "html") {
             const text = await response.text();
-            return {
-                content: text, // Store as string
-                metadata: source.metadata || {},
-                type: source.type,
+            const htmlContent: HTMLSourceContent = {
+                type: 'html',
+                content: `<div class="source-content">${text}</div>`,
+                metadata: source.metadata || {}
             };
+            return htmlContent;
         } else if (source.type === "pdf") {
             const arrayBuffer = await response.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
-
-            return {
-                content: uint8Array, // Store as Uint8Array
+            const pdfContent: PDFSourceContent = {
+                type: 'pdf',
+                content: new Uint8Array(arrayBuffer),
                 metadata: source.metadata || {},
-                highlights: source.highlights || [],
-                type: source.type,
+                highlights: source.highlights || []
             };
+            return pdfContent;
         }
 
-        // This block should never be reached due to earlier checks
-        throw new Error("Unexpected source type");
+        throw new Error("Invalid source type");
     };
 
-
     return (
-        <div className="w-full h-screen flex flex-col items-center p-4">
+        <div style={{ width: '100%', height: '100vh', padding: '20px' }}>
             <RAGProvider
-                retrieve={retrieveSources}
                 retrieveAndGenerate={retrieveAndGenerate}
-                generate={generateText}
+                generate={generate}
                 getDataSource={getDataSource}
                 config={{
                     timeouts: {
@@ -254,34 +217,31 @@ function App() {
                         request: 60000
                     }
                 }}
-                // onAddMessage={() => {
-                //     return {
-                //         type: 'reretrieve',
-                //         preserveHistory: false
-                //     }
-                // }}
             >
-                <div className="w-full max-w-6xl h-full flex gap-4">
-                    {/* Left side: Chat and Query */}
-                    <div className="flex flex-1 flex-col gap-4 w-1/3">
-                        <div className="h-1/3 min-h-0"> {/* Chat window */}
-                            <ChatWindow />
-                        </div>
-                        <div className="min-h-0"> {/* Query field */}
-                            {/* <QueryField onSubmit={() => {
-                            }} /> */}
-                            <AdvancedQueryField />
-                        </div>
-
-                        <div className="h-1/3 flex-1"> {/* Sources panel */}
-                            <SourcesDisplay />
-                        </div>
+                <div style={{ 
+                    display: 'grid',
+                    height: '100%',
+                    gridTemplateColumns: '3fr 1fr',
+                    gridTemplateRows: '1fr auto 300px',
+                    gap: '20px',
+                    gridTemplateAreas: `
+                        "chat sources"
+                        "input sources"
+                        "viewer viewer"
+                    `
+                }}>
+                    <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
+                        <ChatWindow />
                     </div>
-
-                    <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
+                    <div style={{ gridArea: 'input' }}>
+                        <AdvancedQueryField />
+                    </div>
+                    <div style={{ gridArea: 'sources', minHeight: 0, overflow: 'auto' }}>
+                        <SourcesDisplay />
+                    </div>
+                    <div style={{ gridArea: 'viewer', height: '300px', overflow: 'auto' }}>
                         <ContentDisplay />
                     </div>
-                    <ErrorDisplay />
                 </div>
             </RAGProvider>
         </div>

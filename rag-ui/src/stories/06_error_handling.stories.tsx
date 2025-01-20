@@ -78,88 +78,66 @@ const ExampleComponent = ({ errorType }: TimeoutProps) => (
 );
 
 const meta = {
-  title: 'RAG/Timeout Handling',
+  title: 'Getting Started/06. Error Handling',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',
     docs: {
       description: {
         component: `
-The RAG UI provides timeout configuration to handle slow or unresponsive backends. You can configure two types of timeouts:
+# Error Handling
 
-1. \`stream\`: Maximum time allowed between stream chunks (default: 10s)
-2. \`request\`: Maximum time for the entire request to complete (default: 60s)
+Now that you have a fully functional chat interface, let's make it robust by handling errors and timeouts.
+This guide will show you how to:
+- Handle request timeouts gracefully
+- Manage streaming timeouts
+- Display error messages to users
 
-When a timeout occurs:
-- The operation is cancelled
-- Previous state is restored (rollback)
-- An error message is displayed to the user via the ErrorDisplay component
-- The UI remains responsive for new queries
+## Timeout Types
 
-\`\`\`typescript
-interface RAGConfig {
-  timeouts?: {
-    stream?: number;   // Timeout between stream chunks in ms
-    request?: number;  // Overall request timeout in ms
-  }
-}
-\`\`\`
+The RAG UI supports two types of timeouts:
 
-### Example Implementation
+1. \`request\`: Overall timeout for the entire request (default: 60s)
+2. \`stream\`: Timeout between stream chunks (default: 2s)
+
+## Example Implementation
 
 \`\`\`tsx
 <RAGProvider
   config={{
     timeouts: {
-      stream: 2000,   // 2 seconds between stream chunks
-      request: 5000   // 5 seconds for the entire request
+      request: 60000,  // 60s for entire request
+      stream: 2000     // 2s between chunks
     }
   }}
   retrieveAndGenerate={(messages) => {
-    // Example of request timeout
+    // Simulate a slow request
     return {
       sources: new Promise((resolve) => {
-        // Will timeout after 5s
         setTimeout(() => {
           resolve([{
-            sourceReference: "example-doc.pdf",
+            source: "example.pdf",
             type: "pdf",
-            metadata: { title: "Example Document" }
+            metadata: { title: "Example" }
           }]);
-        }, 6000);
+        }, 5000);  // 5s delay
       }),
-      response: Promise.resolve("This won't be shown")
-    };
-    
-    // Example of stream timeout
-    return {
-      sources: Promise.resolve([/* ... */]),
-      response: (async function* () {
-        // Quick initial responses
-        yield { content: "Let me analyze the document... " };
-        await new Promise(resolve => setTimeout(resolve, 200));
-        yield { content: "Based on the content, " };
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Simulate a processing hang (3s > 2s timeout)
-        yield { content: "Processing additional details" };
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        yield { content: "This won't be shown" };
-      })()
+      response: Promise.resolve("This will timeout...")
     };
   }}
 >
   <ChatWindow />
   <AdvancedQueryField />
-  <ErrorDisplay />
+  <ErrorDisplay />  {/* Shows timeout and error messages */}
 </RAGProvider>
 \`\`\`
 
 Try it out:
-1. Switch between "request" and "stream" timeout scenarios using the controls
-2. For request timeout: The entire operation will fail after 5 seconds
-3. For stream timeout: Watch the response stream quickly at first, then hang and timeout
-4. Both cases will show appropriate error messages and preserve previous state
+1. The request will timeout after 5s
+2. Error messages will be displayed to the user
+3. The UI remains responsive during timeouts
+
+This concludes the Getting Started guide. You now have a solid foundation for building RAG UIs!
         `
       }
     }
