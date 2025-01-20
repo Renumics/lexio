@@ -14,7 +14,10 @@ import {
 } from '@lexio'
 
 function App() {
-    const generateText = (messages: Message[]): AsyncIterable<GenerateStreamChunk> => {
+    /*
+        * This is the main RAG function that retrieves a list of sources from the server and generates a stream of text.
+     */
+    const retrieveAndGenerate = (messages: Message[]): AsyncIterable<RetrieveAndGenerateResponse> => {
       console.log("Generating text with messages:", messages);
 
       // Convert input messages array to URL-safe format
@@ -84,11 +87,17 @@ function App() {
           }
       }
 
-      return streamChunks();
+      // todo: type this correctly
+      return {
+          sources: Promise.resolve([]),
+          response: streamChunks()
+      }
     };
 
 
-  // Mock functions for RAGProvider
+  /*
+    * This is a simple retrieval function that sends a query to the server and returns a list of sources.
+   */
   const retrieve = async (query: string): Promise<RetrievalResult[]> => {
     const response = await fetch(`http://localhost:8000/retrieve?query=${encodeURIComponent(query)}`);
 
@@ -99,14 +108,15 @@ function App() {
     return responseData;
   };
 
-  const retrieveAndGenerate = async (messages: Message[]): Promise<RetrieveAndGenerateResponse> => {
-    const sources = await retrieve(messages[messages.length - 1].content);
-    const response = generateText(messages);
-    console.log('Generated response:', response);
-    return {
-      sources: sources,
-      response: response
-    };
+  /*
+    * This is a simple generation function that generates a stream of text from a list of messages. It is used for follow-up messages.
+   */
+  const generate = async (messages: Message[]): Promise<GenerateStreamChunk> => {
+    // todo
+      return {
+        content: '',
+        done: true
+      }
   };
 
   const getDataSource = async (source: SourceReference): GetDataSourceResponse => {
@@ -170,7 +180,7 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 p-4">
         <RAGProvider 
-          generate={generateText}
+          // generate={generate}
           retrieve={retrieve}
           retrieveAndGenerate={retrieveAndGenerate}
           getDataSource={getDataSource}
