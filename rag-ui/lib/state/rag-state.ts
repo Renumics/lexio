@@ -1,4 +1,4 @@
-import { atom, PrimitiveAtom, WritableAtom } from 'jotai'
+import { atom, WritableAtom } from 'jotai'
 import { acceptsSources, GenerateInput, GenerateResponse, GenerateSimple, GenerateStreamChunk, GenerateWithSources, GetDataSourceResponse, Message, RAGConfig, RAGWorkflowActionOnAddMessage, RetrievalResult, RetrieveAndGenerateResponse, RetrieveResponse, SourceContent, SourceReference, WorkflowMode } from '../types';
 import { toast } from 'react-toastify';
 import { validateRetrievalResults } from './data_validation';
@@ -65,7 +65,6 @@ export const addMessageAtom = atom(
 
     // Check available atoms for workflow management
     const hasGenerateAtom = ragAtoms.generateAtom !== null;
-    console.log("hasGenerateAtom", hasGenerateAtom);
     const hasRetrieveAndGenerateAtom = ragAtoms.retrieveAndGenerateAtom !== null;
 
     // Check if we have any generation capability
@@ -338,17 +337,10 @@ export const retrieveSourcesAtom = atom(
 );
 
 // Retrieve and generate
-
-interface RollbackState {
-  messages: Message[];
-  workflowMode: WorkflowMode;
-  sources: RetrievalResult[];
-}
-
 export const createRetrieveAndGenerateAtom = (
   retrieveAndGenerateFn: (query: GenerateInput, metadata?: Record<string, any>) => RetrieveAndGenerateResponse
 ) => {
-  return atom(null, async (_get, set, messages: GenerateInput, metadata?: Record<string, any>) => {
+  return atom(null, (_get, set, messages: GenerateInput, metadata?: Record<string, any>) => {
     set(loadingAtom, true);
     set(errorAtom, null);
     
@@ -357,86 +349,91 @@ export const createRetrieveAndGenerateAtom = (
     const config = _get(ragConfigAtom);
     let accumulatedContent = '';
     
-    try {
-      const response = retrieveAndGenerateFn(messages, metadata);
+    const response = retrieveAndGenerateFn(messages, metadata);
 
-      // Handle sources
-      if (response.sources) {
-        await addTimeout(
-          response.sources.then(sources => {
-            set(retrievedSourcesAtom, validateRetrievalResults(sources));
-            set(currentSourceIndicesAtom, []);
-            set(activeSourceIndexAtom, null);
-          }),
-          config.timeouts?.request,
-          'Sources request timeout exceeded',
-          abortController.signal
-        );
-      }
+    const processingPromise = (async () => {
+      try {
+        // Handle sources
+        if (response.sources) {
+          await addTimeout(
+            response.sources.then(sources => {
+              if (!aborted) {
+                set(retrievedSourcesAtom, validateRetrievalResults(sources));
+                set(currentSourceIndicesAtom, []); // Reset active source indices
+                set(activeSourceIndexAtom, null);  // Reset active source index
+              }
+            }),
+            config.timeouts?.request,
+            'Sources request timeout exceeded',
+            abortController.signal
+          );
+        }
 
-      // Handle streaming response
-      if (Symbol.asyncIterator in response.response) {
-        const processStream = async () => {
-          const streamTimeout = new StreamTimeout(config.timeouts?.stream);
-          
-          for await (const chunk of response.response as AsyncIterable<GenerateStreamChunk>) {
-            if (aborted || abortController.signal.aborted) {
-              break;
-            }
-
-            streamTimeout.check();
-            accumulatedContent += chunk.content;
+        // Handle streaming response
+        if (Symbol.asyncIterator in response.response) {
+          const processStream = async () => {
+            const streamTimeout = new StreamTimeout(config.timeouts?.stream);
             
-            set(currentStreamAtom, { 
-              role: 'assistant', 
-              content: accumulatedContent 
-            });
+            for await (const chunk of response.response as AsyncIterable<GenerateStreamChunk>) {
+              if (aborted || abortController.signal.aborted) {
+                break;
+              }
 
-            if (chunk.done) {
-              set(completedMessagesAtom, prev => [...prev, { 
+              streamTimeout.check();
+              accumulatedContent += chunk.content;
+              
+              set(currentStreamAtom, { 
                 role: 'assistant', 
                 content: accumulatedContent 
-              }]);
-              set(currentStreamAtom, null);
+              });
+
+              if (chunk.done) {
+                set(completedMessagesAtom, prev => [...prev, { 
+                  role: 'assistant', 
+                  content: accumulatedContent 
+                }]);
+                set(currentStreamAtom, null);
+              }
             }
-          }
-        };
+          };
 
-        await addTimeout(
-          processStream(),
-          config.timeouts?.request,
-          'Stream processing timeout exceeded',
-          abortController.signal
-        );
-      } else {
-        // Handle Promise<string> response
-        const content = await addTimeout(
-          response.response as Promise<string>,
-          config.timeouts?.request,
-          'Response timeout exceeded',
-          abortController.signal
-        );
-        
-        set(completedMessagesAtom, prev => [...prev, { role: 'assistant', content }]);
+          await addTimeout(
+            processStream(),
+            config.timeouts?.request,
+            'Stream processing timeout exceeded',
+            abortController.signal
+          );
+          set(workflowModeAtom, 'follow-up');
+        } else {
+          // Handle Promise<string> response
+          const content = await addTimeout(
+            response.response as Promise<string>,
+            config.timeouts?.request,
+            'Response timeout exceeded',
+            abortController.signal
+          );
+          
+          set(completedMessagesAtom, prev => [...prev, { role: 'assistant', content }]);
+          set(currentStreamAtom, null);
+          set(workflowModeAtom, 'follow-up');
+        }
+      } catch (error) {
+        // Abort on error
+        aborted = true;
+        abortController.abort();
         set(currentStreamAtom, null);
+        throw error;
       }
+    })();
 
-      return response;
-    } catch (err) {
-      // Abort on error
-      aborted = true;
-      abortController.abort();
-      set(currentStreamAtom, null);
-      
-      // Set error state but don't handle UI updates here
-      const error = err instanceof Error ? err : new Error(String(err));
-      set(errorAtom, `RAG operation failed: ${error.message}`);
-      
-      // Important: Re-throw the original error for addMessageAtom to handle rollback
-      throw error;
-    } finally {
+    // Handle errors and loading state
+    processingPromise.catch(error => {
+      set(errorAtom, `RAG operation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }).finally(() => {
       set(loadingAtom, false);
-    }
+    });
+
+    return response;
   });
 };
 
@@ -480,32 +477,47 @@ class StreamTimeout {
   }
 }
 
-export const createGetDataSourceAtom = (getDataSourceFn: (source: SourceReference) => GetDataSourceResponse) => {
-  return atom(
+export const createGetDataSourceAtom = (getDataSourceFn: ((source: SourceReference) => GetDataSourceResponse) | null) => {
+  return atom<null, [RetrievalResult], Promise<SourceContent>>(
     null,
-    async (_get, set, retrievalResult: RetrievalResult) => {
+    (_get, set, retrievalResult: RetrievalResult): Promise<SourceContent> => {
       set(loadingAtom, true);
-
+      set(errorAtom, null);
+      
       try {
-        let response: SourceContent;
-
-        // If it's a TextContent, convert it directly to SourceContent
+        // Handle text content directly
         if ('text' in retrievalResult) {
-          response = {
+          const response: SourceContent = {
             content: retrievalResult.text,
             metadata: retrievalResult.metadata,
             type: 'html'
           };
-        } else {
-          // Otherwise, use the getDataSourceFn for SourceReference
-          response = await getDataSourceFn(retrievalResult);
+          set(currentSourceContentAtom, response);
+          set(loadingAtom, false);
+          return Promise.resolve(response);
         }
 
-        // Store the fetched content
-        set(currentSourceContentAtom, response);
-        return response;
-      } finally {
+        // If no getDataSourceFn is provided, throw an error for source references
+        if (!getDataSourceFn) {
+          const error = new Error('Source content retrieval is not configured. Only text sources are supported.');
+          set(errorAtom, error.message);
+          set(loadingAtom, false);
+          return Promise.reject(error);
+        }
+
+        // For SourceReference, use the getDataSourceFn
+        return getDataSourceFn(retrievalResult)
+          .then(response => {
+            set(currentSourceContentAtom, response);
+            return response;
+          })
+          .finally(() => {
+            set(loadingAtom, false);
+          });
+      } catch (err) {
+        set(errorAtom, `Failed to fetch source content: ${err instanceof Error ? err.message : String(err)}`);
         set(loadingAtom, false);
+        return Promise.reject(err);
       }
     }
   );
@@ -530,6 +542,30 @@ type GetDataSourceAtom = WritableAtom<
   [RetrievalResult],
   GetDataSourceResponse
 >;
+
+const isGetDataSourceAtom = (atom: unknown): atom is GetDataSourceAtom => {
+  return (
+    atom !== null && 
+    typeof atom === 'object' && 
+    'write' in atom &&
+    'read' in atom &&
+    typeof (atom as any).write === 'function' &&
+    // Check if it takes a RetrievalResult parameter and returns a Promise<SourceContent>
+    (atom as any).write.length === 3  // _get, set, retrievalResult
+  );
+};
+
+const isRetrieveSourcesAtom = (atom: unknown): atom is RetrieveSourcesAtom => {
+  return (
+    atom !== null && 
+    typeof atom === 'object' && 
+    'write' in atom &&
+    'read' in atom &&
+    typeof (atom as any).write === 'function' &&
+    // Check if it takes a string parameter and returns a Promise<RetrievalResult[]>
+    (atom as any).write.length === 3  // _get, set, query
+  );
+};
 
 // Container for all RAG atoms. This is necessary since the atoms are created dynamically but need to be referenced form other atoms
 interface RAGAtoms {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import type { RAGProviderProps } from '../../types';
 export * from '../../types';
-import { Provider, createStore, atom } from 'jotai';
+import { Provider, createStore} from 'jotai';
 import { createGenerateAtom, createGetDataSourceAtom, createRetrieveAndGenerateAtom, createRetrieveSourcesAtom, onAddMessageAtom, ragAtomsAtom, ragConfigAtom } from '../../state/rag-state';
 
 const RAGProvider = ({ 
@@ -19,7 +19,7 @@ const RAGProvider = ({
   const generateAtom = useMemo(() => generate ? createGenerateAtom(generate) : null, [generate]);
   const retrieveAndGenerateAtom = useMemo(() => retrieveAndGenerate ? createRetrieveAndGenerateAtom(retrieveAndGenerate) : null, [retrieveAndGenerate]);
   const retrieveSourcesAtom = useMemo(() => retrieve ? createRetrieveSourcesAtom(retrieve) : null, [retrieve]);
-  const getDataSourceAtom = useMemo(() => getDataSource ? createGetDataSourceAtom(getDataSource) : null, [getDataSource]);
+  const getDataSourceAtom = useMemo(() => createGetDataSourceAtom(getDataSource || null), [getDataSource]);
   const memoizedConfig = useMemo(() => config, [config]);
 
   useEffect(() => {

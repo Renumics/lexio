@@ -23,7 +23,7 @@ const ExampleComponent = ({ errorType }: TimeoutProps) => (
               // Will timeout after 5s (request timeout)
               setTimeout(() => {
                 resolve([{
-                  source: "example-doc.pdf",
+                  sourceReference: "example-doc.pdf",
                   type: "pdf" as const,
                   metadata: { title: "Example Document" }
                 }]);
@@ -35,7 +35,7 @@ const ExampleComponent = ({ errorType }: TimeoutProps) => (
           // Demonstrate stream timeout
           return {
             sources: Promise.resolve([{
-              source: "example-doc.pdf",
+              sourceReference: "example-doc.pdf",
               type: "pdf" as const,
               metadata: { title: "Example Document" }
             }]),
@@ -122,7 +122,7 @@ interface RAGConfig {
         // Will timeout after 5s
         setTimeout(() => {
           resolve([{
-            source: "example-doc.pdf",
+            sourceReference: "example-doc.pdf",
             type: "pdf",
             metadata: { title: "Example Document" }
           }]);

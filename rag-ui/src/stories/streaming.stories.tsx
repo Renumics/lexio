@@ -10,7 +10,7 @@ const ExampleComponent = () => (
         return {
           sources: Promise.resolve([
             {
-              source: "example-doc.pdf",
+              sourceReference: "example-doc.pdf",
               type: "pdf" as const,
               metadata: {
                 title: "Example Document"

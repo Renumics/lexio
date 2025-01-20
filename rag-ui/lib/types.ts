@@ -20,6 +20,7 @@ export interface PDFHighlight {
 }
 
 export interface BaseRetrievalResult {
+  sourceName?: string;
   relevanceScore?: number;
   metadata?: Record<string, any>;
   highlights?: PDFHighlight[];
@@ -27,7 +28,7 @@ export interface BaseRetrievalResult {
 
 export interface SourceReference extends BaseRetrievalResult {
   type?: 'pdf' | 'html';
-  source: string;
+  sourceReference: string;
 }
 
 export interface TextContent extends BaseRetrievalResult {

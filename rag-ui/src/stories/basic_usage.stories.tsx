@@ -14,7 +14,9 @@ const ExampleComponent = () => (
               type: "pdf" as const,
               metadata: {
                 title: "Example Document"
-              }
+              },
+              text: "Example document content",
+              relevanceScore: 1
             }
           ]),
           response: Promise.resolve("This is a sample response based on the retrieved documents.")
@@ -54,7 +56,8 @@ The function must return:
     metadata?: {              // Optional metadata
       [key: string]: any
     },
-    relevanceScore?: number,  // Optional relevance score
+    text?: string,           // Required if not using getDataSource
+    relevanceScore?: number, // Optional relevance score
     highlights?: {            // Optional PDF highlights
       page: number,
       rect: { top: number, left: number, width: number, height: number },
@@ -77,7 +80,9 @@ The function must return:
           type: "pdf",
           metadata: {
             title: "Example Document"
-          }
+          },
+          text: "Example document content",
+          relevanceScore: 1
         }
       ]),
       response: Promise.resolve("This is a sample response based on the retrieved documents.")
