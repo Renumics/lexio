@@ -80,20 +80,23 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     };
 
     const getSourceId = (source: RetrievalResult, index?: number): string => {
-        const baseId = isSourceReference(source) ? source.source : source.text;
+        const baseId = isSourceReference(source) ? source.sourceReference : source.text;
         return index !== undefined ? `${baseId}#${index}` : baseId;
     };
 
     const getDisplayName = (source: RetrievalResult): string => {
+        if (source.sourceName) {
+            return source.sourceName;
+        }
         if (isSourceReference(source)) {
             const metadataStr = source.metadata ? 
                 ` (${Object.entries(source.metadata)
                     .map(([key, value]) => `${key}: ${value}`)
                     .join(', ')})` : 
                 '';
-            return source.source + metadataStr;
+            return source.sourceReference + metadataStr;
         }
-        return source.text.slice(0, 20);
+        return source.text.slice(0, 20) + '...';
     };
 
     // --- Source Index Tracking ---
@@ -166,11 +169,21 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     }, [updateSourceIndices]);
 
     // --- Source Filtering ---
-    const filteredSources = sources.filter((source) =>
-        (isSourceReference(source) ? source.source : source.text)
-            .toLowerCase()
-            .includes(filterValue.toLowerCase())
-    );
+    const filteredSources = sources.filter((source) => {
+        if (!source) return false;
+        
+        // Handle both SourceReference and TextContent types
+        let searchText = '';
+        if ('sourceReference' in source) {
+            // It's a SourceReference
+            searchText = source.sourceName || source.sourceReference;
+        } else if ('text' in source) {
+            // It's a TextContent
+            searchText = source.sourceName || source.text;
+        }
+        
+        return searchText.toLowerCase().includes((filterValue || '').toLowerCase());
+    });
 
     // --- Event Handlers ---
     const handleSubmit = (e: React.FormEvent) => {
@@ -509,9 +522,9 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                                         <div className="flex flex-col max-w-full">
                                             <span 
                                                 className="font-medium truncate max-w-full" 
-                                                title={isSourceReference(source) ? source.source : source.text}
+                                                title={isSourceReference(source) ? source.sourceReference : source.text}
                                             >
-                                                {isSourceReference(source) ? source.source : source.text}
+                                                {isSourceReference(source) ? source.sourceReference : source.text}
                                             </span>
                                             <div className="flex items-center gap-2 mt-1">
                                                 {isSourceReference(source) && source.type && (
