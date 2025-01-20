@@ -18,13 +18,15 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
     // Optional: Handle mouse wheel zoom
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
-            if (event.deltaY < 0) {
-                wrappedActions.zoomIn();
-            } else {
-                wrappedActions.zoomOut();
+            // Prevent default scrolling behavior when zooming
+            if (event.ctrlKey || event.metaKey) {
+                event.preventDefault();
+                if (event.deltaY < 0) {
+                    wrappedActions.zoomIn();
+                } else {
+                    wrappedActions.zoomOut();
+                }
             }
-            // Prevent page scroll while zooming if desired
-            event.preventDefault();
         };
 
         const container = containerRef.current;
@@ -137,14 +139,22 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
                 fitParent={wrappedActions.fitParent}
                 isLoaded={true}
             />
-            <div 
-                className="flex-grow overflow-auto p-4"
-                style={{ 
-                    transform: `scale(${scale})`,
-                    transformOrigin: 'top left'
+            <div
+                style={{
+                    overflow: 'auto',
+                    width: '100%',
+                    height: '100%',
                 }}
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
-            />
+            >
+                <div
+                    className="html-viewer-content"
+                    style={{
+                        transform: `scale(${scale})`,
+                        transformOrigin: 'top left',
+                    }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
+                />
+            </div>
         </div>
     );
 };

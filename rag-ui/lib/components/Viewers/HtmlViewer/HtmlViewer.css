@@ -4,6 +4,7 @@
     line-height: 1.6;
     color: #333;
     padding: 0.5em;
+    overflow: auto;
 }
 
 .html-viewer-content h1, .html-viewer-content h2, .html-viewer-content h3 {
