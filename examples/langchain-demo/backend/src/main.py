@@ -154,22 +154,10 @@ async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
             source = metadata.get("source", "unknown.pdf")
             page = metadata.get("page", 0)
             
-            # Create highlight for the page (this is a simplified version)
-            highlight = {
-                "page": page,
-                "rect": {
-                    "top": 0.1,
-                    "left": 0.1,
-                    "width": 0.8,
-                    "height": 0.1
-                }
-            }
-            
             result = RetrievalResult(
                 source=source.replace("data/", ""),
                 type="pdf",
-                metadata={"page": page, "score": score},
-                highlights=[highlight]
+                metadata={"page": page, "score": score}
             )
             retrieval_results.append(result)
         
@@ -179,8 +167,8 @@ async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/generate")
-async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
+@app.get("/generate_old")
+async def generate_text_old(messages: str = Query(...)) -> EventSourceResponse:
     try:
         message_history = MessageHistory.model_validate_json(messages)
         query = message_history.messages[-1].content if message_history.messages else ""
@@ -223,7 +211,11 @@ async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
 
     async def stream():
         async for chunk in llm.astream(formatted_prompt):
-            yield {"data": json.dumps({"content": chunk, "done": False})}
+            # Convert AIMessageChunk to string before serialization, see https://python.langchain.com/v0.1/docs/expression_language/streaming/
+            chunk_text = chunk.content if hasattr(chunk, 'content') else str(chunk)
+            yield {"data": json.dumps({"content": chunk_text, "done": False})}
+
+        # Add a final chunk to indicate the end of the stream
         yield {"data": json.dumps({"content": "", "done": True})}
 
     return EventSourceResponse(stream())

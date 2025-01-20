@@ -48,7 +48,12 @@ function App() {
       eventSource.addEventListener('message', handleMessage);
 
       eventSource.addEventListener('error', (err) => {
-          console.error("EventSource error:", err);
+          console.warn("EventSource error or connection closed:", err);
+          if (eventSource.readyState === EventSource.CLOSED) {
+              console.log("EventSource connection closed normally.");
+          } else {
+              console.error("Unexpected EventSource error:", err);
+          }
           eventSource.close();
       });
 
@@ -61,7 +66,7 @@ function App() {
                           resolveNext = resolve;
                       });
                   }
-
+      
                   const chunk = messageQueue.shift()!;
                   console.log("Yielding chunk:", chunk);
                   yield chunk;
@@ -70,6 +75,8 @@ function App() {
                       break;
                   }
               }
+          } catch (error) {
+              console.error("Error while streaming chunks:", error);
           } finally {
               console.log("Cleaning up event source.");
               eventSource.removeEventListener('message', handleMessage);
