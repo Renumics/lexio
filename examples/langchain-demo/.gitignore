@@ -1,0 +1,9 @@
+.ruff_cache
+.venv/
+data/*
+__pycache__/
+
+node_modules/
+.DS_Store
+.env
+.chroma
