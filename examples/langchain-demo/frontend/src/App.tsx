@@ -14,66 +14,80 @@ import {
 } from '@lexio'
 
 function App() {
-  const generateText = async function* (messages: Message[]): AsyncIterable<GenerateStreamChunk> {
-    const response = await fetch('http://localhost:8000/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream'
-      },
-      body: JSON.stringify({ messages: messages })
-    });
+    const generateText = (messages: Message[]): AsyncIterable<GenerateStreamChunk> => {
+      console.log("Generating text with messages:", messages);
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+      // Convert input messages array to URL-safe format
+      const query = encodeURIComponent(JSON.stringify({ messages: messages }));
+      console.log("Encoded query:", query);
 
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
+      const eventSource = new EventSource(
+          `http://localhost:8000/generate?messages=${query}`
+      );
 
-    if (!reader) {
-      throw new Error('No reader available');
-    }
+      const messageQueue: GenerateStreamChunk[] = [];
+      let resolveNext: (() => void) | null = null;
 
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          yield { content: '', done: true };
-          break;
-        }
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim() !== '');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = JSON.parse(line.slice(6));
-            yield {
-              content: data.content || '',
-              done: data.done || false
-            };
-            if (data.done) break;
+      const handleMessage = (event: MessageEvent) => {
+          console.log("Event received:", event.data);
+          try {
+              const data = JSON.parse(event.data);
+              console.log("Parsed data:", data);
+              const chunk: GenerateStreamChunk = {
+                  content: data.content || '',
+                  done: data.done || false
+              };
+              messageQueue.push(chunk);
+              console.log("Chunk added to queue:", chunk);
+              resolveNext?.();
+          } catch (error) {
+              console.error("Error parsing event data:", error);
           }
-        }
+      };
+
+      eventSource.addEventListener('message', handleMessage);
+
+      eventSource.addEventListener('error', (err) => {
+          console.error("EventSource error:", err);
+          eventSource.close();
+      });
+
+      async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
+          try {
+              while (true) {
+                  if (messageQueue.length === 0) {
+                      console.log("Waiting for new message...");
+                      await new Promise(resolve => {
+                          resolveNext = resolve;
+                      });
+                  }
+
+                  const chunk = messageQueue.shift()!;
+                  console.log("Yielding chunk:", chunk);
+                  yield chunk;
+                  if (chunk.done) {
+                      console.log("Streaming complete.");
+                      break;
+                  }
+              }
+          } finally {
+              console.log("Cleaning up event source.");
+              eventSource.removeEventListener('message', handleMessage);
+              eventSource.close();
+          }
       }
-    } finally {
-      reader.releaseLock();
-    }
-  };
+
+      return streamChunks();
+    };
+
 
   // Mock functions for RAGProvider
   const retrieve = async (query: string): Promise<RetrievalResult[]> => {
     const response = await fetch(`http://localhost:8000/retrieve?query=${encodeURIComponent(query)}`);
-    
-    // Log the response status and headers
-    console.log('Response Status:', response.status);
-    console.log('Response Headers:', response.headers);
 
     // Read and log the response content
     const responseData = await response.json();
-    console.log('Response Content:', responseData);
+    //console.log('Response Content:', responseData);
 
     return responseData;
   };
@@ -81,7 +95,7 @@ function App() {
   const retrieveAndGenerate = async (messages: Message[]): Promise<RetrieveAndGenerateResponse> => {
     const sources = await retrieve(messages[messages.length - 1].content);
     const response = generateText(messages);
-    
+    console.log('Generated response:', response);
     return {
       sources: sources,
       response: response
@@ -166,20 +180,20 @@ function App() {
               }
           }}
         >
-          <div className="w-full h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
+          <div className="w-full h-full max-h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
             {/* Left side: Chat and Query */}
             <div className="h-3/4 gap-4 w-1/4 flex flex-col">
                 <div className="bg-gray-200 rounded-lg p-2 shrink-0"> {/* Query field */}
                   <QueryField onSubmit={() => {}} />
                 </div>
-                <div className="bg-gray-200 rounded-lg flex-1 min-h-0"> {/* Chat window */}
+                <div className="bg-gray-200 rounded-lg h-full"> {/* Chat window */}
                     <ChatWindow />
                 </div>
             </div>
             <div className="w-1/6 h-full bg-gray-200 rounded-lg"> {/* Sources panel */}
                 <SourcesDisplay />
             </div>
-            <div className="w-1/3 h-full flex-1 overflow-hidden bg-gray-200 rounded-lg"> {/* Sources panel */}
+            <div className="w-2/3 h-full bg-gray-200 rounded-lg overflow-hidden"> {/* Sources panel */}
                 <ContentDisplay />
             </div>
             <ErrorDisplay />
