@@ -14,7 +14,16 @@ import {
     Message,
     AdvancedQueryField
 } from '../lib/main'
+import {defaultTheme} from "../lib/theme";
 import { GenerateInput, GenerateStreamChunk } from '../lib/main'
+
+export const customTheme = {
+  ...defaultTheme,
+  colors: {
+    ...defaultTheme.colors,
+    background: '#FF0000', // custom brand color
+  },
+};
 
 function App() {
     // Function to retrieve sources from the server
@@ -254,6 +263,7 @@ function App() {
                         request: 60000
                     }
                 }}
+                theme={customTheme}
                 // onAddMessage={() => {
                 //     return {
                 //         type: 'reretrieve',
@@ -265,7 +275,7 @@ function App() {
                     {/* Left side: Chat and Query */}
                     <div className="flex flex-1 flex-col gap-4 w-1/3">
                         <div className="h-1/3 min-h-0"> {/* Chat window */}
-                            <ChatWindow />
+                            <ChatWindow overrides={{backgroundColor: 'pink'}} />
                         </div>
                         <div className="min-h-0"> {/* Query field */}
                             {/* <QueryField onSubmit={() => {

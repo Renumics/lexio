@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import type { RAGProviderProps } from '../../types';
 export * from '../../types';
+import {ThemeProvider} from "../../theme/ThemeContext.tsx";
+import {defaultTheme} from "../../theme";
 import { Provider, createStore} from 'jotai';
 import { createGenerateAtom, createGetDataSourceAtom, createRetrieveAndGenerateAtom, createRetrieveSourcesAtom, onAddMessageAtom, ragAtomsAtom, ragConfigAtom } from '../../state/rag-state';
 
@@ -12,6 +14,7 @@ const RAGProvider = ({
   getDataSource,
   config,
   onAddMessage,
+  theme,
 }: RAGProviderProps) => {
 
   const store = useMemo(() => createStore(), [])
@@ -39,9 +42,11 @@ const RAGProvider = ({
   }, [store, generateAtom, retrieveAndGenerateAtom, retrieveSourcesAtom, getDataSourceAtom, memoizedConfig, onAddMessage]);
 
   return (
-    <Provider store={store}>
-        {children}
-    </Provider>
+      <ThemeProvider theme={theme !== undefined ? theme : defaultTheme}>
+        <Provider store={store}>
+            {children}
+        </Provider>
+      </ThemeProvider>
   );
 };
 

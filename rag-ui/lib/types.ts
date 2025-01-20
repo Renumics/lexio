@@ -1,4 +1,6 @@
-export type WorkflowMode = 
+import {Theme} from 'theme/types.ts'
+
+export type WorkflowMode =
   | 'init'           // Initial state, no conversation yet
   | 'follow-up'      // Using existing context and sources
   | 'reretrieve';    // Getting new sources while preserving history
@@ -109,6 +111,7 @@ export interface RAGProviderProps {
   getDataSource?: (source: SourceReference) => GetDataSourceResponse;
   config?: RAGConfig;
   onAddMessage?: (message: Message, previousMessages: Message[]) => RAGWorkflowActionOnAddMessage;
+  theme?: Theme;
 }
 
 export interface RAGConfig {
