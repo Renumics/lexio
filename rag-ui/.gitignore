@@ -1,3 +1,6 @@
+# Vite
+.vite
+
 # Coverage Reports
 coverage
 
@@ -25,3 +28,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+*storybook.log

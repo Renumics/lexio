@@ -11,6 +11,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { ViewerToolbar } from "../ViewerToolbar";
 import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
+import {useHotkeys, Options} from 'react-hotkeys-hook';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -33,7 +34,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [rotate, setRotate] = useState<number>(0);
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
-
+    
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
 
@@ -95,6 +96,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         setRotate((prevRotate) => (prevRotate - 90) % 360);
     }
 
+    // ---- Mouse wheel zoom ----
     // Hook to zoom when the mouse wheel is used, but only when the cursor is over the PDF container
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
@@ -102,9 +104,9 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
             if (event.ctrlKey || event.metaKey) {
                 event.preventDefault();
                 if (event.deltaY < 0) {
-                    zoomIn();
+                    wrappedActions.zoomIn();
                 } else {
-                    zoomOut();
+                    wrappedActions.zoomOut();
                 }
             }
         };
@@ -120,7 +122,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                 pdfContainer.removeEventListener('wheel', handleWheel);
             }
         };
-    }, [zoomIn, zoomOut]); // Dependencies on zoomIn and zoomOut
+    }, [zoomIn, zoomOut]); 
 
     const setPageNumberFromInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -141,66 +143,140 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         }
     };
 
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            // Only handle keyboard events if PDF is loaded
-            if (numPages === null) return;
 
-            // Handle zoom controls with Ctrl/Cmd + Up/Down
-            if (event.ctrlKey || event.metaKey) {
-                switch (event.key) {
-                    case 'ArrowUp':
-                        event.preventDefault();
-                        zoomIn();
-                        return;
-                    case 'ArrowDown':
-                        event.preventDefault();
-                        zoomOut();
-                        return;
-                    case '0':
-                        event.preventDefault();
-                        fitParent();
-                        return;
-                }
+    // ---- Hotkeys ----
+    // Common options for hotkeys
+    const hotkeyOptions: Options = {
+        enableOnFormTags: false,
+        enabled: numPages !== null,
+        // No need for filter function as the ref handles the scoping
+    };
+
+    // Use the ref returned by useHotkeys
+    const zoomInRef = useHotkeys('ctrl+up, cmd+up', 
+        (event) => {
+            event.preventDefault();
+            zoomIn();
+        }, 
+        hotkeyOptions,
+        [zoomIn]
+    );
+
+    const zoomOutRef = useHotkeys('ctrl+down, cmd+down', 
+        (event) => {
+            event.preventDefault();
+            zoomOut();
+        }, 
+        hotkeyOptions,
+        [zoomOut]
+    );
+
+    const fitRef = useHotkeys('ctrl+0, cmd+0', 
+        (event) => {
+            event.preventDefault();
+            fitParent();
+        }, 
+        hotkeyOptions,
+        [fitParent]
+    );
+
+    const nextRef = useHotkeys('right, space', 
+        (event) => {
+            if (pageNumber < numPages!) {
+                event.preventDefault();
+                nextPage();
             }
+        }, 
+        hotkeyOptions,
+        [nextPage, pageNumber, numPages]
+    );
 
-            // Handle page navigation
-            switch (event.key) {
-                case 'ArrowRight':
-                case ' ': // Spacebar
-                    if (pageNumber < numPages) {
-                        event.preventDefault(); // Prevent scrolling with space
-                        nextPage();
-                    }
-                    break;
-                case 'ArrowLeft':
-                case 'Backspace':
-                    if (pageNumber > 1) {
-                        event.preventDefault();
-                        previousPage();
-                    }
-                    break;
-                case 'Home':
-                    event.preventDefault();
-                    setPageNumber(1);
-                    break;
-                case 'End':
-                    event.preventDefault();
-                    setPageNumber(numPages);
-                    break;
-                default:
-                    break;
+    const prevRef = useHotkeys('left, backspace', 
+        (event) => {
+            if (pageNumber > 1) {
+                event.preventDefault();
+                previousPage();
             }
-        };
+        }, 
+        hotkeyOptions,
+        [previousPage, pageNumber]
+    );
 
-        // Add event listener to window to catch keyboard events
-        window.addEventListener('keydown', handleKeyDown);
+    const homeRef = useHotkeys('home', 
+        (event) => {
+            event.preventDefault();
+            setPageNumber(1);
+        }, 
+        hotkeyOptions,
+        []
+    );
 
-        // Cleanup
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [pageNumber, numPages, nextPage, previousPage, zoomIn, zoomOut, fitParent]);
+    const endRef = useHotkeys('end', 
+        (event) => {
+            event.preventDefault();
+            setPageNumber(numPages!);
+        }, 
+        hotkeyOptions,
+        [numPages]
+    );
+
+    const rotateRef = useHotkeys('.', 
+        (event) => {
+            event.preventDefault();
+            rotatePage();
+        }, 
+        hotkeyOptions,
+        [rotatePage]
+    );
+
+    // Each useHotkeys() call returns a function ref that activates its hotkey when the element receives focus
+    // See: https://react-hotkeys-hook.vercel.app/docs/documentation/useHotkeys/scoping-hotkeys
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
+    // Combines multiple hotkey refs into a single ref callback
+    // This is necessary because each useHotkeys() returns its own ref,
+    // but we can only attach one ref to a DOM element
+    // Triggering all hotkey refs activates them all
+    const combineRefs = (element: HTMLDivElement) => {
+        [zoomInRef, zoomOutRef, fitRef, nextRef, prevRef, homeRef, endRef, rotateRef]
+            .forEach(ref => {
+                if (typeof ref === 'function') ref(element);
+                else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
+            });
+    };
+
+    // Helper function to focus the container
+    const focusContainer = () => {
+        containerRef.current?.focus();
+    };
+
+    // Wrap the existing actions with focus
+    const wrappedActions = {
+        previousPage: () => {
+            previousPage();
+            focusContainer();
+        },
+        nextPage: () => {
+            nextPage();
+            focusContainer();
+        },
+        zoomIn: () => {
+            zoomIn();
+            focusContainer();
+        },
+        zoomOut: () => {
+            zoomOut();
+            focusContainer();
+        },
+        fitParent: () => {
+            fitParent();
+            focusContainer();
+        },
+        rotatePage: () => {
+            rotatePage();
+            focusContainer();
+        }
+    };
 
     const Toolbar = () => {
         // Initialize scalePercentage with scale
@@ -218,10 +294,10 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
 
         return (
             <ViewerToolbar 
-                zoomIn={zoomIn} 
-                zoomOut={zoomOut} 
+                zoomIn={wrappedActions.zoomIn} 
+                zoomOut={wrappedActions.zoomOut} 
                 scale={scalePercentage} 
-                fitParent={fitParent}
+                fitParent={wrappedActions.fitParent}
                 isLoaded={numPages !== null}
             >
                 <div className="flex flex-row justify-between w-full">
@@ -229,7 +305,8 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                         <button
                             className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={pageNumber <= 1 || data === null}
-                            onClick={previousPage}>
+                            onClick={wrappedActions.previousPage}
+                            title="Previous Page (Left Arrow, Backspace)">
                             <ChevronLeftIcon className="size-4 text-black"/>
                         </button>
                         <div className="m-auto min-w-14 flex items-center justify-center bg-gray-200 rounded-md">
@@ -251,13 +328,15 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                         <button
                             className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={numPages === null || pageNumber >= numPages}
-                            onClick={nextPage}>
+                            onClick={wrappedActions.nextPage}
+                            title="Next Page (Right Arrow, Space)">
                             <ChevronRightIcon className="size-4 text-black"/>
                         </button>
                     </div>
                     <button
                         className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={rotatePage}>
+                        onClick={wrappedActions.rotatePage}
+                        title="Rotate Page (.)">
                         <ArrowUturnDownIcon className="size-5 text-black"/>
                     </button>
                 </div>
@@ -266,9 +345,20 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     }
 
     return (
-        <div className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg">
+        <div 
+            className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg focus:outline-none"
+            // tabIndex enables the div to receive focus, -1 keeps it out of tab order
+            tabIndex={-1}
+            ref={(element: HTMLDivElement | null) => {
+                if (element) {
+                    containerRef.current = element;
+                    combineRefs(element);
+                }
+            }}
+        >
             <Toolbar/>
-            <div className="flex justify-center items-start flex-grow overflow-auto relative w-full"
+            <div 
+                className="flex justify-center items-start flex-grow overflow-auto relative w-full"
                 style={{textAlign: 'center'}}
                 ref={documentContainerRef}
             >

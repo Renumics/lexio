@@ -11,13 +11,14 @@ function hasOnlyAllowedKeys<T>(obj: Record<string, any>, allowedKeys: (keyof T)[
 function isSourceReference(result: unknown): result is SourceReference {
     if (!isRecord(result)) return false;
 
-    const allowedKeys: (keyof SourceReference)[] = ['source', 'type', 'relevanceScore', 'metadata', 'highlights'];
+    const allowedKeys: (keyof SourceReference)[] = ['sourceReference', 'sourceName', 'type', 'relevanceScore', 'metadata', 'highlights'];
     if (!hasOnlyAllowedKeys<SourceReference>(result, allowedKeys)) {
         return false;
     }
 
     return (
-        typeof result.source === 'string' &&
+        typeof result.sourceReference === 'string' &&
+        (result.sourceName === undefined || typeof result.sourceName === 'string') &&
         (result.type === undefined || result.type === 'pdf' || result.type === 'html') &&
         (result.relevanceScore === undefined || typeof result.relevanceScore === 'number') &&
         (result.metadata === undefined || isRecord(result.metadata))
@@ -27,13 +28,14 @@ function isSourceReference(result: unknown): result is SourceReference {
 function isTextContent(result: unknown): result is TextContent {
     if (!isRecord(result)) return false;
 
-    const allowedKeys: (keyof TextContent)[] = ['text', 'relevanceScore', 'metadata'];
+    const allowedKeys: (keyof TextContent)[] = ['text', 'sourceName', 'relevanceScore', 'metadata'];
     if (!hasOnlyAllowedKeys<TextContent>(result, allowedKeys)) {
         return false;
     }
 
     return (
         typeof result.text === 'string' &&
+        (result.sourceName === undefined || typeof result.sourceName === 'string') &&
         (result.relevanceScore === undefined || typeof result.relevanceScore === 'number') &&
         (result.metadata === undefined || isRecord(result.metadata))
     );
@@ -77,8 +79,8 @@ export function validateRetrievalResults(results: unknown): RetrievalResult[] {
             throw new Error(
                 `Invalid retrieval result format: ${JSON.stringify(result)}\n` +
                 'Expected format is either:\n' +
-                '- SourceReference: { source: string, type?: "pdf", relevanceScore?: number, metadata?: object }\n' +
-                '- TextContent: { text: string, relevanceScore?: number, metadata?: object }'
+                '- SourceReference: { sourceReference: string, sourceName?: string, type?: "pdf" | "html", relevanceScore?: number, metadata?: object }\n' +
+                '- TextContent: { text: string, sourceName?: string, relevanceScore?: number, metadata?: object }'
             );
         }
     }

@@ -1,4 +1,10 @@
 .idea/
-.venv
-node_modules
-examples/data
+.venv/
+node_modules/
+examples/data/
+
+# Intellij
+.idea/
+
+# Dummy Package
+dummy-package/

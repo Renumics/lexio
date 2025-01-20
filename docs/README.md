@@ -5,8 +5,10 @@
 ### Getting Started
 * Install RAG UI
 * Most simple usage is to just use the retrieveAndGenerate function to connect to your backend. For llama-index use our connector function, else use the function shown below.
+* Also showcase streaming support!
 
-### Browsing sources
+### Fetching and browsing sources
+* Showcase fetching of PDFs and HTML files.
 * Showcase viewer for PDF and HTML.
 * Showcase highlighting features and the associated data formats.
 
