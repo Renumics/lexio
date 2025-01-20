@@ -167,27 +167,6 @@ async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/generate_old")
-async def generate_text_old(messages: str = Query(...)) -> EventSourceResponse:
-    try:
-        message_history = MessageHistory.model_validate_json(messages)
-        query = message_history.messages[-1].content if message_history.messages else ""
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
-    
-    async def stream():
-        yield {"data": json.dumps({
-            "content": f"Generated text based on query: {query}",
-            "done": False
-        })}
-        yield {"data": json.dumps({
-            "content": "",
-            "done": True
-        })}
-
-    return EventSourceResponse(stream())
-
-
 def format_docs(docs) -> str:
     return "\n\n".join(f"Document: {doc.page_content}" for doc in docs)
 

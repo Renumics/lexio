@@ -142,57 +142,29 @@ function App() {
         };
   
         eventSource.addEventListener('message', handleMessage);
-  
-        eventSource.addEventListener('error', (err) => {
-            console.warn("EventSource error or connection closed:", err);
-            if (eventSource.readyState === EventSource.CLOSED) {
-                console.log("EventSource connection closed normally.");
-            } else {
-                console.error("Unexpected EventSource error:", err);
-            }
-            eventSource.close();
-        });
-  
+
         async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
             try {
                 while (true) {
                     if (messageQueue.length === 0) {
-                        console.log("Waiting for new message...");
                         await new Promise(resolve => {
                             resolveNext = resolve;
                         });
                     }
-        
+
                     const chunk = messageQueue.shift()!;
-                    console.log("Yielding chunk:", chunk);
                     yield chunk;
                     if (chunk.done) {
-                        console.log("Streaming complete.");
                         break;
                     }
                 }
-            } catch (error) {
-                console.error("Error while streaming chunks:", error);
             } finally {
-                console.log("Cleaning up event source.");
                 eventSource.removeEventListener('message', handleMessage);
                 eventSource.close();
             }
         }
-  
+
         return streamChunks();
-      };
-  
-  
-    // Mock functions for RAGProvider
-    const retrieve = async (query: string): Promise<RetrievalResult[]> => {
-      const response = await fetch(`http://localhost:8000/retrieve?query=${encodeURIComponent(query)}`);
-  
-      // Read and log the response content
-      const responseData = await response.json();
-      //console.log('Response Content:', responseData);
-  
-      return responseData;
     };
 
     const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
@@ -283,9 +255,7 @@ function App() {
                 </div>
             </RAGProvider>
         </div>
-      </div>
-    )
-  }
-  
-  export default App
-  
+    );
+}
+
+export default App;
