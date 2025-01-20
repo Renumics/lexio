@@ -8,17 +8,15 @@ import DOMPurify from 'dompurify';
 const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 
 interface HTMLViewerProps {
-    htmlContent: string;   // The raw HTML string you want to render
+    htmlContent: React.ReactNode | string; // Accept both string and React elements
 }
 
-const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
+const HtmlViewer = ({ htmlContent }: HTMLViewerProps) => {
     const [scale, setScale] = React.useState(1);
     const containerRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
 
-    // Optional: Handle mouse wheel zoom
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
-            // Prevent default scrolling behavior when zooming
             if (event.ctrlKey || event.metaKey) {
                 event.preventDefault();
                 if (event.deltaY < 0) {
@@ -31,7 +29,7 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
 
         const container = containerRef.current;
         if (container) {
-            container.addEventListener('wheel', handleWheel, {passive: false});
+            container.addEventListener('wheel', handleWheel, { passive: false });
         }
 
         return () => {
@@ -40,8 +38,6 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
             }
         };
     }, []);
-
-    // ---- Hotkeys ----
 
     const zoomIn = () => {
         setScale((prevScale) => Math.min(prevScale + ZOOM_STEP, MAX_SCALE));
@@ -55,12 +51,10 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
         setScale(1);
     };
 
-    // Helper function to focus the container
     const focusContainer = () => {
         containerRef.current?.focus();
     };
 
-    // Wrap the existing actions with focus
     const wrappedActions = {
         zoomIn: () => {
             zoomIn();
@@ -76,41 +70,38 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
         }
     };
 
-    // Common options for hotkeys
     const hotkeyOptions: Options = {
         enableOnFormTags: false,
         enabled: true,
     };
 
-    // Use the ref returned by useHotkeys
-    const zoomInRef = useHotkeys('ctrl+up, cmd+up', 
+    const zoomInRef = useHotkeys('ctrl+up, cmd+up',
         (event) => {
             event.preventDefault();
             zoomIn();
-        }, 
+        },
         hotkeyOptions,
         [zoomIn]
     );
 
-    const zoomOutRef = useHotkeys('ctrl+down, cmd+down', 
+    const zoomOutRef = useHotkeys('ctrl+down, cmd+down',
         (event) => {
             event.preventDefault();
             zoomOut();
-        }, 
+        },
         hotkeyOptions,
         [zoomOut]
     );
 
-    const fitRef = useHotkeys('ctrl+0, cmd+0', 
+    const fitRef = useHotkeys('ctrl+0, cmd+0',
         (event) => {
             event.preventDefault();
             fitParent();
-        }, 
+        },
         hotkeyOptions,
         [fitParent]
     );
 
-    // Combine all refs into one using callback ref
     const combineRefs = (element: HTMLDivElement) => {
         [zoomInRef, zoomOutRef, fitRef].forEach(ref => {
             if (typeof ref === 'function') {
@@ -122,7 +113,7 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
     };
 
     return (
-        <div 
+        <div
             className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg focus:outline-none"
             ref={(element: HTMLDivElement | null) => {
                 if (element) {
@@ -147,13 +138,18 @@ const HtmlViewer = ({htmlContent}: HTMLViewerProps) => {
                 }}
             >
                 <div
-                    className="html-viewer-content"
+                    className="html-viewer-content h-fit"
                     style={{
                         transform: `scale(${scale})`,
                         transformOrigin: 'top left',
                     }}
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
-                />
+                >
+                    {typeof htmlContent === 'string' ? (
+                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }} />
+                    ) : (
+                        htmlContent
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -79,7 +79,7 @@ def list_pdf_files() -> List[SourceReference]:
                 sourceReference=filename,
                 type="pdf",
                 sourceName=filename,
-                relevanceScore=0.95,
+                relevanceScore=random.uniform(0.0, 0.99),
                 metadata={"title": filename},
                 highlights=[PDFHighlight(
                     page=1,
@@ -104,7 +104,22 @@ def list_html_files() -> List[SourceReference]:
                 sourceReference=filename,
                 type="html",
                 sourceName=filename or "",  # Ensure sourceName is never None
-                relevanceScore=0.88,
+                relevanceScore=random.uniform(0.0, 0.99),
+                metadata={"title": filename}
+            ))
+    return files
+
+# Helper function to list markdown files in the data directory
+def list_markdown_files() -> List[SourceReference]:
+    markdown_directory = "data"
+    files = []
+    for filename in os.listdir(markdown_directory):
+        if filename.endswith(".md"):
+            files.append(SourceReference(
+                sourceReference=filename,
+                type="markdown",
+                sourceName=filename or "",  # Ensure sourceName is never None
+                relevanceScore=random.uniform(0.0, 0.99),
                 metadata={"title": filename}
             ))
     return files
@@ -113,17 +128,18 @@ def retrieve_helper(query: str) -> List[RetrievalResult]:
     # Mock retrieval based on the presence of the query in the filename
     pdf_files = list_pdf_files()
     html_files = list_html_files()
+    markdown_files = list_markdown_files()
     
     # Add some text content as well
     text_content = TextContent(
-        text="<div><h2>Quick Tips</h2><p>Here are some relevant tips about your query.</p></div>",
+        text="<div><h1>Quick Tips</h1>Here are some relevant tips about your query.</div>",
         sourceName="Quick Tips",
         relevanceScore=0.82,
         metadata={"type": "Tips"}
     )
     
     retrieved_sources: List[RetrievalResult] = [
-        source for source in pdf_files + html_files
+        source for source in pdf_files + html_files + markdown_files
         if source.sourceName and any(query_part.lower() in source.sourceName.lower() for query_part in query.split())
     ]
     
@@ -214,3 +230,13 @@ async def get_html(filename: str):
         return FileResponse(file_path, media_type='text/html', filename=filename)
     else:
         raise HTTPException(status_code=404, detail="HTML file not found")
+
+# Endpoint to access markdown files
+@app.get("/markdowns/{filename}")
+async def get_markdown(filename: str):
+    markdown_directory = "data"
+    file_path = os.path.join(markdown_directory, filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type='text/markdown', filename=filename)
+    else:
+        raise HTTPException(status_code=404, detail="Markdown file not found")
