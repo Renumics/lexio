@@ -223,16 +223,16 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
           } else {
             throw new Error('Invalid GenerateResponse type');
           }
-        } catch (err) {
+        } catch (error) {
           aborted = true;
           abortController.abort();
           set(currentStreamAtom, null);
-          throw err;
+          throw error;
         }
       })();
 
-      processingPromise.catch(err => {
-        set(errorAtom, `Generate operation failed: ${err.message}`);
+      processingPromise.catch(error => {
+        set(errorAtom, `Generate operation failed: ${error instanceof Error ? error.message : String(error)}`);
         set(currentStreamAtom, null);
       }).finally(() => {
         set(loadingAtom, false);
