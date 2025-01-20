@@ -76,46 +76,60 @@ const WorkflowExample = () => {
 };
 
 const meta = {
-  title: 'RAG/Message-Based Workflow',
+  title: 'Getting Started/05. Custom Workflows',
   component: WorkflowExample,
   parameters: {
     layout: 'centered',
     docs: {
       description: {
         component: `
-This example demonstrates how to use the \`onAddMessage\` handler to make workflow decisions based on message content or UI state.
+# Custom Workflows
 
-### Example Implementation
+Now that you understand the basic chat flow, let's customize how the chat behaves.
+This guide will show you how to:
+- Customize the chat workflow
+- Control when to reretrieve sources
+- Preserve or reset chat history
+
+## Workflow Types
+
+The RAG UI supports different workflow types through the \`onAddMessage\` prop:
+
+1. \`follow-up\`: Use existing sources (default)
+2. \`reretrieve\`: Get new sources, with options to preserve history
+
+## Example Implementation
 
 \`\`\`tsx
-const WorkflowExample = () => {
-  const [forceReretrieve, setForceReretrieve] = useState(false);
-
-  return (
-    <RAGProvider
-      onAddMessage={(message, previousMessages) => {
-        // Decide workflow based on message content or UI state
-        const shouldReretrieve = forceReretrieve || 
-          message.content.toLowerCase().includes('search');
-        
-        return shouldReretrieve 
-          ? { type: 'reretrieve', preserveHistory: true }
-          : { type: 'follow-up' };
-      }}
-      retrieveAndGenerate={...}
-      generate={...}
-    >
-      <ChatWindow />
-      <SourcesDisplay />
-    </RAGProvider>
-  );
-};
+<RAGProvider
+  retrieveAndGenerate={(messages) => {
+    return {
+      sources: Promise.resolve([/* ... */]),
+      response: Promise.resolve("Response...")
+    };
+  }}
+  onAddMessage={(message, previousMessages) => {
+    // Force reretrieve if message contains "search"
+    if (message.content.toLowerCase().includes('search')) {
+      return {
+        type: 'reretrieve',
+        preserveHistory: true  // Keep chat history
+      };
+    }
+    // Otherwise use follow-up mode
+    return { type: 'follow-up' };
+  }}
+>
+  <ChatWindow />
+  <AdvancedQueryField />
+</RAGProvider>
 \`\`\`
 
 Try it out:
-1. Type a message containing "search" to trigger reretrieve mode
-2. Use the toggle button to force reretrieve mode for all messages
-3. Observe how the workflow changes based on these conditions
+1. Ask a normal question - uses follow-up mode
+2. Include "search" in your message - forces reretrieve mode
+
+Next, move on to "06. Error Handling" to learn how to handle timeouts and errors gracefully.
         `
       }
     }
