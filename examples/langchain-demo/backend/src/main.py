@@ -179,57 +179,54 @@ async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/generate")
-async def generate_text(messages: MessagesRequest):
-    """Generate text based on message history using the language model.
-
-    Args:
-        messages: Message history as MessagesRequest object
-
-    Returns:
-        Server-sent events stream of generated text chunks
-
-    Raises:
-        HTTPException: If message format is invalid
-    """
+@app.get("/generate")
+async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
     try:
-        # Get the last message for context retrieval
-        last_message = messages.messages[-1].content
-        context_docs = db.similarity_search(last_message)
-        
-        # Format the context and history
-        context = format_docs(context_docs)
-        history = "\n".join([
-            f"{m.role}: {m.content}" 
-            for m in messages.messages[:-1]
-        ])
-        
-        # Create the chain
-        chain = prompt | llm | StrOutputParser()
-
-        async def stream():
-            async for chunk in chain.astream({
-                "context": context,
-                "history": history,
-                "input": last_message
-            }):
-                yield {
-                    "data": json.dumps({
-                        "content": chunk,
-                        "done": False
-                    })
-                }
-            yield {
-                "data": json.dumps({
-                    "content": "",
-                    "done": True
-                })
-            }
-
-        return EventSourceResponse(stream())
+        message_history = MessageHistory.model_validate_json(messages)
+        query = message_history.messages[-1].content if message_history.messages else ""
     except Exception as e:
-        print(f"Error in generate: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
+    
+    async def stream():
+        yield {"data": json.dumps({
+            "content": f"Generated text based on query: {query}",
+            "done": False
+        })}
+        yield {"data": json.dumps({
+            "content": "",
+            "done": True
+        })}
+
+    return EventSourceResponse(stream())
+
+
+def format_docs(docs) -> str:
+    return "\n\n".join(f"Document: {doc.page_content}" for doc in docs)
+
+
+@app.get("/generate")
+async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
+    try:
+        message_history = MessageHistory.model_validate_json(messages)
+        query = message_history.messages[-1].content if message_history.messages else ""
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
+    
+    retrieved_docs = []  # Placeholder for actual document retrieval logic
+    formatted_context = format_docs(retrieved_docs)
+    
+    formatted_prompt = prompt.format(
+        context=formatted_context,
+        history="\n".join([f"{msg.role}: {msg.content}" for msg in message_history.messages[:-1]]),
+        input=query
+    )
+
+    async def stream():
+        async for chunk in llm.astream(formatted_prompt):
+            yield {"data": json.dumps({"content": chunk, "done": False})}
+        yield {"data": json.dumps({"content": "", "done": True})}
+
+    return EventSourceResponse(stream())
 
 
 @app.get("/sources/{filename}")

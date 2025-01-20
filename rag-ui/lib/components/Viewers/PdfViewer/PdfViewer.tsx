@@ -241,7 +241,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
         [zoomInRef, zoomOutRef, fitRef, nextRef, prevRef, homeRef, endRef, rotateRef]
             .forEach(ref => {
                 if (typeof ref === 'function') ref(element);
-                else if (ref) ref.current = element;
+                else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
             });
     };
 
