@@ -353,7 +353,7 @@ Try out the interactive example below and switch between different source types 
 
 export default meta;
 
-export const Example: Story = {
+export const Docs: Story = {
   args: {
     variant: 'text'
   }
