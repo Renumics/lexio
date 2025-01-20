@@ -25,7 +25,7 @@ function App() {
       console.log("Encoded query:", query);
 
       const eventSource = new EventSource(
-          `http://localhost:8000/generate?messages=${query}`
+          `http://localhost:8000/retrieve-and-generate?messages=${query}`
       );
 
       const messageQueue: GenerateStreamChunk[] = [];
@@ -48,7 +48,18 @@ function App() {
           }
       };
 
+      const handleSources = (event: MessageEvent) => {
+            console.log("Sources event received:", event.data);
+            try {
+                const sources = JSON.parse(event.data);
+                console.log("Parsed sources:", sources);
+            } catch (error) {
+                console.error("Error parsing event data:", error);
+            }
+      }
+
       eventSource.addEventListener('message', handleMessage);
+      eventSource.addEventListener('sources', handleSources);
 
       eventSource.addEventListener('error', (err) => {
           console.warn("EventSource error or connection closed:", err);

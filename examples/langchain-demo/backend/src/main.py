@@ -105,6 +105,15 @@ class RetrievalResult(BaseModel):
     highlights: List[Dict[str, Any]] = []
 
 
+class Source(RetrievalResult):
+    """A model representing a source document.
+
+    Attributes:
+        content: The content of the source document
+    """
+    content: str
+
+
 # Initialize components
 indexer = DocumentIndexer()
 
@@ -168,11 +177,69 @@ async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
 
 
 def format_docs(docs) -> str:
-    return "\n\n".join(f"Document: {doc.page_content}" for doc in docs)
+    return "\n\n".join(f"Document: {doc.content}" for doc in docs)
+
+
+@app.get("/retrieve-and-generate")
+async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceResponse:
+    try:
+        message_history = MessageHistory.model_validate_json(messages)
+        query = message_history.messages[-1].content if message_history.messages else ""
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
+
+    # todo: implement actual document retrieval logic
+    retrieval_results = []
+    try:
+        results = db.similarity_search_with_score(query, k=4)
+        for doc, score in results:
+            metadata = doc.metadata
+            source = metadata.get("source", "unknown.pdf")
+            page = metadata.get("page", 0)
+            content = doc.page_content
+
+            result = Source(
+                source=source.replace("data/", ""),
+                type="pdf",
+                metadata={"page": page, "score": score},
+                content=content
+            )
+            retrieval_results.append(result)
+
+    except Exception as e:
+        print(f"Error in retrieve: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    formatted_context = format_docs(retrieval_results)
+
+    formatted_prompt = prompt.format(
+        context=formatted_context,
+        history="\n".join([f"{msg.role}: {msg.content}" for msg in message_history.messages[:-1]]),
+        input=query
+    )
+
+    async def stream():
+        yield {
+                "data": json.dumps({
+                    "sources": [RetrievalResult(**source.dict(exclude={"content"})).dict() for source in retrieval_results],
+                })
+            }
+
+        async for chunk in llm.astream(formatted_prompt):
+            # Convert AIMessageChunk to string before serialization,
+            # see https://python.langchain.com/v0.1/docs/expression_language/streaming/
+            chunk_text = chunk.content if hasattr(chunk, 'content') else str(chunk)
+            yield {"data": json.dumps({"content": chunk_text, "done": False})}
+
+        # Add a final chunk to indicate the end of the stream
+        yield {"data": json.dumps({"content": "", "done": True})}
+
+    return EventSourceResponse(stream())
 
 
 @app.get("/generate")
 async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
+    # todo: implement logic to parse history of messages and generate response
     try:
         message_history = MessageHistory.model_validate_json(messages)
         query = message_history.messages[-1].content if message_history.messages else ""
@@ -190,7 +257,8 @@ async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
 
     async def stream():
         async for chunk in llm.astream(formatted_prompt):
-            # Convert AIMessageChunk to string before serialization, see https://python.langchain.com/v0.1/docs/expression_language/streaming/
+            # Convert AIMessageChunk to string before serialization,
+            # see https://python.langchain.com/v0.1/docs/expression_language/streaming/
             chunk_text = chunk.content if hasattr(chunk, 'content') else str(chunk)
             yield {"data": json.dumps({"content": chunk_text, "done": False})}
 
