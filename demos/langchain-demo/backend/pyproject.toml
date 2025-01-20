@@ -1,0 +1,58 @@
+[project]
+name = "langchain-demo"
+version = "0.1.0"
+description = "A demo of RAG using Langchain, ChromaDB, and FastAPI"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "langchain>=0.1.0",
+    "langchain-openai>=0.0.2",
+    "langchain-community>=0.0.3",
+    "python-multipart>=0.0.6",
+    "python-dotenv>=1.0.0",
+    "sse-starlette>=1.8.2",
+    "chromadb>=0.4.22",
+    "pypdf>=3.17.4",
+    "tiktoken>=0.5.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+langchain-demo-index = "langchain_demo.indexing:main"
+langchain-demo-serve = "langchain_demo.main:serve"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 100
+target-version = ['py312']
+
+[tool.mypy]
+warn_return_any = "True"
+warn_unused_configs = "True"
+ignore_missing_imports = "True"
+
+[tool.ruff]
+line-length = 140
+target-version = 'py312'
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "B", "C", "D"]
+ignore = [
+    "D100", # docstring in public module. Add later!
+    "D104", "D107",  # Existing rules to ignore
+    "D212",   # Ignore multi-line-summary-first-line
+    "D213",  # Multi-line docstring summary should start at the second line
+    "D413",   # Missing blank line after last section
+    "D401",   # Imperative mood of the first line
+    "D203",  # Remove this to keep no blank line before class
+]

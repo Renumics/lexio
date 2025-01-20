@@ -240,8 +240,11 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const combineRefs = (element: HTMLDivElement) => {
         [zoomInRef, zoomOutRef, fitRef, nextRef, prevRef, homeRef, endRef, rotateRef]
             .forEach(ref => {
-                if (typeof ref === 'function') ref(element);
-                else if (ref) ref.current = element;
+                if (typeof ref === 'function') {
+                    ref(element);
+                } else if (ref && typeof ref === 'object' && 'current' in ref) {
+                    (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
+                }
             });
     };
 
