@@ -188,7 +188,7 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
 
-    # todo: implement actual document retrieval logic
+    # Retrieve relevant documents
     retrieval_results = []
     try:
         results = db.similarity_search_with_score(query, k=4)
@@ -201,7 +201,7 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
             result = Source(
                 source=source.replace("data/", ""),
                 type="pdf",
-                metadata={"page": page, "score": score},
+                metadata={"page": page + 1, "score": score},
                 content=content
             )
             retrieval_results.append(result)
@@ -210,8 +210,8 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
         print(f"Error in retrieve: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+    # Format the context and prompt
     formatted_context = format_docs(retrieval_results)
-
     formatted_prompt = prompt.format(
         context=formatted_context,
         history="\n".join([f"{msg.role}: {msg.content}" for msg in message_history.messages[:-1]]),
@@ -219,12 +219,14 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
     )
 
     async def stream():
+        # Yield the retrieval results first
         yield {
                 "data": json.dumps({
                     "sources": [RetrievalResult(**source.dict(exclude={"content"})).dict() for source in retrieval_results],
                 })
             }
 
+        # Then yield the generated text
         async for chunk in llm.astream(formatted_prompt):
             # Convert AIMessageChunk to string before serialization,
             # see https://python.langchain.com/v0.1/docs/expression_language/streaming/
@@ -239,7 +241,6 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
 
 @app.get("/generate")
 async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
-    # todo: implement logic to parse history of messages and generate response
     try:
         message_history = MessageHistory.model_validate_json(messages)
         query = message_history.messages[-1].content if message_history.messages else ""
