@@ -10,13 +10,12 @@ const ExampleComponent = () => (
         return {
           sources: Promise.resolve([
             {
-              source: "example-doc.pdf",
+              sourceReference: "example-doc.pdf",
               type: "pdf" as const,
               metadata: {
                 title: "Example Document"
               },
-              text: "Example document content",
-              relevanceScore: 1
+              relevanceScore: 1,
             }
           ]),
           response: Promise.resolve("This is a sample response based on the retrieved documents.")

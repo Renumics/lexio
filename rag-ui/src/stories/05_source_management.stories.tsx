@@ -88,7 +88,7 @@ const SearchAndAnalyzeExample = () => {
   // Track which sources are currently selected for analysis
   const [selectedSourceIndices, setSelectedSourceIndices] = useState<number[]>([]);
 
-  // Simple retrieve function to get sources
+  // Separate retrieve function for explicit search queries
   const retrieve = useCallback((query: string) => {
     // Generate sample sources based on the query
     const topics = ['Neural Networks', 'Reinforcement Learning', 'Deep Learning', 'Computer Vision'];
@@ -99,7 +99,37 @@ const SearchAndAnalyzeExample = () => {
     return Promise.resolve(sources);
   }, []);
 
-  // Generate function that uses selected sources
+  // Combined retrieveAndGenerate for direct questions
+  const retrieveAndGenerate = useCallback((messages: Message[]) => {
+    const query = messages[messages.length - 1].content;
+    
+    // For demonstration, we'll use the same source generation
+    const topics = ['Neural Networks', 'Reinforcement Learning', 'Deep Learning', 'Computer Vision'];
+    const sources = topics.map((topic, index) => generateSampleSource(topic, index));
+    
+    // Update source state
+    setRetrievedSources(sources);
+    setSelectedSourceIndices([]); // Reset selection on new search
+
+    // Generate response using all sources initially
+    const response = Promise.resolve(
+      `Based on the retrieved sources, here's my analysis of "${query}":\n\n` +
+      sources.map(source => {
+        const topic = source.metadata?.topic || 'general';
+        const authors = source.metadata?.authors?.join(', ') || 'Unknown';
+        const text = 'text' in source ? source.text : 'Source content not available';
+        const name = hasSourceName(source) ? source.sourceName : 'Unnamed Source';
+        return `- From ${name} (${topic}, by ${authors}): ${text}`;
+      }).join('\n\n')
+    );
+
+    return {
+      sources: Promise.resolve(sources),
+      response
+    };
+  }, []);
+
+  // Generate function for follow-up questions
   const generate = useCallback((messages: Message[], sources: RetrievalResult[]) => {
     const query = messages[messages.length - 1].content;
     
@@ -116,31 +146,8 @@ const SearchAndAnalyzeExample = () => {
         )
       : sources;
 
-    return Promise.resolve(
-      `Based on ${relevantSources.length} selected sources, here's my analysis of "${query}":\n\n` +
-      relevantSources.map(source => {
-        const topic = source.metadata?.topic || 'general';
-        const authors = source.metadata?.authors?.join(', ') || 'Unknown';
-        const text = 'text' in source ? source.text : 'Source content not available';
-        const name = hasSourceName(source) ? source.sourceName : 'Unnamed Source';
-        return `- From ${name} (${topic}, by ${authors}): ${text}`;
-      }).join('\n\n')
-    );
-  }, []);
-
-  // Workflow management
-  const onAddMessage = useCallback((message: Message, previousMessages: Message[]) => {
-    const isSearchQuery = message.content.toLowerCase().includes('search');
-    
-    if (isSearchQuery) {
-      return { type: 'reretrieve' as const, preserveHistory: true };
-    }
-    
-    // Check for @mentions to update source selection
-    const mentionRegex = /@([^\s]+)/g;
-    const mentions = message.content.match(mentionRegex);
-    
-    if (mentions) {
+    // Update selected sources state if mentions are present
+    if (mentions && sources === retrievedSources) {
       const newSelectedIndices = retrievedSources
         .map((source, index) => ({ source, index }))
         .filter(({ source }) => 
@@ -152,13 +159,39 @@ const SearchAndAnalyzeExample = () => {
       
       setSelectedSourceIndices(newSelectedIndices);
     }
+
+    return Promise.resolve(
+      `Based on ${relevantSources.length} selected sources, here's my analysis of "${query}":\n\n` +
+      relevantSources.map(source => {
+        const topic = source.metadata?.topic || 'general';
+        const authors = source.metadata?.authors?.join(', ') || 'Unknown';
+        const text = 'text' in source ? source.text : 'Source content not available';
+        const name = hasSourceName(source) ? source.sourceName : 'Unnamed Source';
+        return `- From ${name} (${topic}, by ${authors}): ${text}`;
+      }).join('\n\n')
+    );
+  }, [retrievedSources]);
+
+  // Workflow management
+  const onAddMessage = useCallback((message: Message, previousMessages: Message[]) => {
+    const isSearchQuery = message.content.toLowerCase().includes('search');
+    const isDirectQuestion = message.content.toLowerCase().includes('what') || 
+                           message.content.toLowerCase().includes('how') ||
+                           message.content.toLowerCase().includes('why');
     
+    if (isSearchQuery) {
+      // Use separate retrieve for explicit search
+      return { type: 'reretrieve' as const, preserveHistory: true };
+    }
+    
+    // Use follow-up for everything else when we have sources
     if (retrievedSources.length > 0) {
       return { type: 'follow-up' as const };
     }
     
+    // Default to retrieve without history for new questions
     return { type: 'reretrieve' as const, preserveHistory: false };
-  }, [retrievedSources]);
+  }, [retrievedSources.length]);
 
   // Calculate current workflow state
   const workflowStep = retrievedSources.length === 0 ? 'search' : 'analyze';
@@ -173,6 +206,7 @@ const SearchAndAnalyzeExample = () => {
       <RAGProvider
         retrieve={retrieve}
         generate={generate}
+        retrieveAndGenerate={retrieveAndGenerate}
         onAddMessage={onAddMessage}
       >
         <div style={{ display: 'grid', flexGrow: 1, gap: '20px', gridTemplateColumns: '2fr 1fr', minHeight: 0 }}>
@@ -182,7 +216,11 @@ const SearchAndAnalyzeExample = () => {
           </div>
         </div>
         <div style={{ marginTop: '20px' }}>
-          <AdvancedQueryField />
+          <AdvancedQueryField placeholder={
+            workflowStep === 'search' 
+              ? 'Try "search for neural networks" or "what do you know about machine learning?"'
+              : 'Ask questions about sources, use @mentions to select specific ones'
+          }/>
         </div>
       </RAGProvider>
     </Layout>
