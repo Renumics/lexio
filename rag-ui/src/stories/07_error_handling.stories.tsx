@@ -78,7 +78,7 @@ const ExampleComponent = ({ errorType }: TimeoutProps) => (
 );
 
 const meta = {
-  title: 'Getting Started/06. Error Handling',
+  title: 'Getting Started/07. Error Handling',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',

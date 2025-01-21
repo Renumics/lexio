@@ -164,7 +164,7 @@ const WorkflowExample = () => {
 };
 
 const meta = {
-  title: 'Getting Started/05. Custom Workflows',
+  title: 'Getting Started/06. Custom Workflows',
   component: WorkflowExample,
   parameters: {
     layout: 'centered',
