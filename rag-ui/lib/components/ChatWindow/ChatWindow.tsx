@@ -8,29 +8,42 @@ export interface ChatWindowStyles extends React.CSSProperties {
   color?: string;
   padding?: string;
   fontFamily?: string;
+  fontSize?: string;
+  borderRadius?: string;
 }
 
-const ChatWindow: React.FC<ChatWindowStyles> = ({ styleOverrides = {} }) => {
+// Define the props interface
+export interface ChatWindowProps {
+  styleOverrides?: ChatWindowStyles;
+}
+
+const ChatWindow: React.FC<ChatWindowProps> = ({ styleOverrides = {} }) => {
   const { messages, currentStream } = useRAGMessages();
 
-  // --- test styling ---
-  // use theme
-  const { theme } = useContext(ThemeContext);
-  const { colors, spacing, typography } = theme;
+  // --- use theme ---
+  const theme = useContext(ThemeContext);
+  if (!theme) {
+      throw new Error('ThemeContext is undefined');
+  }
+  const { colors, borderRadius, spacing, typography } = theme.theme;
 
   // Merge theme defaults + overrides
   const style: ChatWindowStyles = {
     backgroundColor: colors.background,
     color: colors.text,
     padding: spacing.md,
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizeBase,
+    borderRadius: borderRadius.md,
     ...styleOverrides, // ensure these override theme defaults
   };
 
   return (
     <div
-      className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg"
+      className="w-full h-full overflow-y-auto"
       style={style}
     >
+      {/* todo: style the messages */}
       {messages.map((msg, index) => (
         <div key={index} className={`mb-2 ${msg.role}`}>
           <strong>{msg.role === 'user' ? 'User: ' : 'Assistant: '}</strong>
