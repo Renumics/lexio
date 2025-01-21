@@ -16,6 +16,7 @@ import {
 } from '../lib/main'
 import {defaultTheme} from "../lib/theme";
 import { GenerateInput, GenerateStreamChunk } from '../lib/main'
+import {ChatWindowStyles} from "../lib/components/ChatWindow/ChatWindow.tsx";
 
 export const customTheme = {
   ...defaultTheme,
@@ -275,7 +276,12 @@ function App() {
                     {/* Left side: Chat and Query */}
                     <div className="flex flex-1 flex-col gap-4 w-1/3">
                         <div className="h-1/3 min-h-0"> {/* Chat window */}
-                            <ChatWindow overrides={{backgroundColor: 'pink'}} />
+                            {/* todo: check theming */}
+                            <ChatWindow
+                                styleOverrides={{
+                                    backgroundColor: 'pink',
+                            } as ChatWindowStyles}
+                            />
                         </div>
                         <div className="min-h-0"> {/* Query field */}
                             {/* <QueryField onSubmit={() => {

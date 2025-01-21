@@ -3,7 +3,7 @@ import type { Theme } from './types';
 
 interface ThemeContextValue {
   theme: Theme;
-  // possible additional fields, e.g., a function to switch themes
+  // todo: add toggleTheme and expose it to consumers -> enable dark mode?
 }
 
 export const ThemeContext = React.createContext<ThemeContextValue | undefined>(undefined);
