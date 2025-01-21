@@ -229,7 +229,7 @@ const SearchAndAnalyzeExample = () => {
 };
 
 const meta = {
-  title: 'Getting Started/05 Source Management',
+  title: 'Getting Started/05. Source Management',
   component: SearchAndAnalyzeExample,
   parameters: {
     layout: 'centered',
