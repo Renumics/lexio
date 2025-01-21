@@ -181,17 +181,23 @@ const SourceTypesExample = ({ variant }: ExampleProps) => {
 type Story = StoryObj<typeof SourceTypesExample>;
 
 const meta = {
-  title: 'RAG/Source Types',
+  title: 'Getting Started/02. Source Types',
   component: SourceTypesExample,
   parameters: {
     layout: 'centered',
     docs: {
       description: {
         component: `
-The RAG UI supports different types of sources that can be used in the retrieval results. This allows for flexible integration
-with various document types and content delivery methods.
+# Source Types
 
-### Text Sources
+Now that you understand the basics, let's explore different types of sources that can be used in the retrieval results.
+This guide will show you how to:
+- Use direct text content for simple snippets
+- Handle PDF and HTML file references
+- Combine different source types in a single response
+- Add metadata and highlights to sources
+
+## Text Sources
 
 The simplest form is direct text content included in the retrieval result. This is useful for small snippets or when content is already available.
 
@@ -219,7 +225,7 @@ The simplest form is direct text content included in the retrieval result. This 
 </RAGProvider>
 \`\`\`
 
-### Reference Sources
+## Reference Sources
 
 For larger documents like PDFs or HTML files, use reference sources that are loaded on demand. These are particularly useful for:
 - Large documents that shouldn't be included directly in the response
@@ -263,7 +269,7 @@ For larger documents like PDFs or HTML files, use reference sources that are loa
 </RAGProvider>
 \`\`\`
 
-### Combined Usage
+## Combined Usage
 
 You can mix both types in a single response. This is useful when you want to combine different types of sources:
 - PDF documents for detailed information
@@ -297,7 +303,7 @@ You can mix both types in a single response. This is useful when you want to com
 </RAGProvider>
 \`\`\`
 
-### Type Definitions
+## Type Definitions
 
 \`\`\`typescript
 // Text source
@@ -336,6 +342,7 @@ interface GetDataSourceResponse {
 \`\`\`
 
 Try out the interactive example below and switch between different source types using the controls.
+Next, move on to "03. Streaming Responses" to learn how to provide a more interactive experience with streaming responses.
         `
       }
     }

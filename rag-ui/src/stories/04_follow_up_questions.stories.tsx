@@ -41,20 +41,29 @@ const ExampleComponent = () => (
 );
 
 const meta = {
-  title: 'RAG/Follow-up Questions',
+  title: 'Getting Started/04. Follow-up Questions',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',
     docs: {
       description: {
         component: `
-For a better user experience, you can handle follow-up questions differently from initial queries. 
+# Follow-up Questions
+
+Now that you can handle basic queries and streaming, let's improve the user experience with follow-up questions.
+This guide will show you how to:
+- Handle follow-up questions differently from initial queries
+- Reuse existing context and sources
+- Implement the generate function for follow-ups
+
+## Implementation Overview
+
 The RAG UI supports this through two functions:
 
 1. \`retrieveAndGenerate\`: Used for initial queries to get both sources and a response
 2. \`generate\`: Used for follow-up questions, utilizing previously retrieved sources
 
-### Example Implementation
+## Example Implementation
 
 \`\`\`tsx
 <RAGProvider
@@ -89,6 +98,8 @@ The RAG UI supports this through two functions:
 Try it out:
 1. Ask an initial question - this will use \`retrieveAndGenerate\` to fetch sources and generate a response
 2. Ask a follow-up question - this will use \`generate\` with the existing sources
+
+Next, move on to "05. Custom Workflows" to learn how to customize the chat behavior.
         `
       }
     }

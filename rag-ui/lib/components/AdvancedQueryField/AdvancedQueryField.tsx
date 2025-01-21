@@ -522,9 +522,9 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                                         <div className="flex flex-col max-w-full">
                                             <span 
                                                 className="font-medium truncate max-w-full" 
-                                                title={isSourceReference(source) ? source.sourceReference : source.text}
+                                                title={source.sourceName || (isSourceReference(source) ? source.sourceReference : source.text)}
                                             >
-                                                {isSourceReference(source) ? source.sourceReference : source.text}
+                                                {source.sourceName || (isSourceReference(source) ? source.sourceReference : source.text)}
                                             </span>
                                             <div className="flex items-center gap-2 mt-1">
                                                 {isSourceReference(source) && source.type && (
