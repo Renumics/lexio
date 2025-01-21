@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay } from '../../lib/main';
+import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ErrorDisplay } from '../../lib/main';
 import type { Message, GenerateInput, RetrievalResult, SourceReference } from '../../lib/main';
 import { useCallback, useState } from 'react';
 
@@ -223,6 +223,7 @@ const SearchAndAnalyzeExample = () => {
           }/>
         </div>
       </RAGProvider>
+      <ErrorDisplay />
     </Layout>
   );
 };

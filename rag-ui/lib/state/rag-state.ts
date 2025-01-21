@@ -48,8 +48,8 @@ export const addMessageAtom = atom(
   async (_get, set, message: Message) => {
     // Validate processing state
     if (_get(loadingAtom)) {
-      toast.error('RAG operation already in progress');
-      throw new Error('RAG operation already in progress');
+      set(errorAtom, 'RAG operation already in progress');
+      return;
     }
 
     // Get current state
@@ -138,13 +138,13 @@ export const addMessageAtom = atom(
 
       // Use generate for follow-up if available
       if (hasGenerateAtom && currentMode === 'follow-up') {
-        await set(ragAtoms.generateAtom!, updatedMessages);
+        set(ragAtoms.generateAtom!, updatedMessages);
         return;
       }
 
       // If we only have retrieveAndGenerate, use it for everything
       if (hasRetrieveAndGenerateAtom) {
-        await set(ragAtoms.retrieveAndGenerateAtom!, updatedMessages, undefined);
+        set(ragAtoms.retrieveAndGenerateAtom!, updatedMessages, undefined);
         return;
       }
 
@@ -314,7 +314,6 @@ export const createRetrieveSourcesAtom = (retrieveFn: (query: string, metadata?:
         return sources;
       } finally {
         set(loadingAtom, false);
-        set(workflowModeAtom, 'follow-up');
       }
     }
   );
@@ -352,6 +351,7 @@ export const retrieveSourcesAtom = atom(
       // Trigger the retrieve operation
       const retrieveSourcesAtom = ragAtoms.retrieveSourcesAtom as RetrieveSourcesAtom;
       const sources = await set(retrieveSourcesAtom, query, metadata);
+      set(workflowModeAtom, 'follow-up');
       return sources;
     } catch (err: any) {
       // Rollback state on error
@@ -453,7 +453,6 @@ export const createRetrieveAndGenerateAtom = (
             'Stream processing timeout exceeded',
             abortController.signal
           );
-          set(workflowModeAtom, 'follow-up');
           return accumulatedContent;
         } else {
           // Handle non-streaming response
@@ -470,7 +469,6 @@ export const createRetrieveAndGenerateAtom = (
             content 
           }]);
           set(currentStreamAtom, null);
-          set(workflowModeAtom, 'follow-up');
           return content;
         }
       } catch (error) {

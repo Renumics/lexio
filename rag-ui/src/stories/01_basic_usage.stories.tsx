@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { RAGProvider, ChatWindow, AdvancedQueryField } from '../../lib/main';
+import { RAGProvider, ChatWindow, AdvancedQueryField, ErrorDisplay } from '../../lib/main';
 import type { Message } from '../../lib/main';
 
 const ExampleComponent = () => (
@@ -30,6 +30,7 @@ const ExampleComponent = () => (
           <AdvancedQueryField />
         </div>
       </div>
+      <ErrorDisplay />
     </RAGProvider>
   </div>
 );
@@ -87,7 +88,6 @@ The simplest way to use the RAG UI is to implement the retrieveAndGenerate funct
           metadata: {
             title: "Example Document"
           },
-          text: "Example document content",
           relevanceScore: 1
         }
       ]),

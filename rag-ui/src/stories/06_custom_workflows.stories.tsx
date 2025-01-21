@@ -159,6 +159,7 @@ const WorkflowExample = () => {
           <AdvancedQueryField />
         </div>
       </RAGProvider>
+      <ErrorDisplay />
     </Layout>
   );
 };

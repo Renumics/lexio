@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay } from '../../lib/main';
+import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay, ErrorDisplay } from '../../lib/main';
 import type { Message, RetrievalResult, GetDataSourceResponse } from '../../lib/main';
 
 interface ExampleProps {
@@ -173,6 +173,7 @@ const SourceTypesExample = ({ variant }: ExampleProps) => {
         } : undefined}
       >
         <SharedLayout />
+        <ErrorDisplay />
       </RAGProvider>
     </BaseLayout>
   );
