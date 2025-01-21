@@ -2,14 +2,14 @@ import { useEffect, useContext } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRAGStatus } from '../RAGProvider/hooks';
-import { ThemeContext } from '../../theme/ThemeContext';
+import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 
 export interface ErrorDisplayStyles {
+  fontFamily?: string;
   backgroundColor?: string;
   textColor?: string;
-  progressBarColor?: string;
   borderRadius?: string;
-  fontFamily?: string;
+  progressBarColor?: string;
 }
 
 interface ErrorDisplayProps {
@@ -24,15 +24,16 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ styleOverrides = {} }) => {
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { colors } = theme.theme;
+  const { colors, typography } = theme.theme;
 
   // Merge theme defaults + overrides
   const style: ErrorDisplayStyles = {
-    backgroundColor: colors.error + '20',
+    backgroundColor: colors.error + '10',
     textColor: colors.error,
-    progressBarColor: colors.error,
     borderRadius: '0.375rem',
-    ...styleOverrides,
+    fontFamily: typography.fontFamily,
+    progressBarColor: colors.error,
+    ...removeUndefined(styleOverrides),
   };
 
   useEffect(() => {
