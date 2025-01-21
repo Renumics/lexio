@@ -19,7 +19,7 @@ function isSourceReference(result: unknown): result is SourceReference {
     return (
         typeof result.sourceReference === 'string' &&
         (result.sourceName === undefined || typeof result.sourceName === 'string') &&
-        (result.type === undefined || result.type === 'pdf' || result.type === 'html') &&
+        (result.type === undefined || result.type === 'pdf' || result.type === 'html' || result.type === 'markdown') &&
         (result.relevanceScore === undefined || typeof result.relevanceScore === 'number') &&
         (result.metadata === undefined || isRecord(result.metadata))
     );

@@ -13,7 +13,7 @@ import {
     PDFSourceContent,
     isTextContent,
     GenerateStreamChunk,
-    TextContent
+    TextContent, MarkdownSourceContent
 } from '../lib/main'
 
 function App() {
@@ -159,21 +159,13 @@ function App() {
     };
 
     const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
-        // Handle text content directly
-        if (isTextContent(source)) {
-            const htmlContent: HTMLSourceContent = {
-                type: 'html',
-                content: source.text,
-                metadata: source.metadata || {}
-            };
-            return htmlContent;
-        }
-
         let url: string;
         if (source.type === "pdf") {
             url = `http://localhost:8000/pdfs/${encodeURIComponent(source.sourceReference)}`;
         } else if (source.type === "html") {
             url = `http://localhost:8000/htmls/${encodeURIComponent(source.sourceReference)}`;
+        } else if (source.type === "markdown") {
+            url = `http://localhost:8000/markdowns/${encodeURIComponent(source.sourceReference)}`;
         } else {
             throw new Error(`Unsupported source type: ${source.type}`);
         }
@@ -191,6 +183,14 @@ function App() {
                 metadata: source.metadata || {}
             };
             return htmlContent;
+        } else if (source.type === "markdown") {
+            const text = await response.text();
+            const markdownContent: MarkdownSourceContent = {
+                type: 'markdown',
+                content: text,
+                metadata: source.metadata || {}
+            };
+            return markdownContent
         } else if (source.type === "pdf") {
             const arrayBuffer = await response.arrayBuffer();
             const pdfContent: PDFSourceContent = {
