@@ -159,16 +159,6 @@ function App() {
     };
 
     const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
-        // Handle text content directly - todo: check if this actually works, seems like this is not called for TextContent
-        if (isTextContent(source)) {
-            const textAsMarkdownContent: MarkdownSourceContent = {
-                type: 'markdown',
-                content: source.text,
-                metadata: source.metadata || {}
-            };
-            return textAsMarkdownContent;
-        }
-
         let url: string;
         if (source.type === "pdf") {
             url = `http://localhost:8000/pdfs/${encodeURIComponent(source.sourceReference)}`;
