@@ -173,7 +173,10 @@ export const createGenerateAtom = (generateFn: GenerateSimple | GenerateWithSour
       let accumulatedContent = '';
 
       const response = acceptsSources(generateFn)
-        ? (generateFn as GenerateWithSources)(messages, _get(currentSourcesAtom))
+        ? (generateFn as GenerateWithSources)(
+            messages, 
+            _get(currentSourcesAtom).length > 0 ? _get(currentSourcesAtom) : _get(retrievedSourcesAtom)
+          )
         : (generateFn as GenerateSimple)(messages);
 
       const processingPromise = (async () => {

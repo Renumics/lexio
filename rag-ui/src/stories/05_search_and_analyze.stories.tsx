@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay } from '../../lib/main';
-import type { Message, GenerateInput } from '../../lib/main';
+import type { Message, GenerateInput, RetrievalResult, SourceReference } from '../../lib/main';
 import { useCallback, useState } from 'react';
 
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -19,8 +19,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-// Helper to show current workflow step
-const WorkflowIndicator = ({ step }: { step: 'search' | 'analyze' }) => (
+// Helper to show current workflow step and source state
+const WorkflowIndicator = ({ step, retrievedCount, selectedCount }: { 
+  step: 'search' | 'analyze',
+  retrievedCount: number,
+  selectedCount: number 
+}) => (
   <div style={{ 
     padding: '10px', 
     background: '#f5f5f5', 
@@ -37,16 +41,15 @@ const WorkflowIndicator = ({ step }: { step: 'search' | 'analyze' }) => (
           <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
             <li>Try "search for machine learning papers"</li>
             <li>Or "search for deep learning research"</li>
-            <li>Then proceed to analyze the sources</li>
           </ul>
         </>
       ) : (
         <>
-          Now analyze the retrieved sources:
+          Analyze the retrieved sources ({retrievedCount} total, {selectedCount} selected):
           <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
-            <li>Ask specific questions about the sources</li>
-            <li>Compare different concepts</li>
-            <li>Request summaries of specific topics</li>
+            <li>Use @mention to select specific sources (e.g. "@Neural-Networks tell me more")</li>
+            <li>Multiple sources can be selected with multiple @mentions</li>
+            <li>Without @mentions, all sources will be used</li>
           </ul>
         </>
       )}
@@ -54,44 +57,73 @@ const WorkflowIndicator = ({ step }: { step: 'search' | 'analyze' }) => (
   </div>
 );
 
+const generateSampleSource = (topic: string, index: number): RetrievalResult => {
+  const timestamp = new Date().toLocaleTimeString();
+  return {
+    text: `This is a detailed paper about ${topic}. It contains comprehensive information about the topic.`,
+    sourceName: `${topic.replace(/\s+/g, '-')}-${index}.pdf`,
+    metadata: { 
+      type: 'pdf', 
+      topic,
+      retrievedAt: timestamp,
+      authors: ['Author A', 'Author B'],
+      year: 2024
+    }
+  } as const;
+};
+
+interface SourcesDisplayProps {
+  onSourceSelect: (index: number) => void;
+  selectedIndices: number[];
+}
+
+// Helper type guard for source with name
+const hasSourceName = (source: RetrievalResult): source is RetrievalResult & { sourceName: string } => {
+  return 'sourceName' in source && typeof source.sourceName === 'string';
+};
+
 const SearchAndAnalyzeExample = () => {
-  const [currentSources, setCurrentSources] = useState<any[]>([]);
+  // Track all retrieved sources
+  const [retrievedSources, setRetrievedSources] = useState<RetrievalResult[]>([]);
+  // Track which sources are currently selected for analysis
+  const [selectedSourceIndices, setSelectedSourceIndices] = useState<number[]>([]);
 
   // Simple retrieve function to get sources
   const retrieve = useCallback((query: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const sources = [
-      {
-        text: 'Neural networks are computational models inspired by biological neural networks.',
-        sourceName: `Neural-Networks-${Math.floor(Math.random() * 100)}.pdf`,
-        metadata: { 
-          type: 'pdf', 
-          topic: 'neural networks',
-          retrievedAt: timestamp
-        }
-      },
-      {
-        text: 'Reinforcement learning is a type of machine learning where agents learn by interacting with an environment.',
-        sourceName: `RL-Basics-${Math.floor(Math.random() * 100)}.pdf`,
-        metadata: { 
-          type: 'pdf', 
-          topic: 'reinforcement learning',
-          retrievedAt: timestamp
-        }
-      }
-    ];
-    setCurrentSources(sources);
+    // Generate sample sources based on the query
+    const topics = ['Neural Networks', 'Reinforcement Learning', 'Deep Learning', 'Computer Vision'];
+    const sources = topics.map((topic, index) => generateSampleSource(topic, index));
+    
+    setRetrievedSources(sources);
+    setSelectedSourceIndices([]); // Reset selection on new search
     return Promise.resolve(sources);
   }, []);
 
-  // Simple generate function to analyze sources
-  const generate = useCallback((messages: Message[], sources: any[]) => {
+  // Generate function that uses selected sources
+  const generate = useCallback((messages: Message[], sources: RetrievalResult[]) => {
     const query = messages[messages.length - 1].content;
+    
+    // Check if the message contains @mentions to filter sources
+    const mentionRegex = /@([^\s]+)/g;
+    const mentions = query.match(mentionRegex);
+    
+    // Filter sources based on @mentions if present
+    const relevantSources = mentions 
+      ? sources.filter(source => 
+          hasSourceName(source) && mentions.some(mention => 
+            source.sourceName.toLowerCase().includes(mention.slice(1).toLowerCase())
+          )
+        )
+      : sources;
+
     return Promise.resolve(
-      `Based on the ${sources.length} sources, here's my analysis of "${query}":\n\n` +
-      sources.map(source => {
+      `Based on ${relevantSources.length} selected sources, here's my analysis of "${query}":\n\n` +
+      relevantSources.map(source => {
         const topic = source.metadata?.topic || 'general';
-        return `- From ${source.sourceName} (topic: ${topic}): ${source.text}`;
+        const authors = source.metadata?.authors?.join(', ') || 'Unknown';
+        const text = 'text' in source ? source.text : 'Source content not available';
+        const name = hasSourceName(source) ? source.sourceName : 'Unnamed Source';
+        return `- From ${name} (${topic}, by ${authors}): ${text}`;
       }).join('\n\n')
     );
   }, []);
@@ -104,15 +136,40 @@ const SearchAndAnalyzeExample = () => {
       return { type: 'reretrieve' as const, preserveHistory: true };
     }
     
-    if (currentSources.length > 0) {
+    // Check for @mentions to update source selection
+    const mentionRegex = /@([^\s]+)/g;
+    const mentions = message.content.match(mentionRegex);
+    
+    if (mentions) {
+      const newSelectedIndices = retrievedSources
+        .map((source, index) => ({ source, index }))
+        .filter(({ source }) => 
+          hasSourceName(source) && mentions.some(mention => 
+            source.sourceName.toLowerCase().includes(mention.slice(1).toLowerCase())
+          )
+        )
+        .map(({ index }) => index);
+      
+      setSelectedSourceIndices(newSelectedIndices);
+    }
+    
+    if (retrievedSources.length > 0) {
       return { type: 'follow-up' as const };
     }
     
     return { type: 'reretrieve' as const, preserveHistory: false };
-  }, [currentSources.length]);
+  }, [retrievedSources]);
+
+  // Calculate current workflow state
+  const workflowStep = retrievedSources.length === 0 ? 'search' : 'analyze';
 
   return (
     <Layout>
+      <WorkflowIndicator 
+        step={workflowStep}
+        retrievedCount={retrievedSources.length}
+        selectedCount={selectedSourceIndices.length}
+      />
       <RAGProvider
         retrieve={retrieve}
         generate={generate}
@@ -120,7 +177,9 @@ const SearchAndAnalyzeExample = () => {
       >
         <div style={{ display: 'grid', flexGrow: 1, gap: '20px', gridTemplateColumns: '2fr 1fr', minHeight: 0 }}>
           <ChatWindow />
-          <SourcesDisplay />
+          <div style={{ height: '100%', overflow: 'auto' }}>
+            <SourcesDisplay />
+          </div>
         </div>
         <div style={{ marginTop: '20px' }}>
           <AdvancedQueryField />
@@ -131,63 +190,116 @@ const SearchAndAnalyzeExample = () => {
 };
 
 const meta = {
-  title: 'Getting Started/05 Search and Analyze',
+  title: 'Getting Started/05 Source Management',
   component: SearchAndAnalyzeExample,
   parameters: {
     layout: 'centered',
     docs: {
       description: {
         component: `
-# Search and Analyze Workflow
+# Source Management and Analysis
 
-This example demonstrates a two-step workflow:
-1. **Search Phase**: Gather relevant sources
-2. **Analysis Phase**: Deep dive into specific aspects
+This example demonstrates how to work with sources in a RAG workflow, including:
+- Retrieving sources through search (either combined or separate)
+- Selecting sources via @mentions
+- Using sources in follow-up questions
 
-This pattern is useful when you want users to:
-- First collect a broad set of relevant documents
-- Then ask specific questions about those documents
-- Keep the context focused on the retrieved sources
+## Key Concepts
 
-## Key Features
+### Source Retrieval Methods
+The RAG system supports two ways of retrieving sources:
 
-- **Explicit Workflow Phases**:
-  - Search phase for gathering sources
-  - Analysis phase for detailed questions
-  - Visual indicators for current phase
+1. **Combined Retrieve and Generate**:
+   - Default approach using \`retrieveAndGenerate\`
+   - Sources are retrieved and used immediately for generation
+   - Best for simple workflows where search is part of the question
+   - Example: "What do these papers say about neural networks?"
 
-- **Source Management**:
-  - Sources gathered during search phase
-  - Preserved during analysis phase
-  - Rich metadata for better context
+2. **Separate Retrieve Step**:
+   - Uses separate \`retrieve\` function
+   - Allows explicit search phase before analysis
+   - Better for workflows needing dedicated search step
+   - Example: First "search for neural network papers", then ask questions
 
-## Example Implementation
+Choose the method based on your workflow needs:
+- Use combined approach for simpler, one-step interactions
+- Use separate retrieve for explicit search phases or complex source filtering
+
+### Source States
+The RAG system maintains two important source states:
+1. **Retrieved Sources**: All sources obtained from search (either method)
+2. **Selected Sources**: A subset of retrieved sources selected via @mentions
+
+### Source Selection via @mentions
+Sources are selected using @mentions in your queries:
+1. **Single Source**: Use "@sourcename" to select one source
+2. **Multiple Sources**: Use multiple @mentions to select multiple sources
+3. **All Sources**: If no @mentions are used, all sources are included
+
+### Workflow Phases
+
+#### 1. Search Phase
+- Initial retrieval of sources using either method:
+  - Combined: Part of the question (e.g., "What do papers say about neural networks?")
+  - Separate: Explicit search (e.g., "search for neural network papers")
+- All retrieved sources are stored
+
+#### 2. Analysis Phase
+- Select sources using @mentions in your queries
+- Ask questions about selected sources
+- Examples:
+  - "@Neural-Networks explain the key concepts"
+  - "Compare the approaches in @Neural-Networks and @Deep-Learning"
+  - "Summarize all papers" (uses all sources when no @mentions)
+
+## Example Usage
 
 \`\`\`tsx
-const Example = () => {
-  const [step, setStep] = useState<'search' | 'analyze'>('search');
-  const [currentSources, setCurrentSources] = useState([]);
+// Example with separate retrieve step
+const SearchExample = () => {
+  const [retrievedSources, setRetrievedSources] = useState<RetrievalResult[]>([]);
+  const [selectedSourceIndices, setSelectedSourceIndices] = useState<number[]>([]);
+
+  // Separate retrieve function for explicit search
+  const retrieve = async (query: string) => {
+    const sources = await searchSources(query);
+    setRetrievedSources(sources);
+    return sources;
+  };
+
+  // Generate using selected sources
+  const generate = (messages: Message[], sources: RetrievalResult[]) => {
+    return generateResponse(messages, sources);
+  };
 
   return (
     <RAGProvider
-      onAddMessage={(message, previousMessages) => {
-        const isSearchQuery = message.includes('search');
-        
-        if (isSearchQuery) {
-          setStep('search');
+      retrieve={retrieve}
+      generate={generate}
+      onAddMessage={(message) => {
+        if (message.includes('search')) {
           return { type: 'reretrieve', preserveHistory: true };
         }
-        
-        if (currentSources.length > 0) {
-          setStep('analyze');
-          return { type: 'follow-up' };
-        }
-        
-        // No sources yet, force search
-        setStep('search');
-        return { type: 'reretrieve', preserveHistory: false };
+        return { type: 'follow-up' };
       }}
-      retrieveAndGenerate={...}
+    >
+      <ChatWindow />
+      <SourcesDisplay />
+    </RAGProvider>
+  );
+};
+
+// Example with combined retrieve and generate
+const CombinedExample = () => {
+  return (
+    <RAGProvider
+      retrieveAndGenerate={(messages) => {
+        // Sources are retrieved and used in one step
+        return {
+          sources: searchSources(messages[messages.length - 1].content),
+          response: generateResponse(messages)
+        };
+      }}
     >
       <ChatWindow />
       <SourcesDisplay />
@@ -197,13 +309,13 @@ const Example = () => {
 \`\`\`
 
 Try it out:
-1. Start with "search for machine learning papers"
-2. Notice the diverse sources retrieved
-3. Ask specific questions about the sources
-4. Observe how the workflow guides you through the process
-
-Next, move on to "05. Custom Workflows" to learn about more advanced workflow patterns.
-        `
+1. Start with either:
+   - A direct question (combined approach)
+   - An explicit search query (separate retrieve)
+2. Use @mentions to select specific sources
+3. Ask follow-up questions about the selected sources
+4. Try queries without @mentions to use all sources
+`
       }
     }
   },
@@ -213,4 +325,4 @@ Next, move on to "05. Custom Workflows" to learn about more advanced workflow pa
 export default meta;
 type Story = StoryObj<typeof SearchAndAnalyzeExample>;
 
-export const Docs: Story = {}; 
+export const Docs: Story = {};
