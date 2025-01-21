@@ -32,7 +32,7 @@ export const setActiveSourceIndexAtom = atom(
     if (index !== null) {
       const sources = _get(retrievedSourcesAtom);
       const ragAtoms = _get(ragAtomsAtom);
-      if (ragAtoms?.getDataSourceAtom && sources[index] && isGetDataSourceAtom(ragAtoms.getDataSourceAtom)) {
+      if (ragAtoms?.getDataSourceAtom && sources[index]) {
         set(ragAtoms.getDataSourceAtom, sources[index]);
       }
     }
@@ -313,7 +313,8 @@ export const retrieveSourcesAtom = atom(
       throw new Error('RAG atoms not initialized');
     }
 
-    if (!isRetrieveSourcesAtom(ragAtoms.retrieveSourcesAtom)) {
+    if (!ragAtoms.retrieveSourcesAtom) {
+      console.log("ragAtoms.retrieveSourcesAtom", ragAtoms.retrieveSourcesAtom);
       throw new Error('Retrieve sources not available');
     }
 
@@ -544,30 +545,6 @@ type GetDataSourceAtom = WritableAtom<
   [RetrievalResult],
   GetDataSourceResponse
 >;
-
-const isGetDataSourceAtom = (atom: unknown): atom is GetDataSourceAtom => {
-  return (
-    atom !== null && 
-    typeof atom === 'object' && 
-    'write' in atom &&
-    'read' in atom &&
-    typeof (atom as any).write === 'function' &&
-    // Check if it takes a RetrievalResult parameter and returns a Promise<SourceContent>
-    (atom as any).write.length === 3  // _get, set, retrievalResult
-  );
-};
-
-const isRetrieveSourcesAtom = (atom: unknown): atom is RetrieveSourcesAtom => {
-  return (
-    atom !== null && 
-    typeof atom === 'object' && 
-    'write' in atom &&
-    'read' in atom &&
-    typeof (atom as any).write === 'function' &&
-    // Check if it takes a string parameter and returns a Promise<RetrievalResult[]>
-    (atom as any).write.length === 3  // _get, set, query
-  );
-};
 
 // Container for all RAG atoms. This is necessary since the atoms are created dynamically but need to be referenced form other atoms
 interface RAGAtoms {
