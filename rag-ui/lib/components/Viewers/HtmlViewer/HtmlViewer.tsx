@@ -112,6 +112,16 @@ const HtmlViewer = ({ htmlContent }: HTMLViewerProps) => {
         });
     };
 
+    const renderContent = (content: React.ReactNode | string) => {
+        if (typeof htmlContent === 'string') {
+            return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }} />;
+        } else {
+            console.warn('HtmlViewer: Unsafe use! You are using React elements as content. ' +
+                'The content will be rendered as is without sanitization.');
+            return content;
+        }
+    }
+
     return (
         <div
             className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg focus:outline-none"
@@ -144,11 +154,7 @@ const HtmlViewer = ({ htmlContent }: HTMLViewerProps) => {
                         transformOrigin: 'top left',
                     }}
                 >
-                    {typeof htmlContent === 'string' ? (
-                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }} />
-                    ) : (
-                        htmlContent
-                    )}
+                    {renderContent(htmlContent)}
                 </div>
             </div>
         </div>
