@@ -42,7 +42,7 @@ interface AdvancedQueryFieldProps {
   /** Called after a mention is removed */
   onSourceDeleted?: (source: RetrievalResult, allIndices: number[]) => void;
 
-  value?: string; // text value (if you want external control)
+  value?: string; // external control (optional)
   onChange?: (value: string, mentions: Mention[]) => void;
   placeholder?: string;
   disabled?: boolean;
@@ -65,15 +65,19 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   placeholder = 'Type @ to mention a source...',
   disabled = false
 }) => {
-  // -- Local States --
+  // -- Local State --
   const [isOpen, setIsOpen] = useState(false);
   const [filterValue, setFilterValue] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [mentions, setMentions] = useState<Mention[]>([]);
-  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(
-    null
-  );
+  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const [cursorPosition, setCursorPosition] = useState<CursorPosition | null>(null);
+
+  /**
+   * NEW: Local state for the current text content of the editor.
+   * This is used to control whether the “Send” button is enabled.
+   */
+  const [editorContent, setEditorContent] = useState('');
 
   // Refs
   const editorRef = useRef<HTMLDivElement>(null);
@@ -132,7 +136,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   // Use layout effect so editor is stable after rendering
   useLayoutEffect(() => {
     adjustEditorHeight();
-  }, [adjustEditorHeight, value]);
+  }, [adjustEditorHeight, value, editorContent]);
 
   useResizeObserver(formRef, adjustEditorHeight);
 
@@ -170,9 +174,11 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     if (previousSourcesRef.current !== sources) {
       if (editorRef.current) editorRef.current.textContent = '';
       setMentions([]);
+      setEditorContent(''); // local text also reset
       onChange?.('', []);
       adjustEditorHeight();
       setCurrentSourceIndices([]); // no active mentions now
+
       previousSourcesRef.current = sources;
     }
   }, [sources, onChange, adjustEditorHeight, setCurrentSourceIndices]);
@@ -283,6 +289,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
 
       // Fire onChange with the new text content & mentions
       const newText = editorRef.current.textContent || '';
+      setEditorContent(newText);
       onChange?.(newText, [...mentions, newMention]);
 
       // Close menu, clear filter, reset cursor
@@ -304,8 +311,8 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       mentions,
       sources,
       onChange,
-      onSourceAdded,
-      updateIndicesInContext
+      updateIndicesInContext,
+      onSourceAdded
     ]
   );
 
@@ -366,6 +373,11 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         setMentions(prev => prev.filter(m => m.id !== mentionId));
       }
 
+      // After removal, update the local text
+      const newText = editorRef.current?.textContent || '';
+      setEditorContent(newText);
+      onChange?.(newText, isLastInstance ? mentions.filter(m => m.id !== mentionId) : mentions);
+
       // If it was the last mention for that source, also call onSourceDeleted
       if (isLastInstance) {
         queueMicrotask(() => {
@@ -373,16 +385,18 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
           onSourceDeleted?.(mention.source, newIndices);
         });
       } else {
-        // If it wasn't the last instance, we still need to update global indices
-        // in case the user has multiple chips referencing that same source,
-        // but we only removed one. The overall set of indices is still the same,
-        // so no change is needed. But if you want to be consistent:
+        // If it wasn't the last instance, we still might re-sync
         queueMicrotask(() => {
           updateIndicesInContext();
         });
       }
     },
-    [mentions, onSourceDeleted, updateIndicesInContext]
+    [
+      mentions,
+      onSourceDeleted,
+      onChange,
+      updateIndicesInContext
+    ]
   );
 
   // ----- Form Submission -----
@@ -403,12 +417,12 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     // reset local states
     editor.textContent = '';
     setMentions([]);
+    setEditorContent('');   // also clear local text
     adjustEditorHeight();
 
-    // IMPORTANT: We do NOT update setCurrentSourceIndices here,
-    // because we want to preserve the "active" mention sources
-    // from the perspective of the outside context unless
-    // the user explicitly removes them or the sources array changes.
+    // IMPORTANT: We do NOT call setCurrentSourceIndices([])
+    // so that if the user wants the same active sources to remain in context,
+    // they remain until a real sources change or chip removal.
   };
 
   // ----- Input Keydown Handler (for mention filter) -----
@@ -563,6 +577,17 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     }
   };
 
+  // ----- onInput Handler (updates local editorContent) -----
+  const handleEditorInput = useCallback(
+    (e: React.FormEvent<HTMLDivElement>) => {
+      const newText = e.currentTarget.textContent || '';
+      setEditorContent(newText);
+      onChange?.(newText, mentions);
+      adjustEditorHeight();
+    },
+    [onChange, mentions, adjustEditorHeight]
+  );
+
   // ----- Render -----
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="w-full flex flex-col">
@@ -578,14 +603,10 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             whitespace-pre-wrap break-words
           "
           contentEditable={!disabled}
-          onInput={e => {
-            // propagate changes up
-            onChange?.(e.currentTarget.textContent || '', mentions);
-            adjustEditorHeight();
-          }}
-          onKeyDown={handleEditorKeyDown}
           data-placeholder={placeholder}
           suppressContentEditableWarning
+          onInput={handleEditorInput}
+          onKeyDown={handleEditorKeyDown}
         />
 
         {/* Mention Dropdown */}
@@ -675,7 +696,12 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         </div>
         <button
           type="submit"
-          disabled={disabled || !(editorRef.current?.textContent?.trim())}
+          /**
+           * Changed the condition from reading `editorRef.current?.textContent?.trim()`
+           * to reading `editorContent.trim()`, which is the local state.
+           * This ensures the button is enabled as soon as there’s *any* text.
+           */
+          disabled={disabled || !editorContent.trim()}
           className="
             px-4 py-2 bg-blue-500 text-white rounded-md
             hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed
