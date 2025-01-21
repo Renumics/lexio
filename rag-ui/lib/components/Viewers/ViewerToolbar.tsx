@@ -28,6 +28,9 @@ export interface ViewerToolbarStyles extends React.CSSProperties {
     toolbarButtonBorderRadius?: string;
     toolbarButtonSize?: 'sm' | 'md' | 'lg';
     toolbarBoxShadow?: string;
+    toolbarDisplayBackground?: string;
+    toolbarDisplayBorderRadius?: string;
+    toolbarDisplayInputBackground?: string;
 }
 
 export interface ViewerToolbarProps {
@@ -50,6 +53,9 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
 
     // --- merge theme defaults + overrides ---
     const style: ViewerToolbarStyles = {
+        toolbarDisplayBackground: '#ffffff',
+        toolbarDisplayBorderRadius: borderRadius.md,
+        toolbarDisplayInputBackground: '#ffffff',
         toolbarBorderRadius: borderRadius.md,
         toolbarTextColor: colors.text,
         toolbarBackground: colors.toolbarBackground,
@@ -90,8 +96,8 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
                 <div className="m-auto min-w-14 text-center"
                     style={{
                         color: style.toolbarTextColor,
-                        backgroundColor: style.toolbarSecondaryBackground,
-                        borderRadius: style.toolbarBorderRadius,
+                        backgroundColor: style.toolbarDisplayBackground,
+                        borderRadius: style.toolbarDisplayBorderRadius,
                     }}
                 >
                     {isLoaded ? Math.round(scale * 100) + '%' : '--'}

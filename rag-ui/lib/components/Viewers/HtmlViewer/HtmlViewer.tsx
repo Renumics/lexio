@@ -187,7 +187,6 @@ const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
                     toolbarBackground: style.toolbarBackground,
                     toolbarButtonBackground: style.toolbarButtonBackground,
                     toolbarButtonColor: style.toolbarButtonColor,
-                    toolbarButtonHoverBackground: style.toolbarButtonHoverBackground,
                     toolbarTextColor: style.toolbarTextColor,
                     toolbarBoxShadow: style.toolbarBoxShadow,
                 }}
