@@ -11,20 +11,18 @@ import {
     SourceContent,
     HTMLSourceContent,
     PDFSourceContent,
-    isTextContent,
     GenerateStreamChunk,
-    TextContent, MarkdownSourceContent
+    TextContent,
+    MarkdownSourceContent
 } from '../lib/main'
 import {defaultTheme} from "../lib/theme";
-import { GenerateInput, GenerateStreamChunk } from '../lib/main'
-import {ChatWindowStyles} from "../lib/components/ChatWindow/ChatWindow.tsx";
 
 export const customTheme = {
   ...defaultTheme,
-  colors: {
+  /*colors: {
     ...defaultTheme.colors,
     background: '#FF0000', // custom brand color
-  },
+  },*/
 };
 
 function App() {
@@ -228,6 +226,7 @@ function App() {
                         request: 60000
                     }
                 }}
+                theme={customTheme}
             >
                 <div style={{ 
                     display: 'grid',
@@ -242,10 +241,7 @@ function App() {
                     `
                 }}>
                     <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
-                        <ChatWindow styleOverrides={{
-                                    backgroundColor: 'pink',
-                            } as ChatWindowStyles}
-                        />
+                        <ChatWindow />
                     </div>
                     <div style={{ gridArea: 'input' }}>
                         <AdvancedQueryField />

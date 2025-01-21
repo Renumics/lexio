@@ -1,19 +1,56 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useContext } from 'react';
 import { useHotkeys, Options } from 'react-hotkeys-hook';
-import { ViewerToolbar } from "../ViewerToolbar";
+import { ViewerToolbar, ViewerToolbarStyles } from "../ViewerToolbar";
 import { ZOOM_CONSTANTS } from "../types";
 import './HtmlViewer.css';
 import DOMPurify from 'dompurify';
+import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
 
 const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 
-interface HTMLViewerProps {
-    htmlContent: React.ReactNode | string; // Accept both string and React elements
+export interface HtmlViewerStyles extends ViewerToolbarStyles {
+    backgroundColor?: string;
+    color?: string;
+    padding?: string;
+    fontFamily?: string;
+    viewerBorderRadius?: string;
+    viewerBackground?: string;
+    viewerPadding?: string;
+    contentBackground?: string;
+    contentPadding?: string;
+    contentBorderRadius?: string;
 }
 
-const HtmlViewer = ({ htmlContent }: HTMLViewerProps) => {
+interface HTMLViewerProps {
+    htmlContent: React.ReactNode | string; // Accept both string and React elements
+    styleOverrides?: HtmlViewerStyles;
+}
+
+const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
     const [scale, setScale] = React.useState(1);
     const containerRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
+
+    // --- use theme ---
+    const theme = useContext(ThemeContext);
+    if (!theme) {
+        throw new Error('ThemeContext is undefined');
+    }
+    const { colors, spacing, borderRadius } = theme.theme;
+
+    // --- merge theme defaults + overrides ---
+    const style: HtmlViewerStyles = {
+        backgroundColor: colors.background,
+        color: colors.text,
+        padding: spacing.none,
+        borderRadius: borderRadius.md,
+        viewerBorderRadius: borderRadius.sm,
+        viewerBackground: colors.background,
+        viewerPadding: spacing.none,
+        contentBackground: colors.secondaryBackground,
+        contentPadding: spacing.md,
+        contentBorderRadius: borderRadius.sm,
+        ...removeUndefined(styleOverrides),
+    };
 
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
@@ -124,11 +161,17 @@ const HtmlViewer = ({ htmlContent }: HTMLViewerProps) => {
 
     return (
         <div
-            className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg focus:outline-none"
+            className="h-full w-full flex flex-col focus:outline-none"
             ref={(element: HTMLDivElement | null) => {
                 if (element) {
                     containerRef.current = element;
                     combineRefs(element);
+                }
+            }}
+            style={{
+                ...{
+                    color: style.color,
+                    fontFamily: style.fontFamily,
                 }
             }}
             tabIndex={-1}
@@ -139,12 +182,23 @@ const HtmlViewer = ({ htmlContent }: HTMLViewerProps) => {
                 scale={scale}
                 fitParent={wrappedActions.fitParent}
                 isLoaded={true}
+                styleOverrides={{
+                    toolbarBorderRadius: style.toolbarBorderRadius,
+                    toolbarBackground: style.toolbarBackground,
+                    toolbarButtonBackground: style.toolbarButtonBackground,
+                    toolbarButtonColor: style.toolbarButtonColor,
+                    toolbarButtonHoverBackground: style.toolbarButtonHoverBackground,
+                    toolbarTextColor: style.toolbarTextColor,
+                    toolbarBoxShadow: style.toolbarBoxShadow,
+                }}
             />
             <div
                 style={{
                     overflow: 'auto',
                     width: '100%',
                     height: '100%',
+                    backgroundColor: style.viewerBackground,
+                    padding: style.viewerPadding,
                 }}
             >
                 <div
@@ -152,6 +206,11 @@ const HtmlViewer = ({ htmlContent }: HTMLViewerProps) => {
                     style={{
                         transform: `scale(${scale})`,
                         transformOrigin: 'top left',
+                        ...{
+                            backgroundColor: style.contentBackground,
+                            padding: style.contentPadding,
+                            borderRadius: style.contentBorderRadius,
+                        }
                     }}
                 >
                     {renderContent(htmlContent)}

@@ -1,6 +1,12 @@
 import React from 'react';
 import type { Theme } from './types';
 
+export function removeUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(
+      Object.entries(obj).filter(([_, value]) => value !== undefined)
+  ) as Partial<T>;
+}
+
 interface ThemeContextValue {
   theme: Theme;
   // todo: add toggleTheme and expose it to consumers -> enable dark mode?
