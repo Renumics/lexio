@@ -1,7 +1,8 @@
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
+import { MarkdownViewer } from "../Viewers/MarkdownViewer";
 import { useRAGSources } from "../RAGProvider/hooks";
-import { isPDFContent, isHTMLContent } from "../../types";
+import { isPDFContent, isHTMLContent, isMarkdownContent } from "../../types";
 
 const ContentDisplay = () => {
   const { currentSourceContent } = useRAGSources();
@@ -23,6 +24,10 @@ const ContentDisplay = () => {
 
     if (isHTMLContent(currentSourceContent)) {
       return <HtmlViewer htmlContent={currentSourceContent.content} />;
+    }
+
+    if (isMarkdownContent(currentSourceContent)) {
+      return <MarkdownViewer markdownContent={currentSourceContent.content} />;
     }
 
     return <div>Unsupported content type</div>;

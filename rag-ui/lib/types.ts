@@ -29,7 +29,7 @@ export interface BaseRetrievalResult {
 }
 
 export interface SourceReference extends BaseRetrievalResult {
-  type?: 'pdf' | 'html';
+  type?: 'pdf' | 'html' | 'markdown';
   sourceReference: string;
 }
 
@@ -39,6 +39,11 @@ export interface TextContent extends BaseRetrievalResult {
 
 interface BaseSourceContent {
   metadata?: Record<string, any>;
+}
+
+export interface MarkdownSourceContent extends BaseSourceContent {
+  content: string;
+  type: 'markdown';
 }
 
 export interface HTMLSourceContent extends BaseSourceContent {
@@ -52,7 +57,7 @@ export interface PDFSourceContent extends BaseSourceContent {
   highlights?: PDFHighlight[];
 }
 
-export type SourceContent = HTMLSourceContent | PDFSourceContent;
+export type SourceContent = HTMLSourceContent | PDFSourceContent | MarkdownSourceContent;
 
 export const isPDFContent = (content: SourceContent): content is PDFSourceContent => {
   return content.type === 'pdf';
@@ -60,6 +65,10 @@ export const isPDFContent = (content: SourceContent): content is PDFSourceConten
 
 export const isHTMLContent = (content: SourceContent): content is HTMLSourceContent => {
   return content.type === 'html';
+};
+
+export const isMarkdownContent = (content: SourceContent): content is MarkdownSourceContent => {
+  return content.type === 'markdown';
 };
 
 export const isTextContent = (content: RetrievalResult): content is TextContent => {

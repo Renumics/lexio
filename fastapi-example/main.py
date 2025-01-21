@@ -2,7 +2,7 @@ from io import BytesIO
 import random
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
-from typing import List, AsyncIterable, Dict, Any
+from typing import List, AsyncIterable, Dict, Any, Union
 import os
 import json
 from pydantic import BaseModel
@@ -12,9 +12,25 @@ from sse_starlette import EventSourceResponse
 import asyncio
 
 
-class RetrievalResult(BaseModel):
-    source: str
+class PDFHighlight(BaseModel):
+    page: int
+    rect: Dict[str, float]
+    comment: str | None = None
+
+class BaseRetrievalResult(BaseModel):
+    sourceName: str | None = None
+    relevanceScore: float | None = None
+    metadata: Dict[str, Any] | None = None
+    highlights: List[PDFHighlight] | None = None
+
+class SourceReference(BaseRetrievalResult):
+    sourceReference: str
     type: str
+
+class TextContent(BaseRetrievalResult):
+    text: str
+
+RetrievalResult = Union[SourceReference, TextContent]
 
 class Message(BaseModel):
     role: str
@@ -54,56 +70,87 @@ def extract_pdf_page(file_path: str, page_number: int) -> BytesIO:
         raise HTTPException(status_code=500, detail=str(e))
 
 # Helper function to list PDF files in the data directory
-def list_pdf_files() -> List[Dict[str, Any]]:
+def list_pdf_files() -> List[SourceReference]:
     pdf_directory = "data"
     files = []
     for filename in os.listdir(pdf_directory):
         if filename.endswith(".pdf"):
-            files.append({"source": filename, "type": "pdf"})
+            files.append(SourceReference(
+                sourceReference=filename,
+                type="pdf",
+                sourceName=filename,
+                relevanceScore=random.uniform(0.0, 0.99),
+                metadata={"title": filename},
+                highlights=[PDFHighlight(
+                    page=1,
+                    rect={
+                        "top": 0.1,
+                        "left": 0.25,
+                        "width": 0.5,
+                        "height": 0.6
+                    },
+                    comment="Relevant section"
+                )]
+            ))
     return files
 
 # Helper function to list HTML files in the data directory
-def list_html_files() -> List[Dict[str, Any]]:
+def list_html_files() -> List[SourceReference]:
     html_directory = "data"
     files = []
     for filename in os.listdir(html_directory):
         if filename.endswith(".html"):
-            files.append({"source": filename, "type": "html"})
+            files.append(SourceReference(
+                sourceReference=filename,
+                type="html",
+                sourceName=filename or "",  # Ensure sourceName is never None
+                relevanceScore=random.uniform(0.0, 0.99),
+                metadata={"title": filename}
+            ))
     return files
 
-# Create a model for the request body
-class QueryRequest(BaseModel):
-    query: str
+# Helper function to list markdown files in the data directory
+def list_markdown_files() -> List[SourceReference]:
+    markdown_directory = "data"
+    files = []
+    for filename in os.listdir(markdown_directory):
+        if filename.endswith(".md"):
+            files.append(SourceReference(
+                sourceReference=filename,
+                type="markdown",
+                sourceName=filename or "",  # Ensure sourceName is never None
+                relevanceScore=random.uniform(0.0, 0.99),
+                metadata={"title": filename}
+            ))
+    return files
 
-def retrieve_helper(query: str):
+def retrieve_helper(query: str) -> List[RetrievalResult]:
     # Mock retrieval based on the presence of the query in the filename
     pdf_files = list_pdf_files()
     html_files = list_html_files()
-    retrieved_sources = [
-        {**file, "metadata": {"page": random.randint(1, 3)}, "highlights": [
-            {
-                "page": random.randint(1, 3),
-                "rect": {
-                    "top": 0.1,
-                    "left": 0.25,
-                    "width": 0.5,
-                    "height": 0.6,
-                }
-            }
-        ]}
-        for file in pdf_files 
-        if any(query_part.lower() in file["source"].lower() for query_part in query.split())
+    markdown_files = list_markdown_files()
+    
+    # Add some text content as well
+    text_content = TextContent(
+        text="<div><h1>Quick Tips</h1>Here are some relevant tips about your query.</div>",
+        sourceName="Quick Tips",
+        relevanceScore=0.82,
+        metadata={"type": "Tips"}
+    )
+    
+    retrieved_sources: List[RetrievalResult] = [
+        source for source in pdf_files + html_files + markdown_files
+        if source.sourceName and any(query_part.lower() in source.sourceName.lower() for query_part in query.split())
     ]
-    retrieved_sources.extend([
-        {**file, "metadata": dict()}
-        for file in html_files
-        if any(query_part.lower() in file["source"].lower() for query_part in query.split())
-    ])
+    
+    # Always add the text content for demonstration
+    retrieved_sources.append(text_content)
+    
     return retrieved_sources
 
 # Endpoint to retrieve sources
-@app.get("/retrieve", response_model=List[Dict[str, Any]])
-async def retrieve(query: str = Query(...)):
+@app.get("/retrieve")
+async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
     return retrieve_helper(query)
 
 # Update the generate endpoint to use GET
@@ -117,11 +164,11 @@ async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
     
     async def stream():
         yield {"data": json.dumps({
-            "content": f"Generated text based on query: {query}",
-            "done": False
+            "content": f"Generated text based on query: {query}"
         })}
+        await asyncio.sleep(0.5)
         yield {"data": json.dumps({
-            "content": "",
+            "content": " Hope this helps!",
             "done": True
         })}
 
@@ -143,40 +190,18 @@ async def retrieve_and_generate(messages: str = Query(...)):
         # Send sources first
         yield {
             "data": json.dumps({
-                "sources": retrieved_sources,
+                "sources": [source.model_dump() for source in retrieved_sources],
             })
         }
 
-        # Simulate streaming text generation
-        text_chunks = [
-            "Generated text ",
-            "based on ",
-            f"query: {query}. ",
-            "This is some additional ",
-            "streaming content ",
-            "being generated ",
-            "word by word..."
-        ]
+        # Simulate streaming text generation like in streaming.stories.tsx
+        yield {"data": json.dumps({"content": "Based on the document, "})}
+        await asyncio.sleep(0.5)
         
-        # Stream each chunk with a delay
-        for chunk in text_chunks:
-            await asyncio.sleep(random.uniform(0.1, 0.5))
-            yield {
-                "data": json.dumps({
-                    "role": "assistant",
-                    "content": chunk,
-                    "done": False
-                })
-            }
+        yield {"data": json.dumps({"content": "the answer is..."})}
+        await asyncio.sleep(0.5)
         
-        # Send completion message
-        yield {
-            "data": json.dumps({
-                "role": "assistant",
-                "content": "",
-                "done": True
-            })
-        }
+        yield {"data": json.dumps({"content": " Hope this helps!", "done": True})}
 
     return EventSourceResponse(event_generator())
 
@@ -196,7 +221,6 @@ async def get_pdf(filename: str, page: int = Query(None, description="Page numbe
     else:
         raise HTTPException(status_code=404, detail="PDF not found")
 
-
 # Endpoint to access HTML files
 @app.get("/htmls/{filename}")
 async def get_html(filename: str):
@@ -206,3 +230,13 @@ async def get_html(filename: str):
         return FileResponse(file_path, media_type='text/html', filename=filename)
     else:
         raise HTTPException(status_code=404, detail="HTML file not found")
+
+# Endpoint to access markdown files
+@app.get("/markdowns/{filename}")
+async def get_markdown(filename: str):
+    markdown_directory = "data"
+    file_path = os.path.join(markdown_directory, filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type='text/markdown', filename=filename)
+    else:
+        raise HTTPException(status_code=404, detail="Markdown file not found")

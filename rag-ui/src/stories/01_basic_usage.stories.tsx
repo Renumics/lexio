@@ -36,16 +36,23 @@ const ExampleComponent = () => (
 );
 
 const meta = {
-  title: 'RAG/Basic Usage',
+  title: 'Getting Started/01. Basic Usage',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',
     docs: {
       description: {
         component: `
+# Basic Usage
+
+This is the first step in learning how to use the RAG UI. Here you'll learn:
+- Basic setup of the RAGProvider
+- How to implement a simple retrieveAndGenerate function
+- Basic source and response handling
+
 The simplest way to use the RAG UI is to implement the retrieveAndGenerate function. This function receives messages (containing the query and chat history) and should return both the retrieved sources and the generated response.
 
-The function must return:
+## Function Signature
 
 \`\`\`typescript
 {
@@ -68,7 +75,7 @@ The function must return:
 }
 \`\`\`
 
-### Example Implementation
+## Example Implementation
 
 \`\`\`tsx
 <RAGProvider
@@ -93,6 +100,9 @@ The function must return:
   <AdvancedQueryField />
 </RAGProvider>
 \`\`\`
+
+Try out the example below to see the basic functionality in action.
+Next, move on to "02. Source Types" to learn about different types of sources and how to handle them.
         `
       }
     }
