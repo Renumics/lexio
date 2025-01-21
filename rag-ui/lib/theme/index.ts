@@ -3,14 +3,15 @@ import type { Theme } from './types';
 export const defaultTheme: Theme = {
   colors: {
     primary: '#0070f3',
-    secondary: '#7928ca',
+    secondary: '#77a8e1',
     background: '#f3f3f3',
     secondaryBackground: '#ffffff',
-    toolbarBackground: 'gray',
+    toolbarBackground: '#83cccc',
     text: '#333333',
     secondaryText: '#666666',
-    success: '#49b232',
-    warning: '#c5b655',
+    lightText: '#f3f3f3',
+    success: '#38c01e',
+    warning: '#eed74a',
     error: '#c21a1a',
   },
   typography: {

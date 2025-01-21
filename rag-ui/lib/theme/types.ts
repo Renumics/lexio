@@ -6,6 +6,7 @@ export interface Colors {
   toolbarBackground: string;
   text: string;
   secondaryText: string;
+  lightText: string;
   success: string;
   warning: string;
   error: string;
