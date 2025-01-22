@@ -475,6 +475,8 @@ export const createRetrieveAndGenerateAtom = (
         aborted = true;
         abortController.abort();
         set(currentStreamAtom, null);
+        set(loadingAtom, false);
+        set(errorAtom, `Response processing failed: ${error instanceof Error ? error.message : String(error)}`);
         throw error;
       }
     })();
@@ -491,6 +493,7 @@ export const createRetrieveAndGenerateAtom = (
     if (wrappedSources) {
       wrappedSources.catch(error => {
         set(errorAtom, `Sources processing failed: ${error instanceof Error ? error.message : String(error)}`);
+        set(loadingAtom, false);
       }).finally(() => {
         sourcesComplete = true;
         if (responseComplete) {
@@ -504,9 +507,7 @@ export const createRetrieveAndGenerateAtom = (
       set(errorAtom, `Response processing failed: ${error instanceof Error ? error.message : String(error)}`);
     }).finally(() => {
       responseComplete = true;
-      if (sourcesComplete) {
-        set(loadingAtom, false);
-      }
+      set(loadingAtom, false);
     });
 
     // Return wrapped promises while maintaining the original interface
