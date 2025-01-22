@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { RAGProvider, ChatWindow, AdvancedQueryField } from '../../lib/main';
+import { RAGProvider, ChatWindow, AdvancedQueryField, ErrorDisplay } from '../../lib/main';
 import type { Message, RetrievalResult } from '../../lib/main';
 
 const ExampleComponent = () => (
@@ -36,6 +36,7 @@ const ExampleComponent = () => (
           <AdvancedQueryField />
         </div>
       </div>
+      <ErrorDisplay />
     </RAGProvider>
   </div>
 );

@@ -2,11 +2,11 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { RAGProvider, ChatWindow, AdvancedQueryField, ErrorDisplay } from '../../lib/main';
 import type { Message, RetrievalResult } from '../../lib/main';
 
-interface TimeoutProps {
-  errorType: 'request' | 'stream';
+interface ErrorDemoProps {
+  errorType: 'request-timeout' | 'stream-timeout' | 'operation-error';
 }
 
-const ExampleComponent = ({ errorType }: TimeoutProps) => (
+const ExampleComponent = ({ errorType }: ErrorDemoProps) => (
   <div style={{ width: '600px', height: '400px' }}>
     <RAGProvider
       config={{
@@ -16,51 +16,64 @@ const ExampleComponent = ({ errorType }: TimeoutProps) => (
         }
       }}
       retrieveAndGenerate={(messages: Message[]) => {
-        if (errorType === 'request') {
-          // Demonstrate request timeout
-          return {
-            sources: new Promise((resolve) => {
-              // Will timeout after 5s (request timeout)
-              setTimeout(() => {
-                resolve([{
-                  sourceReference: "example-doc.pdf",
-                  type: "pdf" as const,
-                  metadata: { title: "Example Document" }
-                }]);
-              }, 6000);
-            }),
-            response: Promise.resolve("This response won't be shown due to request timeout")
-          };
-        } else {
-          // Demonstrate stream timeout
-          return {
-            sources: Promise.resolve([{
-              sourceReference: "example-doc.pdf",
-              type: "pdf" as const,
-              metadata: { title: "Example Document" }
-            }]),
-            response: (async function* () {
-              // Quick initial responses (every 200ms)
-              yield { content: "Let me analyze the document... " };
-              await new Promise(resolve => setTimeout(resolve, 200));
-              
-              yield { content: "Based on the content, " };
-              await new Promise(resolve => setTimeout(resolve, 200));
-              
-              yield { content: "I can tell you that " };
-              await new Promise(resolve => setTimeout(resolve, 200));
-              
-              yield { content: "the main points are... " };
-              await new Promise(resolve => setTimeout(resolve, 200));
+        switch (errorType) {
+          case 'request-timeout':
+            // Demonstrate request timeout
+            return {
+              sources: new Promise((resolve) => {
+                setTimeout(() => {
+                  resolve([{
+                    sourceReference: "example-doc.pdf",
+                    type: "pdf" as const,
+                    metadata: { title: "Example Document" }
+                  }]);
+                }, 6000); // Will timeout after 5s (request timeout)
+              }),
+              response: new Promise((resolve) => {
+                // This will also timeout since the entire request takes > 5s
+                setTimeout(() => {
+                  resolve("This response won't be shown due to request timeout");
+                }, 6000);
+              })
+            };
 
-              // Now simulate a processing hang (3s > 2s timeout)
-              yield { content: "\n\nProcessing additional details" };
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              
-              // This part won't be shown due to the timeout
-              yield { content: "This content will never appear because of the stream timeout" };
-            })()
-          };
+          case 'stream-timeout':
+            // Demonstrate stream timeout
+            return {
+              sources: Promise.resolve([{
+                sourceReference: "example-doc.pdf",
+                type: "pdf" as const,
+                metadata: { title: "Example Document" }
+              }]),
+              response: (async function* () {
+                yield { content: "Starting analysis... " };
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                yield { content: "Processing content... " };
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                // Simulate a processing hang (3s > 2s timeout)
+                yield { content: "\n\nProcessing additional details..." };
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                yield { content: "This content will never appear due to stream timeout" };
+              })()
+            };
+
+          case 'operation-error':
+            // Demonstrate operation error (e.g., API failure)
+            return {
+              sources: (async () => {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                throw new Error("Failed to connect to knowledge base");
+              })(),
+              response: (async function* () {
+                // Show initial message then error
+                yield { content: "Initializing generation..." };
+                await new Promise(resolve => setTimeout(resolve, 500));
+                throw new Error("Generation service unavailable");
+              })()
+            };
         }
       }}
     >
@@ -87,57 +100,85 @@ const meta = {
         component: `
 # Error Handling
 
-Now that you have a fully functional chat interface, let's make it robust by handling errors and timeouts.
-This guide will show you how to:
-- Handle request timeouts gracefully
-- Manage streaming timeouts
-- Display error messages to users
+The RAG UI implements a comprehensive error handling system to ensure robustness and good user experience.
+This guide demonstrates how to handle various types of errors and implement proper error handling in your application.
 
-## Timeout Types
+## Error Types & Handling
 
-The RAG UI supports two types of timeouts:
+The system handles several types of errors:
 
-1. \`request\`: Overall timeout for the entire request (default: 60s)
-2. \`stream\`: Timeout between stream chunks (default: 2s)
+1. **Operation Errors**
+   - Concurrent operation attempts
+   - Missing capabilities
+   - Configuration errors
+   - API failures
 
-## Example Implementation
+2. **Timeout Errors**
+   - Request timeout: Overall operation timeout
+   - Stream timeout: Gap between stream chunks
+
+3. **Source Errors**
+   - Source fetch failures
+   - Invalid source content
+   - Missing source configuration
+
+## Implementation Example
 
 \`\`\`tsx
 <RAGProvider
   config={{
     timeouts: {
-      request: 60000,  // 60s for entire request
-      stream: 2000     // 2s between chunks
+      request: 30000,  // 30s for entire operation
+      stream: 10000    // 10s between chunks
     }
   }}
-  retrieveAndGenerate={(messages) => {
-    // Simulate a slow request
-    return {
-      sources: new Promise((resolve) => {
-        setTimeout(() => {
-          resolve([{
-            source: "example.pdf",
-            type: "pdf",
-            metadata: { title: "Example" }
-          }]);
-        }, 5000);  // 5s delay
-      }),
-      response: Promise.resolve("This will timeout...")
-    };
+  retrieveAndGenerate={async (messages) => {
+    try {
+      const sources = await fetchSources(messages);
+      return {
+        sources: Promise.resolve(sources),
+        response: generateResponse(messages, sources)
+      };
+    } catch (error) {
+      // Errors are automatically displayed via ErrorDisplay
+      throw new Error(\`Operation failed: \${error.message}\`);
+    }
   }}
 >
   <ChatWindow />
   <AdvancedQueryField />
-  <ErrorDisplay />  {/* Shows timeout and error messages */}
+  <ErrorDisplay />
 </RAGProvider>
 \`\`\`
 
-Try it out:
-1. The request will timeout after 5s
-2. Error messages will be displayed to the user
-3. The UI remains responsive during timeouts
+## Error Recovery
 
-This concludes the Getting Started guide. You now have a solid foundation for building RAG UIs!
+The system implements automatic state recovery:
+- Message history preservation
+- Workflow mode restoration
+- Source state recovery
+
+## Best Practices
+
+1. **Always Include ErrorDisplay**
+   - Add \`<ErrorDisplay />\` to show user-friendly error messages
+   - Position it appropriately in your UI
+
+2. **Configure Timeouts**
+   - Set appropriate timeout values for your use case
+   - Consider network latency and operation complexity
+
+3. **Implement Error Prevention**
+   - Validate inputs before operations
+   - Check capability availability
+   - Handle abort signals
+
+4. **Custom Error Handling**
+   - Implement try-catch blocks for custom handling
+   - Use the error atom for UI updates
+   - Provide meaningful error messages
+
+Try out different error scenarios using the controls below!
         `
       }
     }
@@ -146,9 +187,9 @@ This concludes the Getting Started guide. You now have a solid foundation for bu
   argTypes: {
     errorType: {
       control: 'radio',
-      options: ['request', 'stream'],
-      description: 'Type of timeout error to demonstrate',
-      defaultValue: 'request'
+      options: ['request-timeout', 'stream-timeout', 'operation-error'],
+      description: 'Type of error to demonstrate',
+      defaultValue: 'request-timeout'
     }
   }
 } satisfies Meta<typeof ExampleComponent>;
@@ -158,6 +199,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Docs: Story = {
   args: {
-    errorType: 'request'
+    errorType: 'request-timeout'
   }
 }; 
