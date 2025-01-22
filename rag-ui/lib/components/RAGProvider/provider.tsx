@@ -1,53 +1,62 @@
-import { useEffect, useMemo } from 'react';
-import type { RAGProviderProps } from '../../types';
+import {useEffect, useMemo} from 'react';
+import type {RAGProviderProps} from '../../types';
+
 export * from '../../types';
 import {ThemeProvider} from "../../theme/ThemeContext.tsx";
 import {defaultTheme} from "../../theme";
-import { Provider, createStore} from 'jotai';
-import { createGenerateAtom, createGetDataSourceAtom, createRetrieveAndGenerateAtom, createRetrieveSourcesAtom, onAddMessageAtom, ragAtomsAtom, ragConfigAtom } from '../../state/rag-state';
+import {Provider, createStore} from 'jotai';
+import {
+    createGenerateAtom,
+    createGetDataSourceAtom,
+    createRetrieveAndGenerateAtom,
+    createRetrieveSourcesAtom,
+    onAddMessageAtom,
+    ragAtomsAtom,
+    ragConfigAtom
+} from '../../state/rag-state';
 
-const RAGProvider = ({ 
-  children,
-  retrieve,
-  retrieveAndGenerate,
-  generate,
-  getDataSource,
-  config,
-  onAddMessage,
-  theme,
-}: RAGProviderProps) => {
+const RAGProvider = ({
+                         children,
+                         retrieve,
+                         retrieveAndGenerate,
+                         generate,
+                         getDataSource,
+                         config,
+                         onAddMessage,
+                         theme,
+                     }: RAGProviderProps) => {
 
-  const store = useMemo(() => createStore(), [])
+    const store = useMemo(() => createStore(), [])
 
-  const generateAtom = useMemo(() => generate ? createGenerateAtom(generate) : null, [generate]);
-  const retrieveAndGenerateAtom = useMemo(() => retrieveAndGenerate ? createRetrieveAndGenerateAtom(retrieveAndGenerate) : null, [retrieveAndGenerate]);
-  const retrieveSourcesAtom = useMemo(() => retrieve ? createRetrieveSourcesAtom(retrieve) : null, [retrieve]);
-  const getDataSourceAtom = useMemo(() => createGetDataSourceAtom(getDataSource || null), [getDataSource]);
-  const memoizedConfig = useMemo(() => config, [config]);
+    const generateAtom = useMemo(() => generate ? createGenerateAtom(generate) : null, [generate]);
+    const retrieveAndGenerateAtom = useMemo(() => retrieveAndGenerate ? createRetrieveAndGenerateAtom(retrieveAndGenerate) : null, [retrieveAndGenerate]);
+    const retrieveSourcesAtom = useMemo(() => retrieve ? createRetrieveSourcesAtom(retrieve) : null, [retrieve]);
+    const getDataSourceAtom = useMemo(() => createGetDataSourceAtom(getDataSource || null), [getDataSource]);
+    const memoizedConfig = useMemo(() => config, [config]);
 
-  useEffect(() => {
-    console.log("retrieveAndGenerateAtom", retrieveAndGenerateAtom);
-    store.set(ragAtomsAtom, {
-      generateAtom: generateAtom,
-      retrieveAndGenerateAtom: retrieveAndGenerateAtom,
-      retrieveSourcesAtom: retrieveSourcesAtom,
-      getDataSourceAtom: getDataSourceAtom
-    });
-    if (memoizedConfig) {
-      store.set(ragConfigAtom, memoizedConfig);
-    }
-    if (onAddMessage) {
-      store.set(onAddMessageAtom, () => onAddMessage); // need to wrap in a function to avoid confusion with state updater function
-    }
-  }, [store, generateAtom, retrieveAndGenerateAtom, retrieveSourcesAtom, getDataSourceAtom, memoizedConfig, onAddMessage]);
+    useEffect(() => {
+        console.log("retrieveAndGenerateAtom", retrieveAndGenerateAtom);
+        store.set(ragAtomsAtom, {
+            generateAtom: generateAtom,
+            retrieveAndGenerateAtom: retrieveAndGenerateAtom,
+            retrieveSourcesAtom: retrieveSourcesAtom,
+            getDataSourceAtom: getDataSourceAtom
+        });
+        if (memoizedConfig) {
+            store.set(ragConfigAtom, memoizedConfig);
+        }
+        if (onAddMessage) {
+            store.set(onAddMessageAtom, () => onAddMessage); // need to wrap in a function to avoid confusion with state updater function
+        }
+    }, [store, generateAtom, retrieveAndGenerateAtom, retrieveSourcesAtom, getDataSourceAtom, memoizedConfig, onAddMessage]);
 
-  return (
-      <ThemeProvider theme={theme !== undefined ? theme : defaultTheme}>
+    return (
         <Provider store={store}>
-            {children}
+            <ThemeProvider theme={theme !== undefined ? theme : defaultTheme}>
+                {children}
+            </ThemeProvider>
         </Provider>
-      </ThemeProvider>
-  );
+    );
 };
 
-export { RAGProvider };
+export {RAGProvider};

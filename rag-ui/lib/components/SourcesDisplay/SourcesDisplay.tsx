@@ -61,7 +61,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({ styleOverrides = {} }) 
     activeSourceBackground: colors.primary + '10',
     activeSourceBorderColor: colors.primary,
 
-    selectedSourceBackground: colors.secondaryBackground,  // todo: is there an active element??
+    selectedSourceBackground: colors.secondaryBackground,
     selectedSourceBorderColor: colors.success,
 
     inactiveSourceBackground: colors.secondaryBackground,
