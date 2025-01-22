@@ -2,7 +2,47 @@ import { useState } from "react";
 import { RetrievalResult, SourceReference } from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
 
-const SourcesDisplay = () => {
+/**
+ * Props for the SourcesDisplay component
+ * @see {@link SourcesDisplay}
+ */
+interface SourcesDisplayProps {
+  /**
+   * Custom title for the sources section
+   * @default "Retrieved Sources"
+   * @example "My Sources"
+   */
+  title?: string;
+  /**
+   * Custom placeholder for the search input
+   * @default "Search sources..."
+   * @example "Filter documents..."
+   */
+  searchPlaceholder?: string;
+  /**
+   * Whether to show the search functionality
+   * @default true
+   */
+  showSearch?: boolean;
+  /**
+   * Whether to show relevance scores for each source
+   * @default true
+   */
+  showRelevanceScore?: boolean;
+  /**
+   * Whether to show metadata tags for each source
+   * @default true
+   */
+  showMetadata?: boolean;
+}
+
+const SourcesDisplay = ({
+  title = "Retrieved Sources",
+  searchPlaceholder = "Search sources...",
+  showSearch = true,
+  showRelevanceScore = true,
+  showMetadata = true,
+}: SourcesDisplayProps) => {
   const { sources, currentSources, activeSourceIndex, setActiveSourceIndex, retrieveSources } = useRAGSources();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,24 +65,26 @@ const SourcesDisplay = () => {
 
   return (
     <div className="w-full h-full overflow-y-auto p-4 bg-gray-50 rounded-lg">
-      <h2 className="text-lg font-semibold mb-4 text-gray-700">Retrieved Sources</h2>
+      <h2 className="text-lg font-semibold mb-4 text-gray-700">{title}</h2>
       {/* Search field and button */}
-      <div className="w-full flex gap-2 mb-4">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Search sources..."
-          className="w-full flex-1 px-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
-        />
-        <button
-          onClick={handleSearch}
-          className="whitespace-nowrap px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          Search
-        </button>
-      </div>
+      {showSearch && (
+        <div className="w-full flex gap-2 mb-4">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={searchPlaceholder}
+            className="w-full flex-1 px-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          />
+          <button
+            onClick={handleSearch}
+            className="whitespace-nowrap px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Search
+          </button>
+        </div>
+      )}
 
       {sources.length === 0 ? (
         <p className="text-gray-500 italic">No sources available</p>
@@ -64,14 +106,14 @@ const SourcesDisplay = () => {
               <div className="flex items-start justify-between">
                 <div className="overflow-hidden">
                   <p className="font-medium text-gray-800 truncate">
-                    {source.sourceName || (isSourceReference(source) ? source.sourceReference : source.text.slice(0, 50))}
+                    {source.sourceName || (isSourceReference(source) ? source.sourceReference : source.text?.slice(0, 50))}
                   </p>
                   {isSourceReference(source) && source.type && (
                     <span className="inline-block px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full mt-1">
                       {source.type}
                     </span>
                   )}
-                  {source.relevanceScore !== undefined && (
+                  {showRelevanceScore && source.relevanceScore !== undefined && (
                     <div className="mt-2 flex items-center">
                       <span className="text-sm text-gray-500">Relevance:</span>
                       <div className="ml-2 bg-gray-200 h-2 w-24 rounded-full">
@@ -84,7 +126,7 @@ const SourcesDisplay = () => {
                   )}
                 </div>
               </div>
-              {source.metadata && Object.keys(source.metadata).length > 0 && (
+              {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
                 <div className="mt-2 pt-2 border-t border-gray-100">
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(source.metadata).map(([key, value]) => (
