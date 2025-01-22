@@ -5,6 +5,8 @@ import {defaultTheme} from "../../lib/theme";
 import {Theme} from "../../lib/theme/types.ts";
 
 // TODO: Create Theming tutorial
+// todo: check mocked state for theming
+// todo: check json editor for storybook and editable theme object
 interface ExampleProps {
     variant: 'text' | 'reference' | 'mixed';
 }
