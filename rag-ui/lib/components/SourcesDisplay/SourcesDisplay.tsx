@@ -58,7 +58,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({ styleOverrides = {} }) 
     buttonTextColor: colors.lightText,
     buttonBorderRadius: borderRadius.md,
 
-    activeSourceBackground: colors.primary + '10',
+    activeSourceBackground: colors.secondaryBackground,
     activeSourceBorderColor: colors.primary,
 
     selectedSourceBackground: colors.secondaryBackground,
