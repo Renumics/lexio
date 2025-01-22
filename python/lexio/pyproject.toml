@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lexio"
+version = "0.1.0"
+description = "API types for the lexio frontend library"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "Renumics" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pydantic>=2.0.0",
+    "typing-extensions>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/renumics/lexio"
+
+[project.optional-dependencies]
+dev = [
+    "datamodel-code-generator>=0.25.1",
+]
