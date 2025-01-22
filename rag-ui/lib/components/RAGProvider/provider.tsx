@@ -34,21 +34,20 @@ const RAGProvider = ({
     const getDataSourceAtom = useMemo(() => createGetDataSourceAtom(getDataSource || null), [getDataSource]);
     const memoizedConfig = useMemo(() => config, [config]);
 
-    useEffect(() => {
-        console.log("retrieveAndGenerateAtom", retrieveAndGenerateAtom);
-        store.set(ragAtomsAtom, {
-            generateAtom: generateAtom,
-            retrieveAndGenerateAtom: retrieveAndGenerateAtom,
-            retrieveSourcesAtom: retrieveSourcesAtom,
-            getDataSourceAtom: getDataSourceAtom
-        });
-        if (memoizedConfig) {
-            store.set(ragConfigAtom, memoizedConfig);
-        }
-        if (onAddMessage) {
-            store.set(onAddMessageAtom, () => onAddMessage); // need to wrap in a function to avoid confusion with state updater function
-        }
-    }, [store, generateAtom, retrieveAndGenerateAtom, retrieveSourcesAtom, getDataSourceAtom, memoizedConfig, onAddMessage]);
+  useEffect(() => {
+    store.set(ragAtomsAtom, {
+      generateAtom: generateAtom,
+      retrieveAndGenerateAtom: retrieveAndGenerateAtom,
+      retrieveSourcesAtom: retrieveSourcesAtom,
+      getDataSourceAtom: getDataSourceAtom
+    });
+    if (memoizedConfig) {
+      store.set(ragConfigAtom, memoizedConfig);
+    }
+    if (onAddMessage) {
+      store.set(onAddMessageAtom, () => onAddMessage); // need to wrap in a function to avoid confusion with state updater function
+    }
+  }, [store, generateAtom, retrieveAndGenerateAtom, retrieveSourcesAtom, getDataSourceAtom, memoizedConfig, onAddMessage]);
 
     return (
         <Provider store={store}>

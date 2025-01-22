@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay } from '../../lib/main';
+import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ErrorDisplay } from '../../lib/main';
 import type { Message, GenerateInput } from '../../lib/main';
 import { useCallback, useState } from 'react';
 
@@ -159,6 +159,7 @@ const WorkflowExample = () => {
           <AdvancedQueryField />
         </div>
       </RAGProvider>
+      <ErrorDisplay />
     </Layout>
   );
 };
