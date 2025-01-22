@@ -139,7 +139,7 @@ const SourceTypesExample = ({theme}: Theme) => {
 type Story = StoryObj<typeof SourceTypesExample>;
 
 const meta = {
-    title: 'Getting Started/08. Theming',
+    title: 'Getting Started/09. Theming',
     component: SourceTypesExample,
     parameters: {
         layout: 'centered',

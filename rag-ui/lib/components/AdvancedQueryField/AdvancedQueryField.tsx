@@ -25,7 +25,6 @@ import ReactDOM from 'react-dom';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 
 // --- Types ---
-// --- Type Definitions ---
 export interface AdvancedQueryFieldStyles extends React.CSSProperties {
     backgroundColor?: string;
     color?: string;
@@ -45,6 +44,7 @@ export interface AdvancedQueryFieldStyles extends React.CSSProperties {
     modeFollowUpColor?: string;
     modeReRetrieveColor?: string;
 }
+// todo: make use of this!
 
 interface Mention {
   id: string;
