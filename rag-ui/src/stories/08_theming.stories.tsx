@@ -1,15 +1,8 @@
 import type {Meta, StoryObj} from '@storybook/react';
 import {RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay} from '../../lib/main';
-import type { GetDataSourceResponse } from '../../lib/main';
+import type {GetDataSourceResponse} from '../../lib/main';
 import {defaultTheme} from "../../lib/theme";
-
-export const customTheme = {
-  ...defaultTheme,
-  colors: {
-    ...defaultTheme.colors,
-    background: '#FF0000', // custom brand color
-  },
-};
+import {Theme} from "../../lib/theme/types.ts";
 
 // TODO: Create Theming tutorial
 interface ExampleProps {
@@ -51,7 +44,7 @@ const SharedLayout = () => (
     </div>
 );
 
-const SourceTypesExample = ({variant}: ExampleProps) => {
+const SourceTypesExample = ({theme}: Theme) => {
     const getSourcesAndResponse = () => {
         return {
             sources: Promise.resolve([
@@ -65,11 +58,6 @@ const SourceTypesExample = ({variant}: ExampleProps) => {
                         page: 1,
                         author: "Research Team"
                     },
-                    highlights: [{
-                        page: 1,
-                        rect: {top: 100, left: 100, width: 400, height: 100},
-                        comment: "Key concept definition"
-                    }]
                 },
                 {
                     sourceReference: "implementation_guide.html",
@@ -106,7 +94,7 @@ const SourceTypesExample = ({variant}: ExampleProps) => {
         <BaseLayout>
             <RAGProvider
                 retrieveAndGenerate={() => getSourcesAndResponse()}
-                getDataSource={variant !== 'text' ? (source): GetDataSourceResponse => {
+                getDataSource={(source): GetDataSourceResponse => {
                     if (source.type === 'pdf') {
                         return fetch('https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf')
                             .then(response => response.arrayBuffer())
@@ -137,8 +125,8 @@ const SourceTypesExample = ({variant}: ExampleProps) => {
                         });
                     }
                     return Promise.reject(new Error('Unsupported type'));
-                } : undefined}
-                theme={customTheme}
+                }}
+                theme={theme}
             >
                 <SharedLayout/>
             </RAGProvider>
@@ -159,25 +147,11 @@ const meta = {
 ## Type Definitions
 
 \`\`\`typescript
-import {RAGProvider, defaultTheme} from "lexio";
+import {defaultTheme} from "../lib/theme";
 
-/* .... */
-export const customTheme = {
-  ...defaultTheme,
-  /*colors: {
-    ...defaultTheme.colors,
-    background: '#FF0000', // custom brand color
-  },*/
-};
+// todo: describe how to customize the default theme
 
-/* .... */
-<RAGProvider
-    ...
-    theme={customTheme}>
->
-    ...
-</RAGProvider>
-
+// todo: describe how to use the theme in the RAGProvider
 \`\`\`
 
 Try out the interactive example below and switch between different source types using the controls.
@@ -193,5 +167,6 @@ export default meta;
 
 export const Docs: Story = {
     args: {
+        theme: defaultTheme
     }
 }; 
