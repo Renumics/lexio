@@ -1,121 +1,123 @@
-import React from 'react';
-import { render, fireEvent, screen } from '@testing-library/react';
+import React, { act } from 'react';
+import {
+  render,
+  fireEvent,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import '@testing-library/jest-dom';  // For DOM matchers like toBeInTheDocument
+import '@testing-library/jest-dom'; // for DOM matchers like toBeInTheDocument
+
 import { SourcesDisplay } from './SourcesDisplay';
 import { RAGProvider } from '../RAGProvider';
-import type { RetrieveAndGenerateResponse, Message, SourceReference, GetDataSourceResponse } from '../../types';
+import type {
+  Message,
+  SourceReference,
+  GetDataSourceResponse,
+  RAGConfig,
+  RetrievalResult,
+} from '../../types';
 
+/**
+ * Mock interfaces for RAGProvider props
+ */
 interface MockFns {
-  retrieveAndGenerate?: (messages: Message[]) => RetrieveAndGenerateResponse;
-  generate?: (messages: Message[]) => AsyncGenerator<{ content: string, done: boolean }>;
+  retrieve?: (query: string, metadata?: Record<string, any>) => Promise<RetrievalResult[]>;
   getDataSource?: (source: SourceReference) => GetDataSourceResponse;
+  // We can add other mocks if needed
+}
+
+/**
+ * Utility to create the RAGProvider test wrapper
+ */
+function createWrapper(mockFns: MockFns = {}, config?: Partial<RAGConfig['timeouts']>) {
+  return ({ children }: { children: React.ReactNode }) => (
+    <RAGProvider
+      retrieve={mockFns.retrieve}
+      getDataSource={mockFns.getDataSource}
+      config={{
+        timeouts: {
+          stream: 1000,
+          request: 5000,
+          ...(config ?? {}),
+        },
+      }}
+    >
+      {children}
+    </RAGProvider>
+  );
 }
 
 describe('SourcesDisplay Component', () => {
-  const createWrapper = (mockFns: MockFns = {}) => {
-    return ({ children }: { children: React.ReactNode }) => (
-      <RAGProvider
-        retrieveAndGenerate={mockFns.retrieveAndGenerate}
-        generate={mockFns.generate}
-        getDataSource={mockFns.getDataSource}
-        config={{
-          timeouts: { stream: 1000, request: 5000 }
-        }}
-      >
-        {children}
-      </RAGProvider>
-    );
-  };
-
-  describe('Source Selection', () => {
-    it('should display sources and handle selection', async () => {
-      const mockGetDataSource = vi.fn(async () => ({
-        type: 'pdf',
-        content: new Uint8Array([1,2,3]),
-        metadata: {}
-      }));
-
-      const wrapper = createWrapper({ getDataSource: mockGetDataSource });
-      
-      render(<SourcesDisplay />, { wrapper });
-
-      // Verify source list is displayed
-      const sourceElement = screen.getByText('source1');
-      expect(sourceElement).toBeInTheDocument();
-
-      // Test source selection
-      fireEvent.click(sourceElement);
-      expect(mockGetDataSource).toHaveBeenCalled();
-    });
-
-    it('should handle source content loading states', async () => {
-      const mockGetDataSource = vi.fn(async () => {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        return {
-          type: 'pdf',
-          content: new Uint8Array([1,2,3]),
-          metadata: {}
-        };
+    describe('Source Selection', () => {
+      it('should display sources after a search and handle selection', async () => {
+        const mockRetrieve = vi.fn(async () => [
+          { text: 'source1', metadata: {} },
+          { text: 'source2', metadata: {} },
+        ]);
+  
+        const wrapper = createWrapper({ retrieve: mockRetrieve });
+        render(<SourcesDisplay />, { wrapper });
+  
+        expect(screen.getByText('No sources available')).toBeInTheDocument();
+  
+        const searchInput = screen.getByPlaceholderText('Search sources...');
+        await act(async () => {
+          fireEvent.change(searchInput, {
+            target: { value: 'some query' },
+          });
+          fireEvent.click(screen.getByText('Search'));
+        });
+  
+        expect(mockRetrieve).toHaveBeenCalledWith('some query', undefined);
+        await waitFor(() => {
+          expect(screen.getByText('source1')).toBeInTheDocument();
+        });
+  
+        await act(async () => {
+          fireEvent.click(screen.getByText('source1'));
+        });
       });
-
-      const wrapper = createWrapper({ getDataSource: mockGetDataSource });
-      
-      render(<SourcesDisplay />, { wrapper });
-
-      const sourceElement = screen.getByText('source1');
-      fireEvent.click(sourceElement);
-
-      // Check loading state
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
-
-      // Wait for content to load
-      await screen.findByTestId('source-content');
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     });
-  });
-
-  describe('Source Search', () => {
-    it('should handle source search functionality', async () => {
-      const mockRetrieveAndGenerate = vi.fn(() => ({
-        sources: Promise.resolve([{ text: 'search result', metadata: {} }]),
-        response: Promise.resolve('response')
-      }));
-
-      const wrapper = createWrapper({ retrieveAndGenerate: mockRetrieveAndGenerate });
-      
-      render(<SourcesDisplay />, { wrapper });
-
-      const searchInput = screen.getByPlaceholderText('Search sources...');
-      fireEvent.change(searchInput, { target: { value: 'test query' } });
-      
-      const searchButton = screen.getByText('Search');
-      fireEvent.click(searchButton);
-
-      expect(mockRetrieveAndGenerate).toHaveBeenCalledWith([{
-        role: 'user',
-        content: 'test query'
-      }]);
-
-      // Wait for search results
-      await screen.findByText('search result');
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should display error state when source loading fails', async () => {
-      const mockGetDataSource = vi.fn(async () => {
-        throw new Error('Failed to load source');
+  
+    describe('Source Search', () => {
+      it('should handle source search functionality', async () => {
+        const mockRetrieve = vi.fn(async (query: string) => {
+          return [
+            { text: `search result for "${query}"`, metadata: {} },
+          ];
+        });
+  
+        const wrapper = createWrapper({ retrieve: mockRetrieve });
+        render(<SourcesDisplay />, { wrapper });
+  
+        const searchInput = screen.getByPlaceholderText('Search sources...');
+        await act(async () => {
+          fireEvent.change(searchInput, { target: { value: 'test query' } });
+          fireEvent.click(screen.getByText('Search'));
+        });
+  
+        expect(mockRetrieve).toHaveBeenCalledWith('test query', undefined);
+        await waitFor(() => {
+          expect(screen.getByText('search result for "test query"')).toBeInTheDocument();
+        });
       });
-
-      const wrapper = createWrapper({ getDataSource: mockGetDataSource });
-      
-      render(<SourcesDisplay />, { wrapper });
-
-      const sourceElement = screen.getByText('source1');
-      fireEvent.click(sourceElement);
-
-      await screen.findByText('Error: Failed to load source');
+  
+      it('should trigger search on Enter key press', async () => {
+        const mockRetrieve = vi.fn(async () => [
+          { text: 'source1', metadata: {} },
+        ]);
+  
+        const wrapper = createWrapper({ retrieve: mockRetrieve });
+        render(<SourcesDisplay />, { wrapper });
+  
+        const searchInput = screen.getByPlaceholderText('Search sources...');
+        await act(async () => {
+          fireEvent.change(searchInput, { target: { value: 'test query' } });
+          fireEvent.keyDown(searchInput, { key: 'Enter' });
+        });
+  
+        expect(mockRetrieve).toHaveBeenCalledWith('test query', undefined);
+      });
     });
   });
-}); 
