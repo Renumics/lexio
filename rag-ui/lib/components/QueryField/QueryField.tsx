@@ -1,35 +1,81 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import useResizeObserver from '@react-hook/resize-observer';
 import type { WorkflowMode } from '../../types';
 import { useRAGMessages, useRAGStatus } from '../RAGProvider/hooks';
+import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 
-// Add status configuration
-const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
-  'init': { label: 'New Conversation', color: 'bg-blue-500' },
-  'follow-up': { label: 'Follow-up', color: 'bg-green-500' },
-  'reretrieve': { label: 'New Search', color: 'bg-purple-500' }
-};
+
+export interface QueryFieldStyles extends React.CSSProperties {
+    backgroundColor?: string;
+    color?: string;
+    padding?: string;
+    fontFamily?: string
+    borderColor?: string;
+    borderRadius?: string;
+    inputBackgroundColor?: string;
+    inputBorderColor?: string;
+    inputFocusRingColor?: string;
+    inputBorderRadius?: string;
+    buttonBackground?: string;
+    buttonTextColor?: string;
+    buttonBorderRadius?: string;
+    modeInitColor?: string;
+    modeFollowUpColor?: string;
+    modeReRetrieveColor?: string;
+}
 
 interface QueryFieldProps {
   onSubmit: (message: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  styleOverrides?: QueryFieldStyles;
 }
 
 const QueryField: React.FC<QueryFieldProps> = ({
   onSubmit,
   placeholder = 'Type a message...',
   disabled = false,
+  styleOverrides = {},
 }) => {
-
-
   const { addMessage } = useRAGMessages();
   const { workflowMode } = useRAGStatus();
+  
+  // use theme
+  const theme = useContext(ThemeContext);
+  if (!theme) {
+    throw new Error('ThemeContext is undefined');
+  }
+  const { colors, spacing } = theme.theme;
+
+  // Merge theme defaults + overrides
+  const style: QueryFieldStyles = {
+    backgroundColor: colors.background, // todo: choose good colors
+    color: colors.text,
+    padding: spacing.md,
+    borderColor: colors.primary,
+    borderRadius: '0.375rem',
+    focusRingColor: colors.primary,
+    buttonBackground: colors.primary,
+    buttonTextColor: colors.background,
+    buttonHoverBackground: colors.secondary,
+    statusTextColor: colors.text,
+    modeInitColor: colors.secondary,
+    modeFollowUpColor: colors.success,
+    modeReRetrieveColor: colors.primary,
+    ...removeUndefined(styleOverrides),
+  };
+  // TODO: apply the style to the component
+
+    // --- Constants ---
+    const workflowStatus: Record<WorkflowMode, { label: string; color: string | undefined }> = {
+    'init': { label: 'New Conversation', color: style.modeInitColor },
+    'follow-up': { label: 'Follow-up', color: style.modeFollowUpColor },
+    'reretrieve': { label: 'New Search', color: style.modeReRetrieveColor },
+    };
   
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-
 
   const adjustTextareaHeight = () => {
     if (textareaRef.current && formRef.current) {
@@ -68,7 +114,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
   const shouldShowScrollbar = formRef.current && textareaRef.current && textareaRef.current.scrollHeight > formRef.current.clientHeight - 50;
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="w-full h-full flex flex-col">
+    <form ref={formRef} onSubmit={handleSubmit} className="w-full h-full flex flex-col"> // todo: apply the style?
       <textarea
         ref={textareaRef}
         value={message}
@@ -77,24 +123,40 @@ const QueryField: React.FC<QueryFieldProps> = ({
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
-        className={`w-full resize-none px-3 py-2 border rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none min-h-[2.5rem] ${
-          shouldShowScrollbar ? 'overflow-y-auto' : 'overflow-y-hidden'
-        }`}
+        className="w-full resize-none min-h-[2.5rem] focus:ring-2 transition-colors"
         style={{
           maxHeight: '100%',
+          backgroundColor: style.inputBackgroundColor,  // todo: apply the style
+          color: style.color,
+          padding: style.padding,
+          borderColor: style.inputBorderColor,
+          borderRadius: style.inputBorderRadius,
+          focusRingColor: style.inputFocusRingColor,
+          fontFamily: style.fontFamily,
+          overflow: shouldShowScrollbar ? 'auto' : 'hidden',
+          outline: 'none',
+          border: '1px solid',
         }}
       />
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-2">
-          <div className={`h-2.5 w-2.5 rounded-full ${workflowStatus[workflowMode].color} animate-pulse`} />
-          <span className="text-sm font-medium text-gray-600">
-            {workflowStatus[workflowMode].label}
-          </span>
+          <div className={`h-2.5 w-2.5 rounded-full animate-pulse`} style={{backgroundColor: workflowStatus[workflowMode].color}}/>
+            <span className="text-sm font-medium text-gray-600">
+                {workflowStatus[workflowMode].label}
+            </span>
         </div>
         <button
           type="submit"
           disabled={disabled || !message.trim()}
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="transition-colors hover:opacity-80"
+          style={{
+            backgroundColor: style.buttonBackground,
+            color: style.buttonTextColor,
+            borderRadius: style.borderRadius,
+            padding: '0.5rem 1rem',
+            cursor: disabled || !message.trim() ? 'not-allowed' : 'pointer',
+            opacity: disabled || !message.trim() ? 0.5 : 1,
+          }}
         >
           Send
         </button>

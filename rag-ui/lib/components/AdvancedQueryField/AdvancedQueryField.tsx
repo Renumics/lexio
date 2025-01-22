@@ -1,5 +1,5 @@
 // --- Imports ---
-import React, { useCallback, useRef, useState, KeyboardEvent, useEffect } from 'react';
+import React, { useCallback, useRef, useState, KeyboardEvent, useEffect, useContext } from 'react';
 import {
     useFloating,
     useDismiss,
@@ -10,8 +10,29 @@ import { useRAGSources, useRAGMessages, useRAGStatus } from '../RAGProvider/hook
 import { RetrievalResult, SourceReference, WorkflowMode } from '../../types';
 import useResizeObserver from '@react-hook/resize-observer';
 import ReactDOM from 'react-dom';
+import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 
 // --- Type Definitions ---
+export interface AdvancedQueryFieldStyles extends React.CSSProperties {
+    backgroundColor?: string;
+    color?: string;
+    padding?: string;
+    fontFamily?: string
+    borderColor?: string;
+    borderRadius?: string;
+    mentionChipBackground?: string;
+    mentionChipColor?: string;
+    inputBackgroundColor?: string;
+    inputBorderColor?: string;
+    inputFocusRingColor?: string;
+    buttonBackground?: string;
+    buttonTextColor?: string;
+    buttonBorderRadius?: string;
+    modeInitColor?: string;
+    modeFollowUpColor?: string;
+    modeReRetrieveColor?: string;
+}
+
 interface Mention {
     id: string;
     name: string;
@@ -29,14 +50,8 @@ interface AdvancedQueryFieldProps {
     onChange?: (value: string, mentions: Mention[]) => void;
     placeholder?: string;
     disabled?: boolean;
+    styleOverrides?: AdvancedQueryFieldStyles;
 }
-
-// --- Constants ---
-const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
-    'init': { label: 'New Conversation', color: 'bg-blue-500' },
-    'follow-up': { label: 'Follow-up', color: 'bg-green-500' },
-    'reretrieve': { label: 'New Search', color: 'bg-purple-500' }
-};
 
 // --- Main Component ---
 const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
@@ -45,6 +60,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     onChange,
     placeholder = 'Type @ to mention a source...',
     disabled = false,
+    styleOverrides = {},
 }) => {
     // --- State ---
     const [isOpen, setIsOpen] = useState(false);
@@ -64,6 +80,34 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     const { sources, setCurrentSourceIndices } = useRAGSources();
     const { addMessage } = useRAGMessages();
     const { workflowMode } = useRAGStatus();
+    const theme = useContext(ThemeContext);
+    if (!theme) {
+        throw new Error('ThemeContext is undefined');
+    }
+    const { colors, spacing } = theme.theme;
+
+    // Merge theme defaults + overrides
+    const style: AdvancedQueryFieldStyles = {
+        backgroundColor: colors.background,   // todo: choose good colors
+        color: colors.text,
+        padding: spacing.md,
+        borderColor: colors.primary,
+        borderRadius: '0.375rem',
+        mentionChipBackground: colors.primary + '20',
+        mentionChipColor: colors.primary,
+        modeInitColor: colors.secondary,
+        modeFollowUpColor: colors.success,
+        modeReRetrieveColor: colors.primary,
+        ...removeUndefined(styleOverrides),
+    };
+    // TODO: APPLY STYLING TO THE COMPONENT
+
+    // --- Constants ---
+    const workflowStatus: Record<WorkflowMode, { label: string; color: string | undefined }> = {
+        'init': { label: 'New Conversation', color: style.modeInitColor },
+        'follow-up': { label: 'Follow-up', color: style.modeFollowUpColor },
+        'reretrieve': { label: 'New Search', color: style.modeReRetrieveColor },
+    };
 
     // --- Floating UI Setup ---
     const { refs, context } = useFloating({
@@ -235,10 +279,12 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         };
         setMentions(prev => [...prev, newMention]);
 
-        // Create and insert chip
+        // Create and insert chip with styling
         const chip = document.createElement('span');
         chip.contentEditable = 'false';
-        chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 rounded bg-blue-100 text-blue-800 text-sm select-none align-baseline';
+        chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 rounded select-none align-baseline';
+        chip.style.backgroundColor = style.mentionChipBackground || '';
+        chip.style.color = style.mentionChipColor || '';
         chip.setAttribute('data-mention-id', getSourceId(source, sourceIndex));
         chip.setAttribute('data-source-index', sourceIndex.toString());
         chip.textContent = `@${getDisplayName(source)}`;
@@ -299,7 +345,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         queueMicrotask(() => {
             updateSourceIndices();
         });
-    }, [cursorPosition, mentions, sources, updateSourceIndices, onChange]);
+    }, [cursorPosition, mentions, sources, updateSourceIndices, onChange, style]);
 
     // --- Deletion Handling ---
     const findNearestChip = (range: Range, direction: 'forward' | 'backward'): HTMLSpanElement | null => {
@@ -483,7 +529,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                     suppressContentEditableWarning
                 />
 
-                {/* Mention Dropdown Menu */}
+                {/* Mention Dropdown Menu - todo: apply the styles */}
                 {isOpen && menuPosition && (
                     <div
                         ref={refs.setFloating}
@@ -550,7 +596,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             {/* Footer with Status and Submit Button */}
             <div className="flex items-center justify-between mt-2">
                 <div className="flex items-center gap-2">
-                    <div className={`h-2.5 w-2.5 rounded-full ${workflowStatus[workflowMode].color} animate-pulse`} />
+                    <div className={`h-2.5 w-2.5 rounded-full animate-pulse`} style={{backgroundColor: workflowStatus[workflowMode].color}}/>
                     <span className="text-sm font-medium text-gray-600">
                         {workflowStatus[workflowMode].label}
                     </span>
