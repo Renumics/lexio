@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const typesTsPath = path.resolve(__dirname, '../lib/types.ts');
-const outputJsonPath = path.resolve(__dirname, './openapi-schema.json');
+const outputJsonPath = path.resolve(__dirname, './types.json');
 
 // Settings for TypeScript to JSON Schema conversion
 const settings = {
@@ -15,6 +15,17 @@ const settings = {
   noExtraProps: true,
   titles: true,
   defaultNumberType: 'integer',
+  description: true,
+
+  annotations: true,     // Includes @annotations from JSDoc
+  examples: true,        // Includes @example from JSDoc
+  propOrder: true,       // Preserves property order from the interface
+  ref: true,            // Allows generating $ref references
+  aliasRef: true,       // Handles type aliases correctly
+  topRef: true,         // Adds definitions to the top of the schema
+  jsDoc: "extended",    // Includes all JSDoc annotations
+  defaultProps: true,   // Includes default values
+  strictTuples: true,   // Generates proper tuple types
 };
 
 // Read TypeScript config
@@ -22,7 +33,7 @@ const compilerOptions = {
   strictNullChecks: true,
 };
 
-console.log('Starting TypeScript to OpenAPI conversion...');
+console.log('Starting TS Types to JSON Schema conversion...');
 
 // Generate JSON schema
 const program = TJS.getProgramFromFiles([typesTsPath], compilerOptions);
@@ -71,6 +82,7 @@ for (const type of typesToInclude) {
     console.warn(`Warning: Type "${type}" not found in schema`);
   }
 }
+
 // Second pass - check for referenced types that weren't included
 // This finds any types that are referenced in our filtered schema but weren't explicitly included
 const referencedTypes = new Set();
@@ -89,8 +101,9 @@ for (const def of Object.values(filteredSchema.definitions)) {
 // Warn about any referenced types that we didn't explicitly include
 // This helps identify types that may need to be added to typesToInclude
 if (referencedTypes.size > 0) {
-  console.warn('Warning: The following referenced types are missing from typesToInclude:');
-  referencedTypes.forEach(type => console.warn(`- ${type}`));
+  console.error('Error: The following referenced types are missing from typesToInclude:');
+  referencedTypes.forEach(type => console.error(`- ${type}`));
+  process.exit(1);
 }
 
 // Write the filtered schema to file
