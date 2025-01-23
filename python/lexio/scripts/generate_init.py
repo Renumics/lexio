@@ -7,14 +7,10 @@ Script to generate the __init__.py file for lexio package based on the types lis
 import sys
 import json
 from pathlib import Path
-from datetime import datetime, UTC, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
-# Bedingter Import von UTC
-if sys.version_info >= (3, 11):
-    from datetime import UTC
-else:
-    UTC = timezone.utc
-
+# Get UTC timezone in a version-compatible way
+UTC = timezone.utc
 
 def generate_init(types_to_include: list):
     # Remove duplicates and sort
