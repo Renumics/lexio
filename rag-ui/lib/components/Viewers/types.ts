@@ -1,3 +1,5 @@
+import { ViewerToolbarStyles } from "./ViewerToolbar";
+
 export interface ViewerToolbarProps {
     zoomIn: () => void;
     zoomOut: () => void;
@@ -5,6 +7,7 @@ export interface ViewerToolbarProps {
     fitParent?: () => void;
     children?: React.ReactNode;
     isLoaded?: boolean;
+    styleOverrides?: ViewerToolbarStyles;
 }
 
 export interface CanvasDimensions {

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState, useContext} from "react";
 import {
     ArrowUturnDownIcon,
     ChevronLeftIcon,
@@ -9,9 +9,10 @@ import {pdfjs, Document, Page} from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import { ViewerToolbar } from "../ViewerToolbar";
+import { ViewerToolbar, ViewerToolbarStyles } from "../ViewerToolbar";
 import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
 import {useHotkeys, Options} from 'react-hotkeys-hook';
+import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -20,14 +21,21 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 
+export interface PdfViewerStyles extends ViewerToolbarStyles {
+    color?: string;
+    fontFamily?: string;
+    contentBackground?: string;
+    contentPadding?: string;
+}
+
 interface PdfViewerProps {
     data: Uint8Array;
     highlights?: any[];
     page?: number;
+    styleOverrides?: PdfViewerStyles;
 }
 
-// todo: fix highlights + rotate
-const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
+const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [scale, setScale] = useState<number>(1); // Scale of the PDF page
@@ -35,6 +43,31 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
     
+    // --- use theme ---
+    const theme = useContext(ThemeContext);
+    if (!theme) {
+        throw new Error('ThemeContext is undefined');
+    }
+    const { colors, spacing, borderRadius, typography } = theme.theme;
+
+    // --- merge theme defaults + overrides ---
+    const style: PdfViewerStyles = {
+        color: colors.text,
+        fontFamily: typography.fontFamily,
+        contentBackground: colors.secondaryBackground,
+        contentPadding: spacing.none,
+        
+        toolbarDisplayBackground: '#f0f0f0',
+        toolbarDisplayBorderRadius: borderRadius.md,
+        toolbarDisplayInputBackground: '#ffffff',
+        toolbarBorderRadius: borderRadius.md,
+        toolbarButtonBorderRadius: borderRadius.md,
+        toolbarSecondaryBackground: colors.secondaryBackground,
+        toolbarButtonBackground: colors.primary,
+        toolbarButtonColor: 'white',
+        ...removeUndefined(styleOverrides),
+    };
+
     // parse data object to file object which can be consumed by react-pdf
     const file = useMemo(() => ({data: data}), [data]);
 
@@ -292,6 +325,16 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
             }
         }
 
+
+        /*backgroundColor?: string;
+        color?: string;
+        padding?: string;
+        fontFamily?: string;
+        borderRadius?: string;
+        contentBackground?: string;
+        contentPadding?: string;
+        */
+
         return (
             <ViewerToolbar 
                 zoomIn={wrappedActions.zoomIn} 
@@ -299,21 +342,44 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                 scale={scalePercentage} 
                 fitParent={wrappedActions.fitParent}
                 isLoaded={numPages !== null}
+                styleOverrides={{
+                    toolbarBorderRadius: style.toolbarBorderRadius,
+                    toolbarBackground: style.toolbarBackground,
+                    toolbarButtonBackground: style.toolbarButtonBackground,
+                    toolbarButtonColor: style.toolbarButtonColor,
+                    toolbarButtonBorderRadius: style.toolbarButtonBorderRadius,
+                    toolbarTextColor: style.toolbarTextColor,
+                    toolbarBoxShadow: style.toolbarBoxShadow,
+                }}
             >
                 <div className="flex flex-row justify-between w-full">
                     <div className="flex flex-row gap-x-1 text-md">
                         <button
-                            className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={pageNumber <= 1 || data === null}
+                            className="px-2 py-1 transition-transform transition-shadow duration-200 ease-in-out hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{
+                                color: style.toolbarButtonColor,
+                                backgroundColor: style.toolbarButtonBackground,
+                                borderRadius: style.toolbarButtonBorderRadius,
+                            }}
+                            disabled={pageNumber <= 1 || numPages === null}
                             onClick={wrappedActions.previousPage}
                             title="Previous Page (Left Arrow, Backspace)">
-                            <ChevronLeftIcon className="size-4 text-black"/>
+                            <ChevronLeftIcon className="size-4"/>
                         </button>
-                        <div className="m-auto min-w-14 flex items-center justify-center bg-gray-200 rounded-md">
+                        <div className="m-auto min-w-16 text-center" // todo: fix width
+                            style={{
+                                color: style.toolbarTextColor,
+                                backgroundColor: style.toolbarDisplayBackground,
+                                borderRadius: style.toolbarDisplayBorderRadius,
+                            }}
+                        >
                             {numPages !== null ? (
                                 <>
                                     <input
-                                        className="text-center w-8 bg-gray-100 rounded-md mr-1"
+                                        className="text-center w-6 rounded-md mr-1"
+                                        style={{
+                                            backgroundColor: style.toolbarDisplayInputBackground,
+                                        }}
                                         onKeyDown={setPageNumberFromInput}
                                         defaultValue={pageNumber || (numPages ? 1 : '--')}
                                         placeholder="Page"
@@ -326,18 +392,30 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                             }
                         </div>
                         <button
-                            className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            
+                            className="px-2 py-1 transition-transform transition-shadow duration-200 ease-in-out hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{
+                                color: style.toolbarButtonColor,
+                                backgroundColor: style.toolbarButtonBackground,
+                                borderRadius: style.toolbarButtonBorderRadius,
+                            }}
                             disabled={numPages === null || pageNumber >= numPages}
                             onClick={wrappedActions.nextPage}
                             title="Next Page (Right Arrow, Space)">
-                            <ChevronRightIcon className="size-4 text-black"/>
+                            <ChevronRightIcon className="size-4"/>
                         </button>
                     </div>
                     <button
-                        className="px-2 rounded-md bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-2 py-1 transition-transform transition-shadow duration-200 ease-in-out hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{
+                            color: style.toolbarButtonColor,
+                            backgroundColor: style.toolbarButtonBackground,
+                            borderRadius: style.toolbarButtonBorderRadius,
+                        }}
                         onClick={wrappedActions.rotatePage}
+                        disabled={numPages === null}
                         title="Rotate Page (.)">
-                        <ArrowUturnDownIcon className="size-5 text-black"/>
+                        <ArrowUturnDownIcon className="size-5"/>
                     </button>
                 </div>
             </ViewerToolbar>
@@ -346,7 +424,7 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
 
     return (
         <div 
-            className="h-full w-full flex flex-col bg-gray-50 text-gray-700 rounded-lg focus:outline-none"
+            className="h-full w-full flex flex-col focus:outline-none"
             // tabIndex enables the div to receive focus, -1 keeps it out of tab order
             tabIndex={-1}
             ref={(element: HTMLDivElement | null) => {
@@ -355,11 +433,21 @@ const PdfViewer = ({data, highlights, page}: PdfViewerProps) => {
                     combineRefs(element);
                 }
             }}
+            style={{
+                ...{
+                    color: style.color,
+                    fontFamily: style.fontFamily,
+                }
+            }}
         >
-            <Toolbar/>
+            <Toolbar />
             <div 
                 className="flex justify-center items-start flex-grow overflow-auto relative w-full"
-                style={{textAlign: 'center'}}
+                style={{
+                    textAlign: 'center',
+                    padding: style.contentPadding,
+                    backgroundColor: style.contentBackground,
+                }}
                 ref={documentContainerRef}
             >
                 <Document
