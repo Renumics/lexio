@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const typesTsPath = path.resolve(__dirname, '../lib/types.ts');
+const typesToIncludePath = path.resolve(__dirname, './types-to-include.json');
 const outputJsonPath = path.resolve(__dirname, './types.json');
 
 // Settings for TypeScript to JSON Schema conversion
@@ -44,24 +45,21 @@ if (!schema) {
   process.exit(1);
 }
 
-// List of types we want to include
-const typesToInclude = [
-  'RetrievalResult',
-  'BaseSourceContent',
-  'BaseRetrievalResult',
-  'Message',
-  'SourceReference',
-  'TextContent',
-  'MarkdownSourceContent',
-  'HTMLSourceContent',
-  'PDFSourceContent',
-  'PDFHighlight',
-  'SourceContent',
-  'RetrievalResult',
-  'RetrieveResponse',
-  'GenerateInput',
-  'GenerateResponse'
-];
+// List of types we want to include - read this from hardcoded file
+let typesToInclude = [];
+try {
+  const data = fs.readFileSync(typesToIncludePath, 'utf-8');
+  const parsedData = JSON.parse(data);
+  
+  if (parsedData.typesToInclude && Array.isArray(parsedData.typesToInclude)) {
+    typesToInclude = parsedData.typesToInclude;
+  } else {
+    throw new Error('types-to-include.json should contain an array of type names under the key "typesToInclude".');
+  }
+} catch (error) {
+  console.error('Error reading types to include:', error.message);
+  process.exit(1);
+}
 
 // Filter the schema to only include specified types
 const filteredSchema = {
@@ -79,7 +77,8 @@ for (const type of typesToInclude) {
     filteredSchema.definitions[type] = schema.definitions[type];
     foundTypes.add(type);
   } else {
-    console.warn(`Warning: Type "${type}" not found in schema`);
+    console.warn(`Error: Type "${type}" not found in schema`);
+    process.exit(1);
   }
 }
 
@@ -101,9 +100,8 @@ for (const def of Object.values(filteredSchema.definitions)) {
 // Warn about any referenced types that we didn't explicitly include
 // This helps identify types that may need to be added to typesToInclude
 if (referencedTypes.size > 0) {
-  console.error('Error: The following referenced types are missing from typesToInclude:');
+  console.warn('Warning: The following referenced types are missing from typesToInclude:');
   referencedTypes.forEach(type => console.error(`- ${type}`));
-  process.exit(1);
 }
 
 // Write the filtered schema to file

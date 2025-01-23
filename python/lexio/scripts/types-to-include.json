@@ -1,0 +1,19 @@
+{
+  "typesToInclude": [
+    "RetrievalResult",
+    "BaseSourceContent",
+    "BaseRetrievalResult",
+    "Message",
+    "SourceReference",
+    "TextContent",
+    "MarkdownSourceContent",
+    "HTMLSourceContent",
+    "PDFSourceContent",
+    "PDFHighlight",
+    "SourceContent",
+    "RetrievalResult",
+    "RetrieveResponse",
+    "GenerateInput",
+    "GenerateResponse"
+  ]
+}

@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "generate-api-types": "node scripts/generate-json-schema.js"
+    "generate-types": "node scripts/generate-json-schema.js && cp scripts/types.json ../python/lexio/scripts/types.json && cp scripts/types-to-include.json ../python/lexio/scripts/types-to-include.json",
+    "generate-py-types": ""
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.3",
