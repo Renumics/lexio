@@ -63,8 +63,8 @@ function App() {
 
 
     return (
-        <div >
-            <h1>RAG UI</h1>
+      <div style={{ width: '100%', height: '100vh', padding: '20px' }}>
+          <h1>RAG UI</h1>
             <RAGProvider
                 retrieve={() => {}}
                 retrieveAndGenerate={retrieveAndGenerate}
@@ -83,28 +83,30 @@ function App() {
                 //     }
                 // }}
             >
-                <div className="w-full max-w-6xl h-full flex gap-4">
-                    
-                    {/* Left side: Chat and Query */}
-                    <div className="flex flex-1 flex-col gap-4 w-1/3">
-                        <div className="h-1/3 min-h-0"> {/* Chat window */}
-                            <ChatWindow />
-                        </div>
-                        <div className="min-h-0"> {/* Query field */}
-                            {/* <QueryField onSubmit={() => {
-                            }} /> */}
-                            <AdvancedQueryField />
-                        </div>
-
-                        <div className="h-1/3 flex-1"> {/* Sources panel */}
-                            <SourcesDisplay />
-                        </div>
+                <div style={{ 
+                    display: 'grid',
+                    height: '100%',
+                    gridTemplateColumns: '3fr 1fr',
+                    gridTemplateRows: '1fr auto 300px',
+                    gap: '20px',
+                    gridTemplateAreas: `
+                        "chat sources"
+                        "input sources"
+                        "viewer viewer"
+                    `
+                }}>
+                    <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
+                        <ChatWindow />
                     </div>
-
-                    <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
+                    <div style={{ gridArea: 'input' }}>
+                        <AdvancedQueryField />
+                    </div>
+                    <div style={{ gridArea: 'sources', minHeight: 0, overflow: 'auto' }}>
+                        <SourcesDisplay />
+                    </div>
+                    <div style={{ gridArea: 'viewer', height: '300px', overflow: 'auto' }}>
                         <ContentDisplay />
                     </div>
-                    <ErrorDisplay />
                 </div>
             </RAGProvider>
         </div>
