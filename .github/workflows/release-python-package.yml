@@ -60,6 +60,12 @@ jobs:
     - name: Build package
       run: python -m build
 
+    - name: Upload Build as Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-package
+        path: dist/*
+
     - name: Check package
       run: twine check dist/*
 
