@@ -45,17 +45,7 @@ pytest
 
 ### Versioning
 
-This package uses [Semantic Versioning](https://semver.org/). The version number is automatically managed using `setuptools-scm` based on git tags.
-
-To create a new release:
-
-1. Create and push a new tag:
-```bash
-git tag -a v0.1.0 -m "Initial release"
-git push origin v0.1.0
-```
-
-2. The version will be automatically derived from the git tag when building the package.
+[//]: # (TODO: Add instructions)
 
 ## License
 
