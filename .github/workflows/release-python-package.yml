@@ -9,14 +9,13 @@ on:
       - main
   workflow_dispatch:  # Allows users to manually trigger the workflow from the GitHub Actions tab
 
-
 jobs:
-  release:
-    name: Build and Release to PyPI
+  test:
+    name: Test Python Package
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]  # Testen auf mehreren Python-Versionen
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     defaults:
       run:
         working-directory: python/lexio
@@ -35,7 +34,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install build twine
+        pip install build twine setuptools_scm
 
     - name: Generate Python Types
       working-directory: ${{ github.workspace }}
@@ -58,14 +57,49 @@ jobs:
         npm ci
         npm run test-python-package
 
-    - name: Build package
-      run: python -m build
+  build-and-publish:
+    name: Build and Publish to PyPI
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    defaults:
+      run:
+        working-directory: python/lexio
 
-    - name: Upload Build as Artifact
-      uses: actions/upload-artifact@v4
+    steps:
+    - uses: actions/checkout@v4
       with:
-        name: lexio-python-${{ matrix.python-version }}
-        path: ${{ github.workspace }}/python/lexio/dist/*
+        fetch-depth: 0  # Required for setuptools_scm
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.9"
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine setuptools_scm
+
+    - name: Generate Python Types
+      working-directory: ${{ github.workspace }}
+      run: |
+        cd rag-ui
+        npm ci
+        npm run generate-types
+
+    - name: Generate Python Package
+      working-directory: ${{ github.workspace }}
+      run: |
+        cd rag-ui
+        npm ci
+        npm run generate-python-package
+
+    - name: Build package
+      env:
+        SCM_VERSION: ${{ github.ref_name }}
+      run: python -m build
 
     - name: Check Package with Twine
       run: twine check dist/*
@@ -75,3 +109,16 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: twine upload dist/*
+
+    - name: Create Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Extract version from tag (remove 'v' prefix)
+        VERSION=${GITHUB_REF#refs/tags/v}
+        
+        # Create Release
+        gh release create "v$VERSION" \
+          --title "Release $VERSION" \
+          --generate-notes \
+          dist/*
