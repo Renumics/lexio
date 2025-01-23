@@ -4,9 +4,7 @@ on:
   push:
     tags:
       - 'v*'  # Trigger on version tags
-  pull_request:
-    branches:
-      - main  # Specify the branches you want to trigger the workflow on PRs
+  workflow_dispatch:  # Allows users to manually trigger the workflow from the GitHub Actions tab
 
 jobs:
   release:
@@ -14,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+#        python-version: ["3.9", "3.10", "3.11", "3.12"]  # Testen auf mehreren Python-Versionen
         python-version: ["3.9", "3.10", "3.11", "3.12"]  # Testen auf mehreren Python-Versionen
     defaults:
       run:
@@ -60,9 +59,9 @@ jobs:
       run: python -m build
 
     - name: Upload Build as Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: python-package
+        name: lexio-python-${{ matrix.python-version }}
         path: ${{ github.workspace }}/python/lexio/dist/*
 
     - name: Check package
@@ -73,10 +72,3 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: twine upload dist/*
-
-#    - name: Create GitHub Release
-#      if: github.event_name == 'push'
-#      uses: softprops/action-gh-release@v1
-#      with:
-#        files: python/lexio/dist/*
-#        generate_release_notes: true
