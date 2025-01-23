@@ -158,8 +158,8 @@ const WorkflowExample = () => {
         <div style={{ marginTop: '20px' }}>
           <AdvancedQueryField />
         </div>
+        <ErrorDisplay />
       </RAGProvider>
-      <ErrorDisplay />
     </Layout>
   );
 };
