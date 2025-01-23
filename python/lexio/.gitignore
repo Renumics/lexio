@@ -19,3 +19,5 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg 
+.coverage
+.pytest_cache

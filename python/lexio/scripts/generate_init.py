@@ -6,7 +6,7 @@ Script to generate the __init__.py file for lexio package based on the types lis
 
 import json
 from pathlib import Path
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta, timezone
 
 
 def generate_init(types_to_include: list):
@@ -20,7 +20,7 @@ def generate_init(types_to_include: list):
     all_list = '\n'.join(f'    "{type_name}",' for type_name in types)
 
     # Get current timestamp
-    timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    timestamp = datetime.now(UTC).astimezone(timezone(timedelta(hours=1))).strftime("%Y-%m-%dT%H:%M:%S+00:00")
     
     # Template for the __init__.py file
     template = '''"""
