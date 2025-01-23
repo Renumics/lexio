@@ -16,7 +16,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "generate-types": "node scripts/generate-json-schema.js && cp scripts/types.json ../python/lexio/scripts/types.json && echo 'Types copied to python/lexio/scripts/types.json'  && cp scripts/types-to-include.json ../python/lexio/scripts/types-to-include.json && echo 'Include list copied to python/lexio/scripts/types-to-include.json'",
-    "generate-python-package": "cd ../python/lexio && bash -c 'source ./scripts/setup-dev-env.sh && ./scripts/generate-types.sh && python ./scripts/generate_init.py && pytest tests -v'"
+    "generate-python-package": "cd ../python/lexio && bash -c 'source ./scripts/setup-dev-env.sh && ./scripts/generate-types.sh && python ./scripts/generate_init.py && pytest tests -v'",
+    "test-python-package": "cd ../python/lexio && bash -c 'source ./scripts/setup-dev-env.sh && pytest tests -v'"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.3",

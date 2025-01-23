@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'  # Trigger on version tags
+  pull_request:
+    branches:
+      - main  # Specify the branches you want to trigger the workflow on PRs
 
 jobs:
   release:
@@ -35,12 +38,18 @@ jobs:
         cd rag-ui
         npm ci
         npm run generate-types
+
+    - name: Generate Python Package
+      working-directory: ${{ github.workspace }}
+      run: |
+        cd rag-ui
+        npm ci
+        npm run generate-python-package
         cd ../python/lexio
 
     - name: Run tests
       run: |
-        pip install -e ".[dev]"
-        pytest tests -v
+        npm run test-python-package
 
     - name: Build package
       run: python -m build
