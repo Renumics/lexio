@@ -44,7 +44,7 @@ interface MockProviderProps {
  */
 const createMockRetrieveAndGenerate = () =>
   vi.fn(
-    (messages: Message[], metadata?: Record<string, any>): RetrieveAndGenerateResponse => ({
+    (_messages: Message[], _metadata?: Record<string, any>): RetrieveAndGenerateResponse => ({
       sources: Promise.resolve([
         {
           text: 'This is a text source',
@@ -57,12 +57,12 @@ const createMockRetrieveAndGenerate = () =>
 
 const createMockGenerate = () =>
   vi.fn(
-    (messages: Message[], sources?: RetrievalResult[]): GenerateResponse =>
+    (_messages: Message[], _sources?: RetrievalResult[]): GenerateResponse =>
       Promise.resolve('Generated response')
   );
 
 const createMockGetDataSource = () =>
-  vi.fn(async (source: SourceReference): Promise<PDFSourceContent> => ({
+  vi.fn(async (_source: SourceReference): Promise<PDFSourceContent> => ({
     type: 'pdf',
     content: new Uint8Array([1, 2, 3]),
     metadata: { title: 'PDF Document' },
@@ -118,15 +118,13 @@ function renderRAGHooks(
    * Helper to add a user message and automatically wait
    * for any returned promises (like `response` and `sources`) to resolve.
    */
-  async function addUserMessage(content: string, metadata?: Record<string, any>) {
-    let response;
+  async function addUserMessage(content: string) {
     await act(async () => {
-      response = await result.current.messages.addMessage({
+      const response = result.current.messages.addMessage({
         role: 'user',
         content,
-        metadata,
       });
-      if (response) {
+      if (response && typeof response === 'object' && 'sources' in response && 'response' in response) {
         await response.sources;
         await response.response;
       }
@@ -222,7 +220,7 @@ describe('RAG Workflow Tests', () => {
       ];
 
       const mockGenerate = vi.fn(
-        (messages: Message[], sources?: RetrievalResult[]): GenerateResponse => {
+        (_messages: Message[], _sources?: RetrievalResult[]): GenerateResponse => {
           return Promise.resolve('Follow-up response');
         }
       );
@@ -321,7 +319,7 @@ describe('RAG Workflow Tests', () => {
     });
 
     it('should handle source search with metadata', async () => {
-      const mockRetrieve = vi.fn((query: string, metadata?: Record<string, any>) =>
+      const mockRetrieve = vi.fn((_query: string, _metadata?: Record<string, any>) =>
         Promise.resolve([
           {
             text: 'result 1',

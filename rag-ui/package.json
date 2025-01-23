@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b ./tsconfig.lib.json --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
