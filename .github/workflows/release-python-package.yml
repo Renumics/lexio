@@ -48,9 +48,8 @@ jobs:
         cd rag-ui
         npm ci
         npm run generate-python-package
-        cd ../python/lexio
 
-    - name: Run tests
+    - name: Run Python Tests
       run: |
         npm run test-python-package
 
