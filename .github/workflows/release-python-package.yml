@@ -44,11 +44,9 @@ jobs:
         npm run generate-types
 
     - name: Generate Python Package
-      working-directory: ${{ github.workspace }}
       run: |
-        cd rag-ui
-        npm ci
         npm run generate-python-package
+        cd ../../rag-ui
 
     - name: Run Python Tests
       run: |
