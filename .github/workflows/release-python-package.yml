@@ -12,11 +12,10 @@ on:
 
 jobs:
   release:
-    name: Build and Release
+    name: Build and Release to PyPI
     runs-on: ubuntu-latest
     strategy:
       matrix:
-#        python-version: ["3.9", "3.10", "3.11", "3.12"]  # Testen auf mehreren Python-Versionen
         python-version: ["3.9", "3.10", "3.11", "3.12"]  # Testen auf mehreren Python-Versionen
     defaults:
       run:
@@ -27,7 +26,7 @@ jobs:
       with:
         fetch-depth: 0  # Required for setuptools_scm
 
-    - name: Set up Python
+    - name: Set up Python Environment
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
@@ -38,7 +37,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install build twine
 
-    - name: Generate Types
+    - name: Generate Python Types
       working-directory: ${{ github.workspace }}
       run: |
         cd rag-ui
@@ -68,10 +67,10 @@ jobs:
         name: lexio-python-${{ matrix.python-version }}
         path: ${{ github.workspace }}/python/lexio/dist/*
 
-    - name: Check package
+    - name: Check Package with Twine
       run: twine check dist/*
 
-    - name: Publish to PyPI
+    - name: Publish to PyPI with Twine
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
