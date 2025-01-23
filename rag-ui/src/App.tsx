@@ -11,10 +11,19 @@ import {
     SourceContent,
     HTMLSourceContent,
     PDFSourceContent,
-    isTextContent,
     GenerateStreamChunk,
-    TextContent, MarkdownSourceContent
+    TextContent,
+    MarkdownSourceContent
 } from '../lib/main'
+import {defaultTheme} from "../lib/theme";
+
+export const customTheme = {
+  ...defaultTheme,
+  /*colors: {
+    ...defaultTheme.colors,
+    background: '#FF0000', // custom brand color
+  },*/
+};
 
 function App() {
     const retrieveAndGenerate = (messages: Message[]) => {
@@ -217,6 +226,7 @@ function App() {
                         request: 60000
                     }
                 }}
+                theme={customTheme}
             >
                 <div style={{ 
                     display: 'grid',

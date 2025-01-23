@@ -1,11 +1,43 @@
+import React, { useContext } from 'react';
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { MarkdownViewer } from "../Viewers/MarkdownViewer";
 import { useRAGSources } from "../RAGProvider/hooks";
 import { isPDFContent, isHTMLContent, isMarkdownContent } from "../../types";
+import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 
-const ContentDisplay = () => {
+export interface ContentDisplayStyles extends React.CSSProperties {
+  backgroundColor?: string;
+  color?: string;
+  padding?: string;
+  fontFamily?: string;
+  borderRadius?: string;
+  boxShadow?: string;
+}
+
+interface ContentDisplayProps {
+  styleOverrides?: ContentDisplayStyles;
+}
+
+const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) => {
   const { currentSourceContent } = useRAGSources();
+  
+  // use theme
+  const theme = useContext(ThemeContext);
+  if (!theme) {
+    throw new Error('ThemeContext is undefined');
+  }
+  const { colors, spacing, borderRadius } = theme.theme;
+
+  // Merge theme defaults + overrides
+  const style: ContentDisplayStyles = {
+    backgroundColor: colors.background,
+    color: colors.text,
+    padding: spacing.none,
+    borderRadius: borderRadius.lg,
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+    ...removeUndefined(styleOverrides),
+  };
 
   if (!currentSourceContent) {
     return null;
@@ -33,7 +65,7 @@ const ContentDisplay = () => {
     return <div>Unsupported content type</div>;
   };
 
-  return <div className="w-full h-full">{renderContent()}</div>;
+  return <div className="w-full h-full" style={style}>{renderContent()}</div>;
 };
 
 export { ContentDisplay };

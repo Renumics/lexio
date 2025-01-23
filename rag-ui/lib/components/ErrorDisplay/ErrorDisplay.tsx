@@ -1,10 +1,40 @@
-import { useEffect } from 'react';
+import { useEffect, useContext } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRAGStatus } from '../RAGProvider/hooks';
+import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 
-const ErrorDisplay = () => {
+export interface ErrorDisplayStyles {
+  fontFamily?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  borderRadius?: string;
+  progressBarColor?: string;
+}
+
+interface ErrorDisplayProps {
+  styleOverrides?: ErrorDisplayStyles;
+}
+
+const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ styleOverrides = {} }) => {
   const { error } = useRAGStatus();
+  
+  // use theme
+  const theme = useContext(ThemeContext);
+  if (!theme) {
+    throw new Error('ThemeContext is undefined');
+  }
+  const { colors, typography } = theme.theme;
+
+  // Merge theme defaults + overrides
+  const style: ErrorDisplayStyles = {
+    backgroundColor: colors.error + '10',
+    textColor: colors.error,
+    borderRadius: '0.375rem',
+    fontFamily: typography.fontFamily,
+    progressBarColor: colors.error,
+    ...removeUndefined(styleOverrides),
+  };
 
   useEffect(() => {
     if (error) {
@@ -15,9 +45,18 @@ const ErrorDisplay = () => {
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
+        style: {
+          backgroundColor: style.backgroundColor,
+          color: style.textColor,
+          borderRadius: style.borderRadius,
+          fontFamily: style.fontFamily,
+        },
+        progressStyle: {
+          background: style.progressBarColor,
+        },
       });
     }
-  }, [error]);
+  }, [error, style]);
 
   return <ToastContainer />;
 };
