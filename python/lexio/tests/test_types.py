@@ -10,6 +10,14 @@ from lexio.types import (
     HTMLSourceContent,
     PDFSourceContent,
     Record,
+    BaseSourceContent,
+    BaseRetrievalResult,
+    SourceContent,
+    GenerateInput,
+    GenerateResponse,
+    RetrievalResult,
+    RetrieveResponse,
+    Uint8Array,
 )
 
 
@@ -145,4 +153,86 @@ def test_source_reference_invalid():
         SourceReference(
             type="invalid_type",
             sourceReference=123,  # should be string
-        ) 
+        )
+
+
+def test_base_source_content():
+    """Test creating a BaseSourceContent."""
+    content = BaseSourceContent(metadata={"key": "value"})
+    assert content.metadata.root == {"key": "value"}
+
+
+def test_base_retrieval_result():
+    """Test creating a BaseRetrievalResult."""
+    result = BaseRetrievalResult(
+        sourceName="test.txt",
+        relevanceScore=0.8,
+        metadata={"key": "value"},
+        highlights=[PDFHighlight(page=1, rect=Rect(top=0, left=0, width=100, height=100))]
+    )
+    
+    assert result.sourceName == "test.txt"
+    assert result.relevanceScore == 0.8
+    assert result.metadata.root == {"key": "value"}
+    assert len(result.highlights) == 1
+
+
+def test_pdf_source_content():
+    """Test creating a PDFSourceContent."""
+    # Simuliere Uint8Array mit einem Uint8Array-Objekt
+    content = PDFSourceContent(
+        content=Uint8Array(root=[]),  # Leeres Uint8Array
+        type="pdf",
+        metadata={"pages": 10},
+        highlights=[PDFHighlight(page=1, rect=Rect(top=0, left=0, width=100, height=100))]
+    )
+    
+    assert content.type == "pdf"
+    assert isinstance(content.content, Uint8Array)
+    assert content.metadata.root == {"pages": 10}
+    assert len(content.highlights) == 1
+
+
+def test_source_content():
+    """Test creating different types of SourceContent."""
+    # Test Markdown content
+    markdown = MarkdownSourceContent(content="# Title", type="markdown")
+    source_content_md = SourceContent(root=markdown)
+    assert source_content_md.root.type == "markdown"
+    
+    # Test HTML content
+    html = HTMLSourceContent(content="<h1>Title</h1>", type="html")
+    source_content_html = SourceContent(root=html)
+    assert source_content_html.root.type == "html"
+
+
+def test_generate_input():
+    """Test creating a GenerateInput."""
+    messages = [
+        Message(role="user", content="Hello"),
+        Message(role="assistant", content="Hi there!")
+    ]
+    input_data = GenerateInput(root=messages)
+    
+    assert len(input_data.root) == 2
+    assert input_data.root[0].role == "user"
+    assert input_data.root[1].role == "assistant"
+
+
+def test_retrieval_result():
+    """Test creating different types of RetrievalResult."""
+    # Test with SourceReference
+    source_ref = SourceReference(type="pdf", sourceReference="test.pdf")
+    result_source = RetrievalResult(root=source_ref)
+    assert isinstance(result_source.root, SourceReference)
+    
+    # Test with TextContent
+    text = TextContent(text="Sample text")
+    result_text = RetrievalResult(root=text)
+    assert isinstance(result_text.root, TextContent)
+
+
+def test_retrieve_response():
+    """Test creating a RetrieveResponse."""
+    response = RetrieveResponse(**{"__@toStringTag@23": "test"})
+    assert response.field___toStringTag_23 == "test" 
