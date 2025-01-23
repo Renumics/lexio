@@ -4,7 +4,11 @@ on:
   push:
     tags:
       - 'v*'  # Trigger on version tags
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:  # Allows users to manually trigger the workflow from the GitHub Actions tab
+
 
 jobs:
   release:
