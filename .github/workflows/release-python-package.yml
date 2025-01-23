@@ -64,7 +64,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: python-package
-        path: dist/*
+        path: ${{ github.workspace }}/python/lexio/dist/*
 
     - name: Check package
       run: twine check dist/*
