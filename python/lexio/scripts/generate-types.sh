@@ -12,6 +12,8 @@ datamodel-codegen \
   --enum-field-as-literal all \
   --target-python-version 3.9
 
+echo "Types generated successfully"
+
 # We use pydantic v2 and support from python 3.9 onwards
 # Use schema description to populate class description / docstring
 # Use field description to populate field description / docstring

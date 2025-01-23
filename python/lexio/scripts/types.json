@@ -36,7 +36,7 @@
           "title": "sourceName"
         },
         "relevanceScore": {
-          "type": "integer",
+          "type": "number",
           "title": "relevanceScore"
         },
         "metadata": {
@@ -114,7 +114,7 @@
           "title": "sourceName"
         },
         "relevanceScore": {
-          "type": "integer",
+          "type": "number",
           "title": "relevanceScore"
         },
         "metadata": {
@@ -156,7 +156,7 @@
           "title": "sourceName"
         },
         "relevanceScore": {
-          "type": "integer",
+          "type": "number",
           "title": "relevanceScore"
         },
         "metadata": {
@@ -287,26 +287,26 @@
       "type": "object",
       "properties": {
         "page": {
-          "type": "integer",
+          "type": "number",
           "title": "page"
         },
         "rect": {
           "type": "object",
           "properties": {
             "top": {
-              "type": "integer",
+              "type": "number",
               "title": "top"
             },
             "left": {
-              "type": "integer",
+              "type": "number",
               "title": "left"
             },
             "width": {
-              "type": "integer",
+              "type": "number",
               "title": "width"
             },
             "height": {
-              "type": "integer",
+              "type": "number",
               "title": "height"
             }
           },

@@ -15,7 +15,7 @@ const settings = {
   required: true,
   noExtraProps: true,
   titles: true,
-  defaultNumberType: 'integer',
+  defaultNumberType: 'float',
   description: true,
 
   annotations: true,     // Includes @annotations from JSDoc

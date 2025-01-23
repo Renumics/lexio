@@ -5,16 +5,24 @@ build-backend = "hatchling.build"
 [project]
 name = "lexio"
 version = "0.1.0"
-description = "API types for the lexio frontend library"
+description = "Python type definitions for the lexio frontend library. Provides Pydantic models for type-safe interaction with the lexio UI components, including source references."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
     { name = "Renumics" },
 ]
+keywords = ["lexio", "frontend", "types", "pydantic", "ui", "rag", "typescript"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 dependencies = [
     "pydantic>=2.0.0",
@@ -23,8 +31,14 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/renumics/lexio"
+Documentation = "https://github.com/renumics/lexio/tree/main/python/lexio#readme"
+Repository = "https://github.com/renumics/lexio.git"
+"Bug Tracker" = "https://github.com/renumics/lexio/issues"
 
 [project.optional-dependencies]
 dev = [
     "datamodel-code-generator>=0.25.1",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
 ]
