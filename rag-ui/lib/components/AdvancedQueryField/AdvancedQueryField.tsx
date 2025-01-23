@@ -24,6 +24,27 @@ import useResizeObserver from '@react-hook/resize-observer';
 import ReactDOM from 'react-dom';
 
 // --- Types ---
+export interface AdvancedQueryFieldStyles extends React.CSSProperties {
+    backgroundColor?: string;
+    color?: string;
+    padding?: string;
+    fontFamily?: string
+    borderColor?: string;
+    borderRadius?: string;
+    mentionChipBackground?: string;
+    mentionChipColor?: string;
+    inputBackgroundColor?: string;
+    inputBorderColor?: string;
+    inputFocusRingColor?: string;
+    buttonBackground?: string;
+    buttonTextColor?: string;
+    buttonBorderRadius?: string;
+    modeInitColor?: string;
+    modeFollowUpColor?: string;
+    modeReRetrieveColor?: string;
+}
+// todo: make use of this!
+
 interface Mention {
   id: string;
   name: string;

@@ -21,6 +21,9 @@ jobs:
     - name: Install dependencies
       working-directory: ./rag-ui
       run: npm ci
+    - name: Type check
+      working-directory: ./rag-ui
+      run: npm run typecheck
     - name: Run tests
       working-directory: ./rag-ui
       run: npm test
