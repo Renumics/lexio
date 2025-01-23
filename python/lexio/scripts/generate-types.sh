@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Generate types using datamodel-codegen
+# Generate types using datamodel-codegen for pydantic v2, the json schema is generated from lexio frontend
 datamodel-codegen \
   --input ../../rag-ui/scripts/types.json \
   --output lexio/types/__init__.py \
