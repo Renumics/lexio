@@ -12,6 +12,9 @@ jobs:
   release:
     name: Build and Release
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]  # Testen auf mehreren Python-Versionen
     defaults:
       run:
         working-directory: python/lexio
@@ -24,7 +27,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: ${{ matrix.python-version }}
         cache: 'pip'
 
     - name: Install dependencies
@@ -57,14 +60,16 @@ jobs:
     - name: Check package
       run: twine check dist/*
 
-    - name: Publish to PyPI
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      run: twine upload dist/*
-
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: python/lexio/dist/*
-        generate_release_notes: true 
+#    - name: Publish to PyPI
+#      if: github.event_name == 'push'
+#      env:
+#        TWINE_USERNAME: __token__
+#        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+#      run: twine upload dist/*
+#
+#    - name: Create GitHub Release
+#      if: github.event_name == 'push'
+#      uses: softprops/action-gh-release@v1
+#      with:
+#        files: python/lexio/dist/*
+#        generate_release_notes: true
