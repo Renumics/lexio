@@ -1,9 +1,9 @@
 name: Node.js CI
 on:
   push:
-    branches: [ "main", "feature/testing-concept" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "feature/testing-concept" ]
+    branches: [ "main" ]
 jobs:
   build:
     runs-on: ubuntu-latest
