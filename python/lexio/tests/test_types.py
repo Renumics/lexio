@@ -18,8 +18,13 @@ def test_source_reference_creation():
     assert source.sourceReference == "example.pdf"
     assert source.sourceName == "Example PDF"
     assert source.relevanceScore == 0.95
-    assert source.metadata == {"pages": 10}
-    assert source.highlights == [{"page": 1}]
+    assert source.metadata.root == {"pages": 10}  # Access the underlying dict through .root
+    assert len(source.highlights) == 1
+    assert source.highlights[0].page == 1
+    assert source.highlights[0].rect.top == 0
+    assert source.highlights[0].rect.left == 0
+    assert source.highlights[0].rect.width == 100
+    assert source.highlights[0].rect.height == 100
 
 
 def test_source_reference_minimal():
