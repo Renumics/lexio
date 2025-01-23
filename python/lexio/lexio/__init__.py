@@ -4,7 +4,7 @@ This file is auto-generated. Do not edit directly.
 
 Generated from:
   source:    lexio.types
-  timestamp: 2025-01-23T07:51:09+00:00
+  timestamp: 2025-01-23T08:52:14+00:00
 """
 
 from lexio.types import (
@@ -23,8 +23,7 @@ from lexio.types import (
     SourceReference,
     TextContent,
 )
-
-__version__ = "0.1.0"
+from lexio.version import __version__
 
 __all__ = [
     "BaseRetrievalResult",
