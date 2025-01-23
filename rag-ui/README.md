@@ -60,3 +60,6 @@ The Python package can be automatically generated from the frontend library. It 
 - (Optional) Test the generated package with the `test-python-package` script ([package.json](package.json)).
 3. `Tag` the commit with the version number.
 4. Publish the package to PyPI using the [release-python-package.yml](..%2F.github%2Fworkflows%2Frelease-python-package.yml) workflow. This runs automatically when a new tag is pushed to the repository.
+
+Since we are creating the `lexio` python package automatically we run several test with 'pytest' to ensure the package is working as expected. The tests are located in the [tests](tests)[tests](..%2Fpython%2Flexio%2Ftests) folder.
+If you add new types which are exported to the python package, you should also add tests for them.
