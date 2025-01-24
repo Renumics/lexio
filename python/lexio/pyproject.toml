@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling", "setuptools>=45", "setuptools_scm[toml]>=6.2"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
@@ -42,10 +42,6 @@ dev = [
     "pytest-asyncio>=0.21.0",
 ]
 
-[tool.setuptools_scm]
-write_to = "lexio/version.py"
-version_scheme = "post-release"
-local_scheme = "node-and-date"
-
 [tool.hatch.version]
-source = "scm"
+source = "vcs"
+fallback-version = "0.0.1"

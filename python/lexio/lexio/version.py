@@ -1,7 +1,7 @@
 """Version information."""
 
 try:
-    from setuptools_scm import get_version
-    __version__ = get_version(root='../..', relative_to=__file__)
+    from importlib.metadata import version  # works with hatch-vcs
+    __version__ = version("lexio")
 except Exception:
-    __version__ = "0.0.0"  # Fallback version when not in git repo 
+    __version__ = "0.0.0"  # Fallback version 

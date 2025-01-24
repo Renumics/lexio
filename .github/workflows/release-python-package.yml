@@ -97,8 +97,6 @@ jobs:
         npm run generate-python-package
 
     - name: Build package
-      env:
-        SCM_VERSION: ${{ github.ref_name }}
       run: python -m build
 
     - name: Check Package with Twine
