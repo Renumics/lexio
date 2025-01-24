@@ -343,7 +343,39 @@ describe('RAG Workflow Tests', () => {
     });
   });
 
-  describe('Error Handling', () => {
+  describe('Streaming Response Tests', () => {
+    it('should handle streaming responses with partial updates', async () => {
+      const mockRetrieveAndGenerate = vi.fn(() => ({
+        sources: Promise.resolve([
+          { text: 'A text-based source', metadata: { title: 'Text Doc' } },
+        ]),
+        response: (async function* () {
+          yield { content: 'Partial answer chunk 1...' };
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          yield { content: 'Partial answer chunk 2...', done: true };
+        })(),
+      }));
+
+      const { result, addUserMessage, waitUntilNotLoading } = renderRAGHooks({
+        retrieveAndGenerate: mockRetrieveAndGenerate,
+      });
+
+      await addUserMessage('Stream test query');
+
+      // Wait for streaming to complete
+      await waitUntilNotLoading();
+
+      // Check final state
+      expect(result.current.messages.messages).toHaveLength(2);
+      expect(result.current.messages.messages[1]).toEqual({
+        role: 'assistant',
+        content: 'Partial answer chunk 1...Partial answer chunk 2...',
+      });
+      expect(result.current.messages.currentStream).toBe(null);
+    });
+  });
+
+  describe('Timeout Error Handling', () => {
     beforeEach(() => {
       vi.useFakeTimers();
     });
@@ -444,4 +476,13 @@ describe('RAG Workflow Tests', () => {
       );
     });
   });
+  describe('Additional Error Handling', () => {
+    it('should perform rollback on generation error', async () => {
+     
+    });
+    it('should perform rollback on retrieval error', async () => {
+     
+    });
+  });
+
 });
