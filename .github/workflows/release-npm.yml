@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - 'v*'  # Trigger on version tags
-    branches:
-      - 'feature/testing-concept'  # Add temporary trigger for testing
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
