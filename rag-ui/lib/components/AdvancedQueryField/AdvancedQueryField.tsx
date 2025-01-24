@@ -179,6 +179,7 @@ interface AdvancedQueryFieldProps {
  * - Responsive design
  * 
  * Usage:
+ * 
  * ```tsx
  * <AdvancedQueryField
  *   onSubmit={(message, mentions) => {

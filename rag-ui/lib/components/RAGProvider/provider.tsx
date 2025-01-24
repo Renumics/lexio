@@ -24,29 +24,6 @@ import { defaultTheme } from '../../theme';
  * - Supplies user-defined retrieval/generation logic to internal atoms.
  * - Optionally accepts a callback (`onAddMessage`) to modify the workflow mode on new messages.
  * 
- * @remarks
- * This provider must wrap the part of your React tree that uses RAG features (like retrieval, generation, or data source fetching).
- * 
- * @param props - The props for RAGProvider
- * @param props.children - The React child nodes to render inside the provider
- * @param props.retrieve - Optional function `(query: string, metadata?: Record<string, any>) => RetrieveResponse`
- *   used to fetch sources for a given query.
- * @param props.retrieveAndGenerate - Optional function that performs both retrieval and generation in a single call
- *   `(messages: Message[], metadata?: Record<string, any>) => RetrieveAndGenerateResponse`.
- * @param props.generate - Optional function `(messages: Message[], [sources?: RetrievalResult[]]) => Promise<string> | AsyncIterable`
- *   used to generate text from a conversation (and optionally sources).
- * @param props.getDataSource - Optional function `(source: SourceReference) => GetDataSourceResponse`
- *   used to fetch the raw content (PDF, HTML, etc.) for a given source reference.
- * @param props.config - Optional object containing RAG configuration, e.g. timeouts for streaming or requests.
- * @param props.onAddMessage - Optional callback `(message: Message, previousMessages: Message[]) => RAGWorkflowActionOnAddMessage`
- *   that runs whenever a new message is added, returning an action that modifies the workflow mode.
- * @param props.theme - Optional theme override object. If not provided, the `defaultTheme` is used.
- * 
- * @returns A React component that provides:
- * - Jotai-based RAG state.
- * - Theming context to child components.
- * 
- * @example
  * ```tsx
  * <RAGProvider
  *   retrieve={myRetrieveFn}

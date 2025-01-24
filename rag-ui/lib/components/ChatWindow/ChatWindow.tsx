@@ -41,8 +41,6 @@ export interface ChatWindowProps {
 /**
  * ChatWindow component displays a conversation between a user and an assistant
  * 
- * @component
- * @example
  * ```tsx
  * <ChatWindow 
  *   showRoleLabels={true}
