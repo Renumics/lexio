@@ -19,20 +19,48 @@ export interface QueryFieldStyles extends React.CSSProperties {
     buttonBackground?: string;
     buttonTextColor?: string;
     buttonBorderRadius?: string;
-    buttonHoverBackground?: string;
     modeInitColor?: string;
     modeFollowUpColor?: string;
     modeReRetrieveColor?: string;
     statusTextColor?: string;
 }
 
+/**
+ * Props for the QueryField component
+ * @see {@link QueryField}
+ */
 interface QueryFieldProps {
+  /**
+   * Callback function triggered when a message is submitted
+   * @param message The message text that was submitted
+   */
   onSubmit: (message: string) => void;
+  /**
+   * Custom placeholder text for the input field
+   * @default "Type a message..."
+   */
   placeholder?: string;
+  /**
+   * Whether the input field is disabled
+   * @default false
+   */
   disabled?: boolean;
+  /**
+   * Style overrides for the component
+   */
   styleOverrides?: QueryFieldStyles;
 }
 
+/**
+ * A textarea-based input component for submitting queries with workflow status indication
+ * 
+ * Features:
+ * - Auto-expanding textarea
+ * - Enter to submit (Shift+Enter for new line)
+ * - Visual workflow status indicator
+ * - Customizable styling
+ * - Responsive design
+ */
 const QueryField: React.FC<QueryFieldProps> = ({
   onSubmit,
   placeholder = 'Type a message...',
@@ -47,28 +75,28 @@ const QueryField: React.FC<QueryFieldProps> = ({
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { colors, spacing } = theme.theme;
+  const { colors, spacing, borderRadius } = theme.theme;
 
   // Merge theme defaults + overrides
   const style: QueryFieldStyles = {
     backgroundColor: colors.background,
     color: colors.text,
     padding: spacing.md,
-    borderColor: colors.primary,
-    borderRadius: '0.375rem',
-    inputBackgroundColor: colors.background,
-    inputBorderColor: colors.primary,
-    inputFocusRingColor: colors.primary,
-    buttonBackground: colors.primary,
-    buttonTextColor: colors.background,
-    buttonHoverBackground: colors.secondary,
-    statusTextColor: colors.text,
-    modeInitColor: colors.secondary,
-    modeFollowUpColor: colors.success,
-    modeReRetrieveColor: colors.primary,
+    borderColor: '#e5e7eb',
+    borderRadius: borderRadius.md,
+    inputBackgroundColor: 'white',
+    inputBorderColor: '#e5e7eb',
+    inputFocusRingColor: colors.primary || '#3b82f6',
+    inputBorderRadius: borderRadius.md || '0.5rem',
+    buttonBackground: colors.primary || '#3b82f6',
+    buttonTextColor: colors.lightText || 'white',
+    buttonBorderRadius: borderRadius.md || '0.375rem',
+    modeInitColor: colors.primary || '#3b82f6',
+    modeFollowUpColor: colors.success || '#22c55e',
+    modeReRetrieveColor: colors.secondary || '#9333ea',
+    statusTextColor: colors.secondaryText || '#4b5563',
     ...removeUndefined(styleOverrides),
   };
-  // TODO: apply the style to the component
 
     // --- Constants ---
     const workflowStatus: Record<WorkflowMode, { label: string; color: string | undefined }> = {
@@ -118,7 +146,16 @@ const QueryField: React.FC<QueryFieldProps> = ({
   const shouldShowScrollbar = formRef.current && textareaRef.current && textareaRef.current.scrollHeight > formRef.current.clientHeight - 50;
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="w-full h-full flex flex-col"> // todo: apply the style?
+    <form 
+      ref={formRef} 
+      onSubmit={handleSubmit} 
+      className="w-full h-full flex flex-col"
+      style={{
+        backgroundColor: style.backgroundColor,
+        color: style.color,
+        padding: style.padding,
+      }}
+    >
       <textarea
         ref={textareaRef}
         value={message}
@@ -127,25 +164,32 @@ const QueryField: React.FC<QueryFieldProps> = ({
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
-        className="w-full resize-none min-h-[2.5rem] focus:ring-2 transition-colors"
+        className={`w-full resize-none min-h-[2.5rem] transition-colors focus:ring-2 ${
+          shouldShowScrollbar ? 'overflow-y-auto' : 'overflow-y-hidden'
+        }`}
         style={{
           maxHeight: '100%',
-          backgroundColor: style.inputBackgroundColor,  // todo: apply the style
+          backgroundColor: style.inputBackgroundColor,
           color: style.color,
-          padding: style.padding,
+          padding: '0.5rem 0.75rem',
           border: `1px solid ${style.inputBorderColor}`,
           borderRadius: style.inputBorderRadius,
           fontFamily: style.fontFamily,
-          overflow: shouldShowScrollbar ? 'auto' : 'hidden',
           outline: 'none',
         }}
       />
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-2">
-          <div className={`h-2.5 w-2.5 rounded-full animate-pulse`} style={{backgroundColor: workflowStatus[workflowMode].color}}/>
-            <span className="text-sm font-medium text-gray-600">
-                {workflowStatus[workflowMode].label}
-            </span>
+          <div 
+            className="h-2.5 w-2.5 rounded-full animate-pulse"
+            style={{ backgroundColor: workflowStatus[workflowMode].color }}
+          />
+          <span 
+            className="text-sm font-medium"
+            style={{ color: style.statusTextColor }}
+          >
+            {workflowStatus[workflowMode].label}
+          </span>
         </div>
         <button
           type="submit"
@@ -154,7 +198,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
           style={{
             backgroundColor: style.buttonBackground,
             color: style.buttonTextColor,
-            borderRadius: style.borderRadius,
+            borderRadius: style.buttonBorderRadius,
             padding: '0.5rem 1rem',
             cursor: disabled || !message.trim() ? 'not-allowed' : 'pointer',
             opacity: disabled || !message.trim() ? 0.5 : 1,
