@@ -30,3 +30,6 @@ dist-ssr
 *.sw?
 
 *storybook.log
+
+# ignore auto generated file
+scripts/types.json

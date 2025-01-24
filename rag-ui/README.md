@@ -48,3 +48,18 @@ export default tseslint.config({
   },
 })
 ```
+
+## Python package
+
+The Python package can be automatically generated from the frontend library. It contains API types for the lexio frontend library. Follow these steps to release the package:
+
+1. Update the frontend library with the latest changes.
+2. If needed, update the [types-to-include.json](scripts%2Ftypes-to-include.json) file to modify the exported types.
+- (Optional) Run the `generate-types` script ([package.json](package.json)) to export types in JSON schema format.
+- (Optional) Run the `generate-python-package` script ([package.json](package.json)) to generate the Python package.
+- (Optional) Test the generated package with the `test-python-package` script ([package.json](package.json)).
+3. `Tag` the commit with the version number.
+4. Publish the package to PyPI using the [release-python-package.yml](..%2F.github%2Fworkflows%2Frelease-python-package.yml) workflow. This runs automatically when a new tag is pushed to the repository.
+
+Since we are creating the `lexio` python package automatically we run several test with 'pytest' to ensure the package is working as expected. The tests are located in the [tests](tests)[tests](..%2Fpython%2Flexio%2Ftests) folder.
+If you add new types which are exported to the python package, you should also add tests for them.

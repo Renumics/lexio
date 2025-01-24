@@ -22,7 +22,6 @@ import {
 import { RetrievalResult, SourceReference, WorkflowMode } from '../../types';
 import useResizeObserver from '@react-hook/resize-observer';
 import ReactDOM from 'react-dom';
-import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 
 // --- Types ---
 export interface AdvancedQueryFieldStyles extends React.CSSProperties {

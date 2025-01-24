@@ -1,12 +1,24 @@
-import {Theme} from 'theme/types.ts'
+import {Theme} from './theme/types'
 
 export type WorkflowMode =
   | 'init'           // Initial state, no conversation yet
   | 'follow-up'      // Using existing context and sources
   | 'reretrieve';    // Getting new sources while preserving history
 
+/**
+ * Represents a message in the chat
+ * @example
+ * {
+ *   role: "user",
+ *   content: "Hello, world!"
+ * }
+ */
 export interface Message {
-  role: string;
+  /** The role of the message sender */
+  role: "user" | "assistant";
+  /** The content of the message 
+   * @default ""
+   */
   content: string;
 }
 

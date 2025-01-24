@@ -19,9 +19,11 @@ export interface QueryFieldStyles extends React.CSSProperties {
     buttonBackground?: string;
     buttonTextColor?: string;
     buttonBorderRadius?: string;
+    buttonHoverBackground?: string;
     modeInitColor?: string;
     modeFollowUpColor?: string;
     modeReRetrieveColor?: string;
+    statusTextColor?: string;
 }
 
 interface QueryFieldProps {
@@ -49,12 +51,14 @@ const QueryField: React.FC<QueryFieldProps> = ({
 
   // Merge theme defaults + overrides
   const style: QueryFieldStyles = {
-    backgroundColor: colors.background, // todo: choose good colors
+    backgroundColor: colors.background,
     color: colors.text,
     padding: spacing.md,
     borderColor: colors.primary,
     borderRadius: '0.375rem',
-    focusRingColor: colors.primary,
+    inputBackgroundColor: colors.background,
+    inputBorderColor: colors.primary,
+    inputFocusRingColor: colors.primary,
     buttonBackground: colors.primary,
     buttonTextColor: colors.background,
     buttonHoverBackground: colors.secondary,
@@ -129,13 +133,11 @@ const QueryField: React.FC<QueryFieldProps> = ({
           backgroundColor: style.inputBackgroundColor,  // todo: apply the style
           color: style.color,
           padding: style.padding,
-          borderColor: style.inputBorderColor,
+          border: `1px solid ${style.inputBorderColor}`,
           borderRadius: style.inputBorderRadius,
-          focusRingColor: style.inputFocusRingColor,
           fontFamily: style.fontFamily,
           overflow: shouldShowScrollbar ? 'auto' : 'hidden',
           outline: 'none',
-          border: '1px solid',
         }}
       />
       <div className="flex items-center justify-between mt-2">
