@@ -222,8 +222,8 @@ const SearchAndAnalyzeExample = () => {
               : 'Ask questions about sources, use @mentions to select specific ones'
           }/>
         </div>
+        <ErrorDisplay />
       </RAGProvider>
-      <ErrorDisplay />
     </Layout>
   );
 };
