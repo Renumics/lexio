@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ChatWindow } from '../../../lib/components/ChatWindow/ChatWindow';
-import { RAGProvider, useRAGSources, useRAGMessages } from '../../../lib/components/RAGProvider';
+import { RAGProvider, useRAGMessages } from '../../../lib/components/RAGProvider';
 import 'tailwindcss/tailwind.css';
-import type { Message, GenerateResponse, GenerateInput, RetrieveAndGenerateResponse } from '../../../lib/types';
+import type { Message, GenerateInput, RetrieveAndGenerateResponse } from '../../../lib/types';
 import { useEffect } from 'react';
 
 // Sample data for the story

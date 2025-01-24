@@ -32,38 +32,61 @@ export interface SourcesDisplayStyles extends React.CSSProperties {
  * Props for the SourcesDisplay component
  * @see {@link SourcesDisplay}
  */
-interface SourcesDisplayProps {
+export interface SourcesDisplayProps {
   /**
-   * Custom title for the sources section
+   * The title displayed above the sources list
    * @default "Retrieved Sources"
    */
   title?: string;
+
   /**
-   * Custom placeholder for the search input
+   * Placeholder text for the search input field
    * @default "Search sources..."
    */
   searchPlaceholder?: string;
+
   /**
-   * Whether to show the search functionality
+   * Controls visibility of the search functionality
    * @default true
    */
   showSearch?: boolean;
+
   /**
-   * Whether to show relevance scores for each source
+   * Controls visibility of relevance scores
    * @default true
    */
   showRelevanceScore?: boolean;
+
   /**
-   * Whether to show metadata tags for each source
+   * Controls visibility of metadata tags
    * @default true
    */
   showMetadata?: boolean;
+
   /**
-   * Style overrides for the component
+   * Style customization options
    */
   styleOverrides?: SourcesDisplayStyles;
 }
 
+/**
+ * SourcesDisplay component shows a list of retrieved sources with search functionality
+ * 
+ * ```tsx
+ * <SourcesDisplay 
+ *   title="Search Results"
+ *   searchPlaceholder="Search documents..."
+ *   showSearch={true}
+ *   showRelevanceScore={true}
+ *   showMetadata={true}
+ *   styleOverrides={{
+ *     backgroundColor: '#f5f5f5',
+ *     buttonBackground: '#0066cc',
+ *     metadataTagBackground: '#e2e8f0'
+ *   }}
+ * />
+ * ```
+ */
 const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   title = "Retrieved Sources",
   searchPlaceholder = "Search sources...",
