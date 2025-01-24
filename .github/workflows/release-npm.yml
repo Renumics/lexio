@@ -1,4 +1,5 @@
 name: Release to NPM
+
 on:
   push:
     tags:
@@ -7,33 +8,43 @@ on:
 
 jobs:
   checks:
-    uses: ./.github/workflows/check.yml  # Reuse the check workflow
+    uses: ./.github/workflows/check.yml  # Reuse the check workflow (for lint/test/typecheck only)
 
   publish:
     needs: checks  # Wait for checks to pass
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
-          cache-dependency-path: './rag-ui/package.json'
-      
+          cache-dependency-path: './rag-ui/package-lock.json' # or package.json if you prefer
+
       - name: Install dependencies
         working-directory: ./rag-ui
         run: npm ci
-      
+
+      # -----------------------------
+      # Build step to generate 'dist/'
+      # -----------------------------
+      - name: Build the library
+        working-directory: ./rag-ui
+        run: npm run build
+
+      # -----------------------------
+      # Dry-run to check what gets published
+      # -----------------------------
       - name: Dry run npm publish
         working-directory: ./rag-ui
         run: npm publish --dry-run --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # Uncomment the following step when ready for actual publishing
+      # Uncomment for the real publish
       # - name: Publish to NPM
       #   working-directory: ./rag-ui
       #   run: npm publish --access public
