@@ -46,7 +46,7 @@ const meta = {
 # Basic Usage
 
 This is the first step in learning how to use the RAG UI. Here you'll learn:
-- Basic setup of the RAGProvider
+- Basic setup of the [RAGProvider](docs/concepts#RagProvider)
 - How to implement a simple retrieveAndGenerate function
 - Basic source and response handling
 

@@ -3,4 +3,42 @@ import { Meta, Markdown } from '@storybook/blocks';
 <Meta title="Concepts" />
 # 🚀 Concepts
 
-asd
+# Concepts: Core Principles and building blocks
+
+## Basic Components
+
+### RAGProvider
+The `RAGProvider` is the core component that provides the context for the [Lexio UI components](#ui-components)
+ - It is responsible for managing the shared state for the UI components.
+ - It is initialized with the retrieval and generating functions.
+
+
+### Lexio UI components
+- **ChatWindow**: Interactive chat interface.
+- **AdvancedQueryField**: Enhancing user input with advanced query capabilities.
+- **ErrorDisplay**: Handling and displaying errors gracefully.
+- **SourcesDisplay**: Displaying the retrieved sources.
+- **ContentDisplay**: Displaying the generated content.
+
+### Retrieval and Generation functions
+At least one of these functions must be provided to the `RAGProvider`
+- **retrieveAndGenerate**: Gets the query and chat history => should return a response and sources of your RAG implementation. 
+- **retrieve**: Retrieving content: Gets the query and chat history =>  should return only sources.
+- **generate**: Generating content: Gets query, chat history and source of the last retrival => should return only a response.
+- **getDataSource**: Retrieving data from a data source. E.g. a PDF, HTML, or other file format.
+
+
+## Advanced Concepts
+
+### Source Management
+- **Source Types**: Different source types are available:
+    -  Simple plain text as source - with the content nested 
+    -  References to source documents: A reference to a document (pdf, mdx, html), that can include metadata and highlights that will be shown it deticated Viewers
+
+
+### Response Handling
+- **Streaming Responses**: There are stream interface available to implement streaming responses.
+- **Follow-up Questions**: The generate function of the RAGProvider can be used to handle follow-up questions.
+
+### Customization and Theming
+- TODO

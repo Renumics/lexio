@@ -4,7 +4,7 @@ const preview: Preview = {
   parameters: {
     options: {
       storySort: {
-        order: ['Configure your project', 'Welcome', 'Components'],
+        order: ['Welcome', 'Concepts', 'Components', "*", "Gallery"],
       },
     },
     controls: {
