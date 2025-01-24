@@ -37,9 +37,11 @@ function App() {
               const sources: SourceReference[] = data.source_nodes.map((doc: any) => ({
                 type: 'pdf', // or derive from doc if available
                 relevanceScore: doc.score,
-                source: doc.node.extra_info.file_name,
+                sourceReference: doc.node.extra_info.file_name,
                 //metadata: doc.metadata,
               }))
+
+              console.log('sources', sources)
     
               resolve({
                 sources: sources,
@@ -59,6 +61,45 @@ function App() {
           response: responsePromise,
         }
       }
+    
+      const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
+        let url: string;
+        url = `http://localhost:8000/getDataSource?source_reference=${source.sourceReference}`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
+        }
+
+        if (source.type === "html") {
+            const text = await response.text();
+            const htmlContent: HTMLSourceContent = {
+                type: 'html',
+                content: `<div class="source-content">${text}</div>`,
+                metadata: source.metadata || {}
+            };
+            return htmlContent;
+        } else if (source.type === "markdown") {
+            const text = await response.text();
+            const markdownContent: MarkdownSourceContent = {
+                type: 'markdown',
+                content: text,
+                metadata: source.metadata || {}
+            };
+            return markdownContent
+        } else if (source.type === "pdf") {
+            const arrayBuffer = await response.arrayBuffer();
+            const pdfContent: PDFSourceContent = {
+                type: 'pdf',
+                content: new Uint8Array(arrayBuffer),
+                metadata: source.metadata || {},
+                highlights: source.highlights || []
+            };
+            return pdfContent;
+        }
+
+        throw new Error("Invalid source type");
+    };
 
 
 
@@ -69,7 +110,7 @@ function App() {
                 retrieve={() => {}}
                 retrieveAndGenerate={retrieveAndGenerate}
                 generate={() => {}}
-                getDataSource={() => {}}
+                getDataSource={getDataSource}
                 config={{
                     timeouts: {
                         stream: 10000,
@@ -108,6 +149,7 @@ function App() {
                         <ContentDisplay />
                     </div>
                 </div>
+                <ErrorDisplay />
             </RAGProvider>
         </div>
     );
