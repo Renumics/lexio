@@ -38,7 +38,7 @@ Generated from:
 from lexio.types import (
 {imports}
 )
-from lexio.version import __version__
+from lexio._version import __version__
 
 __all__ = [
 {all_list}
