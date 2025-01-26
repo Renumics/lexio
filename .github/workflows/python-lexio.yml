@@ -34,7 +34,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install hatch pytest
+        pip install ".[dev]"
 
     - name: Generate Python Types
       working-directory: ${{ github.workspace }}
@@ -51,11 +51,7 @@ jobs:
         npm run generate-python-package
 
     - name: Run Python Tests
-      working-directory: ${{ github.workspace }}
-      run: |
-        cd rag-ui
-        npm ci
-        npm run test-python-package
+      run: pytest tests -v
 
   build-and-publish:
     name: build and publish to PyPI
@@ -80,7 +76,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install hatch twine pytest  # Build with hatch, publish with twine
+        pip install ".[dev]"
 
     - name: Generate Python Types
       working-directory: ${{ github.workspace }}

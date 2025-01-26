@@ -41,6 +41,7 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "hatch>=1.7.0",
+    "twine>=4.0.0",
 ]
 
 [tool.hatch.version]
@@ -48,6 +49,7 @@ source = "vcs"
 
 [tool.hatch.version.raw-options]
 version_scheme = "no-guess-dev"
+root = "../.." # required for hatch-vcs to find git versioning metadata
 
 [tool.hatch.build.hooks.vcs]
 version-file = "lexio/_version.py"
