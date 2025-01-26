@@ -1,8 +1,6 @@
 from lancedb.pydantic import LanceModel, Vector
 import lancedb
 from pathlib import Path
-from docling.chunking import HybridChunker
-from docling_core.types.doc import DoclingDocument
 from sentence_transformers import SentenceTransformer
 from typing import Optional
 
@@ -55,6 +53,7 @@ def get_model():
     """Get or create the SentenceTransformer model instance with connection reuse."""
     global _model
     if _model is None:
+        print("Creating model")
         _model = SentenceTransformer('jinaai/jina-embeddings-v3', trust_remote_code=True, device='mps')
     return _model
 
