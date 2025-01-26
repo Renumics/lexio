@@ -5,7 +5,7 @@ BASE_URL = "http://localhost:8000"
 
 def test_rag_workflow():
     # 1. Initial query with retrieve-and-generate
-    initial_query = "How can i query my server using lexio?"
+    initial_query = "What is the rag provider? Answer in 3 sentences."
     response = requests.post(
         f"{BASE_URL}/api/retrieve-and-generate",
         json={"query": initial_query}
@@ -26,7 +26,7 @@ def test_rag_workflow():
     messages = [
         {"role": "user", "content": initial_query},
         {"role": "assistant", "content": initial_data["response"]},
-        {"role": "user", "content": "Can you explain more about supervised learning based on these sources?"}
+        {"role": "user", "content": "What specifically are the parameters for the rag provider? Answer compactly!"}
     ]
     
     follow_up_response = requests.post(
