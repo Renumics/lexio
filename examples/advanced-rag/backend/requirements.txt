@@ -1,0 +1,5 @@
+docling
+transformers[torch]
+sentence-transformers
+lancedb
+einops
