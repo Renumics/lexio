@@ -3,3 +3,7 @@ transformers[torch]
 sentence-transformers
 lancedb
 einops
+fastapi[standard]
+sse-starlette
+requests
+bitsandbytes

@@ -1,7 +1,7 @@
 from pathlib import Path
 from docling.document_converter import DocumentConverter
 import os
-from db_utils import get_table, create_embeddings_batch
+from db_utils import get_table, create_embeddings_batch, create_vector_index, get_model
 import shutil
 from docling.chunking import HybridChunker
 
@@ -18,7 +18,14 @@ IGNORE_DIRECTORIES = {
     'dist',
     '.next',
     'venv',
-    'env'
+    'env',
+    '.lancedb'
+}
+
+# Files to ignore during processing
+IGNORE_FILES = {
+    'package-lock.json',
+    "LICENSE",
 }
 
 # File extensions that should be processed as plain text
@@ -35,8 +42,8 @@ DOCUMENT_EXTENSIONS = {
     '.ods', '.odp', '.epub', '.rtf'
 }
 
-def chunk_text_file(file_path: Path, chunk_size: int = 1000, overlap: int = 100):
-    """Chunk a text file into overlapping segments."""
+def chunk_text_file(file_path: Path, chunk_size: int = 1000):
+    """Chunk a text file using simple character-based chunking."""
     with open(file_path, 'r', encoding='utf-8') as f:
         try:
             text = f.read()
@@ -45,31 +52,25 @@ def chunk_text_file(file_path: Path, chunk_size: int = 1000, overlap: int = 100)
             return []
     
     chunks = []
-    start = 0
-    
-    while start < len(text):
-        end = start + chunk_size
-        if end < len(text):
-            while end > start and not text[end].isspace():
-                end -= 1
-            if end == start:
-                end = start + chunk_size
-        
-        chunk = text[start:end].strip()
-        if chunk:
-            chunks.append({
-                'text': chunk,
-                'page_number': None,
-                'bbox': None
-            })
-        
-        start = end - overlap
+    # Simple sliding window chunking
+    for i in range(0, len(text), chunk_size):
+        chunk_text = text[i:i + chunk_size]
+        # Match the expected format for create_embeddings_batch
+        chunks.append({
+            'text': chunk_text,
+            'page_number': None,
+            'bbox': None
+        })
     
     return chunks
 
 def chunk_docling_document(doc):
     """Chunk a Docling document using HybridChunker."""
-    chunker = HybridChunker()
+    chunker = HybridChunker(
+        tokenizer=get_model().tokenizer,  # Get the underlying tokenizer from the model
+        max_tokens=512,  # Jina's token limit
+        merge_peers=True  # Merge undersized peer chunks when possible
+    )
     raw_chunks = list(chunker.chunk(doc))
     
     chunks = []
@@ -79,7 +80,7 @@ def chunk_docling_document(doc):
         bbox = None
         
         if hasattr(chunk, 'prov') and chunk.prov:
-            prov = chunk.prov[0]  # Take first provenance item
+            prov = chunk.prov[0]
             page_number = getattr(prov, 'page_no', None)
             bbox_obj = getattr(prov, 'bbox', None)
             
@@ -91,6 +92,7 @@ def chunk_docling_document(doc):
                     'b': bbox_obj.b
                 }
         
+        # Use the chunker's serialize method to get enriched text
         chunks.append({
             'text': chunker.serialize(chunk),
             'page_number': page_number,
@@ -140,6 +142,10 @@ def build_index():
         dirs[:] = [d for d in dirs if d not in IGNORE_DIRECTORIES]
         
         for file in files:
+            # Skip ignored files
+            if file in IGNORE_FILES:
+                continue
+                
             input_path = Path(root) / file
             
             try:
@@ -165,6 +171,10 @@ def build_index():
                     
             except Exception as e:
                 print(f"Error processing {input_path}: {str(e)}")
+
+    # Create vector index after all documents are processed
+    print("Creating vector index...")
+    create_vector_index()
 
 if __name__ == "__main__":
     build_index()
