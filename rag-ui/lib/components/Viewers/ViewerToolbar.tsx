@@ -5,18 +5,7 @@ import {
     MagnifyingGlassMinusIcon,
     MagnifyingGlassPlusIcon,
 } from "@heroicons/react/24/solid";
-
-
-export interface CanvasDimensions {
-    width: number;
-    height: number;
-}
-
-export const ZOOM_CONSTANTS = {
-    ZOOM_STEP: 0.1,
-    MIN_SCALE: 0.25,
-    MAX_SCALE: 5,
-}; 
+import { ViewerToolbarProps } from "./types";
 
 export interface ViewerToolbarStyles extends React.CSSProperties {
     toolbarBorderRadius?: string;
@@ -31,16 +20,6 @@ export interface ViewerToolbarStyles extends React.CSSProperties {
     toolbarDisplayBackground?: string;
     toolbarDisplayBorderRadius?: string;
     toolbarDisplayInputBackground?: string;
-}
-
-export interface ViewerToolbarProps {
-    zoomIn: () => void;
-    zoomOut: () => void;
-    scale: number;
-    fitParent?: () => void;
-    children?: React.ReactNode;
-    isLoaded?: boolean;
-    styleOverrides?: ViewerToolbarStyles;
 }
 
 export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isLoaded = true, styleOverrides = {} }: ViewerToolbarProps) => {

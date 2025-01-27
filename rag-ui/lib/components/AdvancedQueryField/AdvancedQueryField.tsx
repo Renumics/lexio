@@ -1,4 +1,3 @@
-// --- Imports ---
 import React, {
   useCallback,
   useRef,
@@ -6,7 +5,8 @@ import React, {
   useEffect,
   useLayoutEffect,
   KeyboardEvent,
-  FormEvent
+  FormEvent,
+  CSSProperties
 } from 'react';
 import {
   useFloating,
@@ -14,79 +14,233 @@ import {
   useRole,
   useInteractions
 } from '@floating-ui/react';
+import ReactDOM from 'react-dom';
+import useResizeObserver from '@react-hook/resize-observer';
+
 import {
   useRAGSources,
   useRAGMessages,
   useRAGStatus
 } from '../RAGProvider/hooks';
 import { RetrievalResult, SourceReference, WorkflowMode } from '../../types';
-import useResizeObserver from '@react-hook/resize-observer';
-import ReactDOM from 'react-dom';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 
-// --- Types ---
-export interface AdvancedQueryFieldStyles extends React.CSSProperties {
-    backgroundColor?: string;
-    color?: string;
-    padding?: string;
-    fontFamily?: string
-    borderColor?: string;
-    borderRadius?: string;
-    mentionChipBackground?: string;
-    mentionChipColor?: string;
-    inputBackgroundColor?: string;
-    inputBorderColor?: string;
-    inputFocusRingColor?: string;
-    buttonBackground?: string;
-    buttonTextColor?: string;
-    buttonBorderRadius?: string;
-    modeInitColor?: string;
-    modeFollowUpColor?: string;
-    modeReRetrieveColor?: string;
+/**
+ * Styles interface for the AdvancedQueryField component
+ * @see {@link AdvancedQueryField}
+ */
+export interface AdvancedQueryFieldStyles extends CSSProperties {
+  /**
+   * Background color of the entire query container
+   */
+  backgroundColor?: string;
+  /**
+   * Text color for the entire query container
+   */
+  color?: string;
+  /**
+   * Padding for the container
+   */
+  padding?: string;
+  /**
+   * Font family for the container text
+   */
+  fontFamily?: string;
+  /**
+   * General border color (used for the editor)
+   */
+  borderColor?: string;
+  /**
+   * Border radius for the editor container, mention chips, etc.
+   */
+  borderRadius?: string;
+  /**
+   * Background color for inserted mention chips
+   */
+  mentionChipBackground?: string;
+  /**
+   * Text color for inserted mention chips
+   */
+  mentionChipColor?: string;
+  /**
+   * Background color for the editor field
+   */
+  inputBackgroundColor?: string;
+  /**
+   * Border color for the editor field or input boxes
+   */
+  inputBorderColor?: string;
+  /**
+   * (If you wish) a focus ring color for input fields
+   */
+  inputFocusRingColor?: string;
+  /**
+   * Background color for the "Send" button
+   */
+  buttonBackground?: string;
+  /**
+   * Text color for the "Send" button
+   */
+  buttonTextColor?: string;
+  /**
+   * Border radius for the button
+   */
+  buttonBorderRadius?: string;
+  /**
+   * Colors for the different workflow modes
+   */
+  modeInitColor?: string;
+  modeFollowUpColor?: string;
+  modeReRetrieveColor?: string;
 }
-// todo: make use of this!
 
+/**
+ * Interface representing a source mention within the editor
+ */
 interface Mention {
+  /** Unique identifier for the mention */
   id: string;
+  /** Display name of the mentioned source */
   name: string;
+  /** The full source object being referenced */
   source: RetrievalResult;
 }
 
+/**
+ * Interface for tracking cursor position in the contentEditable field
+ */
 interface CursorPosition {
+  /** The DOM node where the cursor is located */
   node: Node;
+  /** Offset within the node */
   offset: number;
 }
 
+/**
+ * Props for the AdvancedQueryField component
+ * @see {@link AdvancedQueryField}
+ */
 interface AdvancedQueryFieldProps {
+  /**
+   * Callback triggered when a message is submitted
+   * @param message The message text that was submitted
+   * @param mentions Array of source mentions included in the message
+   */
   onSubmit?: (message: string, mentions: Mention[]) => void;
-  /** Called after a mention is inserted */
+  
+  /**
+   * Called after a source mention is inserted into the editor
+   * @param source The source that was added
+   * @param allIndices Updated array of all currently referenced source indices
+   */
   onSourceAdded?: (source: RetrievalResult, allIndices: number[]) => void;
-  /** Called after a mention is removed */
+  
+  /**
+   * Called after a source mention is removed from the editor
+   * @param source The source that was removed
+   * @param allIndices Updated array of all currently referenced source indices
+   */
   onSourceDeleted?: (source: RetrievalResult, allIndices: number[]) => void;
-
-  value?: string; // external control (optional)
+  
+  /**
+   * Callback for when the editor content changes
+   * @param value The new editor content
+   * @param mentions Array of current source mentions
+   */
   onChange?: (value: string, mentions: Mention[]) => void;
+  
+  /**
+   * Placeholder text shown when editor is empty
+   * @default 'Type @ to mention a source...'
+   */
   placeholder?: string;
+  
+  /**
+   * Whether the editor is disabled
+   * @default false
+   */
   disabled?: boolean;
+  
+  /**
+   * Style overrides for the component
+   */
+  styleOverrides?: AdvancedQueryFieldStyles;
 }
 
-// Example status coloring
-const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
-  init: { label: 'New Conversation', color: 'bg-blue-500' },
-  'follow-up': { label: 'Follow-up', color: 'bg-green-500' },
-  reretrieve: { label: 'New Search', color: 'bg-purple-500' }
-};
-
-// --- Main Component ---
+/**
+ * An advanced query input component with source mention capabilities
+ * 
+ * Features:
+ * - Rich text editing with source mentions
+ * - Auto-expanding editor
+ * - Source filtering and selection
+ * - Visual workflow status indicator
+ * - Customizable styling
+ * - Responsive design
+ * 
+ * Usage:
+ * 
+ * ```tsx
+ * <AdvancedQueryField
+ *   onSubmit={(message, mentions) => {
+ *     console.log('Message:', message);
+ *     console.log('Mentioned sources:', mentions);
+ *   }}
+ *   placeholder="Type @ to mention a source..."
+ * />
+ * ```
+ */
 export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   onSubmit,
   onSourceAdded,
   onSourceDeleted,
-  value = '',
   onChange,
   placeholder = 'Type @ to mention a source...',
-  disabled = false
+  disabled = false,
+  styleOverrides = {}
 }) => {
+  // Theme-based styling
+  const theme = React.useContext(ThemeContext);
+  if (!theme) {
+    throw new Error('ThemeContext is undefined');
+  }
+
+  const { colors, spacing, borderRadius } = theme.theme;
+
+  // Merge theme defaults + overrides
+  const defaultStyle: AdvancedQueryFieldStyles = {
+    backgroundColor: colors.background,
+    color: colors.text,
+    padding: spacing.md,
+    fontFamily: 'inherit',
+    borderColor: '#e5e7eb',
+    borderRadius: borderRadius.md,
+    mentionChipBackground: '#bee3f8', // Light blue default
+    mentionChipColor: '#2c5282',      // Darker blue text
+    inputBackgroundColor: 'white',
+    inputBorderColor: '#e5e7eb',
+    inputFocusRingColor: colors.primary,
+    buttonBackground: colors.primary,
+    buttonTextColor: 'white',
+    buttonBorderRadius: borderRadius.md,
+    modeInitColor: colors.primary,
+    modeFollowUpColor: colors.success,
+    modeReRetrieveColor: colors.secondary,
+  };
+
+  const style: AdvancedQueryFieldStyles = {
+    ...defaultStyle,
+    ...removeUndefined(styleOverrides),
+  };
+
+  // Instead of tailwind color classes for workflow status,
+  // we'll use the style property from our theme merges:
+  const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
+    init: { label: 'New Conversation', color: style.modeInitColor ?? '#3b82f6' },
+    'follow-up': { label: 'Follow-up', color: style.modeFollowUpColor ?? '#22c55e' },
+    reretrieve: { label: 'New Search', color: style.modeReRetrieveColor ?? '#9333ea' }
+  };
+
   // -- Local State --
   const [isOpen, setIsOpen] = useState(false);
   const [filterValue, setFilterValue] = useState('');
@@ -94,11 +248,6 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const [cursorPosition, setCursorPosition] = useState<CursorPosition | null>(null);
-
-  /**
-   * NEW: Local state for the current text content of the editor.
-   * This is used to control whether the “Send” button is enabled.
-   */
   const [editorContent, setEditorContent] = useState('');
 
   // Refs
@@ -120,14 +269,12 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   const role = useRole(context);
   const { getFloatingProps } = useInteractions([dismiss, role]);
 
-  // ----- Helpers -----
+  // Helpers
   const isSourceReference = (s: RetrievalResult): s is SourceReference => 'source' in s;
-
   const getSourceId = (source: RetrievalResult, index?: number) => {
     const baseId = isSourceReference(source) ? source.sourceReference : source.text;
     return index !== undefined ? `${baseId}#${index}` : baseId;
   };
-
   const getDisplayName = (source: RetrievalResult): string => {
     if (source.sourceName) return source.sourceName;
     if (isSourceReference(source)) {
@@ -144,42 +291,33 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     return source.text.slice(0, 20) + '...';
   };
 
-  // ----- Editor Height Management -----
+  // Adjust editor height
   const adjustEditorHeight = useCallback(() => {
     if (!editorRef.current) return;
     const editor = editorRef.current;
-
     editor.style.height = 'auto';
     const scrollHeight = editor.scrollHeight;
     editor.style.height = `${scrollHeight}px`;
     editor.style.overflowY = scrollHeight > 200 ? 'auto' : 'hidden';
   }, []);
 
-  // Use layout effect so editor is stable after rendering
   useLayoutEffect(() => {
     adjustEditorHeight();
-  }, [adjustEditorHeight, value, editorContent]);
+  }, [adjustEditorHeight, editorContent]);
 
   useResizeObserver(formRef, adjustEditorHeight);
 
-  // ----- Sync Active Source Indices -----
-  /** Returns the unique list of numeric source indices in the editor's mention chips. */
+  // Gather numeric source indices from mention chips
   const getCurrentSourceIndices = (): number[] => {
     if (!editorRef.current) return [];
-    const chips = Array.from(
-      editorRef.current.querySelectorAll('span[data-source-index]')
-    );
-    return Array.from(
-      new Set(
-        chips
-          .map(chip => chip.getAttribute('data-source-index'))
-          .filter(Boolean)
-          .map(Number)
-      )
-    );
+    const chips = Array.from(editorRef.current.querySelectorAll('span[data-source-index]'));
+    return Array.from(new Set(chips
+      .map(chip => chip.getAttribute('data-source-index'))
+      .filter(Boolean)
+      .map(Number)
+    ));
   };
 
-  // Helper that sets context with newly discovered indices
   const updateIndicesInContext = useCallback(() => {
     const newIndices = getCurrentSourceIndices();
     ReactDOM.flushSync(() => {
@@ -188,33 +326,27 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     return newIndices;
   }, [setCurrentSourceIndices]);
 
-  // ----- Sources-based Reset (Optional) -----
-  // If `sources` changes by reference, we reset the editor & global indices.
+  // Reset if the sources array changes
   const previousSourcesRef = useRef<RetrievalResult[] | null>(null);
   useEffect(() => {
-    // If sources changes, reset
     if (previousSourcesRef.current !== sources) {
       if (editorRef.current) editorRef.current.textContent = '';
       setMentions([]);
-      setEditorContent(''); // local text also reset
+      setEditorContent('');
       onChange?.('', []);
       adjustEditorHeight();
-      setCurrentSourceIndices([]); // no active mentions now
-
+      setCurrentSourceIndices([]);
       previousSourcesRef.current = sources;
     }
   }, [sources, onChange, adjustEditorHeight, setCurrentSourceIndices]);
 
-  // ----- Source Filtering -----
+  // Filtered sources
   const filteredSources = (sources ?? []).filter(source => {
     if (!source) return false;
-
     let textVal: string;
     if (isSourceReference(source)) {
-      // For reference-based sources, prefer sourceName or sourceReference
       textVal = source.sourceName ?? source.sourceReference ?? '';
     } else {
-      // For text-based results, prefer sourceName or text
       textVal = source.sourceName ?? source.text ?? '';
     }
     return textVal.toLowerCase().includes(filterValue.toLowerCase());
@@ -224,7 +356,6 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   const handleAddMention = useCallback(
     (source: RetrievalResult) => {
       if (!editorRef.current || !cursorPosition) return;
-
       const sourceIndex = sources.findIndex(
         s => getSourceId(s) === getSourceId(source)
       );
@@ -233,24 +364,30 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       const mentionId = getSourceId(source, sourceIndex);
       const mentionName = getDisplayName(source);
 
-      // Build mention
       const newMention: Mention = {
         id: mentionId,
         name: mentionName,
         source
       };
 
-      // Build the chip DOM
+      // Create the chip DOM
       const chip = document.createElement('span');
       chip.contentEditable = 'false';
-      chip.className =
-        'inline-flex items-center px-2 py-0.5 mx-1 ' +
-        'rounded bg-blue-100 text-blue-800 text-sm select-none align-baseline';
+
+      // NOTE: applying dynamic styles from the theme:
+      chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 text-sm select-none align-baseline rounded';
+      chip.style.backgroundColor = style.mentionChipBackground || '#bee3f8';
+      chip.style.color = style.mentionChipColor || '#2c5282';
+      // If you also want to unify corner rounding:
+      if (style.borderRadius) {
+        chip.style.borderRadius = style.borderRadius;
+      }
+
       chip.setAttribute('data-mention-id', mentionId);
       chip.setAttribute('data-source-index', sourceIndex.toString());
       chip.textContent = `@${mentionName}`;
 
-      // Insert into the DOM at the stored cursor position
+      // Insert into the DOM
       const textNode = cursorPosition.node;
       if (textNode.nodeType === Node.TEXT_NODE) {
         const parent = textNode.parentNode;
@@ -261,16 +398,13 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         const afterText =
           textNode.textContent?.slice(cursorPosition.offset) || '';
 
-        // Mutate the original text node to keep only the 'before' part
         textNode.textContent = beforeText;
-
-        // Insert the chip
         parent.insertBefore(chip, textNode.nextSibling);
-        // Insert a space node after the chip
+
+        // Insert a space after the chip
         const spaceNode = document.createTextNode('\u00A0');
         parent.insertBefore(spaceNode, chip.nextSibling);
 
-        // Reinsert any text after the cursor
         if (afterText) {
           const afterNode = document.createTextNode(afterText);
           parent.insertBefore(afterNode, spaceNode.nextSibling);
@@ -286,7 +420,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
           sel.addRange(newRange);
         }
       } else {
-        // Edge case if we typed '@' in empty editor
+        // Edge case if typed '@' in empty editor
         const editorEl = editorRef.current;
         const spaceNode = document.createTextNode('\u00A0');
         editorEl.insertBefore(
@@ -295,7 +429,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         );
         editorEl.insertBefore(spaceNode, chip.nextSibling);
 
-        // Move cursor after the chip
+        // Move cursor
         const sel = window.getSelection();
         if (sel) {
           const newRange = document.createRange();
@@ -308,21 +442,19 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
 
       // Update local mention array
       setMentions(prev => [...prev, newMention]);
-
-      // Fire onChange with the new text content & mentions
       const newText = editorRef.current.textContent || '';
       setEditorContent(newText);
       onChange?.(newText, [...mentions, newMention]);
 
-      // Close menu, clear filter, reset cursor
+      // Close menu, clear filter
       setIsOpen(false);
       setFilterValue('');
       setCursorPosition(null);
 
-      // Focus editor again
+      // Focus editor
       editorRef.current.focus();
 
-      // Because we added a mention, update the global indices
+      // Sync in context
       queueMicrotask(() => {
         const newIndices = updateIndicesInContext();
         onSourceAdded?.(source, newIndices);
@@ -332,9 +464,10 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       cursorPosition,
       mentions,
       sources,
+      style,
       onChange,
-      updateIndicesInContext,
-      onSourceAdded
+      onSourceAdded,
+      updateIndicesInContext
     ]
   );
 
@@ -345,25 +478,19 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       const sourceIndexStr = chip.getAttribute('data-source-index');
       if (!mentionId || !sourceIndexStr) return;
 
-      // identify mention
       const mention = mentions.find(m => m.id === mentionId);
       if (!mention) return;
 
-      // parent and nextSibling before removal
       const parent = chip.parentNode;
       const nextSibling = chip.nextSibling;
 
-      // remove the chip from the DOM
       chip.remove();
 
-      // Attempt to put the cursor exactly where the chip used to be
+      // Place cursor
       let cursorNode: Node | null = null;
-
       if (nextSibling && nextSibling.nodeType === Node.TEXT_NODE) {
-        // If next sibling is a text node, place cursor at its start
         cursorNode = nextSibling;
       } else {
-        // Otherwise, create an empty text node in that position
         cursorNode = document.createTextNode('');
         if (parent) {
           if (nextSibling) {
@@ -374,7 +501,6 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         }
       }
 
-      // Move cursor to the new or existing text node
       const sel = window.getSelection();
       if (sel && cursorNode) {
         const range = document.createRange();
@@ -391,23 +517,24 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       const isLastInstance = !leftoverChips || leftoverChips.length === 0;
 
       if (isLastInstance) {
-        // remove from local mention array
         setMentions(prev => prev.filter(m => m.id !== mentionId));
       }
 
-      // After removal, update the local text
+      // Update local text
       const newText = editorRef.current?.textContent || '';
       setEditorContent(newText);
-      onChange?.(newText, isLastInstance ? mentions.filter(m => m.id !== mentionId) : mentions);
+      onChange?.(
+        newText,
+        isLastInstance ? mentions.filter(m => m.id !== mentionId) : mentions
+      );
 
-      // If it was the last mention for that source, also call onSourceDeleted
+      // Sync context
       if (isLastInstance) {
         queueMicrotask(() => {
           const newIndices = updateIndicesInContext();
           onSourceDeleted?.(mention.source, newIndices);
         });
       } else {
-        // If it wasn't the last instance, we still might re-sync
         queueMicrotask(() => {
           updateIndicesInContext();
         });
@@ -430,24 +557,16 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     const text = editor.textContent || '';
     if (!text.trim()) return;
 
-    // external callback
     onSubmit?.(text, mentions);
-
-    // push to RAG context
     addMessage({ role: 'user', content: text });
 
-    // reset local states
     editor.textContent = '';
     setMentions([]);
-    setEditorContent('');   // also clear local text
+    setEditorContent('');
     adjustEditorHeight();
-
-    // IMPORTANT: We do NOT call setCurrentSourceIndices([])
-    // so that if the user wants the same active sources to remain in context,
-    // they remain until a real sources change or chip removal.
   };
 
-  // ----- Input Keydown Handler (for mention filter) -----
+  // ----- Input Keydown for mention filter -----
   const handleFilterKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && filteredSources.length > 0) {
       e.preventDefault();
@@ -469,11 +588,11 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     }
   };
 
-  // ----- Editor Keydown (handles '@' trigger, Enter, mention removal) -----
+  // ----- Editor Keydown (handle '@', mention removal, Enter submit) -----
   const findNearestChip = (range: Range, direction: 'forward' | 'backward') => {
     const node = range.startContainer;
 
-    // If the selection is in the top-level editor
+    // If selection is in the top-level editor
     if (node === editorRef.current) {
       const children = Array.from(editorRef.current.childNodes);
       if (direction === 'backward' && range.startOffset > 0) {
@@ -496,11 +615,10 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       return null;
     }
 
-    // If we're in a text node
+    // If in a text node
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent || '';
       if (direction === 'backward') {
-        // must be near the start to catch the chip
         if (range.startOffset > 0 && text.slice(0, range.startOffset).trim()) {
           return null;
         }
@@ -511,7 +629,6 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
           return node.previousSibling;
         }
       } else {
-        // forward
         if (range.startOffset < text.length && text.slice(range.startOffset).trim()) {
           return null;
         }
@@ -525,7 +642,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       return null;
     }
 
-    // If we're in any other node
+    // Otherwise
     const sibling =
       direction === 'backward' ? node.previousSibling : node.nextSibling;
     if (
@@ -538,7 +655,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   };
 
   const handleEditorKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    // Trigger the mention dropdown with '@'
+    // Trigger mention with '@'
     if (e.key === '@') {
       e.preventDefault();
       const sel = window.getSelection();
@@ -547,19 +664,18 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       const editorRect = editorRef.current?.getBoundingClientRect();
       if (!editorRect) return;
 
-      // Insert a hidden '@' temporarily so we can measure its position
+      // Insert hidden '@' to measure
       const tempSpan = document.createElement('span');
       tempSpan.textContent = '@';
       tempSpan.style.visibility = 'hidden';
       range.insertNode(tempSpan);
 
-      // capture current cursor pos
+      // Store cursor pos
       setCursorPosition({
         node: range.startContainer,
         offset: range.startOffset
       });
 
-      // measure
       const tempRect = tempSpan.getBoundingClientRect();
       tempSpan.remove();
 
@@ -567,31 +683,29 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         x: tempRect.left - editorRect.left,
         y: tempRect.bottom - editorRect.top
       });
-
       setIsOpen(true);
       setSelectedIndex(0);
       setFilterValue('');
+
+      // Focus the filter input next tick
       setTimeout(() => filterInputRef.current?.focus(), 0);
       return;
     }
 
-    // Submit on Enter (without shift)
+    // Submit on Enter (no shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e as unknown as FormEvent);
       return;
     }
 
-    // Backspace/Delete for mention removal
+    // Remove mention if backspace/delete next to a chip
     if ((e.key === 'Backspace' || e.key === 'Delete') && editorRef.current) {
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) return;
       const range = sel.getRangeAt(0);
 
-      const chip = findNearestChip(
-        range,
-        e.key === 'Backspace' ? 'backward' : 'forward'
-      );
+      const chip = findNearestChip(range, e.key === 'Backspace' ? 'backward' : 'forward');
       if (chip) {
         e.preventDefault();
         handleRemoveMention(chip as HTMLSpanElement);
@@ -612,12 +726,24 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
 
   // ----- Render -----
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="w-full flex flex-col">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className="w-full flex flex-col"
+      style={{
+        // Apply themable container styling here
+        backgroundColor: style.backgroundColor,
+        color: style.color,
+        padding: style.padding,
+        fontFamily: style.fontFamily
+      }}
+    >
       <div className="relative">
         <div
           ref={editorRef}
           className="
-            w-full resize-none px-3 py-2 border rounded-lg
+            w-full resize-none px-3 py-2
+            border rounded-lg
             focus:ring-1 focus:ring-blue-500 focus:outline-none
             min-h-[2.5rem] max-h-[200px]
             empty:before:content-[attr(data-placeholder)]
@@ -629,6 +755,13 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
           suppressContentEditableWarning
           onInput={handleEditorInput}
           onKeyDown={handleEditorKeyDown}
+          style={{
+            // Dynamic style overrides
+            backgroundColor: style.inputBackgroundColor,
+            color: style.color,
+            borderColor: style.inputBorderColor,
+            borderRadius: style.borderRadius,
+          }}
         />
 
         {/* Mention Dropdown */}
@@ -640,19 +773,29 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
               left: `${menuPosition.x}px`,
               top: `${menuPosition.y}px`,
               width: '256px',
-              zIndex: 50
+              zIndex: 50,
+              backgroundColor: style.inputBackgroundColor,
+              borderColor: style.inputBorderColor,
+              color: style.color,
             }}
-            className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+            className="rounded-lg shadow-lg border overflow-hidden"
             {...getFloatingProps()}
           >
-            <div className="p-2 border-b">
+            <div className="p-2 border-b" style={{ borderColor: style.inputBorderColor }}>
               <input
                 ref={filterInputRef}
                 type="text"
                 className="
                   w-full px-2 py-1 border rounded
-                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                  focus:outline-none focus:ring-2 
                 "
+                style={{
+                  backgroundColor: style.inputBackgroundColor,
+                  color: style.color,
+                  borderColor: style.inputBorderColor,
+                  // The ring color is still from Tailwind. 
+                  // For a truly dynamic ring color, you'd use inline focus styles or a custom class.
+                }}
                 placeholder="Filter sources..."
                 value={filterValue}
                 onChange={e => setFilterValue(e.target.value)}
@@ -709,25 +852,28 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       {/* Footer */}
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-2">
+          {/* Instead of tailwind classes for color, use inline style from our merged theme */}
           <div
-            className={`h-2.5 w-2.5 rounded-full ${workflowStatus[workflowMode].color} animate-pulse`}
+            className="h-2.5 w-2.5 rounded-full animate-pulse"
+            style={{ backgroundColor: workflowStatus[workflowMode].color }}
           />
-          <span className="text-sm font-medium text-gray-600">
+          <span className="text-sm font-medium">
             {workflowStatus[workflowMode].label}
           </span>
         </div>
         <button
           type="submit"
-          /**
-           * Changed the condition from reading `editorRef.current?.textContent?.trim()`
-           * to reading `editorContent.trim()`, which is the local state.
-           * This ensures the button is enabled as soon as there’s *any* text.
-           */
           disabled={disabled || !editorContent.trim()}
           className="
-            px-4 py-2 bg-blue-500 text-white rounded-md
+            px-4 py-2
+            rounded-md
             hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed
           "
+          style={{
+            backgroundColor: style.buttonBackground,
+            color: style.buttonTextColor,
+            borderRadius: style.buttonBorderRadius,
+          }}
         >
           Send
         </button>

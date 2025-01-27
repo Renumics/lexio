@@ -1,4 +1,4 @@
-import {Theme} from 'theme/types.ts'
+import {Theme} from './theme/types'
 
 export type WorkflowMode =
   | 'init'           // Initial state, no conversation yet

@@ -1,10 +1,12 @@
 {
-  "name": "rag-ui",
-  "private": true,
-  "version": "0.0.0",
+  "name": "lexio",
+  "version": "0.0.1",
   "type": "module",
   "module": "dist/rag-ui.es.js",
   "types": "dist/rag-ui.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b ./tsconfig.lib.json && vite build",
@@ -12,7 +14,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b ./tsconfig.lib.json --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -30,6 +32,7 @@
     "react-toastify": "^10.0.6",
     "remark-gfm": "^4.0.0"
   },
+  
   "devDependencies": {
     "@chromatic-com/storybook": "^3.2.3",
     "@eslint/js": "^9.15.0",
@@ -42,7 +45,8 @@
     "@storybook/react-vite": "^8.6.0-alpha.0",
     "@storybook/test": "^8.6.0-alpha.0",
     "@testing-library/dom": "^10.4.0",
-    "@testing-library/react": "^16.1.0",
+    "@testing-library/jest-dom": "^6.1.0",
+    "@testing-library/react": "^14.0.0",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

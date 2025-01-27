@@ -28,11 +28,73 @@ export interface SourcesDisplayStyles extends React.CSSProperties {
   sourceTypeColor?: string;
 }
 
-interface SourcesDisplayProps {
+/**
+ * Props for the SourcesDisplay component
+ * @see {@link SourcesDisplay}
+ */
+export interface SourcesDisplayProps {
+  /**
+   * The title displayed above the sources list
+   * @default "Retrieved Sources"
+   */
+  title?: string;
+
+  /**
+   * Placeholder text for the search input field
+   * @default "Search sources..."
+   */
+  searchPlaceholder?: string;
+
+  /**
+   * Controls visibility of the search functionality
+   * @default true
+   */
+  showSearch?: boolean;
+
+  /**
+   * Controls visibility of relevance scores
+   * @default true
+   */
+  showRelevanceScore?: boolean;
+
+  /**
+   * Controls visibility of metadata tags
+   * @default true
+   */
+  showMetadata?: boolean;
+
+  /**
+   * Style customization options
+   */
   styleOverrides?: SourcesDisplayStyles;
 }
 
-const SourcesDisplay: React.FC<SourcesDisplayProps> = ({ styleOverrides = {} }) => {
+/**
+ * SourcesDisplay component shows a list of retrieved sources with search functionality
+ * 
+ * ```tsx
+ * <SourcesDisplay 
+ *   title="Search Results"
+ *   searchPlaceholder="Search documents..."
+ *   showSearch={true}
+ *   showRelevanceScore={true}
+ *   showMetadata={true}
+ *   styleOverrides={{
+ *     backgroundColor: '#f5f5f5',
+ *     buttonBackground: '#0066cc',
+ *     metadataTagBackground: '#e2e8f0'
+ *   }}
+ * />
+ * ```
+ */
+const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
+  title = "Retrieved Sources",
+  searchPlaceholder = "Search sources...",
+  showSearch = true,
+  showRelevanceScore = true,
+  showMetadata = true,
+  styleOverrides = {},
+}) => {
   const { sources, currentSources, activeSourceIndex, setActiveSourceIndex, retrieveSources } = useRAGSources();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -41,7 +103,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({ styleOverrides = {} }) 
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { colors, spacing, typography, borderRadius } = theme.theme;
+  const { colors, spacing, borderRadius } = theme.theme;
 
   // Merge theme defaults + overrides
   const style: SourcesDisplayStyles = {
@@ -100,39 +162,41 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({ styleOverrides = {} }) 
       borderRadius: style.borderRadius,
       fontFamily: style.fontFamily,
     }}>
-      <h2 className="text-lg font-semibold mb-4" style={{ color: style.color }}>Retrieved Sources</h2>
+      <h2 className="text-lg font-semibold mb-4" style={{ color: style.color }}>{title}</h2>
       {/* Search field and button */}
-      <div className="w-full flex gap-2 mb-4">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Search sources..."
-          className="w-full flex-1 transition-colors focus:ring-2"
-          style={{
-            color: style.color,
-            padding: '0.5rem 0.75rem',
-            outline: 'none',
-            border: '1px solid',
-            borderRadius: style.buttonBorderRadius,
-            borderColor: style.inputBorderColor,
-            backgroundColor: style.inputBackgroundColor,
-          }}
-        />
-        <button
-          onClick={handleSearch}
-          className="whitespace-nowrap transition-colors hover:opacity-80"
-          style={{
-            backgroundColor: style.buttonBackground,
-            color: style.buttonTextColor,
-            borderRadius: style.borderRadius,
-            padding: '0.5rem 1rem',
-          }}
-        >
-          Search
-        </button>
-      </div>
+      {showSearch && (
+        <div className="w-full flex gap-2 mb-4">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={searchPlaceholder}
+            className="w-full flex-1 transition-colors focus:ring-2"
+            style={{
+              color: style.color,
+              padding: '0.5rem 0.75rem',
+              outline: 'none',
+              border: '1px solid',
+              borderRadius: style.buttonBorderRadius,
+              borderColor: style.inputBorderColor,
+              backgroundColor: style.inputBackgroundColor,
+            }}
+          />
+          <button
+            onClick={handleSearch}
+            className="whitespace-nowrap transition-colors hover:opacity-80"
+            style={{
+              backgroundColor: style.buttonBackground,
+              color: style.buttonTextColor,
+              borderRadius: style.borderRadius,
+              padding: '0.5rem 1rem',
+            }}
+          >
+            Search
+          </button>
+        </div>
+      )}
 
       {sources.length === 0 ? (
         <p style={{ color: style.color, fontStyle: 'italic' }}>No sources available</p>
@@ -174,7 +238,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({ styleOverrides = {} }) 
                       {source.type}
                     </span>
                   )}
-                  {source.relevanceScore !== undefined && (
+                  {showRelevanceScore && source.relevanceScore !== undefined && (
                     <div className="mt-2 flex items-center">
                       <span className="text-sm" style={{ color: style.color + '90' }}>Relevance:</span>
                       <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
@@ -190,7 +254,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({ styleOverrides = {} }) 
                   )}
                 </div>
               </div>
-              {source.metadata && Object.keys(source.metadata).length > 0 && (
+              {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
                 <div className="mt-2 pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(source.metadata).map(([key, value]) => (

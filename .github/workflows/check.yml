@@ -1,0 +1,30 @@
+name: Node.js CI
+on:
+  workflow_call:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 20.x ]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: './rag-ui/package.json'
+    - name: Install dependencies
+      working-directory: ./rag-ui
+      run: npm ci
+    - name: Type check
+      working-directory: ./rag-ui
+      run: npm run typecheck
+    - name: Run tests
+      working-directory: ./rag-ui
+      run: npm test

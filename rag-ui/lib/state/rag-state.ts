@@ -475,6 +475,8 @@ export const createRetrieveAndGenerateAtom = (
         aborted = true;
         abortController.abort();
         set(currentStreamAtom, null);
+        set(loadingAtom, false);
+        set(errorAtom, `Response processing failed: ${error instanceof Error ? error.message : String(error)}`);
         throw error;
       }
     })();
@@ -482,18 +484,21 @@ export const createRetrieveAndGenerateAtom = (
     /**
      * Completion Tracking
      * Manages loading state and error handling for both operations.
-     * Loading state is only cleared when both operations complete.
+     * Loading state is only cleared when both operations complete or on error
      */
-    let sourcesComplete = !wrappedSources;  // True if no sources to process
     let responseComplete = false;
+    let sourcesComplete = !wrappedSources; // If no sources, mark as complete
+    let hasError = false;
 
     // Handle sources completion
     if (wrappedSources) {
       wrappedSources.catch(error => {
+        hasError = true;
         set(errorAtom, `Sources processing failed: ${error instanceof Error ? error.message : String(error)}`);
+        set(loadingAtom, false); // Reset loading state on error
       }).finally(() => {
         sourcesComplete = true;
-        if (responseComplete) {
+        if (responseComplete && !hasError) {
           set(loadingAtom, false);
         }
       });
@@ -501,10 +506,12 @@ export const createRetrieveAndGenerateAtom = (
 
     // Handle response completion
     wrappedResponse.catch(error => {
+      hasError = true;
       set(errorAtom, `Response processing failed: ${error instanceof Error ? error.message : String(error)}`);
+      set(loadingAtom, false); // Reset loading state on error
     }).finally(() => {
       responseComplete = true;
-      if (sourcesComplete) {
+      if (sourcesComplete && !hasError) {
         set(loadingAtom, false);
       }
     });
