@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 # Step 1: Extract Text and Metadata with pdfplumber
-def extract_and_chunk_text_with_positions(pdf_path, chunk_size=2000):
+def extract_and_chunk_text_with_positions(pdf_path, chunk_size=200):
     all_chunks = []
     
     with pdfplumber.open(pdf_path) as pdf:
@@ -23,13 +23,12 @@ def extract_and_chunk_text_with_positions(pdf_path, chunk_size=2000):
                 
                 # If adding this word exceeds the chunk size, save the current chunk
                 if current_length + word_length > chunk_size:
-                    # generate one bouding box from all the words in the current chunk
                     bounding_box = {
                         "page_number": page_number,
-                        "x0": min(word["x0"] for word in words),
-                        "x1": max(word["x1"] for word in words),
-                        "top": min(word["top"] for word in words),
-                        "bottom": max(word["bottom"] for word in words),
+                        "x0": min(b["x0"] for b in current_chunk["metadata"]["bounding_boxes"])/page.width,
+                        "x1": max(b["x1"] for b in current_chunk["metadata"]["bounding_boxes"])/page.width,
+                        "top": min(b["top"] for b in current_chunk["metadata"]["bounding_boxes"])/page.height,
+                        "bottom": max(b["bottom"] for b in current_chunk["metadata"]["bounding_boxes"])/page.height,
                     }
 
                     current_chunk["metadata"]["bounding_box"] = bounding_box

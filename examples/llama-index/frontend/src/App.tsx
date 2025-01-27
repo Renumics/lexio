@@ -33,9 +33,7 @@ function App() {
               // Log the data to inspect its structure
               console.log('Fetched data:', data)
     
-              // Assuming `data` is structured to match SourceReference
-
-            
+              // Assuming `data` is structured to match SourceReference        
 
             const sources: SourceReference[] = data.source_nodes.map((doc: any) => ({
                 type: 'pdf', // or derive from doc if available
@@ -45,10 +43,10 @@ function App() {
                 highlights: [{
                     page: doc.node.extra_info.bounding_box.page_number,
                     rect: {
-                        left: doc.node.extra_info.bounding_box.x0 / 1000,
-                        top: doc.node.extra_info.bounding_box.top / 1000,
-                        width: (doc.node.extra_info.bounding_box.x1 - doc.node.extra_info.bounding_box.x0) / 1000,
-                        height: (doc.node.extra_info.bounding_box.bottom - doc.node.extra_info.bounding_box.top) / 1000
+                        left: doc.node.extra_info.bounding_box.x0,
+                        top: doc.node.extra_info.bounding_box.top,
+                        width: doc.node.extra_info.bounding_box.x1 - doc.node.extra_info.bounding_box.x0,
+                        height: doc.node.extra_info.bounding_box.bottom - doc.node.extra_info.bounding_box.top
                     }
                 }],
                 //metadata: doc.metadata,
