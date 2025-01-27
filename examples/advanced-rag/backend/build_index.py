@@ -85,19 +85,23 @@ def chunk_text_file(file_path: Path):
         file_extension = file_path.suffix.lower()
         if file_extension == '.md':
             splitter = MarkdownSplitter(chunk_size)
-        elif file_extension in {'.py', '.js', '.ts', '.jsx', '.tsx'}:
-            # Load tree-sitter
-            if file_extension == '.py':
-                import tree_sitter_python
-                language = tree_sitter_python.language()
-            elif file_extension in {'.ts', '.tsx'}:
-                import tree_sitter_typescript
-                language = tree_sitter_typescript.language()
-            else:  # .js, .jsx
-                import tree_sitter_javascript
-                language = tree_sitter_javascript.language()
-            
-            splitter = CodeSplitter(language, chunk_size)  # Add minimum chunk size
+        # Comment out code splitting logic for now
+        # elif file_extension in {'.py', '.js', '.ts', '.jsx', '.tsx'}:
+        #     # Load tree-sitter
+        #     if file_extension == '.py':
+        #         import tree_sitter_python
+        #         language = tree_sitter_python.language()
+        #     elif file_extension == '.ts':
+        #         import tree_sitter_typescript
+        #         language = tree_sitter_typescript.language_typescript()
+        #     elif file_extension == '.tsx':
+        #         import tree_sitter_typescript
+        #         language = tree_sitter_typescript.language_tsx()
+        #     else:  # .js, .jsx
+        #         import tree_sitter_javascript
+        #         language = tree_sitter_javascript.language()
+        #     
+        #     splitter = CodeSplitter(language, chunk_size)  # Add minimum chunk size
         else:
             splitter = TextSplitter(chunk_size)  # Add minimum chunk size
         
