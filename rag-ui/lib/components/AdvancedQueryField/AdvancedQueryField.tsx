@@ -71,10 +71,6 @@ export interface AdvancedQueryFieldStyles extends CSSProperties {
    */
   inputBorderColor?: string;
   /**
-   * (If you wish) a focus ring color for input fields
-   */
-  inputFocusRingColor?: string;
-  /**
    * Background color for the "Send" button
    */
   buttonBackground?: string;
@@ -219,9 +215,8 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     mentionChipColor: '#2c5282',      // Darker blue text
     inputBackgroundColor: 'white',
     inputBorderColor: '#e5e7eb',
-    inputFocusRingColor: colors.primary,
     buttonBackground: colors.primary,
-    buttonTextColor: 'white',
+    buttonTextColor: colors.contrast,
     buttonBorderRadius: borderRadius.md,
     modeInitColor: colors.primary,
     modeFollowUpColor: colors.success,
@@ -735,7 +730,8 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         backgroundColor: style.backgroundColor,
         color: style.color,
         padding: style.padding,
-        fontFamily: style.fontFamily
+        fontFamily: style.fontFamily,
+        borderRadius: style.borderRadius,
       }}
     >
       <div className="relative">
@@ -744,7 +740,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
           className="
             w-full resize-none px-3 py-2
             border rounded-lg
-            focus:ring-1 focus:ring-blue-500 focus:outline-none
+            focus:ring-1 focus:ring-gray-300 focus:outline-none
             min-h-[2.5rem] max-h-[200px]
             empty:before:content-[attr(data-placeholder)]
             empty:before:text-gray-400

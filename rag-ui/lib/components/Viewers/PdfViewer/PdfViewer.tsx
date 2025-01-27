@@ -26,6 +26,7 @@ export interface PdfViewerStyles extends ViewerToolbarStyles {
     fontFamily?: string;
     contentBackground?: string;
     contentPadding?: string;
+    borderRadius?: string;
 }
 
 interface PdfViewerProps {
@@ -56,15 +57,15 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         fontFamily: typography.fontFamily,
         contentBackground: colors.secondaryBackground,
         contentPadding: spacing.none,
-        
-        toolbarDisplayBackground: '#f0f0f0',
-        toolbarDisplayBorderRadius: borderRadius.md,
-        toolbarDisplayInputBackground: '#ffffff',
+        borderRadius: borderRadius.md,
+
         toolbarBorderRadius: borderRadius.md,
-        toolbarButtonBorderRadius: borderRadius.md,
-        toolbarSecondaryBackground: colors.secondaryBackground,
+        toolbarChipBackground: '#f3f3f3',
+        toolbarChipBorderRadius: borderRadius.md,
+        toolbarChipInputBackground: '#ffffff',
         toolbarButtonBackground: colors.primary,
-        toolbarButtonColor: 'white',
+        toolbarButtonColor: colors.contrast,
+        toolbarButtonBorderRadius: borderRadius.sm,
         ...removeUndefined(styleOverrides),
     };
 
@@ -325,16 +326,6 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
             }
         }
 
-
-        /*backgroundColor?: string;
-        color?: string;
-        padding?: string;
-        fontFamily?: string;
-        borderRadius?: string;
-        contentBackground?: string;
-        contentPadding?: string;
-        */
-
         return (
             <ViewerToolbar 
                 zoomIn={wrappedActions.zoomIn} 
@@ -366,19 +357,19 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                             title="Previous Page (Left Arrow, Backspace)">
                             <ChevronLeftIcon className="size-4"/>
                         </button>
-                        <div className="m-auto min-w-16 text-center" // todo: fix width
+                        <div className="m-auto px-1"
                             style={{
                                 color: style.toolbarTextColor,
-                                backgroundColor: style.toolbarDisplayBackground,
-                                borderRadius: style.toolbarDisplayBorderRadius,
+                                backgroundColor: style.toolbarChipBackground,
+                                borderRadius: style.toolbarChipBorderRadius,
                             }}
                         >
                             {numPages !== null ? (
                                 <>
                                     <input
-                                        className="text-center w-6 rounded-md mr-1"
+                                        className="text-center rounded-md mx-1 w-8"
                                         style={{
-                                            backgroundColor: style.toolbarDisplayInputBackground,
+                                            backgroundColor: style.toolbarChipInputBackground,
                                         }}
                                         onKeyDown={setPageNumberFromInput}
                                         defaultValue={pageNumber || (numPages ? 1 : '--')}
@@ -386,13 +377,12 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                                         aria-label="Enter page number"
                                         aria-live="polite"
                                     /> /
-                                    <span className="text-gray-600 ml-1 w-8"> {numPages || '--'}</span>
+                                    <span className="text-gray-600 mx-1"> {numPages || '--'}</span>
                                 </>
                             ) : '--'
                             }
                         </div>
                         <button
-                            
                             className="px-2 py-1 transition-transform transition-shadow duration-200 ease-in-out hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{
                                 color: style.toolbarButtonColor,
@@ -434,10 +424,8 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                 }
             }}
             style={{
-                ...{
-                    color: style.color,
-                    fontFamily: style.fontFamily,
-                }
+                color: style.color,
+                fontFamily: style.fontFamily,
             }}
         >
             <Toolbar />
@@ -447,6 +435,8 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                     textAlign: 'center',
                     padding: style.contentPadding,
                     backgroundColor: style.contentBackground,
+                    borderBottomRightRadius: style.borderRadius,
+                    borderBottomLeftRadius: style.borderRadius
                 }}
                 ref={documentContainerRef}
             >

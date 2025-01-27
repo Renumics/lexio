@@ -31,10 +31,10 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
 
   // Merge theme defaults + overrides
   const style: ContentDisplayStyles = {
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
     color: colors.text,
     padding: spacing.none,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.md,
     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     ...removeUndefined(styleOverrides),
   };

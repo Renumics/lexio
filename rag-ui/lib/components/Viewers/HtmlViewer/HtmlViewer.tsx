@@ -13,9 +13,11 @@ export interface HtmlViewerStyles extends ViewerToolbarStyles {
     color?: string;
     padding?: string;
     fontFamily?: string;
+
     viewerBorderRadius?: string;
     viewerBackground?: string;
     viewerPadding?: string;
+
     contentBackground?: string;
     contentPadding?: string;
     contentBorderRadius?: string;
@@ -43,6 +45,16 @@ const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
         color: colors.text,
         padding: spacing.none,
         borderRadius: borderRadius.md,
+
+        toolbarBorderRadius: borderRadius.md,
+        toolbarChipBackground: '#f0f0f0',
+        toolbarChipBorderRadius: borderRadius.md,
+        toolbarChipInputBackground: '#ffffff',
+        toolbarButtonBorderRadius: borderRadius.md,
+        toolbarSecondaryBackground: colors.secondaryBackground,
+        toolbarButtonBackground: colors.primary,
+        toolbarButtonColor: 'white',
+
         viewerBorderRadius: borderRadius.sm,
         viewerBackground: colors.background,
         viewerPadding: spacing.none,
