@@ -13,16 +13,12 @@ import {
     PDFSourceContent,
     TextContent,
 } from 'lexio';
-import {defaultTheme} from "../../../../rag-ui/lib/theme";
+import {createTheme} from "../../../../rag-ui/lib/theme";
 
 // TODO: import of Theme
-
-// TODO: create a helper which merges 2 themes -> document it
-// Override the default theme
-const demoTheme = {
-    ...defaultTheme,
+// we create a custom theme for the demo which overrides the default theme values
+const demoTheme = createTheme({
     colors: {
-        ...(defaultTheme.colors || {}), // Merge existing colors first
         primary: '#1D3D3C',
         contrast: '#FFFFFF',
         secondary: '#4172b6',
@@ -30,7 +26,7 @@ const demoTheme = {
         toolbarBackground: '#366563',
         secondaryBackground: '#bbd5d3',
     }
-}
+});
 
 function App() {
     const retrieveAndGenerate = (messages: Message[]) => {

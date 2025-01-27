@@ -186,7 +186,7 @@ const SourceTypesExample = ({theme}: Theme) => {
 
 type Story = StoryObj<typeof SourceTypesExample>;
 
-// TODO: Create Theming tutorial
+// TODO: Create Theming tutorial - 2 possibilites - create from scratch or modify default theme
 const meta = {
     title: 'Getting Started/09. Theming',
     component: SourceTypesExample,

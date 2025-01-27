@@ -36,3 +36,27 @@ export const defaultTheme: Theme = {
     xl: '40px',
   },
 };
+
+
+export const createTheme = (overrides: Partial<Theme>): Theme => {
+    return {
+        ...defaultTheme,
+        ...overrides,
+        colors: {
+        ...defaultTheme.colors,
+        ...overrides.colors,
+        },
+        typography: {
+        ...defaultTheme.typography,
+        ...overrides.typography,
+        },
+        spacing: {
+        ...defaultTheme.spacing,
+        ...overrides.spacing,
+        },
+        borderRadius: {
+        ...defaultTheme.borderRadius,
+        ...overrides.borderRadius,
+        },
+    };
+}
