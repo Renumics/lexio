@@ -11,7 +11,6 @@ import '@testing-library/jest-dom'; // for DOM matchers like toBeInTheDocument
 import { SourcesDisplay } from './SourcesDisplay';
 import { RAGProvider } from '../RAGProvider';
 import type {
-  Message,
   SourceReference,
   GetDataSourceResponse,
   RAGConfig,

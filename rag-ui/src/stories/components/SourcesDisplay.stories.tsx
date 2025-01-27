@@ -26,12 +26,23 @@ const SAMPLE_RESULTS: RetrievalResult[] = [
 const DataLoader = () => {
   const { retrieveSources } = useRAGSources();
   useEffect(() => {
-    // Small delay to ensure provider is ready
-    const timer = setTimeout(() => {
-      retrieveSources("");
-    }, 0);
-    return () => clearTimeout(timer);
+    let mounted = true;
+
+    const loadData = async () => {
+      // Wait for next tick to ensure provider is ready
+      await new Promise(resolve => setTimeout(resolve, 0));
+      if (mounted) {
+        await retrieveSources("");
+      }
+    };
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
   }, [retrieveSources]);
+  
   return null;
 };
 
@@ -42,20 +53,25 @@ const meta: Meta<typeof SourcesDisplay> = {
   decorators: [
     (Story) => (
       <div style={{ width: '600px', minHeight: '500px', padding: '1rem' }}>
-        <RAGProvider retrieve={async () => SAMPLE_RESULTS}>
+        <RAGProvider 
+          retrieve={async () => {
+            // Add small delay to simulate network request
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return SAMPLE_RESULTS;
+          }}
+        >
           <DataLoader />
           <Story />
         </RAGProvider>
       </div>
     ),
   ],
+ 
 };
 
 export default meta;
 type Story = StoryObj<typeof SourcesDisplay>;
 
 export const Docs: Story = {
-  args: {
 
-  },
 }; 
