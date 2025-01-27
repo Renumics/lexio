@@ -45,65 +45,126 @@ DOCUMENT_EXTENSIONS = {
 }
 
 
-def chunk_text_file(file_path: Path, chunk_size: int = 1000):
+def chunk_text_file(file_path: Path):
     """
-    Chunk a text file using semantic text splitting with the same tokenizer as HybridChunker.
-    Returns a list of chunk dicts with keys: 'text', 'page_number', 'bbox'.
+    Chunk a text file using a semantic splitter, retrying up to 3 times 
+    with decreasing char-chunk sizes if we get any chunk > 512 tokens.
+    If still failing, we do a direct token-based split for the large chunk.
+
+    Returns a list of dicts with keys: 'text', 'page_number', 'bbox'.
     """
+    tokenizer = get_model().tokenizer
+    
+    # 1) Read file text
     with open(file_path, 'r', encoding='utf-8') as f:
         try:
             text = f.read()
         except UnicodeDecodeError:
-            print(f"Unable to read {file_path} as text file - skipping")
+            print(f"Unable to read {file_path} as text - skipping")
             return []
     
-    # Choose splitter based on file extension
-    file_extension = file_path.suffix.lower()
+    if not text.strip():
+        return []
+
+    # 2) Estimate average ratio of tokens/characters
+    tokens = tokenizer.tokenize(text)
+    char_len = len(text)
+    token_len = len(tokens)
+    if char_len == 0:  # extremely rare if text is empty
+        return []
     
-    if file_extension == '.md':
-        splitter = MarkdownSplitter(512)
-    elif file_extension in {'.py', '.js', '.ts', '.jsx', '.tsx'}:
-        # Import appropriate tree-sitter language based on extension
-        if file_extension == '.py':
-            import tree_sitter_python
-            language = tree_sitter_python.language()
-        elif file_extension in {'.js', '.ts', '.jsx', '.tsx'}:
-            import tree_sitter_javascript
-            language = tree_sitter_javascript.language()
+    ratio = token_len / char_len  # tokens per character
+    # Start with chunk_size_chars ~ 512 tokens worth of characters
+    chunk_size_chars = int(512 / ratio) if ratio > 0 else 512
+    chunk_size_chars = max(chunk_size_chars, 200)  # floor to avoid super-tiny chunks
+
+    # 3) We'll define a helper to do one pass of semantic chunking
+    def semantic_split_pass(txt: str, chunk_size: int) -> list:
+        """Split text semantically with a given char chunk size."""
+        # Decide which semantic splitter based on extension
+        file_extension = file_path.suffix.lower()
+        if file_extension == '.md':
+            splitter = MarkdownSplitter(chunk_size)
+        elif file_extension in {'.py', '.js', '.ts', '.jsx', '.tsx'}:
+            # Load tree-sitter
+            if file_extension == '.py':
+                import tree_sitter_python
+                language = tree_sitter_python.language()
+            else:
+                import tree_sitter_javascript
+                language = tree_sitter_javascript.language()
+            splitter = CodeSplitter(language, chunk_size)
+        else:
+            splitter = TextSplitter(chunk_size)
         
-        splitter = CodeSplitter(language, 512)
-    else:
-        # Default to TextSplitter for other file types
-        splitter = TextSplitter(512)
-    
-    # Get semantic chunks
-    text_chunks = splitter.chunks(text)
-    
-    # Format chunks to match expected format
-    chunks = []
+        return splitter.chunks(txt)
+
+    # 4) Attempt semantic chunking up to 3 times, each time reducing chunk size if needed
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        text_chunks = semantic_split_pass(text, chunk_size_chars)
+
+        # Check if any chunk > 512 tokens
+        chunk_sizes = []
+        for c in text_chunks:
+            tk_len = len(tokenizer.tokenize(c))
+            chunk_sizes.append(tk_len)
+
+        oversize = [sz for sz in chunk_sizes if sz > 512]
+
+        if not oversize:
+            # All chunks are within 512 tokens => success
+            break
+        else:
+            # We have an oversized chunk
+            if attempt < max_retries:
+                # Decrease chunk_size_chars and retry
+                # E.g., multiply by 0.5 or 0.75, your choice
+                chunk_size_chars = max(int(chunk_size_chars * 0.5), 50)
+                print(f"[Retry {attempt}/{max_retries}] Oversized chunk found. "
+                      f"Reducing chunk_size_chars to {chunk_size_chars} and retrying...")
+            else:
+                # After final attempt, we'll accept the chunking and
+                # fallback to direct token-based splitting for large chunks
+                print(f"[Final Retry] Still oversize after attempts. "
+                      "Will forcibly tokenize oversize chunks.")
+                break
+
+    # 5) Now we have semantic chunks in `text_chunks`, some might still be >512 tokens.
+    #    We'll do a final pass to forcibly split those oversize chunks by tokens.
+    final_chunks = []
     for chunk_text in text_chunks:
-        chunks.append({
-            'text': chunk_text,
+        sub_tokens = tokenizer.tokenize(chunk_text)
+        if len(sub_tokens) <= 512:
+            final_chunks.append(chunk_text)
+        else:
+            # Force-split
+            start_idx = 0
+            while start_idx < len(sub_tokens):
+                end_idx = start_idx + 512
+                piece_tokens = sub_tokens[start_idx:end_idx]
+                piece_text = tokenizer.detokenize(piece_tokens)
+                final_chunks.append(piece_text)
+                start_idx = end_idx
+
+    # 6) Package them into your standard chunk dict format
+    chunk_dicts = []
+    for ck_text in final_chunks:
+        chunk_dicts.append({
+            'text': ck_text,
             'page_number': None,
             'bbox': None
         })
     
-    return chunks
+    return chunk_dicts
 
 
 def chunk_docling_document(doc):
     """
-    Chunk a Docling document using HybridChunker.
-    Returns a list of chunk dicts with keys: 'text', 'page_number', 'bbox'.
-
-    IMPORTANT:
-      - Each bounding box is converted to top-left orientation in [0..1].
-      - 'l' = left, 't' = top, 'r' = right, 'b' = bottom,
-        where (0,0) is top-left, (1,1) is bottom-right.
-      - Some elements might already be in TOPLEFT coords, some in BOTTOMLEFT.
-        We use the bounding box's "to_top_left_origin" and "normalized" methods to unify them.
+    Chunk a Docling document using HybridChunker, converting bounding boxes
+    to top-left orientation in [0..1].
     """
-    from docling_core.types.doc import CoordOrigin, Size  # Ensure these are imported if needed
+    from docling_core.types.doc import CoordOrigin, Size
 
     chunker = HybridChunker(
         tokenizer=get_model().tokenizer,
@@ -115,29 +176,23 @@ def chunk_docling_document(doc):
     chunks = []
     for chunk in raw_chunks:
         page_number = None
-
-        # We'll track bounding box in final top-left coords [0..1]
         min_left   = 1.0
         min_top    = 1.0
         max_right  = 0.0
         max_bottom = 0.0
         has_bbox   = False
-
-        # Check if chunk has doc_items
+        
         if hasattr(chunk, 'meta') and hasattr(chunk.meta, 'doc_items'):
             for doc_item in chunk.meta.doc_items:
                 if hasattr(doc_item, 'prov') and doc_item.prov:
                     prov = doc_item.prov[0]
 
-                    # Page number
                     if page_number is None:
                         page_number = getattr(prov, 'page_no', None)
 
-                    # Original bounding box
                     bbox_obj = getattr(prov, 'bbox', None)
                     if bbox_obj:
                         has_bbox = True
-                        # Get page dimensions for normalization
                         page = doc.pages.get(page_number) if doc.pages else None
                         if page is not None:
                             page_width  = page.size.width
@@ -145,38 +200,23 @@ def chunk_docling_document(doc):
                         else:
                             page_width  = 1.0
                             page_height = 1.0
-                        
-                        # 1) Convert everything to top-left coords
+
+                        # If origin is BOTTOMLEFT, convert to top-left
                         if bbox_obj.coord_origin == CoordOrigin.BOTTOMLEFT:
                             top_left_box = bbox_obj.to_top_left_origin(page_height=page_height)
                         else:
-                            # Already in top-left
                             top_left_box = bbox_obj
 
-                        # 2) Normalize to [0,1]
+                        # Normalize [0..1]
                         normalized_box = top_left_box.normalized(Size(width=page_width, height=page_height))
+                        nl, nr = sorted([normalized_box.l, normalized_box.r])
+                        nt, nb = sorted([normalized_box.t, normalized_box.b])
                         
-                        # normalized_box.* should now be in top-left coords:
-                        #   l, r in [0..1],  t, b in [0..1], but we must ensure t < b
-                        nl = normalized_box.l
-                        nr = normalized_box.r
-                        nt = normalized_box.t
-                        nb = normalized_box.b
-
-                        # Ensure left < right
-                        if nl > nr:
-                            nl, nr = nr, nl
-                        # Ensure top < bottom
-                        if nt > nb:
-                            nt, nb = nb, nt
-
-                        # Expand chunk bounding box
                         min_left   = min(min_left, nl)
                         min_top    = min(min_top, nt)
                         max_right  = max(max_right, nr)
                         max_bottom = max(max_bottom, nb)
-        
-        # Prepare final bounding box dict
+
         bbox = None
         if has_bbox:
             bbox = {
@@ -185,8 +225,8 @@ def chunk_docling_document(doc):
                 'r': max_right,
                 'b': max_bottom
             }
-            # Debug-print if needed:
-            print("Final normalized top-left box:", bbox)
+            # Debug print if needed:
+            # print("Final normalized top-left box:", bbox)
         
         chunks.append({
             'text': chunker.serialize(chunk),
@@ -241,37 +281,30 @@ def build_index():
         dirs[:] = [d for d in dirs if d not in IGNORE_DIRECTORIES]
         
         for file in files:
-            # Skip ignored files
             if file in IGNORE_FILES:
                 continue
-                
+
             input_path = Path(root) / file
-            
             try:
-                # Check file extension
                 file_extension = input_path.suffix.lower()
                 
                 if file_extension in TEXT_FILE_EXTENSIONS:
-                    # Process directly as text file
                     print(f"Processing {input_path} as text file")
                     process_document(input_path, None)
                 elif file_extension in DOCUMENT_EXTENSIONS:
-                    # Try to convert document with Docling
+                    print(f"Processing {input_path} with Docling")
                     try:
-                        print(f"Processing {input_path} with Docling")
                         docling_result = converter.convert(str(input_path))
                         process_document(input_path, docling_result)
                     except Exception as e:
                         print(f"Docling conversion failed for {input_path}: {str(e)}")
                 else:
-                    # Try as text file for unknown extensions
                     print(f"Unknown extension for {input_path}, trying as text file")
                     process_document(input_path, None)
                     
             except Exception as e:
                 print(f"Error processing {input_path}: {str(e)}")
 
-    # Create vector index after all documents are processed
     print("Creating vector index...")
     create_vector_index()
 
