@@ -1,0 +1,118 @@
+name: Python CI
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:  # Allows users to manually trigger the workflow from the GitHub Actions tab
+
+jobs:
+  test:
+    name: generate package & test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: python/lexio
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Required for hatch-vcs
+
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install ".[dev]"
+
+    - name: Generate Python Types
+      working-directory: ${{ github.workspace }}
+      run: |
+        cd rag-ui
+        npm ci
+        npm run generate-types
+
+    - name: Generate Python Package
+      working-directory: ${{ github.workspace }}
+      run: |
+        cd rag-ui
+        npm ci
+        npm run generate-python-package
+
+    - name: Run Python Tests
+      run: pytest tests -v
+
+  build-and-publish:
+    name: build and publish to PyPI
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    defaults:
+      run:
+        working-directory: python/lexio
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Required for hatch-vcs
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install ".[dev]"
+
+    - name: Generate Python Types
+      working-directory: ${{ github.workspace }}
+      run: |
+        cd rag-ui
+        npm ci
+        npm run generate-types
+
+    - name: Generate Python Package
+      working-directory: ${{ github.workspace }}
+      run: |
+        cd rag-ui
+        npm ci
+        npm run generate-python-package
+
+    - name: Build package
+      run: hatch build
+
+    - name: Check Package with Twine
+      run: twine check dist/*
+
+    - name: Publish to Test PyPI with Twine
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+      run: twine upload -r testpypi dist/*
+
+#    - name: Create Release
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      run: |
+#        # Extract version from tag (remove 'v' prefix)
+#        VERSION=${GITHUB_REF#refs/tags/v}
+#
+#        # Create Release
+#        gh release create "v$VERSION" \
+#          --title "Release $VERSION" \
+#          --generate-notes \
+#          dist/*

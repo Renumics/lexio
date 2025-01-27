@@ -12,12 +12,53 @@ export interface ChatWindowStyles extends React.CSSProperties {
   borderRadius?: string;
 }
 
-// Define the props interface
+/**
+ * Props for the ChatWindow component
+ * @see {@link ChatWindow}
+ */
 export interface ChatWindowProps {
+  /**
+   * Style overrides for the component
+   */
   styleOverrides?: ChatWindowStyles;
+  /**
+   * Whether to show role labels (User:, Assistant:) before messages
+   * @default true
+   */
+  showRoleLabels?: boolean;
+  /**
+   * Custom label for user messages
+   * @default "User: "
+   */
+  userLabel?: string;
+  /**
+   * Custom label for assistant messages
+   * @default "Assistant: "
+   */
+  assistantLabel?: string;
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ styleOverrides = {} }) => {
+/**
+ * ChatWindow component displays a conversation between a user and an assistant
+ * 
+ * ```tsx
+ * <ChatWindow 
+ *   showRoleLabels={true}
+ *   userLabel="You: "
+ *   assistantLabel="Bot: "
+ *   styleOverrides={{
+ *     backgroundColor: '#f5f5f5',
+ *     padding: '1rem'
+ *   }}
+ * />
+ * ```
+ */
+const ChatWindow: React.FC<ChatWindowProps> = ({ 
+  styleOverrides = {},
+  showRoleLabels = true,
+  userLabel = 'User: ',
+  assistantLabel = 'Assistant: ',
+}) => {
   const { messages, currentStream } = useRAGMessages();
 
   // --- use theme ---
@@ -43,16 +84,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ styleOverrides = {} }) => {
       className="w-full h-full overflow-y-auto"
       style={style}
     >
-      {/* todo: style the messages */}
       {messages.map((msg, index) => (
         <div key={index} className={`mb-2 ${msg.role}`}>
-          <strong>{msg.role === 'user' ? 'User: ' : 'Assistant: '}</strong>
+          {showRoleLabels && (
+            <strong>{msg.role === 'user' ? userLabel : assistantLabel}</strong>
+          )}
           {msg.content}
         </div>
       ))}
       {currentStream && (
         <div className="mb-2 assistant streaming">
-          <strong>Assistant: </strong>
+          {showRoleLabels && <strong>{assistantLabel}</strong>}
           {currentStream.content}
         </div>
       )}
