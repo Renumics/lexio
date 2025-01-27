@@ -129,7 +129,9 @@ async def retrieve_and_generate(messages: str = Query(...)):
 
 @app.get("/getDataSource")
 async def get_data_source(source_reference: str):
-    path = DATA_FOLDER + "/" + Path(source_reference).name
+    path = os.path.normpath(os.path.join(DATA_FOLDER, Path(source_reference).name))
+    if not path.startswith(os.path.abspath(DATA_FOLDER)):
+        raise HTTPException(status_code=400, detail="Invalid file path")
     if not os.path.exists(path):
         print(f"File not found at absolute path: {Path(path).absolute()}")
         raise HTTPException(status_code=404, detail="File not found")

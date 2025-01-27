@@ -16,7 +16,7 @@ import asyncio
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext, load_index_from_storage
 
 persist_dir = "index_storage"
-DATA_FOLDER = os.path.dirname(os.path.abspath(__file__)) + "/data"
+DATA_FOLDER = "../../data"
 try:
     storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
     index = load_index_from_storage(storage_context)
@@ -45,7 +45,9 @@ async def retrieve_and_generate(messages: str = Query(...)):
 
 @app.get("/getDataSource")
 async def get_data_source(source_reference: str):
-    path = DATA_FOLDER + "/" + source_reference
+    path = os.path.normpath(os.path.join(DATA_FOLDER, source_reference))
+    if not path.startswith(os.path.abspath(DATA_FOLDER)):
+        raise HTTPException(status_code=400, detail="Invalid file path")
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(path, filename=source_reference)
