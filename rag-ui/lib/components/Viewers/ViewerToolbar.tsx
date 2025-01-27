@@ -12,14 +12,16 @@ export interface ViewerToolbarStyles extends React.CSSProperties {
     toolbarTextColor?: string;
     toolbarBackground?: string;
     toolbarSecondaryBackground?: string;
+
     toolbarButtonBackground?: string;
     toolbarButtonColor?: string;
     toolbarButtonBorderRadius?: string;
     toolbarButtonSize?: 'sm' | 'md' | 'lg';
     toolbarBoxShadow?: string;
-    toolbarDisplayBackground?: string;
-    toolbarDisplayBorderRadius?: string;
-    toolbarDisplayInputBackground?: string;
+
+    toolbarChipBackground?: string;
+    toolbarChipBorderRadius?: string;
+    toolbarChipInputBackground?: string;
 }
 
 export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isLoaded = true, styleOverrides = {} }: ViewerToolbarProps) => {
@@ -32,15 +34,15 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
 
     // --- merge theme defaults + overrides ---
     const style: ViewerToolbarStyles = {
-        toolbarDisplayBackground: '#ffffff',
-        toolbarDisplayBorderRadius: borderRadius.md,
-        toolbarDisplayInputBackground: '#ffffff',
+        toolbarChipBackground: '#ffffff',
+        toolbarChipBorderRadius: borderRadius.md,
+        toolbarChipInputBackground: '#ffffff',
         toolbarBorderRadius: borderRadius.md,
         toolbarTextColor: colors.text,
         toolbarBackground: colors.toolbarBackground,
         toolbarSecondaryBackground: colors.secondaryBackground,
         toolbarButtonBackground: colors.primary,
-        toolbarButtonColor: 'white',
+        toolbarButtonColor: colors.contrast,
         toolbarButtonBorderRadius: borderRadius.sm,
         toolbarButtonSize: 'sm',
         toolbarBoxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)',
@@ -75,8 +77,8 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
                 <div className="m-auto min-w-14 text-center"
                     style={{
                         color: style.toolbarTextColor,
-                        backgroundColor: style.toolbarDisplayBackground,
-                        borderRadius: style.toolbarDisplayBorderRadius,
+                        backgroundColor: style.toolbarChipBackground,
+                        borderRadius: style.toolbarChipBorderRadius,
                     }}
                 >
                     {isLoaded ? Math.round(scale * 100) + '%' : '--'}

@@ -165,12 +165,13 @@ async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
             metadata = doc.metadata
             source = metadata.get("source", "unknown.pdf")
             page = metadata.get("page", 0) + 1
-            highlights = convert_bboxes_to_highlights(page, metadata.get("text_bboxes", []))
+            highlights = convert_bboxes_to_highlights(page, bboxes=metadata.get("text_bboxes", []))
 
             result = SourceReference(
                 sourceReference=source.replace("data/", ""),
                 type="pdf",
-                metadata={"page": page, "score": score},
+                metadata={"page": page},
+                relevanceScore=score,
                 highlights=[h.model_dump() for h in highlights]
             )
             retrieval_results.append(result)
@@ -203,7 +204,8 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
             result = SourceReference(
                 sourceReference=source.replace("data/", ""),
                 type="pdf",
-                metadata={"page": page + 1, "score": score},
+                metadata={"page": page + 1},
+                relevanceScore=score,
                 highlights=[h.model_dump() for h in highlights]
             )
             retrieval_results.append(result)

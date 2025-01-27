@@ -12,14 +12,22 @@ import {
     SourceContent,
     PDFSourceContent,
     TextContent,
-} from '@lexio';
+} from 'lexio';
 import {defaultTheme} from "../../../../rag-ui/lib/theme";
 
 // Override the default theme
 const demoTheme = {
     ...defaultTheme,
     colors: {
-        primary: '#ff0000',
+        primary: '#1D3D3C',
+        secondary: '#344762',
+        background: '#FFFFFF',
+        secondaryBackground: '#FFFFFF',
+        toolbarBackground: '#FFFFFF',
+        toolbarText: '#000000',
+        toolbarIcon: '#000000',
+        toolbarIconHover: '#000000',
+        toolbarIconActive: '#000000',
     }
 }
 
@@ -38,7 +46,7 @@ function App() {
                 if (data.sources) {
                     // Transform sources to match the expected format
                     const transformedSources = data.sources.map((source: any) => {
-                        console.log(source.highlights)
+
                         if ('text' in source) {
                             return {
                                 text: source.text,
@@ -203,15 +211,15 @@ function App() {
                     <div className="w-full h-full max-h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
                         {/* Left side: Chat and Query */}
                         <div className="h-3/4 gap-4 w-1/4 flex flex-col">
-                            <div className="bg-gray-200 rounded-lg p-2 shrink-0"> {/* Query field */}
+                            <div className="rounded-lg p-2 shrink-0"> {/* Query field */}
                                 <QueryField onSubmit={() => {
                                 }}/>
                             </div>
-                            <div className="bg-gray-200 rounded-lg h-full"> {/* Chat window */}
+                            <div className="rounded-lg h-full"> {/* Chat window */}
                                 <ChatWindow/>
                             </div>
                         </div>
-                        <div className="w-1/6 h-full bg-gray-200 rounded-lg"> {/* Sources panel */}
+                        <div className="w-1/6 h-full rounded-lg"> {/* Sources panel */}
                             <SourcesDisplay/>
                         </div>
                         <div className="w-2/3 h-full bg-gray-200 rounded-lg overflow-hidden"> {/* Sources panel */}

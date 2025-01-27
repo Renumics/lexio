@@ -11,7 +11,6 @@ export interface SourcesDisplayStyles extends React.CSSProperties {
   borderRadius?: string;
   inputBackgroundColor?: string;
   inputBorderColor?: string;
-  inputFocusRingColor?: string;
   buttonBackground?: string;
   buttonTextColor?: string;
   buttonBorderRadius?: string;
@@ -112,12 +111,12 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
     padding: spacing.md,
     borderRadius: borderRadius.md,
 
-    inputBackgroundColor: colors.secondaryBackground,
+    inputBackgroundColor: colors.background,
     inputBorderColor: 'gray',
     inputFocusRingColor: colors.primary,
 
     buttonBackground: colors.primary,
-    buttonTextColor: colors.lightText,
+    buttonTextColor: colors.contrast,
     buttonBorderRadius: borderRadius.md,
 
     activeSourceBackground: colors.secondaryBackground,
@@ -129,12 +128,12 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
     inactiveSourceBackground: colors.secondaryBackground,
     inactiveSourceBorderColor: colors.text + '20',
 
-    metadataTagBackground: colors.text + '10',
+    metadataTagBackground: colors.background,
     metadataTagColor: colors.secondaryText,
-    relevanceScoreColor: colors.secondary,
+    relevanceScoreColor: colors.primary,
 
-    sourceTypeBackground: colors.primary + '20',
-    sourceTypeColor: colors.primary,
+    sourceTypeBackground: colors.secondary + '30',
+    sourceTypeColor: colors.secondary,
     ...removeUndefined(styleOverrides),
   };
 
@@ -172,7 +171,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={searchPlaceholder}
-            className="w-full flex-1 transition-colors focus:ring-2"
+            className="w-full flex-1 transition-colors focus:ring-2 focus:ring-gray-300 focus:outline-none"
             style={{
               color: style.color,
               padding: '0.5rem 0.75rem',

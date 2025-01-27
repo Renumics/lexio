@@ -28,11 +28,11 @@ class PositionalMetadata(BaseModel):
 
 def convert_bboxes_to_highlights(page: int, hits: list[dict[str, Any]]) -> list[Highlight]:
     """
-    Convert a list of hit dictionaries to a list of Highlight objects.
+    Convert a list of bbox dictionaries to a list of Highlight objects.
 
     Args:
         page (int): The page number where the hits are located.
-        hits (list[dict[str, Any]]): A list of dictionaries containing hit information.
+        hits (list[dict[str, Any]]): A list of dictionaries containing bbox information.
 
     Returns:
         list[Highlight]: A list of Highlight objects representing the hits.
@@ -46,7 +46,6 @@ def convert_bboxes_to_highlights(page: int, hits: list[dict[str, Any]]) -> list[
         if hit.get("text", "") in SKIP_TEXT:
             continue
 
-        print(hit)
         highlight = Highlight(
             page=page,
             rect=Rect(

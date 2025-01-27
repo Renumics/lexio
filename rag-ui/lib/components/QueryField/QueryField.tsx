@@ -17,7 +17,6 @@ export interface QueryFieldStyles extends React.CSSProperties {
   borderRadius?: string;
   inputBackgroundColor?: string;
   inputBorderColor?: string;
-  inputFocusRingColor?: string;
   inputBorderRadius?: string;
   buttonBackground?: string;
   buttonTextColor?: string;
@@ -89,10 +88,9 @@ const QueryField: React.FC<QueryFieldProps> = ({
     borderRadius: borderRadius.md,
     inputBackgroundColor: 'white',
     inputBorderColor: '#e5e7eb',
-    inputFocusRingColor: colors.primary,
     inputBorderRadius: borderRadius.md,
     buttonBackground: colors.primary,
-    buttonTextColor: 'white',
+    buttonTextColor: colors.contrast,
     buttonBorderRadius: borderRadius.md,
     modeInitColor: colors.primary,
     modeFollowUpColor: colors.success,
@@ -186,6 +184,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
         color: style.color,
         padding: style.padding,
         fontFamily: style.fontFamily,
+        borderRadius: style.borderRadius,
       }}
     >
       <textarea
@@ -198,7 +197,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
         rows={1}
         // Keep some tailwind classes for layout, plus inline theming
         className={`w-full resize-none min-h-[2.5rem] max-h-full transition-colors 
-          focus:ring-1 focus:ring-blue-500 focus:outline-none
+          focus:ring-1 focus:ring-gray-300 focus:outline-none
           ${shouldShowScrollbar ? 'overflow-y-auto' : 'overflow-y-hidden'}
         `}
         style={{
@@ -206,6 +205,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
           color: style.color,
           border: `1px solid ${style.inputBorderColor}`,
           borderRadius: style.inputBorderRadius,
+          fontFamily: style.fontFamily,
           padding: '0.5rem 0.75rem',
           outline: 'none',
         }}
@@ -215,11 +215,16 @@ const QueryField: React.FC<QueryFieldProps> = ({
         <div className="flex items-center gap-2">
           <div
             className="h-2.5 w-2.5 rounded-full animate-pulse"
-            style={{ backgroundColor: workflowStatus[workflowMode].color }}
+            style={{
+              backgroundColor: workflowStatus[workflowMode].color,
+              fontFamily: style.fontFamily
+            }}
           />
           <span
             className="text-sm font-medium"
-            style={{ color: style.statusTextColor }}
+            style={{
+              color: style.statusTextColor,
+            }}
           >
             {workflowStatus[workflowMode].label}
           </span>

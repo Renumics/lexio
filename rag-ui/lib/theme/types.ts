@@ -1,12 +1,16 @@
 export interface Colors {
   primary: string;
+  contrast: string;
   secondary: string;
+
   background: string;
   secondaryBackground: string;
   toolbarBackground: string;
+
   text: string;
   secondaryText: string;
   lightText: string;
+
   success: string;
   warning: string;
   error: string;

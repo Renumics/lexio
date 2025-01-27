@@ -4,6 +4,7 @@ export const defaultTheme: Theme = {
   colors: {
     primary: '#1E88E5',
     secondary: '#64B5F6',
+    contrast: '#FFFFFF',
     background: '#F4F6F8',
     secondaryBackground: '#FFFFFF',
     toolbarBackground: '#2196F3',
