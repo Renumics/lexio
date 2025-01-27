@@ -90,12 +90,16 @@ def chunk_text_file(file_path: Path):
             if file_extension == '.py':
                 import tree_sitter_python
                 language = tree_sitter_python.language()
-            else:
+            elif file_extension in {'.ts', '.tsx'}:
+                import tree_sitter_typescript
+                language = tree_sitter_typescript.language()
+            else:  # .js, .jsx
                 import tree_sitter_javascript
                 language = tree_sitter_javascript.language()
-            splitter = CodeSplitter(language, chunk_size)
+            
+            splitter = CodeSplitter(language, chunk_size)  # Add minimum chunk size
         else:
-            splitter = TextSplitter(chunk_size)
+            splitter = TextSplitter(chunk_size)  # Add minimum chunk size
         
         return splitter.chunks(txt)
 
