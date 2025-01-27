@@ -2,7 +2,7 @@ import json
 from typing import Any
 from pydantic import BaseModel, Field
 
-SKIP_TEXT = ["", " ", "\n", "\t"]
+SKIP_TEXT = ["", " ", "\n", "\t", ", ", ". ", ".", ","]
 
 
 class Rect(BaseModel):
