@@ -8,3 +8,5 @@ examples/data/
 
 # Dummy Package
 dummy-package/
+
+.vscode/
