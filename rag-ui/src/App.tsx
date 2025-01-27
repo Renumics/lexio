@@ -82,6 +82,7 @@ function App() {
                 content: data.content || '',
                 done: !!data.done
             };
+            console.log('Generated chunk:', chunk);
             messageQueue.push(chunk);
             resolveNext?.();
         };
@@ -227,6 +228,12 @@ function App() {
                     }
                 }}
                 theme={customTheme}
+                onAddMessage={() => {
+                    return {
+                        type: 'reretrieve',
+                        preserveHistory: false
+                    }
+                }}
             >
                 <div style={{ 
                     display: 'grid',
