@@ -1,15 +1,53 @@
 import os
+import json
 from pathlib import Path
 from typing import Optional
 
+import fitz
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
+from langchain_core.documents import Document
+from src.utils import PositionalMetadata
 
 DATA_DIR = Path("data")
 DB_DIR = Path(".chroma")
+
+
+def get_bbox_of_text(document: Document) -> Document:
+    """
+    Extracts bounding boxes of text spans from a given document page and adds
+    this positional metadata to the document.
+
+    Args:
+        document (Document): The document object containing metadata about the file path and page number.
+
+    Returns:
+        Document: The document object with added positional metadata in the 'text_bboxes' field.
+    """
+    doc = fitz.open(document.metadata["source"])
+
+    spans = []
+    for block in doc[document.metadata["page"]].get_text("dict")["blocks"]:
+        if "lines" in block:
+            for line in block["lines"]:
+                for idx, span in enumerate(line["spans"]):
+                    span["idx"] = idx
+                    spans.append(span)
+
+    page_dim = doc[document.metadata["page"]].rect
+    hits = [PositionalMetadata(**span, width=page_dim.width, height=page_dim.height).model_dump() for span in spans if
+            span["text"] in document.page_content]
+
+    if not hits:
+        return document
+
+    document.metadata["text_bboxes"] = json.dumps(hits)
+
+    return document
+
 
 # TODO: Add support for other file types - HTML, markdown ...
 class DocumentIndexer:
@@ -22,14 +60,14 @@ class DocumentIndexer:
     """
 
     def __init__(
-        self,
-        data_dir: str = DATA_DIR,
-        db_dir: str = DB_DIR,
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
+            self,
+            data_dir: str = DATA_DIR,
+            db_dir: str = DB_DIR,
+            chunk_size: int = 1000,
+            chunk_overlap: int = 200,
     ):
         """Initialize the DocumentIndexer.
-        
+
         Args:
             data_dir: Directory containing the documents to index
             db_dir: Directory to store the ChromaDB database
@@ -69,6 +107,8 @@ class DocumentIndexer:
 
         if not documents:
             raise ValueError(f"No documents found in {self.data_dir}")
+
+        documents = list(map(get_bbox_of_text, documents))
 
         db = Chroma.from_documents(
             documents=documents,

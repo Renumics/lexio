@@ -1,23 +1,30 @@
 import {
     ChatWindow,
     RAGProvider,
+    SourcesDisplay,
+    ContentDisplay,
     Message,
     GenerateStreamChunk,
-    ContentDisplay,
-    SourcesDisplay,
     QueryField,
     ErrorDisplay,
     RetrievalResult,
     SourceReference,
     SourceContent,
     PDFSourceContent,
-    RetrieveAndGenerateResponse
+    TextContent,
 } from '@lexio';
+import {defaultTheme} from "../../../../rag-ui/lib/theme";
+import {HTMLSourceContent, MarkdownSourceContent} from "../../../../rag-ui/lib/types.ts";
+
+// Override the default theme
+const demoTheme = {
+    ...defaultTheme,
+    colors: {
+        primary: '#ff0000',
+    }
+}
 
 function App() {
-    /*
-        * This is the main RAG function that retrieves a list of sources from the server and generates a stream of text.
-     */
     const retrieveAndGenerate = (messages: Message[]) => {
         // Convert input messages array to URL-safe format
         const query = encodeURIComponent(JSON.stringify({messages: messages}));
@@ -30,7 +37,27 @@ function App() {
             const handleSources = (event: MessageEvent) => {
                 const data = JSON.parse(event.data);
                 if (data.sources) {
-                    resolve(data.sources);
+                    // Transform sources to match the expected format
+                    const transformedSources = data.sources.map((source: any) => {
+                        if ('text' in source) {
+                            return {
+                                text: source.text,
+                                sourceName: source.sourceName,
+                                relevanceScore: source.relevanceScore,
+                                metadata: source.metadata || {}
+                            } as TextContent;
+                        } else {
+                            return {
+                                sourceReference: source.sourceReference,
+                                type: source.type,
+                                sourceName: source.sourceName,
+                                relevanceScore: source.relevanceScore,
+                                metadata: source.metadata || {},
+                                highlights: source.highlights || []
+                            } as SourceReference;
+                        }
+                    });
+                    resolve(transformedSources);
                     eventSource.removeEventListener('message', handleSources);
                 }
             };
@@ -51,10 +78,12 @@ function App() {
             // Skip source-only messages
             if (!data.content && !data.done) return;
 
+            // Only use content and done fields, ignore role
             const chunk: GenerateStreamChunk = {
                 content: data.content || '',
-                done: data.done || false
+                done: !!data.done
             };
+            console.log('Generated chunk:', chunk);
             messageQueue.push(chunk);
             resolveNext?.();
         };
@@ -65,7 +94,7 @@ function App() {
             try {
                 while (true) {
                     if (messageQueue.length === 0) {
-                        await new Promise(resolve => {
+                        await new Promise<void>(resolve => {
                             resolveNext = resolve;
                         });
                     }
@@ -75,7 +104,6 @@ function App() {
                     if (chunk.done) {
                         break;
                     }
-
                 }
             } finally {
                 eventSource.removeEventListener('message', handleContent);
@@ -103,18 +131,26 @@ function App() {
     };
 
     const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
-        // Allow only PDF files for now
-        if (source.type === 'pdf') {
-            const response = await fetch(`http://localhost:8000/sources/${encodeURIComponent(source.source)}`);
-            const arrayBuffer = await response.arrayBuffer();
-
-            return {
-                content: new Uint8Array(arrayBuffer),
-                type: 'pdf',
-                metadata: source.metadata,
-                highlights: source.highlights
-            } as PDFSourceContent;
+        // We allow only PDF files in this demo
+        if (source.type !== "pdf") {
+            throw new Error("Invalid source type");
         }
+
+        const url = `http://localhost:8000/sources/${encodeURIComponent(source.sourceReference)}`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const pdfContent: PDFSourceContent = {
+            type: 'pdf',
+            content: new Uint8Array(arrayBuffer),
+            metadata: source.metadata || {},
+            highlights: [], // source.highlights || []
+        };
+        return pdfContent;
     };
 
     return (
@@ -169,6 +205,7 @@ function App() {
                             preserveHistory: false
                         }
                     }}
+                    theme={demoTheme}
                 >
                     <div className="w-full h-full max-h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
                         {/* Left side: Chat and Query */}

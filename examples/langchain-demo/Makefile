@@ -1,7 +1,7 @@
 # Define variables
 BACKEND_DIR=backend
 FRONTEND_DIR=frontend
-VENV_DIR=$(BACKEND_DIR)/.venv
+VENV_DIR=.venv
 
 # Default target
 all: setup-backend setup-frontend
@@ -25,7 +25,7 @@ setup-frontend:
 # Start backend server
 start-backend:
 	@echo "Starting backend server..."
-	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/python -m uvicorn src.main:app --reload
+	cd $(BACKEND_DIR) && PYTHONPATH=. $(VENV_DIR)/bin/python -m uvicorn src.main:app --reload
 
 # Start frontend server
 start-frontend:
@@ -41,7 +41,7 @@ clean:
 # Indexing target
 index:
 	@echo "Running document indexing..."
-	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/python src/indexing.py
+	cd $(BACKEND_DIR) && PYTHONPATH=. $(VENV_DIR)/bin/python src/indexing.py
 
 # Help
 help:
