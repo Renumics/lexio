@@ -46,11 +46,12 @@ def convert_bboxes_to_highlights(page: int, hits: list[dict[str, Any]]) -> list[
         if hit.get("text", "") in SKIP_TEXT:
             continue
 
+        print(hit)
         highlight = Highlight(
             page=page,
             rect=Rect(
-                top=hit["bbox"][0] / hit["width"],
-                left=hit["bbox"][1] / hit["height"],
+                left=hit["bbox"][0] / hit["width"],
+                top=hit["bbox"][1] / hit["height"],
                 width=(hit["bbox"][2] - hit["bbox"][0]) / hit["width"],
                 height=(hit["bbox"][3] - hit["bbox"][1]) / hit["height"],
             )
