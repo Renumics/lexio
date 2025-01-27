@@ -48,7 +48,17 @@ def generate_stream(messages: List[Message], context: str = "") -> TextIteratorS
     formatted_messages = [{"role": msg.role, "content": msg.content} for msg in messages]
     if context:
         last_user_msg = formatted_messages[-1]["content"]
-        formatted_messages[-1]["content"] = f"{last_user_msg}\n\nContext:\n{context}"
+        prompt_template = """User Query: {query}
+
+Reference Documents:
+{context}
+
+Please answer the query based on the reference documents above."""
+        
+        formatted_messages[-1]["content"] = prompt_template.format(
+            query=last_user_msg,
+            context=context
+        )
     
     input_text = tokenizer.apply_chat_template(formatted_messages, tokenize=False)
     inputs = tokenizer.encode(input_text, return_tensors="pt").to(device)
@@ -139,7 +149,10 @@ async def retrieve_and_generate(request: RetrieveAndGenerateRequest):
         print(f"Total preparation time: {total_prep_time:.2f} seconds")
 
         # 4) Build context
-        context_str = "\n".join([f"From {r['doc_path']}: {r['text']}" for r in results])
+        context_str = "\n\n".join([
+            f"[Document: {r['doc_path']}]\n{r['text']}"
+            for r in results
+        ])
         messages = [Message(role="user", content=query)]
 
         # 5) Create async generator to yield SSE
@@ -198,7 +211,10 @@ async def generate_endpoint(
             table = db_utils.get_table()
             source_ids_str = "('" + "','".join(source_ids_list) + "')"
             chunks = table.search().where(f"id in {source_ids_str}", prefilter=True).to_list()
-            context_str = "\n".join([f"From {chunk['doc_path']}: {chunk['text']}" for chunk in chunks])
+            context_str = "\n\n".join([
+                f"[Document: {chunk['doc_path']}]\n{chunk['text']}"
+                for chunk in chunks
+            ])
 
         # 2) Build async generator for SSE
         async def event_generator():
@@ -232,7 +248,8 @@ async def generate_endpoint(
 @app.get("/pdfs/{id}")
 async def get_pdf(id: str):
     """
-    Endpoint to serve complete PDF files by looking up the ID in the database first.
+    Endpoint to serve document content by looking up the ID in the database.
+    Handles both binary (PDF) and text-based (HTML, Markdown) content.
     """
     # First look up the document path using the ID from the database
     table = db_utils.get_table()
@@ -244,14 +261,28 @@ async def get_pdf(id: str):
     # Get the document path from the first result
     doc_path = results[0]['doc_path']
     
-    if os.path.exists(doc_path):
+    if not os.path.exists(doc_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    # Determine content type based on file extension
+    if doc_path.endswith('.pdf'):
         return FileResponse(
             doc_path,
             media_type='application/pdf',
             filename=os.path.basename(doc_path)
         )
-    else:
-        raise HTTPException(status_code=404, detail="PDF file not found on disk")
+    elif doc_path.endswith('.html'):
+        return FileResponse(
+            doc_path,
+            media_type='text/html',
+            filename=os.path.basename(doc_path)
+        )
+    else:  # Markdown or other text files
+        return FileResponse(
+            doc_path,
+            media_type='text/plain',
+            filename=os.path.basename(doc_path)
+        )
 
 if __name__ == "__main__":
     import uvicorn

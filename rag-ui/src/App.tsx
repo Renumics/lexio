@@ -8,9 +8,10 @@ import {
     ErrorDisplay,
     useSSESource,
     SourceReference,
-    TextContent,
     SourceContent,
-    PDFSourceContent
+    PDFSourceContent,
+    HTMLSourceContent,
+    MarkdownSourceContent
 } from '../lib/main'
 import './App.css';
 
@@ -18,21 +19,21 @@ import './App.css';
 
 function App() {
     const getDataSource = useCallback(async (source: SourceReference): Promise<SourceContent> => {
+        // Use the ID from metadata to fetch the content
+        const id = source.metadata?.id;
+        if (!id) {
+            throw new Error('No ID provided in source metadata');
+        }
+
+        const url = `http://localhost:8000/pdfs/${encodeURIComponent(id)}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`Failed to get content. HTTP Status: ${response.status} ${response.statusText}`);
+        }
+
+        // Handle different content types
         if (source.type === "pdf") {
-            console.log(source);
-            // Use the ID from metadata to fetch the PDF
-            const id = source.metadata?.id;
-            if (!id) {
-                throw new Error('No ID provided in source metadata');
-            }
-
-            const url = `http://localhost:8000/pdfs/${encodeURIComponent(id)}`;
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                throw new Error(`Failed to get PDF. HTTP Status: ${response.status} ${response.statusText}`);
-            }
-
             const arrayBuffer = await response.arrayBuffer();
             const pdfContent: PDFSourceContent = {
                 type: 'pdf',
@@ -41,6 +42,24 @@ function App() {
                 highlights: source.highlights || []
             };
             return pdfContent;
+        } else if (source.type === "html") {
+            const text = await response.text();
+            const content: HTMLSourceContent = {
+                type: 'html',
+                content: text,
+                metadata: source.metadata || {}
+            };
+            return content;
+        } else if (source.type === "markdown") {
+            const text = await response.text();
+            // Replace any existing backtick sequences with escaped versions
+            const escapedText = text.replace(/`/g, '\\`');
+            const content: MarkdownSourceContent = {
+                type: 'markdown',
+                content: `\`\`\`markdown\n${escapedText}\n\`\`\``,
+                metadata: source.metadata || {}
+            };
+            return content;
         }
 
         throw new Error(`Unsupported source type: ${source.type}`);
@@ -57,39 +76,27 @@ function App() {
                 // Extract filename from path
                 const fileName = item.doc_path.split('/').pop();
 
-                // If the file has a recognized extension, create a SourceReference
-                if (item.doc_path.endsWith('.pdf') ||
-                    item.doc_path.endsWith('.md') ||
-                    item.doc_path.endsWith('.html')) {
-                    return {
-                        type: item.doc_path.endsWith('.pdf') ? 'pdf' :
-                            item.doc_path.endsWith('.md') ? 'markdown' :
-                                item.doc_path.endsWith('.html') ? 'html' : undefined,
-                        sourceReference: item.doc_path,
-                        sourceName: fileName,
-                        relevanceScore,
-                        highlights: item.highlights?.map((highlight: any) => ({
-                            page: highlight.page,
-                            rect: {
-                                left: highlight.bbox.l,
-                                top: highlight.bbox.t,
-                                width: highlight.bbox.r - highlight.bbox.l,
-                                height: highlight.bbox.t - highlight.bbox.b
-                            }
-                        })),
-                        metadata: {
-                            id: item.id
-                        }
-                    } as SourceReference;
-                }
-                // Otherwise, create a TextContent
+                // Always create a SourceReference with a fallback type of 'markdown'
                 return {
-                    text: item.text,
+                    type: item.doc_path.endsWith('.pdf') ? 'pdf' :
+                        item.doc_path.endsWith('.html') ? 'html' : 'markdown',
+                    sourceReference: item.doc_path,
+                    sourceName: fileName,
                     relevanceScore,
+                    highlights: item.highlights?.map((highlight: any) => ({
+                        page: highlight.page,
+                        rect: {
+                            left: highlight.bbox.l,
+                            top: highlight.bbox.t,
+                            width: highlight.bbox.r - highlight.bbox.l,
+                            height: highlight.bbox.b - highlight.bbox.t
+                        }
+                    })),
                     metadata: {
-                        id: item.id
+                        id: item.id,
+                        text: item.text // Store the text in metadata for fallback display
                     }
-                } as TextContent;
+                } as SourceReference;
             });
 
             return { sources, done: false };
@@ -115,6 +122,11 @@ function App() {
             <RAGProvider
                 retrieveAndGenerate={retrieveAndGenerate}
                 getDataSource={getDataSource}
+                config={{
+                    timeouts: {
+                        stream: 10000
+                    }
+                }}
             >
                 <div style={{
                     display: 'grid',
