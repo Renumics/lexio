@@ -34,10 +34,23 @@ function App() {
               console.log('Fetched data:', data)
     
               // Assuming `data` is structured to match SourceReference
-              const sources: SourceReference[] = data.source_nodes.map((doc: any) => ({
+
+            
+
+            const sources: SourceReference[] = data.source_nodes.map((doc: any) => ({
                 type: 'pdf', // or derive from doc if available
                 relevanceScore: doc.score,
                 sourceReference: doc.node.extra_info.file_name,
+                // convert data to SourceReference boundbox from (x0,x1, top, bottom) to (left, top, width, height) and scale from 1000 to 1
+                highlights: [{
+                    page: doc.node.extra_info.bounding_box.page_number,
+                    rect: {
+                        left: doc.node.extra_info.bounding_box.x0 / 1000,
+                        top: doc.node.extra_info.bounding_box.top / 1000,
+                        width: (doc.node.extra_info.bounding_box.x1 - doc.node.extra_info.bounding_box.x0) / 1000,
+                        height: (doc.node.extra_info.bounding_box.bottom - doc.node.extra_info.bounding_box.top) / 1000
+                    }
+                }],
                 //metadata: doc.metadata,
               }))
 
@@ -89,6 +102,7 @@ function App() {
             return markdownContent
         } else if (source.type === "pdf") {
             const arrayBuffer = await response.arrayBuffer();
+            console.log('source.highlights', source.highlights)
             const pdfContent: PDFSourceContent = {
                 type: 'pdf',
                 content: new Uint8Array(arrayBuffer),
