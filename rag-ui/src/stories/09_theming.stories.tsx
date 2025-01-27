@@ -1,16 +1,18 @@
 import type {Meta, StoryObj} from '@storybook/react';
-import {RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay} from '../../lib/main';
+import {
+    RAGProvider,
+    ChatWindow,
+    AdvancedQueryField,
+    SourcesDisplay,
+    ContentDisplay,
+    useRAGSources, Message, useRAGMessages
+} from '../../lib/main';
 import type {GetDataSourceResponse} from '../../lib/main';
 import {defaultTheme} from "../../lib/theme";
 import {Theme} from "../../lib/theme/types.ts";
+import {useEffect} from "react";
 
 // TODO: Create Theming tutorial
-// todo: check mocked state for theming
-// todo: check json editor for storybook and editable theme object
-interface ExampleProps {
-    variant: 'text' | 'reference' | 'mixed';
-}
-
 const BaseLayout = ({children}: { children: React.ReactNode }) => (
     <div style={{width: '100%', maxWidth: '1200px', height: '800px', margin: '0 auto'}}>
         {children}
@@ -46,90 +48,131 @@ const SharedLayout = () => (
     </div>
 );
 
-const SourceTypesExample = ({theme}: Theme) => {
-    const getSourcesAndResponse = () => {
-        return {
-            sources: Promise.resolve([
-                {
-                    sourceReference: "example.pdf",
-                    sourceName: "RAG Whitepaper",
-                    type: "pdf" as const,
-                    relevanceScore: 0.95,
-                    metadata: {
-                        title: "Understanding RAG Systems",
-                        page: 1,
-                        author: "Research Team"
-                    },
-                },
-                {
-                    sourceReference: "implementation_guide.html",
-                    sourceName: "Implementation Guide",
-                    type: "html" as const,
-                    relevanceScore: 0.88,
-                    metadata: {
-                        section: "Setup",
-                        difficulty: "Intermediate"
-                    }
-                },
-                {
-                text: `<div class="content">
-                  <h2>Quick Tips</h2>
-                  <ul>
-                    <li>Always validate your data sources</li>
-                    <li>Monitor retrieval performance</li>
-                    <li>Keep your knowledge base updated</li>
-                  </ul>
-                </div>`,
-                        sourceName: "Best Practices",
-                        relevanceScore: 0.82,
-                        metadata: {
-                            type: "Tips",
-                            lastUpdated: "2024-03-20"
-                        }
-                    }
-                ]),
-                response: Promise.resolve("I've found relevant information from multiple sources...")
-        };
-    };
+// ----- Mocked Data and Functions -----
+// We mock a basic retrieval state for the story
+const SAMPLE_MESSAGES: Message[] = [
+    {
+        role: 'user',
+        content: 'What is RAG?',
+    },
+];
 
+// Component to load initial data, add sample messages, and set the active source index
+const DataLoader = () => {
+    const {addMessage} = useRAGMessages();
+    const {setActiveSourceIndex, sources} = useRAGSources();
+
+    useEffect(() => {
+        // Small delay to ensure provider is ready
+        const timer = setTimeout(() => {
+            addMessage(SAMPLE_MESSAGES[0]);
+
+        }, 0);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    // todo: we could mock the mentioning feature here
+
+    useEffect(() => {
+        // we mock active source selection to display viewer
+        setActiveSourceIndex(0);
+    }, [sources]);
+
+    return null;
+};
+
+// Mocked retrieval function that returns sources and a response
+const getSourcesAndResponse = () => {
+    return {
+        sources: Promise.resolve([
+            {
+                sourceReference: "example.pdf",
+                sourceName: "RAG Whitepaper",
+                type: "pdf" as const,
+                relevanceScore: 0.95,
+                metadata: {
+                    title: "Understanding RAG Systems",
+                    page: 1,
+                    author: "Research Team"
+                },
+            },
+            {
+                sourceReference: "implementation_guide.html",
+                sourceName: "Implementation Guide",
+                type: "html" as const,
+                relevanceScore: 0.88,
+                metadata: {
+                    section: "Setup",
+                    difficulty: "Intermediate"
+                }
+            },
+            {
+                text: `<div class="content">
+              <h2>Quick Tips</h2>
+              <ul>
+                <li>Always validate your data sources</li>
+                <li>Monitor retrieval performance</li>
+                <li>Keep your knowledge base updated</li>
+              </ul>
+            </div>`,
+                sourceName: "Best Practices",
+                relevanceScore: 0.82,
+                metadata: {
+                    type: "Tips",
+                    lastUpdated: "2024-03-20"
+                }
+            }
+        ]),
+        response: Promise.resolve("I've found relevant information from multiple sources...")
+    };
+};
+
+// Mocked getDataSource function that returns SourceContent
+const getDataSource = (source): GetDataSourceResponse => {
+    if (source.type === 'pdf') {
+        return fetch('https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf')
+            .then(response => response.arrayBuffer())
+            .then(buffer => ({
+                type: 'pdf',
+                content: new Uint8Array(buffer),
+                metadata: source.metadata,
+                highlights: source.highlights
+            }));
+    } else if (source.type === 'html') {
+        return Promise.resolve({
+            type: 'html',
+            content: `
+<div style="padding: 20px; font-family: system-ui;">
+  <h1>RAG Implementation Guide</h1>
+  <h2>Setup Instructions</h2>
+  <p>Follow these steps to implement a RAG system in your application:</p>
+  <ol>
+    <li>Set up your document store</li>
+    <li>Implement the retrieval mechanism</li>
+    <li>Configure the generation model</li>
+    <li>Connect the components</li>
+  </ol>
+  <p>For more details, refer to the API documentation.</p>
+</div>
+`,
+            metadata: source.metadata
+        });
+    }
+    return Promise.reject(new Error('Unsupported type'));
+};
+
+const SourceTypesExample = ({theme}: Theme) => {
+    const {setActiveSourceIndex} = useRAGSources();
     return (
         <BaseLayout>
             <RAGProvider
                 retrieveAndGenerate={() => getSourcesAndResponse()}
-                getDataSource={(source): GetDataSourceResponse => {
-                    if (source.type === 'pdf') {
-                        return fetch('https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf')
-                            .then(response => response.arrayBuffer())
-                            .then(buffer => ({
-                                type: 'pdf',
-                                content: new Uint8Array(buffer),
-                                metadata: source.metadata,
-                                highlights: source.highlights
-                            }));
-                    } else if (source.type === 'html') {
-                        return Promise.resolve({
-                            type: 'html',
-                            content: `
-                <div style="padding: 20px; font-family: system-ui;">
-                  <h1>RAG Implementation Guide</h1>
-                  <h2>Setup Instructions</h2>
-                  <p>Follow these steps to implement a RAG system in your application:</p>
-                  <ol>
-                    <li>Set up your document store</li>
-                    <li>Implement the retrieval mechanism</li>
-                    <li>Configure the generation model</li>
-                    <li>Connect the components</li>
-                  </ol>
-                  <p>For more details, refer to the API documentation.</p>
-                </div>
-              `,
-                            metadata: source.metadata
-                        });
-                    }
-                    return Promise.reject(new Error('Unsupported type'));
-                }}
+                getDataSource={(source) => getDataSource(source)}
                 theme={theme}
             >
+                {/* We use the Dataloader to add messages to the ChatWindow, the retrieveAndGenerate function will populate the SourcesDisplay */}
+                <DataLoader/>
                 <SharedLayout/>
             </RAGProvider>
         </BaseLayout>
@@ -150,10 +193,23 @@ const meta = {
 
 \`\`\`typescript
 import {defaultTheme} from "../lib/theme";
+import {Theme} from "../../lib/theme/types.ts";
 
 // todo: describe how to customize the default theme
+const myCustomTheme: Theme = {
+    ...defaultTheme,
+    colors: {
+        primary: '#ff0000', // we change the primary color to red
+    }
+};
 
 // todo: describe how to use the theme in the RAGProvider
+<RAGProvider
+    ...
+    theme={myCustomTheme}
+    >
+    <App />
+</RAGProvider>
 \`\`\`
 
 Try out the interactive example below and switch between different source types using the controls.
@@ -162,13 +218,21 @@ Next, move on to "03. Streaming Responses" to learn how to provide a more intera
             }
         }
     },
-    tags: ['autodocs']
+    tags: ['autodocs'],
+    argTypes: {
+        theme: {
+            control: 'object',
+            description: 'Customizable Theme object. Use the controls to modify the theme here.',
+            defaultValue: defaultTheme
+        },
+    }
 } satisfies Meta<typeof SourceTypesExample>;
 
 export default meta;
 
-export const Docs: Story = {
+// todo: check json editor for storybook and editable theme object
+export const LiveThemeEditor: Story = {
     args: {
         theme: defaultTheme
     }
-}; 
+};
