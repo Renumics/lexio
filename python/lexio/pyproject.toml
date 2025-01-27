@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lexio"
+dynamic = ["version"]
+description = "Python type definitions for the lexio frontend library. Provides Pydantic models for type-safe interaction with the lexio UI components, including source references."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Renumics" },
+]
+keywords = ["lexio", "frontend", "types", "pydantic", "ui", "rag", "typescript"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12", 
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pydantic>=2.0.0",
+    "typing-extensions>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/renumics/lexio"
+Documentation = "https://github.com/renumics/lexio/tree/main/python/lexio#readme"
+Repository = "https://github.com/renumics/lexio.git"
+"Bug Tracker" = "https://github.com/renumics/lexio/issues"
+
+[project.optional-dependencies]
+dev = [
+    "datamodel-code-generator>=0.25.1",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "hatch>=1.7.0",
+    "twine>=4.0.0",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+version_scheme = "no-guess-dev"
+root = "../.." # required for hatch-vcs to find git versioning metadata
+
+[tool.hatch.build.hooks.vcs]
+version-file = "lexio/_version.py"
