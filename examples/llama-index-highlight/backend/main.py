@@ -1,4 +1,5 @@
 import pdfplumber
+from pathlib import Path
 from llama_index.core import VectorStoreIndex , Document
 #set environment variable
 import os
@@ -120,8 +121,9 @@ async def retrieve_and_generate(messages: str = Query(...)):
 
 @app.get("/getDataSource")
 async def get_data_source(source_reference: str):
-    path = DATA_FOLDER + "/" + source_reference
+    path = DATA_FOLDER + "/" + Path(source_reference).name
     if not os.path.exists(path):
+        print(f"File not found at absolute path: {Path(path).absolute()}")
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(path, filename=source_reference)
 
