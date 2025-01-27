@@ -49,7 +49,6 @@ def get_bbox_of_text(document: Document) -> Document:
     return document
 
 
-# TODO: Add support for other file types - HTML, markdown ...
 class DocumentIndexer:
     """A class to handle document indexing and retrieval using ChromaDB and OpenAI embeddings.
 

@@ -12,13 +12,19 @@ import {defaultTheme} from "../../lib/theme";
 import {Theme} from "../../lib/theme/types.ts";
 import {useEffect} from "react";
 
-// TODO: Create Theming tutorial
+const customTheme = {
+    ...defaultTheme,
+}
+customTheme.colors.primary = '#344762';
+customTheme.colors.toolbarBackground = '#438383';
+
+
 const BaseLayout = ({children}: { children: React.ReactNode }) => (
     <div style={{width: '100%', maxWidth: '1200px', height: '800px', margin: '0 auto'}}>
         {children}
-
     </div>
 );
+
 
 const SharedLayout = () => (
     <div style={{
@@ -73,7 +79,6 @@ const DataLoader = () => {
     }, []);
 
     // todo: we could mock the mentioning feature here
-
     useEffect(() => {
         // we mock active source selection to display viewer
         setActiveSourceIndex(0);
@@ -181,6 +186,7 @@ const SourceTypesExample = ({theme}: Theme) => {
 
 type Story = StoryObj<typeof SourceTypesExample>;
 
+// TODO: Create Theming tutorial
 const meta = {
     title: 'Getting Started/09. Theming',
     component: SourceTypesExample,
@@ -223,16 +229,14 @@ Next, move on to "03. Streaming Responses" to learn how to provide a more intera
         theme: {
             control: 'object',
             description: 'Customizable Theme object. Use the controls to modify the theme here.',
-            defaultValue: defaultTheme
         },
     }
 } satisfies Meta<typeof SourceTypesExample>;
 
 export default meta;
 
-// todo: check json editor for storybook and editable theme object
-export const LiveThemeEditor: Story = {
+export const Docs: Story = {
     args: {
-        theme: defaultTheme
+        theme: customTheme,
     }
 };
