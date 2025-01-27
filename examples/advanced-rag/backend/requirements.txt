@@ -6,6 +6,8 @@ einops
 fastapi[standard]
 sse-starlette
 requests
-bitsandbytes
-wheel
+semantic-text-splitter
+tree-sitter-python
+tree-sitter-javascript
+# bitsandbytes
 # flash-attn
