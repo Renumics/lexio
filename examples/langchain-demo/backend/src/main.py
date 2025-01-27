@@ -88,6 +88,17 @@ class MessagesRequest(BaseModel):
         }
     }
 
+
+class BaseSourceContent(BaseModel):
+    metadata: Dict[str, Any] | None = None
+
+
+class PDFSourceContent(BaseSourceContent):
+    content: Any
+    type: str = "pdf"
+
+
+
 class BaseRetrievalResult(BaseModel):
     sourceName: str | None = None
     relevanceScore: float | None = None
@@ -171,10 +182,6 @@ async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def format_docs(docs) -> str:
-    return "\n\n".join(f"Document: {doc.content}" for doc in docs)
-
-
 @app.get("/retrieve-and-generate")
 async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceResponse:
     try:
@@ -185,31 +192,30 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
 
     # Retrieve relevant documents
     retrieval_results = []
+    retrieval_docs = []
     try:
         results = db.similarity_search_with_score(query, k=4)
         for doc, score in results:
             metadata = doc.metadata
             source = metadata.get("source", "unknown.pdf")
             page = metadata.get("page", 0) + 1
-            highlights = convert_bboxes_to_highlights(page, source.metadata.get("text_bboxes", []))
-
-            content = doc.page_content
+            highlights = convert_bboxes_to_highlights(page, metadata.get("text_bboxes", []))
 
             result = SourceReference(
                 sourceReference=source.replace("data/", ""),
                 type="pdf",
                 metadata={"page": page + 1, "score": score},
-                content=content,
                 highlights=[h.model_dump() for h in highlights]
             )
             retrieval_results.append(result)
+            retrieval_docs.append(doc)
 
     except Exception as e:
         print(f"Error in retrieve: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
     # Format the context and prompt
-    formatted_context = format_docs(retrieval_results)
+    formatted_context = format_docs(retrieval_docs)
     formatted_prompt = prompt.format(
         context=formatted_context,
         history="\n".join([f"{msg.role}: {msg.content}" for msg in message_history.messages[:-1]]),
@@ -220,7 +226,7 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
         # Yield the retrieval results first
         yield {
             "data": json.dumps({
-                "sources": [RetrievalResult(**source.dict(exclude={"content"})).dict() for source in retrieval_results],
+                "sources": [source.model_dump() for source in retrieval_results],
             })
         }
 
@@ -245,9 +251,7 @@ async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
 
-    retrieved_docs = []  # Placeholder for actual document retrieval logic
-    formatted_context = format_docs(retrieved_docs)
-
+    formatted_context = format_docs([])  # Placeholder for actual document retrieval logic
     formatted_prompt = prompt.format(
         context=formatted_context,
         history="\n".join([f"{msg.role}: {msg.content}" for msg in message_history.messages[:-1]]),
