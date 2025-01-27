@@ -38,7 +38,8 @@ export const defaultTheme: Theme = {
 };
 
 
-export const createTheme = (overrides: Partial<Theme>): Theme => {
+// todo: assure Theme props
+export const createTheme = (overrides): Theme => {
     return {
         ...defaultTheme,
         ...overrides,

@@ -8,15 +8,16 @@ import {
     useRAGSources, Message, useRAGMessages
 } from '../../lib/main';
 import type {GetDataSourceResponse} from '../../lib/main';
-import {defaultTheme} from "../../lib/theme";
+import {createTheme} from "../../lib/theme";
 import {Theme} from "../../lib/theme/types.ts";
 import {useEffect} from "react";
 
-const customTheme = {
-    ...defaultTheme,
-}
-customTheme.colors.primary = '#344762';
-customTheme.colors.toolbarBackground = '#438383';
+const customTheme = createTheme({
+    colors: {
+        primary: '#344762',
+        toolbarBackground: '#438383',
+    }
+});
 
 
 const BaseLayout = ({children}: { children: React.ReactNode }) => (
