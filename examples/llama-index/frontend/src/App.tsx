@@ -116,7 +116,14 @@ function App() {
 
 
     return (
-      <div style={{ width: '100%', height: '100vh', padding: '20px' }}>
+      <div style={{ 
+          width: '100%', 
+          height: '100vh', 
+          padding: '10px',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          margin: 0
+      }}>
           <h1>RAG UI</h1>
             <RAGProvider
                 retrieve={() => {}}
@@ -138,14 +145,13 @@ function App() {
             >
                 <div style={{ 
                     display: 'grid',
-                    height: '100%',
-                    gridTemplateColumns: '3fr 1fr',
-                    gridTemplateRows: '1fr auto 300px',
+                    height: 'calc(100vh - 80px)',
+                    gridTemplateColumns: '2fr 1fr 2fr',
+                    gridTemplateRows: '1fr auto',
                     gap: '20px',
                     gridTemplateAreas: `
-                        "chat sources"
-                        "input sources"
-                        "viewer viewer"
+                        "chat sources viewer"
+                        "input sources viewer"
                     `
                 }}>
                     <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
@@ -157,7 +163,7 @@ function App() {
                     <div style={{ gridArea: 'sources', minHeight: 0, overflow: 'auto' }}>
                         <SourcesDisplay />
                     </div>
-                    <div style={{ gridArea: 'viewer', height: '300px', overflow: 'auto' }}>
+                    <div style={{ gridArea: 'viewer', minHeight: 0, overflow: 'auto' }}>
                         <ContentDisplay />
                     </div>
                 </div>

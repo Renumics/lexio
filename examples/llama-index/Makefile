@@ -21,7 +21,7 @@ setup-backend:
 setup-frontend:
 	@echo "Setting up frontend..."
 	cp -r ../../rag-ui/dist/ $(FRONTEND_DIR)/rag-ui
-	mv $(FRONTEND_DIR)/rag-ui/dist/package.json $(FRONTEND_DIR)/rag-ui/package.json
+	cp -r ../../rag-ui/package.json $(FRONTEND_DIR)/rag-ui/package.json
 	cd $(FRONTEND_DIR) && npm install &&  npm install rag-ui
 
 

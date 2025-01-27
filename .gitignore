@@ -10,3 +10,5 @@ examples/data/
 dummy-package/
 
 .vscode/
+
+examples/llama-index/frontend/rag-ui/
