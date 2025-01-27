@@ -14,7 +14,6 @@ import {
     TextContent,
 } from '@lexio';
 import {defaultTheme} from "../../../../rag-ui/lib/theme";
-import {HTMLSourceContent, MarkdownSourceContent} from "../../../../rag-ui/lib/types.ts";
 
 // Override the default theme
 const demoTheme = {
@@ -39,6 +38,7 @@ function App() {
                 if (data.sources) {
                     // Transform sources to match the expected format
                     const transformedSources = data.sources.map((source: any) => {
+                        console.log(source.highlights)
                         if ('text' in source) {
                             return {
                                 text: source.text,
@@ -47,14 +47,7 @@ function App() {
                                 metadata: source.metadata || {}
                             } as TextContent;
                         } else {
-                            return {
-                                sourceReference: source.sourceReference,
-                                type: source.type,
-                                sourceName: source.sourceName,
-                                relevanceScore: source.relevanceScore,
-                                metadata: source.metadata || {},
-                                highlights: source.highlights || []
-                            } as SourceReference;
+                            return source as SourceReference; // Direct pass-through of SourceReference objects
                         }
                     });
                     resolve(transformedSources);
@@ -83,7 +76,7 @@ function App() {
                 content: data.content || '',
                 done: !!data.done
             };
-            console.log('Generated chunk:', chunk);
+            // console.log('Generated chunk:', chunk);
             messageQueue.push(chunk);
             resolveNext?.();
         };
@@ -148,7 +141,7 @@ function App() {
             type: 'pdf',
             content: new Uint8Array(arrayBuffer),
             metadata: source.metadata || {},
-            highlights: [], // source.highlights || []
+            highlights: source.highlights || []
         };
         return pdfContent;
     };
