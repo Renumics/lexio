@@ -1,13 +1,18 @@
 import pdfplumber
 from pathlib import Path
 from llama_index.core import VectorStoreIndex , Document
-#set environment variable
+ 
 import os
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-# Step 1: Extract Text and Metadata with pdfplumber
+
+
 def extract_and_chunk_text_with_positions(pdf_path, chunk_size=200):
+    """
+    Extract text and metadata from a PDF file, and chunk the text into s
+    maller pieces with bounding boxe for highlighting.
+    """
     all_chunks = []
     
     with pdfplumber.open(pdf_path) as pdf:
@@ -73,8 +78,11 @@ def extract_and_chunk_text_with_positions(pdf_path, chunk_size=200):
     
     return all_chunks
 
-# Step 2: Format Data for LlamaIndex
 def prepare_documents_for_indexing(pdf_data):
+    """
+    Prepare documents for indexing by creating a list of Document objects 
+    with text and metadata.
+    """
     documents = []
     for entry in pdf_data:
         doc = Document(
@@ -84,22 +92,23 @@ def prepare_documents_for_indexing(pdf_data):
         documents.append(doc)
     return documents
 
-# Step 3: Create the Index
 def create_index_from_pdf(pdf_path):
+    """
+    Create the index from the PDF data.
+    """
     pdf_data = extract_and_chunk_text_with_positions(pdf_path)
     documents = prepare_documents_for_indexing(pdf_data)
     index = VectorStoreIndex.from_documents(documents)
     return index
 
 # Usage Example
-DATA_FOLDER = "../../data"
-pdf_path = DATA_FOLDER + "/1360_State-of-the-Climate-in-Africa-2023_en.pdf"
+DATA_FOLDER = os.path.dirname(os.path.abspath(__file__)) + "/data"
+# get the first pdf file in the data folder
+pdf_path = os.path.join(DATA_FOLDER, os.listdir(DATA_FOLDER)[0])
 index = create_index_from_pdf(pdf_path)
 
 # Query the Index
 query_engine = index.as_query_engine()
-
-
 
 app = FastAPI()
 

@@ -16,7 +16,7 @@ import asyncio
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext, load_index_from_storage
 
 persist_dir = "index_storage"
-DATA_FOLDER = "../../data"
+DATA_FOLDER = os.path.dirname(os.path.abspath(__file__)) + "/data"
 try:
     storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
     index = load_index_from_storage(storage_context)
