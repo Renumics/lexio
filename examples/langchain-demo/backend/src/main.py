@@ -165,7 +165,7 @@ async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
             metadata = doc.metadata
             source = metadata.get("source", "unknown.pdf")
             page = metadata.get("page", 0) + 1
-            highlights = convert_bboxes_to_highlights(page, bboxes=metadata.get("text_bboxes", []))
+            highlights = convert_bboxes_to_highlights(page, metadata.get("text_bboxes", []))
 
             result = SourceReference(
                 sourceReference=source.replace("data/", ""),

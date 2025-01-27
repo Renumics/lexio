@@ -123,10 +123,10 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
     activeSourceBorderColor: colors.primary,
 
     selectedSourceBackground: colors.secondaryBackground,
-    selectedSourceBorderColor: colors.success,
+    selectedSourceBorderColor: colors.secondary,
 
     inactiveSourceBackground: colors.secondaryBackground,
-    inactiveSourceBorderColor: colors.text + '20',
+    inactiveSourceBorderColor: 'transparent',
 
     metadataTagBackground: colors.background,
     metadataTagColor: colors.secondaryText,
