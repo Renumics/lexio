@@ -15,19 +15,20 @@ import {
 } from 'lexio';
 import {defaultTheme} from "../../../../rag-ui/lib/theme";
 
+// TODO: import of Theme
+
+// TODO: create a helper which merges 2 themes -> document it
 // Override the default theme
 const demoTheme = {
     ...defaultTheme,
     colors: {
+        ...(defaultTheme.colors || {}), // Merge existing colors first
         primary: '#1D3D3C',
-        secondary: '#344762',
-        background: '#FFFFFF',
-        secondaryBackground: '#FFFFFF',
-        toolbarBackground: '#FFFFFF',
-        toolbarText: '#000000',
-        toolbarIcon: '#000000',
-        toolbarIconHover: '#000000',
-        toolbarIconActive: '#000000',
+        contrast: '#FFFFFF',
+        secondary: '#4172b6',
+        background: 'white',
+        toolbarBackground: '#366563',
+        secondaryBackground: '#bbd5d3',
     }
 }
 
@@ -211,18 +212,18 @@ function App() {
                     <div className="w-full h-full max-h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
                         {/* Left side: Chat and Query */}
                         <div className="h-3/4 gap-4 w-1/4 flex flex-col">
-                            <div className="rounded-lg p-2 shrink-0"> {/* Query field */}
+                            <div className="shrink-0"> {/* Query field */}
                                 <QueryField onSubmit={() => {
                                 }}/>
                             </div>
-                            <div className="rounded-lg h-full"> {/* Chat window */}
+                            <div className="h-full"> {/* Chat window */}
                                 <ChatWindow/>
                             </div>
                         </div>
-                        <div className="w-1/6 h-full rounded-lg"> {/* Sources panel */}
+                        <div className="w-1/6 h-full"> {/* Sources panel */}
                             <SourcesDisplay/>
                         </div>
-                        <div className="w-2/3 h-full bg-gray-200 rounded-lg overflow-hidden"> {/* Sources panel */}
+                        <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
                             <ContentDisplay/>
                         </div>
                         <ErrorDisplay/>

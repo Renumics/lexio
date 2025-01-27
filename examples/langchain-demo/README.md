@@ -1,5 +1,6 @@
 # Langchain Demo
 
+[//]: # (TODO: write a good readme -> use case, features, how to get started)
 This demo shows how to use the RAG UI components with a Langchain-powered backend.
 
 ## Setup
