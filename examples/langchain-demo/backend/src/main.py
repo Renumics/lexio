@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 
 import uvicorn
 from dotenv import load_dotenv
@@ -98,17 +98,16 @@ class PDFSourceContent(BaseSourceContent):
     type: str = "pdf"
 
 
-
 class BaseRetrievalResult(BaseModel):
-    sourceName: str | None = None
-    relevanceScore: float | None = None
+    sourceName: Optional[str] = None
+    relevanceScore: Optional[float] = None
     metadata: Dict[str, Any] | None = None
     highlights: List[Dict[str, Any]] = None
 
 
 class SourceReference(BaseRetrievalResult):
     sourceReference: str
-    type: str
+    type: str = "pdf"
 
 
 class TextContent(BaseRetrievalResult):
@@ -226,7 +225,8 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
         # Yield the retrieval results first
         yield {
             "data": json.dumps({
-                "sources": [source.model_dump() for source in retrieval_results],
+                # We exclude Optional fields since we do not expect them in the frontend if missing
+                "sources": [source.model_dump(exclude_none=True) for source in retrieval_results],
             })
         }
 
