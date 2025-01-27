@@ -1,13 +1,12 @@
 import json
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from langchain.prompts import ChatPromptTemplate
-from langchain.schema import StrOutputParser
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 from sse_starlette import EventSourceResponse
@@ -15,7 +14,8 @@ from fastapi.responses import FileResponse, HTMLResponse
 import mimetypes
 import os.path
 
-from .indexing import DocumentIndexer
+from src.indexing import DocumentIndexer
+from src.utils import convert_bboxes_to_highlights
 
 # Load environment variables
 load_dotenv()
@@ -59,7 +59,7 @@ class MessageHistory(BaseModel):
 
 class MessagesRequest(BaseModel):
     """A model representing the expected JSON schema for the messages query parameter.
-    
+
     Example:
         {
             "messages": [
@@ -68,7 +68,7 @@ class MessagesRequest(BaseModel):
                 {"role": "user", "content": "How are you?"}
             ]
         }
-    
+
     Attributes:
         messages: List of chat messages, where each message has a role and content
     """
@@ -88,38 +88,31 @@ class MessagesRequest(BaseModel):
         }
     }
 
+class BaseRetrievalResult(BaseModel):
+    sourceName: str | None = None
+    relevanceScore: float | None = None
+    metadata: Dict[str, Any] | None = None
+    highlights: List[Dict[str, Any]] = None
 
-class RetrievalResult(BaseModel):
-    """A model representing a document retrieval result.
 
-    Attributes:
-        source: The source document identifier
-        type: The type of document (e.g., 'pdf')
-        metadata: Additional metadata about the document
-        highlights: List of highlighted regions in the document
-    """
-
-    source: str
+class SourceReference(BaseRetrievalResult):
+    sourceReference: str
     type: str
-    metadata: Dict[str, Any]
-    highlights: List[Dict[str, Any]] = []
 
 
-class Source(RetrievalResult):
-    """A model representing a source document.
+class TextContent(BaseRetrievalResult):
+    text: str
 
-    Attributes:
-        content: The content of the source document
-    """
-    content: str
 
+RetrievalResult = Union[SourceReference, TextContent]
 
 # Initialize components
 indexer = DocumentIndexer()
 
 # Check if ChromaDB is set up correctly and contains entries
 if not indexer.check_db_setup():
-    raise RuntimeError("ChromaDB is not set up correctly or contains no entries. Please run the indexing command to populate the database.")
+    raise RuntimeError(
+        "ChromaDB is not set up correctly or contains no entries. Please run the indexing command to populate the database.")
 
 db = indexer.get_db()
 
@@ -156,20 +149,22 @@ async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
     """Retrieve relevant documents for a query."""
     try:
         results = db.similarity_search_with_score(query, k=4)
-        
+
         retrieval_results = []
         for doc, score in results:
             metadata = doc.metadata
             source = metadata.get("source", "unknown.pdf")
-            page = metadata.get("page", 0)
-            
-            result = RetrievalResult(
-                source=source.replace("data/", ""),
+            page = metadata.get("page", 0) + 1
+            highlights = convert_bboxes_to_highlights(page, metadata.get("text_bboxes", []))
+
+            result = SourceReference(
+                sourceReference=source.replace("data/", ""),
                 type="pdf",
-                metadata={"page": page, "score": score}
+                metadata={"page": page, "score": score},
+                highlights=[h.model_dump() for h in highlights]
             )
             retrieval_results.append(result)
-        
+
         return retrieval_results
     except Exception as e:
         print(f"Error in retrieve: {e}")
@@ -195,14 +190,17 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
         for doc, score in results:
             metadata = doc.metadata
             source = metadata.get("source", "unknown.pdf")
-            page = metadata.get("page", 0)
+            page = metadata.get("page", 0) + 1
+            highlights = convert_bboxes_to_highlights(page, source.metadata.get("text_bboxes", []))
+
             content = doc.page_content
 
-            result = Source(
-                source=source.replace("data/", ""),
+            result = SourceReference(
+                sourceReference=source.replace("data/", ""),
                 type="pdf",
                 metadata={"page": page + 1, "score": score},
-                content=content
+                content=content,
+                highlights=[h.model_dump() for h in highlights]
             )
             retrieval_results.append(result)
 
@@ -221,10 +219,10 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
     async def stream():
         # Yield the retrieval results first
         yield {
-                "data": json.dumps({
-                    "sources": [RetrievalResult(**source.dict(exclude={"content"})).dict() for source in retrieval_results],
-                })
-            }
+            "data": json.dumps({
+                "sources": [RetrievalResult(**source.dict(exclude={"content"})).dict() for source in retrieval_results],
+            })
+        }
 
         # Then yield the generated text
         async for chunk in llm.astream(formatted_prompt):
@@ -246,10 +244,10 @@ async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
         query = message_history.messages[-1].content if message_history.messages else ""
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
-    
+
     retrieved_docs = []  # Placeholder for actual document retrieval logic
     formatted_context = format_docs(retrieved_docs)
-    
+
     formatted_prompt = prompt.format(
         context=formatted_context,
         history="\n".join([f"{msg.role}: {msg.content}" for msg in message_history.messages[:-1]]),
@@ -285,13 +283,13 @@ async def get_source(filename: str):
     try:
         # Assuming files are stored in a 'data' directory relative to the backend
         file_path = os.path.join("data", filename)
-        
+
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="File not found")
-        
+
         # Determine content type from file extension
         content_type, _ = mimetypes.guess_type(file_path)
-        
+
         if content_type == "application/pdf":
             return FileResponse(
                 file_path,
@@ -307,7 +305,7 @@ async def get_source(filename: str):
                 status_code=400,
                 detail="Unsupported file type"
             )
-            
+
     except Exception as e:
         print(f"Error serving file {filename}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

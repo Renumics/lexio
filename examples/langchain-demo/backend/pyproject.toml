@@ -2,8 +2,9 @@
 name = "langchain-demo-backend"
 version = "0.1.0"
 description = "A demo RAG application using Langchain, ChromaDB, and FastAPI. This is the backend."
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
+    "pymupdf>=1.24.11",
     "fastapi>=0.109.0",
     "uvicorn>=0.27.0",
     "langchain>=0.1.0",
