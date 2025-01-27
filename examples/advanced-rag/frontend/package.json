@@ -14,7 +14,7 @@
     "@tailwindcss/vite": "^4.0.0",
     "lexio": "file:../../../rag-ui",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

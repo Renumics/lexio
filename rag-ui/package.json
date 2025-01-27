@@ -30,6 +30,7 @@
   "dependencies": {
     "@floating-ui/react": "^0.27.3",
     "@heroicons/react": "^2.2.0",
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@react-hook/resize-observer": "^2.0.2",
     "dompurify": "^3.2.3",
     "jotai": "^2.10.3",

@@ -28,11 +28,11 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ styleOverrides = {} }) => {
 
   // Merge theme defaults + overrides
   const style: ErrorDisplayStyles = {
-    backgroundColor: colors.error + '10',
-    textColor: colors.error,
+    backgroundColor: colors.error,
+    textColor: colors.lightText,
     borderRadius: '0.375rem',
     fontFamily: typography.fontFamily,
-    progressBarColor: colors.error,
+    progressBarColor: colors.primary,
     ...removeUndefined(styleOverrides),
   };
 

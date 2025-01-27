@@ -1,206 +1,38 @@
-import './App.css'
+import { useCallback } from 'react';
 import {
     ChatWindow,
     RAGProvider,
     SourcesDisplay,
     ContentDisplay,
-    Message,
     AdvancedQueryField,
-    RetrievalResult,
+    ErrorDisplay,
+    useSSESource,
     SourceReference,
-    SourceContent,
-    HTMLSourceContent,
-    PDFSourceContent,
-    GenerateStreamChunk,
     TextContent,
-    MarkdownSourceContent
+    SourceContent,
+    PDFSourceContent
 } from '../lib/main'
-import {defaultTheme} from "../lib/theme";
+import './App.css';
 
-export const customTheme = {
-  ...defaultTheme,
-  /*colors: {
-    ...defaultTheme.colors,
-    background: '#FF0000', // custom brand color
-  },*/
-};
+
 
 function App() {
-    const retrieveAndGenerate = (messages: Message[]) => {
-        const query = encodeURIComponent(JSON.stringify({ messages }));
-        const eventSource = new EventSource(
-            `http://localhost:8000/retrieve-and-generate?messages=${query}`
-        );
-
-        const sourcesPromise = new Promise<RetrievalResult[]>((resolve, reject) => {
-            const handleSources = (event: MessageEvent) => {
-                const data = JSON.parse(event.data);
-                if (data.sources) {
-                    // Transform sources to match the expected format
-                    const transformedSources = data.sources.map((source: any) => {
-                        if ('text' in source) {
-                            return {
-                                text: source.text,
-                                sourceName: source.sourceName,
-                                relevanceScore: source.relevanceScore,
-                                metadata: source.metadata || {}
-                            } as TextContent;
-                        } else {
-                            return {
-                                sourceReference: source.sourceReference,
-                                type: source.type,
-                                sourceName: source.sourceName,
-                                relevanceScore: source.relevanceScore,
-                                metadata: source.metadata || {},
-                                highlights: source.highlights || []
-                            } as SourceReference;
-                        }
-                    });
-                    resolve(transformedSources);
-                    eventSource.removeEventListener('message', handleSources);
-                }
-            };
-
-            eventSource.addEventListener('message', handleSources);
-            eventSource.onerror = (error) => {
-                console.error("EventSource failed:", error);
-                eventSource.close();
-                reject(new Error('Failed to retrieve sources'));
-            };
-        });
-
-        const messageQueue: GenerateStreamChunk[] = [];
-        let resolveNext: (() => void) | null = null;
-
-        const handleContent = (event: MessageEvent) => {
-            const data = JSON.parse(event.data);
-            // Skip source-only messages
-            if (!data.content && !data.done) return;
-
-            // Only use content and done fields, ignore role
-            const chunk: GenerateStreamChunk = {
-                content: data.content || '',
-                done: !!data.done
-            };
-            messageQueue.push(chunk);
-            resolveNext?.();
-        };
-
-        eventSource.addEventListener('message', handleContent);
-
-        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-            try {
-                while (true) {
-                    if (messageQueue.length === 0) {
-                        await new Promise<void>(resolve => {
-                            resolveNext = resolve;
-                        });
-                    }
-
-                    const chunk = messageQueue.shift()!;
-                    yield chunk;
-                    if (chunk.done) {
-                        break;
-                    }
-                }
-            } finally {
-                eventSource.removeEventListener('message', handleContent);
-                eventSource.close();
-            }
-        }
-
-        return {
-            sources: sourcesPromise,
-            response: streamChunks()
-        };
-    };
-
-    const generate = (messages: Message[], sources: RetrievalResult[]) => {
-        const query = encodeURIComponent(
-            JSON.stringify({
-                messages,
-                sources
-            })
-        );
-
-        const eventSource = new EventSource(
-            `http://localhost:8000/generate?messages=${query}`
-        );
-
-        const messageQueue: GenerateStreamChunk[] = [];
-        let resolveNext: (() => void) | null = null;
-
-        const handleMessage = (event: MessageEvent) => {
-            const data = JSON.parse(event.data);
-            // Only use content and done fields, ignore role
-            const chunk: GenerateStreamChunk = {
-                content: data.content || '',
-                done: !!data.done
-            };
-            messageQueue.push(chunk);
-            resolveNext?.();
-        };
-
-        eventSource.addEventListener('message', handleMessage);
-
-        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-            try {
-                while (true) {
-                    if (messageQueue.length === 0) {
-                        await new Promise<void>(resolve => {
-                            resolveNext = resolve;
-                        });
-                    }
-
-                    const chunk = messageQueue.shift()!;
-                    yield chunk;
-                    if (chunk.done) {
-                        break;
-                    }
-                }
-            } finally {
-                eventSource.removeEventListener('message', handleMessage);
-                eventSource.close();
-            }
-        }
-
-        return streamChunks();
-    };
-
-    const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
-        let url: string;
+    const getDataSource = useCallback(async (source: SourceReference): Promise<SourceContent> => {
         if (source.type === "pdf") {
-            url = `http://localhost:8000/pdfs/${encodeURIComponent(source.sourceReference)}`;
-        } else if (source.type === "html") {
-            url = `http://localhost:8000/htmls/${encodeURIComponent(source.sourceReference)}`;
-        } else if (source.type === "markdown") {
-            url = `http://localhost:8000/markdowns/${encodeURIComponent(source.sourceReference)}`;
-        } else {
-            throw new Error(`Unsupported source type: ${source.type}`);
-        }
+            console.log(source);
+            // Use the ID from metadata to fetch the PDF
+            const id = source.metadata?.id;
+            if (!id) {
+                throw new Error('No ID provided in source metadata');
+            }
 
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
-        }
+            const url = `http://localhost:8000/pdfs/${encodeURIComponent(id)}`;
+            const response = await fetch(url);
 
-        if (source.type === "html") {
-            const text = await response.text();
-            const htmlContent: HTMLSourceContent = {
-                type: 'html',
-                content: `<div class="source-content">${text}</div>`,
-                metadata: source.metadata || {}
-            };
-            return htmlContent;
-        } else if (source.type === "markdown") {
-            const text = await response.text();
-            const markdownContent: MarkdownSourceContent = {
-                type: 'markdown',
-                content: text,
-                metadata: source.metadata || {}
-            };
-            return markdownContent
-        } else if (source.type === "pdf") {
+            if (!response.ok) {
+                throw new Error(`Failed to get PDF. HTTP Status: ${response.status} ${response.statusText}`);
+            }
+
             const arrayBuffer = await response.arrayBuffer();
             const pdfContent: PDFSourceContent = {
                 type: 'pdf',
@@ -211,48 +43,136 @@ function App() {
             return pdfContent;
         }
 
-        throw new Error("Invalid source type");
-    };
+        throw new Error(`Unsupported source type: ${source.type}`);
+    }, []);
+
+
+    const parseEvent = useCallback((data: any) => {
+        // If there's an array of sources, convert them to RetrievalResult format
+        if (Array.isArray(data.sources)) {
+            console.log(data.sources);
+            const sources = data.sources.map((item: any) => {
+                // Convert null/undefined score to undefined
+                const relevanceScore = item.score != null ? item.score : undefined;
+                // Extract filename from path
+                const fileName = item.doc_path.split('/').pop();
+
+                // If the file has a recognized extension, create a SourceReference
+                if (item.doc_path.endsWith('.pdf') ||
+                    item.doc_path.endsWith('.md') ||
+                    item.doc_path.endsWith('.html')) {
+                    return {
+                        type: item.doc_path.endsWith('.pdf') ? 'pdf' :
+                            item.doc_path.endsWith('.md') ? 'markdown' :
+                                item.doc_path.endsWith('.html') ? 'html' : undefined,
+                        sourceReference: item.doc_path,
+                        sourceName: fileName,
+                        relevanceScore,
+                        highlights: item.highlights?.map((highlight: any) => ({
+                            page: highlight.page,
+                            rect: {
+                                left: highlight.bbox.l,
+                                top: highlight.bbox.t,
+                                width: highlight.bbox.r - highlight.bbox.l,
+                                height: highlight.bbox.t - highlight.bbox.b
+                            }
+                        })),
+                        metadata: {
+                            id: item.id
+                        }
+                    } as SourceReference;
+                }
+                // Otherwise, create a TextContent
+                return {
+                    text: item.text,
+                    relevanceScore,
+                    metadata: {
+                        id: item.id
+                    }
+                } as TextContent;
+            });
+
+            return { sources, done: false };
+        }
+
+        // If there's a string 'content', treat it as a chunk
+        if (typeof data.content === 'string') {
+            return { content: data.content, done: !!data.done };
+        }
+
+        // Otherwise, ignore this SSE message
+        return {};
+    }, []);
+
+    // Create the SSE-based retrieveAndGenerate function
+    const retrieveAndGenerate = useSSESource({
+        endpoint: 'http://localhost:8000/api/retrieve-and-generate',
+        parseEvent,
+    });
 
     return (
-        <div style={{ width: '100%', height: '100vh', padding: '20px' }}>
+        <div className="app-container" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
             <RAGProvider
                 retrieveAndGenerate={retrieveAndGenerate}
-                generate={generate}
                 getDataSource={getDataSource}
-                config={{
-                    timeouts: {
-                        stream: 10000,
-                        request: 60000
-                    }
-                }}
-                theme={customTheme}
             >
-                <div style={{ 
+                <div style={{
                     display: 'grid',
-                    height: '100%',
-                    gridTemplateColumns: '3fr 1fr',
-                    gridTemplateRows: '1fr auto 300px',
+                    height: '100vh',
+                    width: '100%',
+                    gridTemplateColumns: '2fr 1fr',
+                    gridTemplateRows: 'minmax(0, 1fr) 100px 300px',
                     gap: '20px',
                     gridTemplateAreas: `
-                        "chat sources"
-                        "input sources"
-                        "viewer viewer"
-                    `
+            "chat sources"
+            "input sources"
+            "viewer viewer"
+          `,
+                    maxHeight: '100vh',
+                    overflow: 'hidden'
                 }}>
-                    <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
+                    {/* Main chat UI */}
+                    <div style={{
+                        gridArea: 'chat',
+                        overflow: 'auto',
+                        minWidth: 0,  // Prevent content from forcing growth
+                        maxWidth: '100%'  // Prevent expanding beyond container
+                    }}>
                         <ChatWindow />
                     </div>
-                    <div style={{ gridArea: 'input' }}>
+
+                    {/* Advanced query input */}
+                    <div style={{
+                        gridArea: 'input',
+                        height: '100px',
+                        minWidth: 0,
+                        maxWidth: '100%'
+                    }}>
                         <AdvancedQueryField />
                     </div>
-                    <div style={{ gridArea: 'sources', minHeight: 0, overflow: 'auto' }}>
+
+                    {/* Sources panel */}
+                    <div style={{
+                        gridArea: 'sources',
+                        overflow: 'auto',
+                        minWidth: 0,
+                        maxWidth: '100%'
+                    }}>
                         <SourcesDisplay />
                     </div>
-                    <div style={{ gridArea: 'viewer', height: '300px', overflow: 'auto' }}>
+
+                    {/* Content viewer */}
+                    <div style={{
+                        gridArea: 'viewer',
+                        height: '300px',
+                        overflow: "hidden",
+                        width: '100%'
+                    }}>
                         <ContentDisplay />
                     </div>
                 </div>
+                {/* Handle any encountered errors */}
+                <ErrorDisplay />
             </RAGProvider>
         </div>
     );

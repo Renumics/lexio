@@ -19,7 +19,8 @@ IGNORE_DIRECTORIES = {
     '.next',
     'venv',
     'env',
-    '.lancedb'
+    '.lancedb',
+    '.mypy_cache'
 }
 
 # Files to ignore during processing
@@ -67,32 +68,48 @@ def chunk_text_file(file_path: Path, chunk_size: int = 1000):
 def chunk_docling_document(doc):
     """Chunk a Docling document using HybridChunker."""
     chunker = HybridChunker(
-        tokenizer=get_model().tokenizer,  # Get the underlying tokenizer from the model
-        max_tokens=512,  # Jina's token limit
-        merge_peers=True  # Merge undersized peer chunks when possible
+        tokenizer=get_model().tokenizer,
+        max_tokens=512,
+        merge_peers=True
     )
     raw_chunks = list(chunker.chunk(doc))
-    
+
     chunks = []
     for chunk in raw_chunks:
         # Extract page and bbox information from provenance if available
         page_number = None
+        min_l = float('inf')    # leftmost position
+        min_t = float('inf')    # lowest position from bottom
+        max_r = float('-inf')   # rightmost position
+        max_b = float('-inf')   # highest position from bottom
+        has_bbox = False
+        
+        # Check if chunk has meta attribute and doc_items
+        if hasattr(chunk, 'meta') and hasattr(chunk.meta, 'doc_items'):
+            for doc_item in chunk.meta.doc_items:
+                if hasattr(doc_item, 'prov') and doc_item.prov:
+                    prov = doc_item.prov[0]
+                    if page_number is None:
+                        page_number = getattr(prov, 'page_no', None)
+                    
+                    bbox_obj = getattr(prov, 'bbox', None)
+                    print(bbox_obj)
+                    if bbox_obj:
+                        has_bbox = True
+                        min_l = min(min_l, bbox_obj.l)      # leftmost
+                        min_t = min(min_t, bbox_obj.t)      # lowest from bottom
+                        max_r = max(max_r, bbox_obj.r)      # rightmost
+                        max_b = max(max_b, bbox_obj.b)      # highest from bottom
+        
         bbox = None
+        if has_bbox:
+            bbox = {
+                'l': min_l,
+                't': min_t,  # lowest position from bottom
+                'r': max_r,
+                'b': max_b   # highest position from bottom
+            }
         
-        if hasattr(chunk, 'prov') and chunk.prov:
-            prov = chunk.prov[0]
-            page_number = getattr(prov, 'page_no', None)
-            bbox_obj = getattr(prov, 'bbox', None)
-            
-            if bbox_obj:
-                bbox = {
-                    'l': bbox_obj.l,
-                    't': bbox_obj.t,
-                    'r': bbox_obj.r,
-                    'b': bbox_obj.b
-                }
-        
-        # Use the chunker's serialize method to get enriched text
         chunks.append({
             'text': chunker.serialize(chunk),
             'page_number': page_number,

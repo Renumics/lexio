@@ -7,3 +7,5 @@ fastapi[standard]
 sse-starlette
 requests
 bitsandbytes
+wheel
+# flash-attn

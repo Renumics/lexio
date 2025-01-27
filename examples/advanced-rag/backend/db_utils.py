@@ -1,8 +1,10 @@
+import torch
 from lancedb.pydantic import LanceModel, Vector
 import lancedb
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from typing import Optional
+import uuid  # Add this import at the top
 
 # Initialize the embedding model
 _model = None
@@ -54,7 +56,8 @@ def get_model():
     global _model
     if _model is None:
         print("Creating model")
-        _model = SentenceTransformer('jinaai/jina-embeddings-v3', trust_remote_code=True, device='mps')
+        device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+        _model = SentenceTransformer('jinaai/jina-embeddings-v3', trust_remote_code=True, device=device)
     return _model
 
 def create_embeddings_batch(doc_path: Path, chunks):
@@ -79,8 +82,8 @@ def create_embeddings_batch(doc_path: Path, chunks):
         # Safely get bbox values with defaults
         bbox = chunk.get('bbox') or {}
         
-        # Create a unique ID combining document path and chunk index
-        chunk_id = f"{doc_path}_{idx}"
+        # Create a unique ID using UUID
+        chunk_id = str(uuid.uuid4())
         
         embedding_obj = DocumentChunkEmbedding(
             id=chunk_id,
