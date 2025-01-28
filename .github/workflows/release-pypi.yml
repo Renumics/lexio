@@ -1,104 +1,41 @@
-name: Python CI
+name: Python Package Release
 
 on:
-  push:
-    tags:
-      - 'v*'  # Trigger on version tags
-  pull_request:
+  workflow_run:
+    workflows: ["Python CI"]
+    types:
+      - completed
     branches:
       - main
-  workflow_dispatch:  # Allows users to manually trigger the workflow from the GitHub Actions tab
 
 jobs:
-  test:
-    name: generate package & test
+  publish:
+    name: Publish to PyPI
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      startsWith(github.event.workflow_run.head_commit.message, 'v')
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-    defaults:
-      run:
-        working-directory: python/lexio
-
+    
     steps:
-    - uses: actions/checkout@v4
+    - name: Download artifact
+      uses: actions/download-artifact@v4
       with:
-        fetch-depth: 0  # Required for hatch-vcs
-
-    - name: Set up Python Environment
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install ".[dev]"
-
-    - name: Generate Python Types
-      working-directory: ${{ github.workspace }}
-      run: |
-        cd rag-ui
-        npm ci
-        npm run generate-types
-
-    - name: Generate Python Package
-      working-directory: ${{ github.workspace }}
-      run: |
-        cd rag-ui
-        npm ci
-        npm run generate-python-package
-
-    - name: Run Python Tests
-      run: pytest tests -v
-
-  build-and-publish:
-    name: build and publish to PyPI
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    defaults:
-      run:
-        working-directory: python/lexio
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Required for hatch-vcs
-
+        name: dist
+        path: dist
+        
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.11"
-        cache: 'pip'
+        python-version: "3.12"
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install ".[dev]"
-
-    - name: Generate Python Types
-      working-directory: ${{ github.workspace }}
-      run: |
-        cd rag-ui
-        npm ci
-        npm run generate-types
-
-    - name: Generate Python Package
-      working-directory: ${{ github.workspace }}
-      run: |
-        cd rag-ui
-        npm ci
-        npm run generate-python-package
-
-    - name: Build package
-      run: hatch build
+    - name: Install twine
+      run: python -m pip install --upgrade twine
 
     - name: Check Package with Twine
       run: twine check dist/*
 
-    - name: Publish to Test PyPI with Twine
+    - name: Publish to Test PyPI
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
@@ -108,11 +45,7 @@ jobs:
 #      env:
 #        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #      run: |
-#        # Extract version from tag (remove 'v' prefix)
-#        VERSION=${GITHUB_REF#refs/tags/v}
-#
-#        # Create Release
-#        gh release create "v$VERSION" \
-#          --title "Release $VERSION" \
+#        gh release create "${GITHUB_REF#refs/tags/}" \
+#          --title "Release ${GITHUB_REF#refs/tags/}" \
 #          --generate-notes \
 #          dist/*
