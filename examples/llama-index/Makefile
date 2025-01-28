@@ -1,7 +1,7 @@
 # Define variables
 BACKEND_DIR=backend
 FRONTEND_DIR=frontend
-VENV_DIR=$(BACKEND_DIR)/.venv
+VENV_DIR=.venv
 
 # Default target
 all: setup-backend setup-frontend
@@ -14,7 +14,7 @@ setup-backend:
 	@echo "Setting up backend..."
 	cd $(BACKEND_DIR) && python -m venv $(VENV_DIR)
 	@echo "Activating virtual environment and installing backend dependencies..."
-	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/pip install -e .
+	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/pip install -r requirements.txt
 
 # Frontend setup
 setup-frontend:
@@ -25,7 +25,7 @@ setup-frontend:
 # Start backend server
 start-backend:
 	@echo "Starting backend server..."
-	cd $(BACKEND_DIR) && PYTHONPATH=. $(VENV_DIR)/bin/python -m uvicorn src.main_with_highlighting:app --reload
+	cd $(BACKEND_DIR) && PYTHONPATH=. $(VENV_DIR)/bin/python -m uvicorn main_with_highlighting:app --reload
 
 
 # Start frontend server
@@ -36,7 +36,7 @@ start-frontend:
 # Clean up
 clean:
 	@echo "Cleaning up..."
-	rm -rf $(VENV_DIR)
+	rm -rf $(BACKEND_DIR)/$(VENV_DIR)
 	cd $(FRONTEND_DIR) && rm -rf node_modules
 
 
