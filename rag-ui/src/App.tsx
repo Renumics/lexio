@@ -1,39 +1,206 @@
-import { useCallback } from 'react';
+import './App.css'
 import {
     ChatWindow,
     RAGProvider,
     SourcesDisplay,
     ContentDisplay,
+    Message,
     AdvancedQueryField,
-    ErrorDisplay,
-    useSSESource,
+    RetrievalResult,
     SourceReference,
     SourceContent,
-    PDFSourceContent,
     HTMLSourceContent,
+    PDFSourceContent,
+    GenerateStreamChunk,
+    TextContent,
     MarkdownSourceContent
 } from '../lib/main'
-import './App.css';
+import {defaultTheme} from "../lib/theme";
 
-
+export const customTheme = {
+  ...defaultTheme,
+  /*colors: {
+    ...defaultTheme.colors,
+    background: '#FF0000', // custom brand color
+  },*/
+};
 
 function App() {
-    const getDataSource = useCallback(async (source: SourceReference): Promise<SourceContent> => {
-        // Use the ID from metadata to fetch the content
-        const id = source.metadata?.id;
-        if (!id) {
-            throw new Error('No ID provided in source metadata');
+    const retrieveAndGenerate = (messages: Message[]) => {
+        const query = encodeURIComponent(JSON.stringify({ messages }));
+        const eventSource = new EventSource(
+            `http://localhost:8000/retrieve-and-generate?messages=${query}`
+        );
+
+        const sourcesPromise = new Promise<RetrievalResult[]>((resolve, reject) => {
+            const handleSources = (event: MessageEvent) => {
+                const data = JSON.parse(event.data);
+                if (data.sources) {
+                    // Transform sources to match the expected format
+                    const transformedSources = data.sources.map((source: any) => {
+                        if ('text' in source) {
+                            return {
+                                text: source.text,
+                                sourceName: source.sourceName,
+                                relevanceScore: source.relevanceScore,
+                                metadata: source.metadata || {}
+                            } as TextContent;
+                        } else {
+                            return {
+                                sourceReference: source.sourceReference,
+                                type: source.type,
+                                sourceName: source.sourceName,
+                                relevanceScore: source.relevanceScore,
+                                metadata: source.metadata || {},
+                                highlights: source.highlights || []
+                            } as SourceReference;
+                        }
+                    });
+                    resolve(transformedSources);
+                    eventSource.removeEventListener('message', handleSources);
+                }
+            };
+
+            eventSource.addEventListener('message', handleSources);
+            eventSource.onerror = (error) => {
+                console.error("EventSource failed:", error);
+                eventSource.close();
+                reject(new Error('Failed to retrieve sources'));
+            };
+        });
+
+        const messageQueue: GenerateStreamChunk[] = [];
+        let resolveNext: (() => void) | null = null;
+
+        const handleContent = (event: MessageEvent) => {
+            const data = JSON.parse(event.data);
+            // Skip source-only messages
+            if (!data.content && !data.done) return;
+
+            // Only use content and done fields, ignore role
+            const chunk: GenerateStreamChunk = {
+                content: data.content || '',
+                done: !!data.done
+            };
+            messageQueue.push(chunk);
+            resolveNext?.();
+        };
+
+        eventSource.addEventListener('message', handleContent);
+
+        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
+            try {
+                while (true) {
+                    if (messageQueue.length === 0) {
+                        await new Promise<void>(resolve => {
+                            resolveNext = resolve;
+                        });
+                    }
+
+                    const chunk = messageQueue.shift()!;
+                    yield chunk;
+                    if (chunk.done) {
+                        break;
+                    }
+                }
+            } finally {
+                eventSource.removeEventListener('message', handleContent);
+                eventSource.close();
+            }
         }
 
-        const url = `http://localhost:8000/pdfs/${encodeURIComponent(id)}`;
-        const response = await fetch(url);
+        return {
+            sources: sourcesPromise,
+            response: streamChunks()
+        };
+    };
 
-        if (!response.ok) {
-            throw new Error(`Failed to get content. HTTP Status: ${response.status} ${response.statusText}`);
+    const generate = (messages: Message[], sources: RetrievalResult[]) => {
+        const query = encodeURIComponent(
+            JSON.stringify({
+                messages,
+                sources
+            })
+        );
+
+        const eventSource = new EventSource(
+            `http://localhost:8000/generate?messages=${query}`
+        );
+
+        const messageQueue: GenerateStreamChunk[] = [];
+        let resolveNext: (() => void) | null = null;
+
+        const handleMessage = (event: MessageEvent) => {
+            const data = JSON.parse(event.data);
+            // Only use content and done fields, ignore role
+            const chunk: GenerateStreamChunk = {
+                content: data.content || '',
+                done: !!data.done
+            };
+            messageQueue.push(chunk);
+            resolveNext?.();
+        };
+
+        eventSource.addEventListener('message', handleMessage);
+
+        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
+            try {
+                while (true) {
+                    if (messageQueue.length === 0) {
+                        await new Promise<void>(resolve => {
+                            resolveNext = resolve;
+                        });
+                    }
+
+                    const chunk = messageQueue.shift()!;
+                    yield chunk;
+                    if (chunk.done) {
+                        break;
+                    }
+                }
+            } finally {
+                eventSource.removeEventListener('message', handleMessage);
+                eventSource.close();
+            }
         }
 
-        // Handle different content types
+        return streamChunks();
+    };
+
+    const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
+        let url: string;
         if (source.type === "pdf") {
+            url = `http://localhost:8000/pdfs/${encodeURIComponent(source.sourceReference)}`;
+        } else if (source.type === "html") {
+            url = `http://localhost:8000/htmls/${encodeURIComponent(source.sourceReference)}`;
+        } else if (source.type === "markdown") {
+            url = `http://localhost:8000/markdowns/${encodeURIComponent(source.sourceReference)}`;
+        } else {
+            throw new Error(`Unsupported source type: ${source.type}`);
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
+        }
+
+        if (source.type === "html") {
+            const text = await response.text();
+            const htmlContent: HTMLSourceContent = {
+                type: 'html',
+                content: `<div class="source-content">${text}</div>`,
+                metadata: source.metadata || {}
+            };
+            return htmlContent;
+        } else if (source.type === "markdown") {
+            const text = await response.text();
+            const markdownContent: MarkdownSourceContent = {
+                type: 'markdown',
+                content: text,
+                metadata: source.metadata || {}
+            };
+            return markdownContent
+        } else if (source.type === "pdf") {
             const arrayBuffer = await response.arrayBuffer();
             const pdfContent: PDFSourceContent = {
                 type: 'pdf',
@@ -42,147 +209,50 @@ function App() {
                 highlights: source.highlights || []
             };
             return pdfContent;
-        } else if (source.type === "html") {
-            const text = await response.text();
-            const content: HTMLSourceContent = {
-                type: 'html',
-                content: text,
-                metadata: source.metadata || {}
-            };
-            return content;
-        } else if (source.type === "markdown") {
-            const text = await response.text();
-            // Replace any existing backtick sequences with escaped versions
-            const escapedText = text.replace(/`/g, '\\`');
-            const content: MarkdownSourceContent = {
-                type: 'markdown',
-                content: `\`\`\`markdown\n${escapedText}\n\`\`\``,
-                metadata: source.metadata || {}
-            };
-            return content;
         }
 
-        throw new Error(`Unsupported source type: ${source.type}`);
-    }, []);
-
-
-    const parseEvent = useCallback((data: any) => {
-        // If there's an array of sources, convert them to RetrievalResult format
-        if (Array.isArray(data.sources)) {
-            console.log(data.sources);
-            const sources = data.sources.map((item: any) => {
-                // Convert null/undefined score to undefined
-                const relevanceScore = item.score != null ? item.score : undefined;
-                // Extract filename from path
-                const fileName = item.doc_path.split('/').pop();
-
-                // Always create a SourceReference with a fallback type of 'markdown'
-                return {
-                    type: item.doc_path.endsWith('.pdf') ? 'pdf' :
-                        item.doc_path.endsWith('.html') ? 'html' : 'markdown',
-                    sourceReference: item.doc_path,
-                    sourceName: fileName,
-                    relevanceScore,
-                    highlights: item.highlights?.map((highlight: any) => ({
-                        page: highlight.page,
-                        rect: {
-                            left: highlight.bbox.l,
-                            top: highlight.bbox.t,
-                            width: highlight.bbox.r - highlight.bbox.l,
-                            height: highlight.bbox.b - highlight.bbox.t
-                        }
-                    })),
-                    metadata: {
-                        id: item.id,
-                        page: item.page
-                    }
-                } as SourceReference;
-            });
-
-            return { sources, done: false };
-        }
-
-        // If there's a string 'content', treat it as a chunk
-        if (typeof data.content === 'string') {
-            return { content: data.content, done: !!data.done };
-        }
-
-        // Otherwise, ignore this SSE message
-        return {};
-    }, []);
-
-    // Create the SSE-based retrieveAndGenerate function
-    const retrieveAndGenerate = useSSESource({
-        endpoint: 'http://localhost:8000/api/retrieve-and-generate',
-        parseEvent,
-    });
+        throw new Error("Invalid source type");
+    };
 
     return (
-        <div className="app-container">
+        <div style={{ width: '100%', height: '100vh', padding: '20px' }}>
             <RAGProvider
                 retrieveAndGenerate={retrieveAndGenerate}
+                generate={generate}
                 getDataSource={getDataSource}
                 config={{
                     timeouts: {
-                        stream: 10000
+                        stream: 10000,
+                        request: 60000
                     }
                 }}
+                theme={customTheme}
             >
-                <div style={{
+                <div style={{ 
                     display: 'grid',
-                    height: '100vh',
-                    width: '100%',
-                    gridTemplateColumns: '1fr 2fr',
-                    gridTemplateRows: '1fr 100px',
+                    height: '100%',
+                    gridTemplateColumns: '3fr 1fr',
+                    gridTemplateRows: '1fr auto 300px',
                     gap: '20px',
                     gridTemplateAreas: `
-            "chat viewer"
-            "input viewer"
-          `,
-                    maxHeight: '100vh',
-                    overflow: 'hidden',
-                    padding: '20px',
-                    boxSizing: 'border-box'
+                        "chat sources"
+                        "input sources"
+                        "viewer viewer"
+                    `
                 }}>
-                    {/* Main chat UI */}
-                    <div style={{
-                        gridArea: 'chat',
-                        overflow: 'auto',
-                        minWidth: 0,
-                        maxWidth: '100%'
-                    }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
-                                <SourcesDisplay />
-                            </div>
-                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
-                                <ChatWindow />
-                            </div>
-                        </div>
+                    <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
+                        <ChatWindow />
                     </div>
-
-                    {/* Advanced query input */}
-                    <div style={{
-                        gridArea: 'input',
-                        height: '100px',
-                        minWidth: 0,
-                        maxWidth: '100%'
-                    }}>
+                    <div style={{ gridArea: 'input' }}>
                         <AdvancedQueryField />
                     </div>
-
-                    {/* Content viewer */}
-                    <div style={{
-                        gridArea: 'viewer',
-                        overflow: "hidden",
-                        width: '100%',
-                        height: '100%'
-                    }}>
+                    <div style={{ gridArea: 'sources', minHeight: 0, overflow: 'auto' }}>
+                        <SourcesDisplay />
+                    </div>
+                    <div style={{ gridArea: 'viewer', height: '300px', overflow: 'auto' }}>
                         <ContentDisplay />
                     </div>
                 </div>
-                {/* Handle any encountered errors */}
-                <ErrorDisplay />
             </RAGProvider>
         </div>
     );
