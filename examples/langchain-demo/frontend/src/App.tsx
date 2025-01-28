@@ -12,10 +12,9 @@ import {
     SourceContent,
     PDFSourceContent,
     TextContent,
+    createTheme,
 } from 'lexio';
-import {createTheme} from "../../../../rag-ui/lib/theme";
 
-// TODO: import of Theme
 // we create a custom theme for the demo which overrides the default theme values
 const demoTheme = createTheme({
     colors: {

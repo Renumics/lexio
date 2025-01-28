@@ -1,4 +1,4 @@
-import type { Colors, Typography, Spacing, BorderRadius, Theme } from './types';
+import type { Theme, PartialTheme } from './types';
 
 export const defaultTheme: Theme = {
   colors: {
@@ -59,11 +59,4 @@ export const createTheme = (overrides: Partial<PartialTheme>): Theme => {
             ...(overrides.borderRadius || {}),
         },
     };
-}
-
-export interface PartialTheme {
-  colors: Partial<Colors>;
-  typography: Partial<Typography>;
-  spacing: Partial<Spacing>;
-  borderRadius: Partial<BorderRadius>;
 }

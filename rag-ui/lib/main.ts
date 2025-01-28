@@ -11,6 +11,9 @@ import { ContentDisplay } from './components/ContentDisplay'
 
 import { useSSESource } from './connectors/useSSESource'
 
+export { defaultTheme, createTheme } from './theme/index.ts'
+export * from './theme/types'
+
 export { QueryField, AdvancedQueryField, ChatWindow, PdfViewer, RAGProvider, useRAGMessages, useRAGSources, useRAGStatus, SourcesDisplay, ErrorDisplay, ContentDisplay, useSSESource }
 export * from './types'
 
