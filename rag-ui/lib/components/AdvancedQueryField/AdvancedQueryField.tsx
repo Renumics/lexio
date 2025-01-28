@@ -530,7 +530,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       }
 
       // Check if it's the last chip referencing that source index
-      const leftoverChips = parent?.querySelectorAll(
+      const leftoverChips = editorRef.current?.querySelectorAll(
         `span[data-source-index="${sourceIndexStr}"]`
       );
       const isLastInstance = !leftoverChips || leftoverChips.length === 0;
