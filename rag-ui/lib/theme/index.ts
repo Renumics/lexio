@@ -17,7 +17,7 @@ export const defaultTheme: Theme = {
   },
   typography: {
     fontFamily: '"Poppins", Helvetica, Arial, sans-serif',  // Modern Google Font
-    fontSizeBase: '1.0rem',  // Slightly larger for readability
+    fontSizeBase: '1.rem',  // Slightly larger for readability
     lineHeight: '1.75',  // Increased for a spacious feel
   },
   componentDefaults: {

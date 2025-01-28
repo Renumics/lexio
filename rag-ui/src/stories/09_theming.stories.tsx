@@ -33,8 +33,8 @@ const warmTheme = createTheme({
         lineHeight: '1.8',
     },
     componentDefaults: {
-        borderRadius: '1.5rem',
-        padding: '1.5rem',
+        borderRadius: '0.5rem',
+        padding: '1.2rem',
     }
 });
 
@@ -334,6 +334,7 @@ const myTheme = createTheme({
   },
   typography: {
     fontFamily: '"Inter", sans-serif',
+    fontBaseSize: '16px',  // many of our components use a relative scale to this value
   }
 });
 \`\`\`
@@ -366,7 +367,7 @@ const myTheme: Theme = {
 
 ## Interactive Example 
 Try out the interactive examples below to see different theme variations in action.  
-Change the \`customTheme\` value via the dropdown menu under \`Control\`.
+Change the \`customTheme\` value via the dropdown menu under \`Control\`. 
 `
             }
         }
@@ -390,6 +391,6 @@ export default meta;
 
 export const Docs: Story = {
     args: {
-        customTheme: defaultTheme,
+        customTheme: warmTheme,
     }
 };
