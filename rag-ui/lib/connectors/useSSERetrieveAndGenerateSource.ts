@@ -213,13 +213,13 @@ export function useSSERetrieveAndGenerateSource(options: SSEConnectorOptions) {
 
 /**
  * Default way to build the request body if none is given:
- *  - Takes the last user message as { query }
- *  - Also includes the `sources` array if present
+ *  - Takes the messages array
+ *  - Includes the metadata if present
  */
-function defaultBuildRequestBody(messages: Message[], sources?: RetrievalResult[]) {
+function defaultBuildRequestBody(messages: Message[], metadata?: Record<string, any>) {
   return {
     messages,
-    sources
+    metadata
   };
 }
 
