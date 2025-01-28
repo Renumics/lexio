@@ -20,9 +20,7 @@ setup-backend:
 # Frontend setup
 setup-frontend:
 	@echo "Setting up frontend..."
-	cp -r ../../rag-ui/dist/ $(FRONTEND_DIR)/rag-ui
-	cp -r ../../rag-ui/package.json $(FRONTEND_DIR)/rag-ui/package.json
-	cd $(FRONTEND_DIR) && npm install &&  npm install rag-ui
+	cd $(FRONTEND_DIR) && npm install 
 
 
 # Start backend server

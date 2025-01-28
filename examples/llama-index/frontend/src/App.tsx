@@ -13,8 +13,8 @@ import {
     ContentDisplay,
     Message,
     AdvancedQueryField
-} from 'rag-ui'
-import { GenerateInput, GenerateStreamChunk } from 'rag-ui'
+} from 'lexio'
+import { GenerateInput, GenerateStreamChunk } from 'lexio'
 
 function App() {
     const retrieveAndGenerate = (input: GenerateInput): RetrieveAndGenerateResponse => {
@@ -39,7 +39,6 @@ function App() {
                 type: 'pdf', // or derive from doc if available
                 relevanceScore: doc.score,
                 sourceReference: doc.node.extra_info.file_name,
-                // convert data to SourceReference boundbox from (x0,x1, top, bottom) to (left, top, width, height) and scale from 1000 to 1
                 highlights: [{
                     page: doc.node.extra_info.bounding_box.page_number,
                     rect: {
