@@ -2,6 +2,7 @@
   "name": "lexio",
   "version": "0.0.1",
   "type": "module",
+  "license": "GPL-3.0-or-later",
   "module": "dist/rag-ui.es.js",
   "types": "dist/rag-ui.d.ts",
   "exports": {

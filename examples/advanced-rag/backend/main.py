@@ -28,9 +28,9 @@ app.add_middleware(
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 # Load model & tokenizer
-model_name = "HuggingFaceTB/SmolLM2-1.7B-Instruct"
+model_name = "Qwen/Qwen2.5-7B-Instruct"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", load_in_4bit=True).to(device)
 
 class Message(BaseModel):
     role: str
@@ -73,7 +73,7 @@ Please answer the query based on the reference documents above."""
                 model.generate(
                     inputs=inputs,
                     streamer=streamer,
-                    max_new_tokens=512,
+                    max_new_tokens=1024,
                     do_sample=False  # set to True if you'd like more "interactive" sampling
                 )
         finally:
