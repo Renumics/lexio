@@ -97,4 +97,6 @@ jobs:
 
     - name: Run tests against installed wheel
       working-directory: python/lexio
-      run: pytest tests -v
+      run:  |
+        rm -rf lexio
+        pytest tests -v
