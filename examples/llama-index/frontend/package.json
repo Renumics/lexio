@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "rag-ui": "file:rag-ui",
+    "lexio": "file:../../../rag-ui",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
