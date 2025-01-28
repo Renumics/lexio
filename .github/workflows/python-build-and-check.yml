@@ -86,12 +86,21 @@ jobs:
         name: dist
         path: python/lexio/dist
 
-    - name: Install built package
-      working-directory: python/lexio
+    - name: Install test dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install dist/*.whl
-        pip install ".[dev]"
+        pip install pytest pytest-asyncio  # Add any other test dependencies needed
 
-    - name: Run tests
-      run: pytest tests -v
+    - name: Install wheel package
+      working-directory: python/lexio
+      run: pip install dist/*.whl
+
+    - name: Run tests against installed wheel
+      run: |
+        # Create a new directory for testing the installed package
+        mkdir wheel_test
+        cd wheel_test
+        # Copy tests to the new directory
+        cp -r ../tests .
+        # Run tests against the installed wheel
+        pytest tests -v
