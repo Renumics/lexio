@@ -104,7 +104,7 @@ def create_index_from_pdf(pdf_path):
 # Usage Example
 DATA_FOLDER = os.path.dirname(os.path.abspath(__file__)) + "/data"
 # get the first pdf file in the data folder
-pdf_path = os.path.join(DATA_FOLDER, os.listdir(DATA_FOLDER)[0])
+pdf_path = str(Path(DATA_FOLDER).glob("*.pdf").__next__())
 index = create_index_from_pdf(pdf_path)
 
 # Query the Index
