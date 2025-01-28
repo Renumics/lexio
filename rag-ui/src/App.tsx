@@ -15,9 +15,9 @@ import {
     PDFSourceContent,
     GenerateStreamChunk,
     TextContent,
-    MarkdownSourceContent
+    MarkdownSourceContent,
+    createTheme
 } from '../lib/main'
-import {createTheme} from "../lib/theme";
 
 const customTheme = createTheme({
     colors: {

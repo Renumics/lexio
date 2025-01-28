@@ -45,3 +45,10 @@ export interface Theme {
   spacing: Spacing;
   borderRadius: BorderRadius;
 }
+
+export interface PartialTheme {
+  colors: Partial<Colors>;
+  typography: Partial<Typography>;
+  spacing: Partial<Spacing>;
+  borderRadius: Partial<BorderRadius>;
+}
