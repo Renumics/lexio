@@ -98,11 +98,17 @@ jobs:
     - name: Check Package with Twine
       run: twine check dist/*
 
-    - name: Publish to Test PyPI with Twine
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
-      run: twine upload -r testpypi dist/*
+#    - name: Publish to Test PyPI with Twine
+#      env:
+#        TWINE_USERNAME: __token__
+#        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+#      run: twine upload -r testpypi dist/*
+
+    - name: '🚀 Publish Lexio to PyPI'
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.TEST_PYPI_TOKEN }}
+        repository-url: https://test.pypi.org/legacy/
 
 #    - name: Create Release
 #      env:
