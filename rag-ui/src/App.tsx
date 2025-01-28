@@ -9,12 +9,9 @@ import {
     useSSERetrieveAndGenerateSource,
     useSSEGenerateSource,
     SourceReference,
-    SourceContent,
-    PDFSourceContent,
-    HTMLSourceContent,
-    MarkdownSourceContent,
     Message,
-    RetrievalResult
+    RetrievalResult,
+    useRestContentSource
 } from '../lib/main'
 import './App.css';
 import { SSEParsedEvent } from '../lib/connectors/useSSERetrieveAndGenerateSource';
@@ -22,52 +19,22 @@ import { SSEParsedEvent } from '../lib/connectors/useSSERetrieveAndGenerateSourc
 
 
 function App() {
-    const getDataSource = useCallback(async (source: SourceReference): Promise<SourceContent> => {
-        // Use the ID from metadata to fetch the content
-        const id = source.metadata?.id;
-        if (!id) {
-            throw new Error('No ID provided in source metadata');
-        }
 
-        const url = `http://localhost:8000/pdfs/${encodeURIComponent(id)}`;
-        const response = await fetch(url);
+    const getDataSourceOptions = useMemo(() => ({
+        buildFetchRequest: (source: SourceReference) => {
+          const id = source.metadata?.id;
+          if (!id) {
+            throw new Error('No ID in source metadata');
+          }
+          // For PDFs or text, always use the same endpoint for now
+          return {
+            url: `http://localhost:8000/pdfs/${encodeURIComponent(id)}`, 
+          };
+        },
+    }), []);
 
-        if (!response.ok) {
-            throw new Error(`Failed to get content. HTTP Status: ${response.status} ${response.statusText}`);
-        }
-
-        // Handle different content types
-        if (source.type === "pdf") {
-            const arrayBuffer = await response.arrayBuffer();
-            const pdfContent: PDFSourceContent = {
-                type: 'pdf',
-                content: new Uint8Array(arrayBuffer),
-                metadata: source.metadata || {},
-                highlights: source.highlights || []
-            };
-            return pdfContent;
-        } else if (source.type === "html") {
-            const text = await response.text();
-            const content: HTMLSourceContent = {
-                type: 'html',
-                content: text,
-                metadata: source.metadata || {}
-            };
-            return content;
-        } else if (source.type === "markdown") {
-            const text = await response.text();
-            // Replace any existing backtick sequences with escaped versions
-            const escapedText = text.replace(/`/g, '\\`');
-            const content: MarkdownSourceContent = {
-                type: 'markdown',
-                content: `\`\`\`markdown\n${escapedText}\n\`\`\``,
-                metadata: source.metadata || {}
-            };
-            return content;
-        }
-
-        throw new Error(`Unsupported source type: ${source.type}`);
-    }, []);
+    const getDataSource = useRestContentSource(getDataSourceOptions);
+    
 
     // Memoize the options for retrieve and generate
     const retrieveAndGenerateOptions = useMemo(() => ({

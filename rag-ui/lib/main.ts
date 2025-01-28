@@ -13,10 +13,12 @@ import { useSSERetrieveAndGenerateSource } from './connectors/useSSERetrieveAndG
 import { useSSEGenerateSource } from './connectors/useSSEGenerateSource'
 import { useRESTGenerateSource } from './connectors/useRestGenerateSource'
 import { useRESTRetrieveAndGenerateSource } from './connectors/useRestRetrieveAndGenerateSource'
+import { useRestContentSource } from './connectors/useRestContentSource'
 
 export { QueryField, AdvancedQueryField, ChatWindow,
     PdfViewer, RAGProvider, useRAGMessages, useRAGSources, useRAGStatus,
     SourcesDisplay, ErrorDisplay, ContentDisplay, useSSERetrieveAndGenerateSource,
-    useSSEGenerateSource, useRESTGenerateSource, useRESTRetrieveAndGenerateSource }
+    useSSEGenerateSource, useRESTGenerateSource, useRESTRetrieveAndGenerateSource,
+    useRestContentSource }
 export * from './types'
 
