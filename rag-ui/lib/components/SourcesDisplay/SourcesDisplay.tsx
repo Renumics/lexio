@@ -20,6 +20,7 @@ export interface SourcesDisplayStyles extends React.CSSProperties {
   selectedSourceBorderColor?: string;
   inactiveSourceBackground?: string;
   inactiveSourceBorderColor?: string;
+  inputFocusRingColor?: string;
   metadataTagBackground?: string;
   metadataTagColor?: string;
   relevanceScoreColor?: string;

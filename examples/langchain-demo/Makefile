@@ -20,7 +20,7 @@ setup-backend:
 # Frontend setup
 setup-frontend:
 	@echo "Setting up frontend..."
-	cd $(FRONTEND_DIR) && npm install &&  npm install --install-links ../../../rag-ui/dist/
+	cd $(FRONTEND_DIR) && npm install &&  npm install --install-links ../../../rag-ui/
 
 # Start backend server
 start-backend:
@@ -35,7 +35,7 @@ start-frontend:
 # Clean up
 clean:
 	@echo "Cleaning up..."
-	rm -rf $(VENV_DIR)
+	rm -rf $(BACKEND_DIR)/$(VENV_DIR)
 	cd $(FRONTEND_DIR) && rm -rf node_modules
 
 # Indexing target

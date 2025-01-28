@@ -4,7 +4,7 @@ import {
     ChevronLeftIcon,
     ChevronRightIcon,
 } from "@heroicons/react/24/solid";
-import {Highlight} from "./Highlight.tsx";
+import {Highlight} from "./Highlight.tsx"
 import {pdfjs, Document, Page} from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
