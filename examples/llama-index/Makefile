@@ -12,10 +12,9 @@ init: setup-backend setup-frontend
 # Backend setup
 setup-backend:
 	@echo "Setting up backend..."
-	cd $(BACKEND_DIR) && python3 -m venv $(VENV_DIR)
+	cd $(BACKEND_DIR) && python -m venv $(VENV_DIR)
 	@echo "Activating virtual environment and installing backend dependencies..."
-	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/pip install -r requirements.txt
-	@echo "Backend setup complete. Don't forget to create a .env file with your OpenAI API key."
+	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/pip install -e .
 
 # Frontend setup
 setup-frontend:
@@ -26,7 +25,7 @@ setup-frontend:
 # Start backend server
 start-backend:
 	@echo "Starting backend server..."
-	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/python3 -m uvicorn main_with_highlighting:app --reload
+	cd $(BACKEND_DIR) && PYTHONPATH=. $(VENV_DIR)/bin/python -m uvicorn src.main_with_highlighting:app --reload
 
 
 # Start frontend server
@@ -40,14 +39,9 @@ clean:
 	rm -rf $(VENV_DIR)
 	cd $(FRONTEND_DIR) && rm -rf node_modules
 
-# Indexing target
-index:
-	@echo "Running document indexing..."
-	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/python3 src/indexing.py
 
 # Help
 help:
-	@echo "Makefile for langchain-demo"
 	@echo "Usage:"
 	@echo "  make init            - Set up both backend and frontend environments"
 	@echo "  make setup-backend   - Set up the backend environment"
@@ -55,5 +49,4 @@ help:
 	@echo "  make start-backend   - Start the backend server"
 	@echo "  make start-frontend  - Start the frontend server"
 	@echo "  make clean           - Clean up the environment"
-	@echo "  make index           - Run document indexing"
 	@echo "  make help            - Display this help message"
