@@ -4,6 +4,8 @@ import {
     RAGProvider,
     SourcesDisplay,
     ContentDisplay,
+    QueryField,
+    ErrorDisplay,
     Message,
     AdvancedQueryField,
     RetrievalResult,
@@ -26,17 +28,20 @@ const customTheme = createTheme({
 
 function App() {
     const retrieveAndGenerate = (messages: Message[]) => {
-        const query = encodeURIComponent(JSON.stringify({ messages }));
+        // Convert input messages array to URL-safe format
+        const query = encodeURIComponent(JSON.stringify({messages: messages}));
         const eventSource = new EventSource(
             `http://localhost:8000/retrieve-and-generate?messages=${query}`
         );
 
+        // Retrieve sources from the server
         const sourcesPromise = new Promise<RetrievalResult[]>((resolve, reject) => {
             const handleSources = (event: MessageEvent) => {
                 const data = JSON.parse(event.data);
                 if (data.sources) {
                     // Transform sources to match the expected format
                     const transformedSources = data.sources.map((source: any) => {
+
                         if ('text' in source) {
                             return {
                                 text: source.text,
@@ -114,17 +119,15 @@ function App() {
         };
     };
 
-    const generate = (messages: Message[], sources: RetrievalResult[]) => {
-        const query = encodeURIComponent(
-            JSON.stringify({
-                messages,
-                sources
-            })
-        );
+    /*
+      * This is a simple retrieval function that sends a query to the server and returns a list of sources.
+     */
+    const retrieve = async (query: string): Promise<RetrievalResult[]> => {
+        const response = await fetch(`http://localhost:8000/retrieve?query=${encodeURIComponent(query)}`);
 
-        const eventSource = new EventSource(
-            `http://localhost:8000/generate?messages=${query}`
-        );
+        // Read and log the response content
+        const responseData = await response.json();
+        //console.log('Response Content:', responseData);
 
         const messageQueue: GenerateStreamChunk[] = [];
         let resolveNext: (() => void) | null = null;
@@ -167,50 +170,26 @@ function App() {
     };
 
     const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
-        let url: string;
-        if (source.type === "pdf") {
-            url = `http://localhost:8000/pdfs/${encodeURIComponent(source.sourceReference)}`;
-        } else if (source.type === "html") {
-            url = `http://localhost:8000/htmls/${encodeURIComponent(source.sourceReference)}`;
-        } else if (source.type === "markdown") {
-            url = `http://localhost:8000/markdowns/${encodeURIComponent(source.sourceReference)}`;
-        } else {
-            throw new Error(`Unsupported source type: ${source.type}`);
+        // We allow only PDF files in this demo
+        if (source.type !== "pdf") {
+            throw new Error("Invalid source type");
         }
+
+        const url = `http://localhost:8000/sources/${encodeURIComponent(source.sourceReference)}`;
 
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
         }
 
-        if (source.type === "html") {
-            const text = await response.text();
-            const htmlContent: HTMLSourceContent = {
-                type: 'html',
-                content: `<div class="source-content">${text}</div>`,
-                metadata: source.metadata || {}
-            };
-            return htmlContent;
-        } else if (source.type === "markdown") {
-            const text = await response.text();
-            const markdownContent: MarkdownSourceContent = {
-                type: 'markdown',
-                content: text,
-                metadata: source.metadata || {}
-            };
-            return markdownContent
-        } else if (source.type === "pdf") {
-            const arrayBuffer = await response.arrayBuffer();
-            const pdfContent: PDFSourceContent = {
-                type: 'pdf',
-                content: new Uint8Array(arrayBuffer),
-                metadata: source.metadata || {},
-                highlights: source.highlights || []
-            };
-            return pdfContent;
-        }
-
-        throw new Error("Invalid source type");
+        const arrayBuffer = await response.arrayBuffer();
+        const pdfContent: PDFSourceContent = {
+            type: 'pdf',
+            content: new Uint8Array(arrayBuffer),
+            metadata: source.metadata || {},
+            highlights: source.highlights || []
+        };
+        return pdfContent;
     };
 
     return (
@@ -242,19 +221,52 @@ function App() {
                     <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
                         <ChatWindow />
                     </div>
-                    <div style={{ gridArea: 'input' }}>
-                        <AdvancedQueryField />
-                    </div>
-                    <div style={{ gridArea: 'sources', minHeight: 0, overflow: 'auto' }}>
-                        <SourcesDisplay />
-                    </div>
-                    <div style={{ gridArea: 'viewer', height: '300px', overflow: 'auto' }}>
-                        <ContentDisplay />
-                    </div>
                 </div>
-            </RAGProvider>
+            </nav>
+
+            {/* Main Content */}
+            <div className="flex-1 p-4">
+                <RAGProvider
+                    retrieve={retrieve}
+                    retrieveAndGenerate={retrieveAndGenerate}
+                    getDataSource={getDataSource}
+                    config={{
+                        timeouts: {
+                            stream: 10000,
+                            request: 60000
+                        }
+                    }}
+                    onAddMessage={() => {
+                        return {
+                            type: 'reretrieve',
+                            preserveHistory: false
+                        }
+                    }}
+                    theme={demoTheme}
+                >
+                    <div className="w-full h-full max-h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
+                        {/* Left side: Chat and Query */}
+                        <div className="h-3/4 gap-4 w-1/4 flex flex-col">
+                            <div className="shrink-0"> {/* Query field */}
+                                <QueryField onSubmit={() => {
+                                }}/>
+                            </div>
+                            <div className="h-full"> {/* Chat window */}
+                                <ChatWindow/>
+                            </div>
+                        </div>
+                        <div className="w-1/6 h-full"> {/* Sources panel */}
+                            <SourcesDisplay/>
+                        </div>
+                        <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
+                            <ContentDisplay/>
+                        </div>
+                        <ErrorDisplay/>
+                    </div>
+                </RAGProvider>
+            </div>
         </div>
-    );
+    )
 }
 
-export default App;
+export default App

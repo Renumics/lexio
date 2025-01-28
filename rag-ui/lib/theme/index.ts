@@ -21,6 +21,7 @@ export const defaultTheme: Theme = {
     lineHeight: '1.75',  // Increased for a spacious feel
   },
   spacing: {
+    // default: '16px',  // todo: add and use
     none: '0px',
     xs: '6px',
     sm: '12px',
@@ -29,6 +30,7 @@ export const defaultTheme: Theme = {
     xl: '48px',
   },
   borderRadius: {
+    // default: '4px',   // todo: add and use
     none: '0px',
     sm: '6px',  // Slightly rounded edges for softer look
     md: '12px',
