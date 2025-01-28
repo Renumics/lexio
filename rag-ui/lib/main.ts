@@ -11,7 +11,12 @@ import { ContentDisplay } from './components/ContentDisplay'
 
 import { useSSERetrieveAndGenerateSource } from './connectors/useSSERetrieveAndGenerateSource'
 import { useSSEGenerateSource } from './connectors/useSSEGenerateSource'
+import { useRESTGenerateSource } from './connectors/useRestGenerateSource'
+import { useRESTRetrieveAndGenerateSource } from './connectors/useRestRetrieveAndGenerateSource'
 
-export { QueryField, AdvancedQueryField, ChatWindow, PdfViewer, RAGProvider, useRAGMessages, useRAGSources, useRAGStatus, SourcesDisplay, ErrorDisplay, ContentDisplay, useSSERetrieveAndGenerateSource, useSSEGenerateSource }
+export { QueryField, AdvancedQueryField, ChatWindow,
+    PdfViewer, RAGProvider, useRAGMessages, useRAGSources, useRAGStatus,
+    SourcesDisplay, ErrorDisplay, ContentDisplay, useSSERetrieveAndGenerateSource,
+    useSSEGenerateSource, useRESTGenerateSource, useRESTRetrieveAndGenerateSource }
 export * from './types'
 
