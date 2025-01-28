@@ -32,10 +32,9 @@ const warmTheme = createTheme({
         fontSizeBase: '18px',
         lineHeight: '1.8',
     },
-    borderRadius: {
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
+    componentDefaults: {
+        borderRadius: '1.5rem',
+        padding: '1.5rem',
     }
 });
 
@@ -56,12 +55,9 @@ const modernTheme = createTheme({
         fontSizeBase: '16px',
         lineHeight: '1.75',
     },
-    spacing: {
-        xs: '8px',
-        sm: '16px',
-        md: '24px',
-        lg: '32px',
-        xl: '48px',
+    componentDefaults: {
+        borderRadius: '1.5rem',
+        padding: '1.5rem',
     }
 });
 
@@ -246,18 +242,17 @@ const meta = {
                 component: `
 # Theming
 
-The RAG UI library provides a flexible theming system that allows you to customize the look and feel of all components. You can either use the default theme, modify specific parts of it, or create an entirely new theme.
+The \`Lexio\` library provides a flexible theming system that allows you to customize the look and feel of all components. You can either use the default theme, modify specific parts of it, or create an entirely new theme.
 
 ## Theme Structure
 
-The theme consists of four main parts:
+The theme consists of four three parts:
 
 \`\`\`typescript
 interface Theme {
-  colors: Colors;       // Color palette
-  typography: Typography; // Font settings
-  spacing: Spacing;     // Spacing scale
-  borderRadius: BorderRadius; // Border radius scale
+  colors: Colors;                       // Color palette
+  typography: Typography;               // Font settings
+  componentDefaults: ComponentDefaults; // Default component styles
 }
 \`\`\`
 
@@ -271,8 +266,8 @@ interface Colors {
   secondary: string;          // Secondary brand color
   contrast: string;           // Contrast color for text on primary/secondary
   background: string;         // Main background color
-  secondaryBackground: string; // Secondary background color
-  toolbarBackground: string;   // Background for toolbars
+  secondaryBackground: string;// Secondary background color
+  toolbarBackground: string;  // Background for toolbars
   text: string;               // Main text color
   secondaryText: string;      // Secondary text color
   lightText: string;          // Light text color
@@ -294,32 +289,14 @@ interface Typography {
 }
 \`\`\`
 
-### 3. Spacing
+### 3. Component Defaults
 
 A consistent spacing scale:
 
 \`\`\`typescript
-interface Spacing {
-  none: string;  // No spacing (0px)
-  xs: string;    // Extra small spacing
-  sm: string;    // Small spacing
-  md: string;    // Medium spacing
-  lg: string;    // Large spacing
-  xl: string;    // Extra large spacing
-}
-\`\`\`
-
-### 4. Border Radius
-
-Border radius scale for consistent corner rounding:
-
-\`\`\`typescript
-interface BorderRadius {
-  none: string;  // No border radius
-  sm: string;    // Small border radius
-  md: string;    // Medium border radius
-  lg: string;    // Large border radius
-  xl: string;    // Extra large border radius
+interface ComponentDefaults {
+    borderRadius: string;  // Default border radius
+    padding: string;       // Default padding
 }
 \`\`\`
 
@@ -345,7 +322,7 @@ function App() {
 
 You can create a custom theme in two ways:
 
-**1:** Modify the default theme:
+#### **1:** Modify the default theme partially with the provided \`createTheme\` function:
 
 \`\`\`typescript
 import { createTheme } from 'lexio';
@@ -361,7 +338,7 @@ const myTheme = createTheme({
 });
 \`\`\`
 
-**2:** Create a complete theme from scratch, which requires all values to be defined:
+#### **2:** Create a complete theme from scratch, which requires all values to be defined:
 
 \`\`\`typescript
 import { Theme } from 'lexio';
@@ -373,16 +350,13 @@ const myTheme: Theme = {
   typography: {
     // ... all typography values required
   },
-  spacing: {
-    // ... all spacing values required
-  },
-  borderRadius: {
-    // ... all border radius values required
+  componentDefaults: {
+    // ... all component defaults required
   }
 };
 \`\`\`
 
-Apply your custom theme:
+#### Apply your custom theme:
 
 \`\`\`typescript
 <RAGProvider theme={myTheme}>
@@ -390,7 +364,9 @@ Apply your custom theme:
 </RAGProvider>
 \`\`\`
 
-Try out the interactive examples below to see different theme variations in action.
+## Interactive Example 
+Try out the interactive examples below to see different theme variations in action.  
+Change the \`customTheme\` value via the dropdown menu under \`Control\`.
 `
             }
         }

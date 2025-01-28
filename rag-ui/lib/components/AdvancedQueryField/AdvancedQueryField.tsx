@@ -201,23 +201,23 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     throw new Error('ThemeContext is undefined');
   }
 
-  const { colors, spacing, borderRadius } = theme.theme;
+  const { colors, componentDefaults } = theme.theme;
 
   // Merge theme defaults + overrides
   const defaultStyle: AdvancedQueryFieldStyles = {
     backgroundColor: colors.background,
     color: colors.text,
-    padding: spacing.md,
+    padding: componentDefaults.padding,
     fontFamily: 'inherit',
     borderColor: '#e5e7eb',
-    borderRadius: borderRadius.md,
+    borderRadius: componentDefaults.borderRadius,
     mentionChipBackground: '#bee3f8', // Light blue default
     mentionChipColor: '#2c5282',      // Darker blue text
     inputBackgroundColor: 'white',
     inputBorderColor: '#e5e7eb',
     buttonBackground: colors.primary,
     buttonTextColor: colors.contrast,
-    buttonBorderRadius: borderRadius.md,
+    buttonBorderRadius: componentDefaults.borderRadius,
     modeInitColor: colors.primary,
     modeFollowUpColor: colors.success,
     modeReRetrieveColor: colors.secondary,

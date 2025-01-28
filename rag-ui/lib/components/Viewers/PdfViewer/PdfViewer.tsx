@@ -49,23 +49,23 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
     if (!theme) {
         throw new Error('ThemeContext is undefined');
     }
-    const { colors, spacing, borderRadius, typography } = theme.theme;
+    const { colors, typography, componentDefaults } = theme.theme;
 
     // --- merge theme defaults + overrides ---
     const style: PdfViewerStyles = {
         color: colors.text,
         fontFamily: typography.fontFamily,
         contentBackground: colors.secondaryBackground,
-        contentPadding: spacing.none,
-        borderRadius: borderRadius.md,
+        contentPadding: 'none',
+        borderRadius: componentDefaults.borderRadius,
 
-        toolbarBorderRadius: borderRadius.md,
+        toolbarBorderRadius: componentDefaults.borderRadius,
         toolbarChipBackground: '#f3f3f3',
-        toolbarChipBorderRadius: borderRadius.md,
+        toolbarChipBorderRadius: componentDefaults.borderRadius,
         toolbarChipInputBackground: '#ffffff',
         toolbarButtonBackground: colors.primary,
         toolbarButtonColor: colors.contrast,
-        toolbarButtonBorderRadius: borderRadius.sm,
+        toolbarButtonBorderRadius: '0.8rem',
         ...removeUndefined(styleOverrides),
     };
 

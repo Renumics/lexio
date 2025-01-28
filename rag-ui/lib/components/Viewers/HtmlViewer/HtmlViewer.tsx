@@ -37,30 +37,30 @@ const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
     if (!theme) {
         throw new Error('ThemeContext is undefined');
     }
-    const { colors, spacing, borderRadius } = theme.theme;
+    const { colors, componentDefaults } = theme.theme;
 
     // --- merge theme defaults + overrides ---
     const style: HtmlViewerStyles = {
         backgroundColor: colors.background,
         color: colors.text,
-        padding: spacing.none,
-        borderRadius: borderRadius.md,
+        padding: 'none',
+        borderRadius: componentDefaults.borderRadius,
 
-        toolbarBorderRadius: borderRadius.md,
+        toolbarBorderRadius: componentDefaults.borderRadius,
         toolbarChipBackground: '#f0f0f0',
-        toolbarChipBorderRadius: borderRadius.md,
+        toolbarChipBorderRadius: componentDefaults.borderRadius,
         toolbarChipInputBackground: '#ffffff',
-        toolbarButtonBorderRadius: borderRadius.md,
+        toolbarButtonBorderRadius: componentDefaults.borderRadius,
         toolbarSecondaryBackground: colors.secondaryBackground,
         toolbarButtonBackground: colors.primary,
         toolbarButtonColor: 'white',
 
-        viewerBorderRadius: borderRadius.sm,
+        viewerBorderRadius: '0.8rem',
         viewerBackground: colors.background,
-        viewerPadding: spacing.none,
+        viewerPadding: 'none',
         contentBackground: colors.secondaryBackground,
-        contentPadding: spacing.md,
-        contentBorderRadius: borderRadius.sm,
+        contentPadding: componentDefaults.padding,
+        contentBorderRadius: '0.8rem',
         ...removeUndefined(styleOverrides),
     };
 

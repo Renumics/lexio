@@ -27,14 +27,14 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { colors, spacing, borderRadius } = theme.theme;
+  const { colors, componentDefaults } = theme.theme;
 
   // Merge theme defaults + overrides
   const style: ContentDisplayStyles = {
     backgroundColor: 'transparent',
     color: colors.text,
-    padding: spacing.none,
-    borderRadius: borderRadius.md,
+    padding: 'none',
+    borderRadius: componentDefaults.borderRadius,
     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     ...removeUndefined(styleOverrides),
   };
