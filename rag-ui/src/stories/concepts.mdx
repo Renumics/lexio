@@ -41,4 +41,7 @@ At least one of these functions must be provided to the `RAGProvider`
 - **Follow-up Questions**: The generate function of the RAGProvider can be used to handle follow-up questions.
 
 ### Customization and Theming
-- TODO
+- **Global Theme**: All components can be styled with a global theme that can be set in the `RAGProvider`.
+    - You can either define a custom theme that implements the `Theme` interface or override the default theme (partially) with the `createTheme` function.
+- **Component Styling**: Components can be styled individually with the `styleOverrides` prop.
+    - Each components has a set of styles that can be overridden. See the component documentation for more information.
