@@ -9,6 +9,8 @@ import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
 
+import { useSSESource } from './connectors/useSSESource'
 
-export { QueryField, AdvancedQueryField, ChatWindow, PdfViewer, RAGProvider, useRAGMessages, useRAGSources, useRAGStatus, SourcesDisplay, ErrorDisplay, ContentDisplay }
+export { QueryField, AdvancedQueryField, ChatWindow, PdfViewer, RAGProvider, useRAGMessages, useRAGSources, useRAGStatus, SourcesDisplay, ErrorDisplay, ContentDisplay, useSSESource }
 export * from './types'
+

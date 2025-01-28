@@ -129,9 +129,11 @@ export const addMessageAtom = atom(
       // If retrieveAndGenerate is available, always use it in init/reretrieve mode
       if (hasRetrieveAndGenerateAtom && (currentMode === 'init' || currentMode === 'reretrieve')) {
         set(ragAtoms.retrieveAndGenerateAtom!, updatedMessages, undefined);
-        // Switch to follow-up mode if generate is available
+        // Switch to follow-up mode if generate is available, otherwise stay in reretrieve
         if (hasGenerateAtom) {
           set(workflowModeAtom, 'follow-up');
+        } else {
+          set(workflowModeAtom, 'reretrieve');
         }
         return;
       }
@@ -142,9 +144,10 @@ export const addMessageAtom = atom(
         return;
       }
 
-      // If we only have retrieveAndGenerate, use it for everything
+      // If we only have retrieveAndGenerate, use it for everything and stay in reretrieve mode
       if (hasRetrieveAndGenerateAtom) {
         set(ragAtoms.retrieveAndGenerateAtom!, updatedMessages, undefined);
+        set(workflowModeAtom, 'reretrieve');
         return;
       }
 
@@ -433,7 +436,7 @@ export const createRetrieveAndGenerateAtom = (
                 role: 'assistant', 
                 content: accumulatedContent 
               });
-
+              
               if (chunk.done) {
                 // On completion, update message history
                 set(completedMessagesAtom, prev => [...prev, { 
