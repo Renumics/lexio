@@ -183,10 +183,8 @@ export function useSSEGenerateSource(options: SSEGenerateConnectorOptions) {
  *  - Also includes the `sources` array if present
  */
 function defaultBuildRequestBody(messages: Message[], sources?: RetrievalResult[]) {
-    return {
-      messages,
-      source_ids: sources?.map(source => 
-        'sourceReference' in source ? source.sourceReference : null
-      ).filter(Boolean)
-    };
-  }
+  return {
+    messages,
+    sources
+  };
+}

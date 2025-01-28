@@ -212,11 +212,14 @@ export function useSSERetrieveAndGenerateSource(options: SSEConnectorOptions) {
 }
 
 /**
- * Default function used by buildRequestBody if none is specified.
- * It takes the last message's content as `query`, plus the provided metadata.
+ * Default way to build the request body if none is given:
+ *  - Takes the last user message as { query }
+ *  - Also includes the `sources` array if present
  */
-function defaultBuildRequestBody(messages: Message[], metadata?: Record<string, any>) {
-  const lastMessage = messages[messages.length - 1];
-  const query = lastMessage?.content ?? '';
-  return { query, metadata };
+function defaultBuildRequestBody(messages: Message[], sources?: RetrievalResult[]) {
+  return {
+    messages,
+    sources
+  };
 }
+
