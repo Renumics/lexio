@@ -22,32 +22,19 @@ export interface Typography {
   lineHeight: string;
 }
 
-export interface Spacing {
-  default: string;
-  none: string;
-  sm: string;
-  md: string;
-  lg: string;
-}
-
-export interface BorderRadius {
-  default: string;
-  none: string;
-  sm: string;
-  md: string;
-  lg: string;
+export interface ComponentDefaults {
+  borderRadius: string;
+  padding: string;
 }
 
 export interface Theme {
   colors: Colors;
   typography: Typography;
-  spacing: Spacing;
-  borderRadius: BorderRadius;
+  componentDefaults: ComponentDefaults;
 }
 
 export interface PartialTheme {
   colors: Partial<Colors>;
   typography: Partial<Typography>;
-  spacing: Partial<Spacing>;
-  borderRadius: Partial<BorderRadius>;
+  componentDefaults: Partial<ComponentDefaults>;
 }

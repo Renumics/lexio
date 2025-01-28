@@ -17,22 +17,12 @@ export const defaultTheme: Theme = {
   },
   typography: {
     fontFamily: '"Poppins", Helvetica, Arial, sans-serif',  // Modern Google Font
-    fontSizeBase: '18px',  // Slightly larger for readability
+    fontSizeBase: '1.125rem',  // Slightly larger for readability
     lineHeight: '1.75',  // Increased for a spacious feel
   },
-  spacing: {
-    default: 'md',
-    none: '0rem',
-    sm: '0.75rem',
-    md: '1.25rem',
-    lg: '2rem',
-  },
-  borderRadius: {
-    default: 'md',
-    none: '0px',
-    sm: '0.75rem',
-    md: '1.25rem',
-    lg: '2rem',
+  componentDefaults: {
+    borderRadius: '0.5rem',
+    padding: '1.0rem',
   },
 };
 
@@ -47,13 +37,9 @@ export const createTheme = (overrides: Partial<PartialTheme>): Theme => {
             ...defaultTheme.typography,
             ...(overrides.typography || {}),
         },
-        spacing: {
-            ...defaultTheme.spacing,
-            ...(overrides.spacing || {}),
-        },
-        borderRadius: {
-            ...defaultTheme.borderRadius,
-            ...(overrides.borderRadius || {}),
+        componentDefaults: {
+            ...defaultTheme.componentDefaults,
+            ...(overrides.componentDefaults || {}),
         },
     };
 }

@@ -30,20 +30,20 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
     if (!theme) {
         throw new Error('ThemeContext is undefined');
     }
-    const { colors, borderRadius } = theme.theme;
+    const { colors, componentDefaults } = theme.theme;
 
     // --- merge theme defaults + overrides ---
     const style: ViewerToolbarStyles = {
         toolbarChipBackground: '#ffffff',
-        toolbarChipBorderRadius: borderRadius.md,
+        toolbarChipBorderRadius: componentDefaults.borderRadius,
         toolbarChipInputBackground: '#ffffff',
-        toolbarBorderRadius: borderRadius.md,
+        toolbarBorderRadius: componentDefaults.borderRadius,
         toolbarTextColor: colors.text,
         toolbarBackground: colors.toolbarBackground,
         toolbarSecondaryBackground: colors.secondaryBackground,
         toolbarButtonBackground: colors.primary,
         toolbarButtonColor: colors.contrast,
-        toolbarButtonBorderRadius: borderRadius.sm,
+        toolbarButtonBorderRadius: '0.8rem',
         toolbarButtonSize: 'sm',
         toolbarBoxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)',
         ...removeUndefined(styleOverrides),

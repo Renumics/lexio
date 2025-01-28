@@ -73,16 +73,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   if (!theme) {
       throw new Error('ThemeContext is undefined');
   }
-  const { colors, borderRadius, spacing, typography } = theme.theme;
+  const { colors, typography, componentDefaults } = theme.theme;
 
   // Merge theme defaults + overrides
   const style: ChatWindowStyles = {
     backgroundColor: colors.background,
     color: colors.text,
-    padding: spacing.md,
+    padding: componentDefaults.padding,
     fontFamily: typography.fontFamily,
     fontSize: typography.fontSizeBase,
-    borderRadius: borderRadius.md,
+    borderRadius: componentDefaults.borderRadius,
     ...styleOverrides, // ensure these override theme defaults
   };
 

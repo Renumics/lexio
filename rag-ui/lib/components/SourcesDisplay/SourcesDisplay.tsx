@@ -103,14 +103,14 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { colors, spacing, borderRadius } = theme.theme;
+  const { colors, componentDefaults } = theme.theme;
 
   // Merge theme defaults + overrides
   const style: SourcesDisplayStyles = {
     backgroundColor: colors.background,
     color: colors.text,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
+    padding: componentDefaults.padding,
+    borderRadius: componentDefaults.borderRadius,
 
     inputBackgroundColor: colors.background,
     inputBorderColor: 'gray',
@@ -118,7 +118,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
 
     buttonBackground: colors.primary,
     buttonTextColor: colors.contrast,
-    buttonBorderRadius: borderRadius.md,
+    buttonBorderRadius: componentDefaults.borderRadius,
 
     activeSourceBackground: colors.secondaryBackground,
     activeSourceBorderColor: colors.primary,

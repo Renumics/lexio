@@ -76,22 +76,22 @@ const QueryField: React.FC<QueryFieldProps> = ({
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { colors, spacing, borderRadius } = theme.theme;
+  const { colors, componentDefaults } = theme.theme;
 
   // Minimal defaults, similar to AdvancedQueryField
   const defaultStyle: QueryFieldStyles = {
     backgroundColor: colors.background,
     color: colors.text,
-    padding: spacing.md,
+    padding: componentDefaults.padding,
     fontFamily: 'inherit',
     borderColor: '#e5e7eb',
-    borderRadius: borderRadius.md,
+    borderRadius: componentDefaults.borderRadius,
     inputBackgroundColor: 'white',
     inputBorderColor: '#e5e7eb',
-    inputBorderRadius: borderRadius.md,
+    inputBorderRadius: componentDefaults.borderRadius,
     buttonBackground: colors.primary,
     buttonTextColor: colors.contrast,
-    buttonBorderRadius: borderRadius.md,
+    buttonBorderRadius: componentDefaults.borderRadius,
     modeInitColor: colors.primary,
     modeFollowUpColor: colors.success,
     modeReRetrieveColor: colors.secondary,
