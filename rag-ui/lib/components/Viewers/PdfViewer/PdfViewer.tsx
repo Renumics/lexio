@@ -77,11 +77,30 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
     };
 
     useEffect(() => {
-        if (data && page) {
-            setPageNumber(page);
+        if (data) {
+            let targetPage = 1; // default to first page
+            
+            if (highlights && highlights.length > 0) {
+                // Count page occurrences in highlights
+                const pageCount = highlights.reduce((acc: {[key: number]: number}, highlight) => {
+                    const highlightPage = highlight.page;
+                    acc[highlightPage] = (acc[highlightPage] || 0) + 1;
+                    return acc;
+                }, {});
+                
+                // Find the most frequent page
+                const mostFrequentPage = Object.entries(pageCount)
+                    .reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+                
+                targetPage = parseInt(mostFrequentPage) || page || 1;
+            } else if (page) {
+                targetPage = page;
+            }
+
+            setPageNumber(targetPage);
             fitParent();
         }
-    }, [data]);
+    }, [data, highlights, page]);
 
     // Function to handle successful loading of the PDF page and retrieve its original dimensions
     const onPageLoadSuccess = (page: PDFPageProxy) => {

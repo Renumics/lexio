@@ -94,7 +94,7 @@ function App() {
                     })),
                     metadata: {
                         id: item.id,
-                        text: item.text // Store the text in metadata for fallback display
+                        page: item.page
                     }
                 } as SourceReference;
             });
@@ -118,7 +118,7 @@ function App() {
     });
 
     return (
-        <div className="app-container" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div className="app-container">
             <RAGProvider
                 retrieveAndGenerate={retrieveAndGenerate}
                 getDataSource={getDataSource}
@@ -132,25 +132,33 @@ function App() {
                     display: 'grid',
                     height: '100vh',
                     width: '100%',
-                    gridTemplateColumns: '2fr 1fr',
-                    gridTemplateRows: 'minmax(0, 1fr) 100px 300px',
+                    gridTemplateColumns: '1fr 2fr',
+                    gridTemplateRows: '1fr 100px',
                     gap: '20px',
                     gridTemplateAreas: `
-            "chat sources"
-            "input sources"
-            "viewer viewer"
+            "chat viewer"
+            "input viewer"
           `,
                     maxHeight: '100vh',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    padding: '20px',
+                    boxSizing: 'border-box'
                 }}>
                     {/* Main chat UI */}
                     <div style={{
                         gridArea: 'chat',
                         overflow: 'auto',
-                        minWidth: 0,  // Prevent content from forcing growth
-                        maxWidth: '100%'  // Prevent expanding beyond container
+                        minWidth: 0,
+                        maxWidth: '100%'
                     }}>
-                        <ChatWindow />
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                <SourcesDisplay />
+                            </div>
+                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                <ChatWindow />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Advanced query input */}
@@ -163,22 +171,12 @@ function App() {
                         <AdvancedQueryField />
                     </div>
 
-                    {/* Sources panel */}
-                    <div style={{
-                        gridArea: 'sources',
-                        overflow: 'auto',
-                        minWidth: 0,
-                        maxWidth: '100%'
-                    }}>
-                        <SourcesDisplay />
-                    </div>
-
                     {/* Content viewer */}
                     <div style={{
                         gridArea: 'viewer',
-                        height: '300px',
                         overflow: "hidden",
-                        width: '100%'
+                        width: '100%',
+                        height: '100%'
                     }}>
                         <ContentDisplay />
                     </div>

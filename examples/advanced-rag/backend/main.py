@@ -126,6 +126,7 @@ async def retrieve_and_generate(request: RetrieveAndGenerateRequest):
         sources = [
             {
                 "doc_path": r["doc_path"],
+                "page": r["page_number"],
                 "text": r["text"],
                 "id": r["id"],
                 "highlights": [{
