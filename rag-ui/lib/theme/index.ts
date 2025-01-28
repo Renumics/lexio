@@ -1,4 +1,4 @@
-import type { Theme } from './types';
+import type { Colors, Typography, Spacing, BorderRadius, Theme } from './types';
 
 export const defaultTheme: Theme = {
   colors: {
@@ -37,27 +37,31 @@ export const defaultTheme: Theme = {
   },
 };
 
-
-// todo: assure Theme props
-export const createTheme = (overrides): Theme => {
+export const createTheme = (overrides: Partial<PartialTheme>): Theme => {
     return {
         ...defaultTheme,
-        ...overrides,
         colors: {
-        ...defaultTheme.colors,
-        ...overrides.colors,
+            ...defaultTheme.colors,
+            ...(overrides.colors || {}),
         },
         typography: {
-        ...defaultTheme.typography,
-        ...overrides.typography,
+            ...defaultTheme.typography,
+            ...(overrides.typography || {}),
         },
         spacing: {
-        ...defaultTheme.spacing,
-        ...overrides.spacing,
+            ...defaultTheme.spacing,
+            ...(overrides.spacing || {}),
         },
         borderRadius: {
-        ...defaultTheme.borderRadius,
-        ...overrides.borderRadius,
+            ...defaultTheme.borderRadius,
+            ...(overrides.borderRadius || {}),
         },
     };
+}
+
+export interface PartialTheme {
+  colors: Partial<Colors>;
+  typography: Partial<Typography>;
+  spacing: Partial<Spacing>;
+  borderRadius: Partial<BorderRadius>;
 }

@@ -15,15 +15,14 @@ import {
     TextContent,
     MarkdownSourceContent
 } from '../lib/main'
-import {defaultTheme} from "../lib/theme";
+import {createTheme} from "../lib/theme";
 
-export const customTheme = {
-  ...defaultTheme,
-  /*colors: {
-    ...defaultTheme.colors,
-    background: '#FF0000', // custom brand color
-  },*/
-};
+const customTheme = createTheme({
+    colors: {
+        primary: '#1E88E5',
+        secondary: '#64B5F6'
+    }
+});
 
 function App() {
     const retrieveAndGenerate = (messages: Message[]) => {
