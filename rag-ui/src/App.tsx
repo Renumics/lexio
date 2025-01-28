@@ -11,7 +11,7 @@ import {
     SourceReference,
     Message,
     RetrievalResult,
-    useRestContentSource
+    useRestContentSource,
 } from '../lib/main'
 import './App.css';
 import { SSEParsedEvent } from '../lib/connectors/useSSERetrieveAndGenerateSource';
@@ -30,7 +30,29 @@ function App() {
           return {
             url: `http://localhost:8000/pdfs/${encodeURIComponent(id)}`, 
           };
-        },
+        }, 
+        parseText: (text: string, source: SourceReference) => {
+            const codeFileExtensions = ['.tsx', '.ts', '.js', '.jsx', '.py', '.java', '.cpp', '.c', '.rs'];
+            const isCodeFile = source.sourceName && codeFileExtensions.some(ext => source.sourceName?.endsWith(ext));
+
+            if (isCodeFile) {
+                // For code files, escape backticks and wrap in code fence
+                const escapedText = text.replace(/`/g, '\\`');
+                const extension = source.sourceName?.split('.').pop() || 'txt';
+                return {
+                    type: source.type,
+                    content: `\`\`\`${extension}\n${escapedText}\n\`\`\``,
+                    metadata: source.metadata || {}
+                };
+            }
+            
+            // For all other files, return as-is with original type
+            return {
+                type: source.type,
+                content: text,
+                metadata: source.metadata || {}
+            };
+        }
     }), []);
 
     const getDataSource = useRestContentSource(getDataSourceOptions);
