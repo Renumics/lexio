@@ -444,21 +444,21 @@ export const Docs: Story = {
     }
 };
 
-// Additional examples showing different theme variations
-export const DarkMode: Story = {
-    args: {
-        customTheme: darkTheme,
-    }
-};
-
-export const WarmColors: Story = {
-    args: {
-        customTheme: warmTheme,
-    }
-};
-
-export const ModernStyle: Story = {
-    args: {
-        customTheme: modernTheme,
-    }
-};
+// // Additional examples showing different theme variations
+// export const DarkMode: Story = {
+//     args: {
+//         customTheme: darkTheme,
+//     }
+// };
+//
+// export const WarmColors: Story = {
+//     args: {
+//         customTheme: warmTheme,
+//     }
+// };
+//
+// export const ModernStyle: Story = {
+//     args: {
+//         customTheme: modernTheme,
+//     }
+// };
