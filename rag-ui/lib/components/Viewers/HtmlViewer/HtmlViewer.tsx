@@ -13,6 +13,7 @@ export interface HtmlViewerStyles extends ViewerToolbarStyles {
     color?: string;
     padding?: string;
     fontFamily?: string;
+    fontSize?: string;
 
     viewerBorderRadius?: string;
     viewerBackground?: string;
@@ -37,21 +38,18 @@ const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
     if (!theme) {
         throw new Error('ThemeContext is undefined');
     }
-    const { colors, componentDefaults } = theme.theme;
+    const { colors, typography, componentDefaults } = theme.theme;
 
     // --- merge theme defaults + overrides ---
     const style: HtmlViewerStyles = {
         backgroundColor: colors.background,
         color: colors.text,
+        fontFamily: typography.fontFamily,
+        fontSize: typography.fontSizeBase,
         padding: 'none',
         borderRadius: componentDefaults.borderRadius,
 
         toolbarBorderRadius: componentDefaults.borderRadius,
-        toolbarChipBackground: '#f0f0f0',
-        toolbarChipBorderRadius: componentDefaults.borderRadius,
-        toolbarChipInputBackground: '#ffffff',
-        toolbarButtonBorderRadius: componentDefaults.borderRadius,
-        toolbarSecondaryBackground: colors.secondaryBackground,
         toolbarButtonBackground: colors.primary,
         toolbarButtonColor: 'white',
 

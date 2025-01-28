@@ -2,7 +2,6 @@ import { useState, useContext } from "react";
 import { RetrievalResult, SourceReference } from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
-import {typography} from "@storybook/theming";
 
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
@@ -213,7 +212,6 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
               key={index}
               className="p-4 shadow-sm border transition-all cursor-pointer"
               style={{
-                // todo: check this?? did this ever work as expected?
                 backgroundColor: index === activeSourceIndex
                   ? style.activeSourceBackground
                   : currentSources.includes(source)

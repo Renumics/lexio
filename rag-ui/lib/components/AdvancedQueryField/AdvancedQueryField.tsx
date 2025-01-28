@@ -47,6 +47,10 @@ export interface AdvancedQueryFieldStyles extends CSSProperties {
    */
   fontFamily?: string;
   /**
+   *  Font size for the container text
+   */
+  fontSize?: string;
+  /**
    * General border color (used for the editor)
    */
   borderColor?: string;
@@ -201,17 +205,18 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     throw new Error('ThemeContext is undefined');
   }
 
-  const { colors, componentDefaults } = theme.theme;
+  const { colors, typography, componentDefaults } = theme.theme;
 
   // Merge theme defaults + overrides
   const defaultStyle: AdvancedQueryFieldStyles = {
     backgroundColor: colors.background,
     color: colors.text,
     padding: componentDefaults.padding,
-    fontFamily: 'inherit',
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontBase,
     borderColor: '#e5e7eb',
     borderRadius: componentDefaults.borderRadius,
-    mentionChipBackground: '#bee3f8', // Light blue default
+    mentionChipBackground: '#bee3f8', // Light blue default // todo: check if using contrast makes sense
     mentionChipColor: '#2c5282',      // Darker blue text
     inputBackgroundColor: 'white',
     inputBorderColor: '#e5e7eb',
@@ -370,7 +375,8 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       chip.contentEditable = 'false';
 
       // NOTE: applying dynamic styles from the theme:
-      chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 text-sm select-none align-baseline rounded';
+      chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 select-none align-baseline rounded';
+      chip.style.fontSize = `calc(${style.fontSize} * 0.8)` || '0.8rem';
       chip.style.backgroundColor = style.mentionChipBackground || '#bee3f8';
       chip.style.color = style.mentionChipColor || '#2c5282';
       // If you also want to unify corner rounding:
@@ -783,7 +789,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                 type="text"
                 className="
                   w-full px-2 py-1 border rounded
-                  focus:outline-none focus:ring-2 
+                  focus:outline-none focus:ring-2
                 "
                 style={{
                   backgroundColor: style.inputBackgroundColor,
@@ -825,12 +831,20 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                         </span>
                         <div className="flex items-center gap-2 mt-1">
                           {isSourceReference(source) && source.type && (
-                            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded whitespace-nowrap">
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded whitespace-nowrap"
+                                  style={{
+                                    fontSize: '0.8rem',
+                                  }}
+                            >
                               {source.type}
                             </span>
                           )}
                           {source.relevanceScore !== undefined && (
-                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                            <span className="text-gray-500 whitespace-nowrap"
+                                  style={{
+                                    fontSize: '0.8rem',
+                                  }}
+                            >
                               Score: {Math.round(source.relevanceScore * 100)}%
                             </span>
                           )}
@@ -853,7 +867,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             className="h-2.5 w-2.5 rounded-full animate-pulse"
             style={{ backgroundColor: workflowStatus[workflowMode].color }}
           />
-          <span className="text-sm font-medium">
+          <span className="font-medium text-sm">
             {workflowStatus[workflowMode].label}
           </span>
         </div>
@@ -869,6 +883,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             backgroundColor: style.buttonBackground,
             color: style.buttonTextColor,
             borderRadius: style.buttonBorderRadius,
+            fontSize: `calc(${style.fontSize} * 0.95)` // todo: this does not work as expected right now
           }}
         >
           Send

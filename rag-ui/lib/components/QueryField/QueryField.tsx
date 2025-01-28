@@ -13,6 +13,7 @@ export interface QueryFieldStyles extends React.CSSProperties {
   color?: string;
   padding?: string;
   fontFamily?: string;
+  fontSize?: string;
   borderColor?: string;
   borderRadius?: string;
   inputBackgroundColor?: string;
@@ -76,7 +77,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { colors, componentDefaults } = theme.theme;
+  const { colors, typography, componentDefaults } = theme.theme;
 
   // Minimal defaults, similar to AdvancedQueryField
   const defaultStyle: QueryFieldStyles = {
@@ -84,6 +85,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
     color: colors.text,
     padding: componentDefaults.padding,
     fontFamily: 'inherit',
+    fontSize: typography.fontSizeBase,  // todo
     borderColor: '#e5e7eb',
     borderRadius: componentDefaults.borderRadius,
     inputBackgroundColor: 'white',
@@ -185,6 +187,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
         padding: style.padding,
         fontFamily: style.fontFamily,
         borderRadius: style.borderRadius,
+        fontSize: style.fontSize,
       }}
     >
       <textarea
@@ -206,6 +209,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
           border: `1px solid ${style.inputBorderColor}`,
           borderRadius: style.inputBorderRadius,
           fontFamily: style.fontFamily,
+          fontSize: style.fontSize,
           padding: '0.5rem 0.75rem',
           outline: 'none',
         }}
@@ -217,13 +221,14 @@ const QueryField: React.FC<QueryFieldProps> = ({
             className="h-2.5 w-2.5 rounded-full animate-pulse"
             style={{
               backgroundColor: workflowStatus[workflowMode].color,
-              fontFamily: style.fontFamily
             }}
           />
           <span
-            className="text-sm font-medium"
+            className="font-medium"
             style={{
               color: style.statusTextColor,
+              fontFamily: style.fontFamily,
+              fontSize: `calc(${style.fontSize} * 0.85)`
             }}
           >
             {workflowStatus[workflowMode].label}
@@ -237,6 +242,8 @@ const QueryField: React.FC<QueryFieldProps> = ({
             backgroundColor: style.buttonBackground,
             color: style.buttonTextColor,
             borderRadius: style.buttonBorderRadius,
+            fontFamily: style.fontFamily,
+            fontSize: `calc(${style.fontSize} * 0.95)`
           }}
         >
           Send

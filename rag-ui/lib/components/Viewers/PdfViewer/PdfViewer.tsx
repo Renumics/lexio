@@ -24,6 +24,7 @@ const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 export interface PdfViewerStyles extends ViewerToolbarStyles {
     color?: string;
     fontFamily?: string;
+    fontSize?: string;
     contentBackground?: string;
     contentPadding?: string;
     borderRadius?: string;
@@ -55,17 +56,20 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
     const style: PdfViewerStyles = {
         color: colors.text,
         fontFamily: typography.fontFamily,
+        fontSize: typography.fontSizeBase,
         contentBackground: colors.secondaryBackground,
         contentPadding: 'none',
         borderRadius: componentDefaults.borderRadius,
 
         toolbarBorderRadius: componentDefaults.borderRadius,
-        toolbarChipBackground: '#f3f3f3',
-        toolbarChipBorderRadius: componentDefaults.borderRadius,
+        toolbarBoxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)',
+        toolbarChipBackground: '#ffffff',
+        toolbarChipBorderRadius: '0.375rem',
         toolbarChipInputBackground: '#ffffff',
+
         toolbarButtonBackground: colors.primary,
         toolbarButtonColor: colors.contrast,
-        toolbarButtonBorderRadius: '0.8rem',
+        toolbarButtonBorderRadius: '0.5rem',
         ...removeUndefined(styleOverrides),
     };
 

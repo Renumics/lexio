@@ -8,9 +8,7 @@ import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
-  color?: string;
   padding?: string;
-  fontFamily?: string;
   borderRadius?: string;
   boxShadow?: string;
 }
@@ -27,12 +25,11 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { colors, componentDefaults } = theme.theme;
+  const { componentDefaults } = theme.theme;
 
   // Merge theme defaults + overrides
   const style: ContentDisplayStyles = {
     backgroundColor: 'transparent',
-    color: colors.text,
     padding: 'none',
     borderRadius: componentDefaults.borderRadius,
     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
