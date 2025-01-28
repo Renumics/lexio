@@ -6,7 +6,6 @@ import {
     ContentDisplay,
     AdvancedQueryField,
     ErrorDisplay,
-    useSSESource,
     SourceReference,
     SourceContent,
     PDFSourceContent,

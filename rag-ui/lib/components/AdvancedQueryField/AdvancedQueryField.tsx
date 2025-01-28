@@ -272,7 +272,26 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   // Helpers
   const isSourceReference = (s: RetrievalResult): s is SourceReference => 'source' in s;
   const getSourceId = (source: RetrievalResult, index?: number) => {
-    const baseId = isSourceReference(source) ? source.sourceReference : source.text;
+    if (!source) throw new Error('Invalid source: source is undefined');
+    
+    let baseId: string;
+    if (isSourceReference(source)) {
+      // For SourceReference type
+      baseId = JSON.stringify({
+        type: source.type,
+        ref: source.sourceReference,
+        name: source.sourceName,
+        metadata: source.metadata
+      });
+    } else {
+      // For TextContent type
+      baseId = JSON.stringify({
+        text: source.text,
+        name: source.sourceName,
+        metadata: source.metadata
+      });
+    }
+
     return index !== undefined ? `${baseId}#${index}` : baseId;
   };
   const getDisplayName = (source: RetrievalResult): string => {

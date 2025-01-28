@@ -108,7 +108,7 @@ function App() {
         buildRequestBody: (messages: Message[], sources?: RetrievalResult[]) => ({
             messages,
             source_ids: sources?.map(source => 
-                'sourceReference' in source ? source.sourceReference : null
+                'sourceReference' in source ? source.metadata?.id : null
             ).filter(Boolean)
         }),
         parseEvent: (data: any): SSEParsedEvent => ({

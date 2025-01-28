@@ -201,11 +201,14 @@ async def generate_endpoint(request: GenerateRequest):
     Streams the model response in real time.
     """
     try:
-        # No need to parse messages JSON string anymore
+        # Log message history length and content
         messages_list = request.messages
+        print(f"Chat history length: {len(messages_list)}")
+        print("Message roles:", [msg.role for msg in messages_list])
         
-        # Use source_ids directly as a list
+        # Log source usage
         source_ids_list = request.source_ids
+        print(f"Using source IDs: {source_ids_list if source_ids_list else 'No sources'}")
         
         # 1) Build context from source IDs (if provided)
         context_str = ""
@@ -213,10 +216,17 @@ async def generate_endpoint(request: GenerateRequest):
             table = db_utils.get_table()
             source_ids_str = "('" + "','".join(source_ids_list) + "')"
             chunks = table.search().where(f"id in {source_ids_str}", prefilter=True).to_list()
+            
+            # Log retrieved chunks info
+            print(f"Retrieved {len(chunks)} chunks from database")
+            for chunk in chunks:
+                print(f"Document: {chunk['doc_path']}")
+            
             context_str = "\n\n".join([
                 f"[Document: {chunk['doc_path']}]\n{chunk['text']}"
                 for chunk in chunks
             ])
+            print(f"Total context length: {len(context_str)} characters")
 
         # 2) Build async generator for SSE
         async def event_generator():
