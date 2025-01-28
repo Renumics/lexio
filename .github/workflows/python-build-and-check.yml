@@ -84,9 +84,10 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: dist
-        path: dist
+        path: python/lexio/dist
 
     - name: Install built package
+      working-directory: python/lexio
       run: |
         python -m pip install --upgrade pip
         pip install dist/*.whl
