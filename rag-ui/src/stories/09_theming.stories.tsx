@@ -5,32 +5,15 @@ import {
     AdvancedQueryField,
     SourcesDisplay,
     ContentDisplay,
-    useRAGSources, Message, useRAGMessages
+    useRAGSources,
+    Message,
+    useRAGMessages,
+    createTheme,
+    defaultTheme,
+    Theme,
 } from '../../lib/main';
 import type {GetDataSourceResponse, SourceReference} from '../../lib/main';
-import {createTheme, defaultTheme} from "../../lib/theme";
-import {Theme} from "../../lib/theme/types.ts";
 import {useEffect} from "react";
-
-// Example themes to showcase different styling possibilities
-const darkTheme = createTheme({
-    colors: {
-        primary: '#90CAF9',
-        secondary: '#64B5F6',
-        contrast: '#FFFFFF',
-        background: '#121212',
-        secondaryBackground: '#1E1E1E',
-        toolbarBackground: '#1976D2',
-        text: '#FFFFFF',
-        secondaryText: '#B0B0B0',
-        lightText: '#757575',
-    },
-    typography: {
-        fontFamily: '"Roboto", sans-serif',
-        fontSizeBase: '16px',
-        lineHeight: '1.6',
-    }
-});
 
 const warmTheme = createTheme({
     colors: {
@@ -81,14 +64,6 @@ const modernTheme = createTheme({
         xl: '48px',
     }
 });
-
-const customTheme = createTheme({
-    colors: {
-        primary: '#344762',
-        toolbarBackground: '#438383',
-    }
-});
-
 
 const BaseLayout = ({children}: { children: React.ReactNode }) => (
     <div style={{width: '100%', maxWidth: '1200px', height: '800px', margin: '0 auto'}}>
@@ -286,7 +261,7 @@ interface Theme {
 }
 \`\`\`
 
-### Colors
+### 1. Colors
 
 The color system includes:
 
@@ -307,7 +282,7 @@ interface Colors {
 }
 \`\`\`
 
-### Typography
+### 2. Typography
 
 Font settings include:
 
@@ -319,7 +294,7 @@ interface Typography {
 }
 \`\`\`
 
-### Spacing
+### 3. Spacing
 
 A consistent spacing scale:
 
@@ -334,7 +309,7 @@ interface Spacing {
 }
 \`\`\`
 
-### Border Radius
+### 4. Border Radius
 
 Border radius scale for consistent corner rounding:
 
@@ -355,7 +330,7 @@ interface BorderRadius {
 The default theme is automatically applied when no theme is provided:
 
 \`\`\`typescript
-import { RAGProvider } from '@renumics/rag-ui';
+import { RAGProvider } from 'lexio';
 
 function App() {
   return (
@@ -370,10 +345,10 @@ function App() {
 
 You can create a custom theme in two ways:
 
-1. Modify the default theme:
+**1:** Modify the default theme:
 
 \`\`\`typescript
-import { createTheme } from '@renumics/rag-ui';
+import { createTheme } from 'lexio';
 
 const myTheme = createTheme({
   colors: {
@@ -386,7 +361,7 @@ const myTheme = createTheme({
 });
 \`\`\`
 
-2. Create a complete theme from scratch:
+**2:** Create a complete theme from scratch, which requires all values to be defined:
 
 \`\`\`typescript
 import { Theme } from 'lexio';
@@ -424,10 +399,9 @@ Try out the interactive examples below to see different theme variations in acti
     argTypes: {
         customTheme: {
             control: 'select',
-            options: ['default', 'dark', 'warm', 'modern'],
+            options: ['default', 'warm', 'modern'],
             mapping: {
                 default: defaultTheme,
-                dark: darkTheme,
                 warm: warmTheme,
                 modern: modernTheme
             },
@@ -443,22 +417,3 @@ export const Docs: Story = {
         customTheme: defaultTheme,
     }
 };
-
-// // Additional examples showing different theme variations
-// export const DarkMode: Story = {
-//     args: {
-//         customTheme: darkTheme,
-//     }
-// };
-//
-// export const WarmColors: Story = {
-//     args: {
-//         customTheme: warmTheme,
-//     }
-// };
-//
-// export const ModernStyle: Story = {
-//     args: {
-//         customTheme: modernTheme,
-//     }
-// };
