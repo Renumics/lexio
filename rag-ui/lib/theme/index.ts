@@ -21,21 +21,18 @@ export const defaultTheme: Theme = {
     lineHeight: '1.75',  // Increased for a spacious feel
   },
   spacing: {
-    // default: '16px',  // todo: add and use
-    none: '0px',
-    xs: '6px',
-    sm: '12px',
-    md: '20px',
-    lg: '32px',
-    xl: '48px',
+    default: 'md',
+    none: '0rem',
+    sm: '0.75rem',
+    md: '1.25rem',
+    lg: '2rem',
   },
   borderRadius: {
-    // default: '4px',   // todo: add and use
+    default: 'md',
     none: '0px',
-    sm: '6px',  // Slightly rounded edges for softer look
-    md: '12px',
-    lg: '24px',
-    xl: '40px',
+    sm: '0.75rem',
+    md: '1.25rem',
+    lg: '2rem',
   },
 };
 

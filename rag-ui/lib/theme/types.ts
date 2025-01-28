@@ -23,20 +23,19 @@ export interface Typography {
 }
 
 export interface Spacing {
+  default: string;
   none: string;
-  xs: string;
   sm: string;
   md: string;
   lg: string;
-  xl: string;
 }
 
 export interface BorderRadius {
+  default: string;
   none: string;
   sm: string;
   md: string;
   lg: string;
-  xl: string;
 }
 
 export interface Theme {

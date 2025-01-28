@@ -1,4 +1,5 @@
 import type {Meta, StoryObj} from '@storybook/react';
+import {useEffect} from 'react';
 import {
     RAGProvider,
     ChatWindow,
@@ -8,67 +9,16 @@ import {
     useRAGSources, Message, useRAGMessages
 } from '../../lib/main';
 import type {GetDataSourceResponse, SourceReference} from '../../lib/main';
-import {createTheme, defaultTheme} from "../../lib/theme";
-import {Theme} from "../../lib/theme/types.ts";
-import {useEffect} from "react";
 
-const warmTheme = createTheme({
-    colors: {
-        primary: '#FF7043',
-        secondary: '#FFB74D',
-        contrast: '#FFFFFF',
-        background: '#FFF3E0',
-        secondaryBackground: '#FFFFFF',
-        toolbarBackground: '#F4511E',
-        text: '#3E2723',
-        secondaryText: '#5D4037',
-        lightText: '#8D6E63',
-    },
-    typography: {
-        fontFamily: '"Lato", sans-serif',
-        fontSizeBase: '18px',
-        lineHeight: '1.8',
-    },
-    borderRadius: {
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
-    }
-});
-
-const modernTheme = createTheme({
-    colors: {
-        primary: '#6200EA',
-        secondary: '#B388FF',
-        contrast: '#FFFFFF',
-        background: '#F5F5F5',
-        secondaryBackground: '#FFFFFF',
-        toolbarBackground: '#651FFF',
-        text: '#212121',
-        secondaryText: '#616161',
-        lightText: '#9E9E9E',
-    },
-    typography: {
-        fontFamily: '"Inter", system-ui, sans-serif',
-        fontSizeBase: '16px',
-        lineHeight: '1.75',
-    },
-    spacing: {
-        xs: '8px',
-        sm: '16px',
-        md: '24px',
-        lg: '32px',
-        xl: '48px',
-    }
-});
-
+// TODO
+// Base layout component for consistent story presentation
 const BaseLayout = ({children}: { children: React.ReactNode }) => (
     <div style={{width: '100%', maxWidth: '1200px', height: '800px', margin: '0 auto'}}>
         {children}
     </div>
 );
 
-
+// Example layout with components using styleOverrides
 const SharedLayout = () => (
     <div style={{
         display: 'grid',
@@ -83,13 +33,45 @@ const SharedLayout = () => (
     `
     }}>
         <div style={{gridArea: 'chat', minHeight: 0, overflow: 'auto'}}>
-            <ChatWindow/>
+            <ChatWindow styleOverrides={{
+                backgroundColor: '#f8f9fa',
+                color: '#2d3748',
+                padding: '1.5rem',
+                borderRadius: '12px',
+                fontSize: '1rem',
+            }}/>
         </div>
         <div style={{gridArea: 'input'}}>
-            <AdvancedQueryField/>
+            <AdvancedQueryField styleOverrides={{
+                backgroundColor: '#ffffff',
+                color: '#2d3748',
+                padding: '1rem',
+                borderRadius: '12px',
+                inputBackgroundColor: '#f8f9fa',
+                inputBorderColor: '#e2e8f0',
+                buttonBackground: '#4a90e2',
+                buttonTextColor: '#ffffff',
+                buttonBorderRadius: '8px',
+                mentionChipBackground: '#ebf5ff',
+                mentionChipColor: '#2b6cb0',
+            }}/>
         </div>
         <div style={{gridArea: 'sources', minHeight: 0, overflow: 'auto'}}>
-            <SourcesDisplay/>
+            <SourcesDisplay styleOverrides={{
+                backgroundColor: '#ffffff',
+                color: '#2d3748',
+                padding: '1rem',
+                borderRadius: '12px',
+                inputBackgroundColor: '#f8f9fa',
+                inputBorderColor: '#e2e8f0',
+                activeSourceBackground: '#f7fafc',
+                activeSourceBorderColor: '#4a90e2',
+                metadataTagBackground: '#edf2f7',
+                metadataTagColor: '#4a5568',
+                relevanceScoreColor: '#4a90e2',
+                sourceTypeBackground: '#ebf5ff',
+                sourceTypeColor: '#2b6cb0',
+            }}/>
         </div>
         <div style={{gridArea: 'viewer', height: '300px'}}>
             <ContentDisplay/>
@@ -97,8 +79,7 @@ const SharedLayout = () => (
     </div>
 );
 
-// ----- Mocked Data and Functions -----
-// We mock a basic retrieval state for the story
+// Mock data and functions (similar to theming story)
 const SAMPLE_MESSAGES: Message[] = [
     {
         role: 'user',
@@ -106,31 +87,24 @@ const SAMPLE_MESSAGES: Message[] = [
     },
 ];
 
-// Component to load initial data, add sample messages, and set the active source index
 const DataLoader = () => {
     const {addMessage} = useRAGMessages();
     const {setActiveSourceIndex, sources} = useRAGSources();
 
     useEffect(() => {
-        // Small delay to ensure provider is ready
         const timer = setTimeout(() => {
             addMessage(SAMPLE_MESSAGES[0]);
-
         }, 0);
-
         return () => clearTimeout(timer);
     }, []);
 
-    // todo: we could mock the mentioning feature here
     useEffect(() => {
-        // we mock active source selection to display viewer
         setActiveSourceIndex(0);
     }, [sources]);
 
     return null;
 };
 
-// Mocked retrieval function that returns sources and a response
 const getSourcesAndResponse = () => {
     return {
         sources: Promise.resolve([
@@ -144,39 +118,12 @@ const getSourcesAndResponse = () => {
                     page: 1,
                     author: "Research Team"
                 },
-            },
-            {
-                sourceReference: "implementation_guide.html",
-                sourceName: "Implementation Guide",
-                type: "html" as const,
-                relevanceScore: 0.88,
-                metadata: {
-                    section: "Setup",
-                    difficulty: "Intermediate"
-                }
-            },
-            {
-                text: `<div class="content">
-              <h2>Quick Tips</h2>
-              <ul>
-                <li>Always validate your data sources</li>
-                <li>Monitor retrieval performance</li>
-                <li>Keep your knowledge base updated</li>
-              </ul>
-            </div>`,
-                sourceName: "Best Practices",
-                relevanceScore: 0.82,
-                metadata: {
-                    type: "Tips",
-                    lastUpdated: "2024-03-20"
-                }
             }
         ]),
-        response: Promise.resolve("I've found relevant information from multiple sources...")
+        response: Promise.resolve("I've found relevant information about RAG systems...")
     };
 };
 
-// Mocked getDataSource function that returns SourceContent
 const getDataSource = (source: SourceReference): GetDataSourceResponse => {
     if (source.type === 'pdf') {
         return fetch('https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf')
@@ -187,43 +134,17 @@ const getDataSource = (source: SourceReference): GetDataSourceResponse => {
                 metadata: source.metadata,
                 highlights: source.highlights
             }));
-    } else if (source.type === 'html') {
-        return Promise.resolve({
-            type: 'html',
-            content: `
-<div style="padding: 20px; font-family: system-ui;">
-  <h1>RAG Implementation Guide</h1>
-  <h2>Setup Instructions</h2>
-  <p>Follow these steps to implement a RAG system in your application:</p>
-  <ol>
-    <li>Set up your document store</li>
-    <li>Implement the retrieval mechanism</li>
-    <li>Configure the generation model</li>
-    <li>Connect the components</li>
-  </ol>
-  <p>For more details, refer to the API documentation.</p>
-</div>
-`,
-            metadata: source.metadata
-        });
     }
     return Promise.reject(new Error('Unsupported type'));
 };
 
-interface ThemeStoryProps {
-    customTheme?: Theme;
-}
-
-const SourceTypesExample = ({customTheme}: ThemeStoryProps) => {
-    const {setActiveSourceIndex} = useRAGSources();
+const StyleOverridesExample = () => {
     return (
         <BaseLayout>
             <RAGProvider
                 retrieveAndGenerate={() => getSourcesAndResponse()}
                 getDataSource={(source) => getDataSource(source)}
-                theme={customTheme}
             >
-                {/* We use the Dataloader to add messages to the ChatWindow, the retrieveAndGenerate function will populate the SourcesDisplay */}
                 <DataLoader/>
                 <SharedLayout/>
             </RAGProvider>
@@ -231,186 +152,139 @@ const SourceTypesExample = ({customTheme}: ThemeStoryProps) => {
     );
 };
 
-type Story = StoryObj<typeof SourceTypesExample>;
+type Story = StoryObj<typeof StyleOverridesExample>;
 
 const meta = {
-    title: 'Getting Started/09. Theming',
-    component: SourceTypesExample,
+    title: 'Getting Started/10. Style Overrides',
+    component: StyleOverridesExample,
     parameters: {
         layout: 'centered',
         docs: {
             description: {
                 component: `
-# Theming
+# Component Style Overrides
 
-The RAG UI library provides a flexible theming system that allows you to customize the look and feel of all components. You can either use the default theme, modify specific parts of it, or create an entirely new theme.
+While theming provides a way to customize the global appearance of your RAG UI components, sometimes you need more fine-grained control over individual components. Each component in the RAG UI library accepts a \`styleOverrides\` prop that allows you to customize its appearance.
 
-## Theme Structure
+## Available Components and Their Style Properties
 
-The theme consists of four main parts:
-
+### ChatWindow
 \`\`\`typescript
-interface Theme {
-  colors: Colors;       // Color palette
-  typography: Typography; // Font settings
-  spacing: Spacing;     // Spacing scale
-  borderRadius: BorderRadius; // Border radius scale
+interface ChatWindowStyles extends React.CSSProperties {
+    backgroundColor?: string;
+    color?: string;
+    padding?: string;
+    fontFamily?: string;
+    fontSize?: string;
+    borderRadius?: string;
 }
 \`\`\`
 
-### 1. Colors
-
-The color system includes:
-
+### AdvancedQueryField
 \`\`\`typescript
-interface Colors {
-  primary: string;            // Primary brand color
-  secondary: string;          // Secondary brand color
-  contrast: string;           // Contrast color for text on primary/secondary
-  background: string;         // Main background color
-  secondaryBackground: string; // Secondary background color
-  toolbarBackground: string;   // Background for toolbars
-  text: string;               // Main text color
-  secondaryText: string;      // Secondary text color
-  lightText: string;          // Light text color
-  success: string;            // Success state color
-  warning: string;            // Warning state color
-  error: string;              // Error state color
+interface AdvancedQueryFieldStyles extends React.CSSProperties {
+    backgroundColor?: string;
+    color?: string;
+    padding?: string;
+    fontFamily?: string;
+    borderColor?: string;
+    borderRadius?: string;
+    mentionChipBackground?: string;
+    mentionChipColor?: string;
+    inputBackgroundColor?: string;
+    inputBorderColor?: string;
+    buttonBackground?: string;
+    buttonTextColor?: string;
+    buttonBorderRadius?: string;
+    modeInitColor?: string;
+    modeFollowUpColor?: string;
+    modeReRetrieveColor?: string;
 }
 \`\`\`
 
-### 2. Typography
-
-Font settings include:
-
+### SourcesDisplay
 \`\`\`typescript
-interface Typography {
-  fontFamily: string;    // Main font family
-  fontSizeBase: string;  // Base font size
-  lineHeight: string;    // Base line height
+interface SourcesDisplayStyles extends React.CSSProperties {
+    backgroundColor?: string;
+    color?: string;
+    padding?: string;
+    borderRadius?: string;
+    inputBackgroundColor?: string;
+    inputBorderColor?: string;
+    inputFocusRingColor?: string;
+    buttonBackground?: string;
+    buttonTextColor?: string;
+    buttonBorderRadius?: string;
+    activeSourceBackground?: string;
+    activeSourceBorderColor?: string;
+    selectedSourceBackground?: string;
+    selectedSourceBorderColor?: string;
+    inactiveSourceBackground?: string;
+    inactiveSourceBorderColor?: string;
+    metadataTagBackground?: string;
+    metadataTagColor?: string;
+    relevanceScoreColor?: string;
+    sourceTypeBackground?: string;
+    sourceTypeColor?: string;
 }
 \`\`\`
 
-### 3. Spacing
+## Using Style Overrides
 
-A consistent spacing scale:
-
-\`\`\`typescript
-interface Spacing {
-  none: string;  // No spacing (0px)
-  xs: string;    // Extra small spacing
-  sm: string;    // Small spacing
-  md: string;    // Medium spacing
-  lg: string;    // Large spacing
-  xl: string;    // Extra large spacing
-}
-\`\`\`
-
-### 4. Border Radius
-
-Border radius scale for consistent corner rounding:
+To override styles for a component, pass a \`styleOverrides\` object with the desired properties:
 
 \`\`\`typescript
-interface BorderRadius {
-  none: string;  // No border radius
-  sm: string;    // Small border radius
-  md: string;    // Medium border radius
-  lg: string;    // Large border radius
-  xl: string;    // Extra large border radius
-}
+<ChatWindow 
+    styleOverrides={{
+        backgroundColor: '#f8f9fa',
+        color: '#2d3748',
+        padding: '1.5rem',
+        borderRadius: '12px',
+    }}
+/>
+
+<AdvancedQueryField 
+    styleOverrides={{
+        backgroundColor: '#ffffff',
+        inputBackgroundColor: '#f8f9fa',
+        buttonBackground: '#4a90e2',
+        buttonTextColor: '#ffffff',
+        mentionChipBackground: '#ebf5ff',
+        mentionChipColor: '#2b6cb0',
+    }}
+/>
+
+<SourcesDisplay 
+    styleOverrides={{
+        backgroundColor: '#ffffff',
+        activeSourceBackground: '#f7fafc',
+        activeSourceBorderColor: '#4a90e2',
+        metadataTagBackground: '#edf2f7',
+        sourceTypeBackground: '#ebf5ff',
+    }}
+/>
 \`\`\`
 
-## Using Themes
+## Best Practices
 
-### Default Theme
+1. **Component-Specific Properties**: Each component has its own set of style properties that can be overridden. Refer to the interfaces above for available options.
 
-The default theme is automatically applied when no theme is provided:
+2. **Theme Consistency**: While you can override styles for individual components, try to maintain consistency with your theme's color palette and design tokens.
 
-\`\`\`typescript
-import { RAGProvider } from 'lexio';
+3. **Responsive Design**: Consider how your style overrides will work across different screen sizes. Use relative units (rem, em) when appropriate.
 
-function App() {
-  return (
-    <RAGProvider>
-      <YourComponents />
-    </RAGProvider>
-  );
-}
-\`\`\`
+4. **Performance**: Style overrides are applied at runtime. For better performance with static styles, consider using the global theme system instead.
 
-### Custom Theme
+## Example
 
-You can create a custom theme in two ways:
-
-**1:** Modify the default theme:
-
-\`\`\`typescript
-import { createTheme } from 'lexio';
-
-const myTheme = createTheme({
-  colors: {
-    primary: '#1976D2',
-    secondary: '#424242',
-  },
-  typography: {
-    fontFamily: '"Inter", sans-serif',
-  }
-});
-\`\`\`
-
-**2:** Create a complete theme from scratch, which requires all values to be defined:
-
-\`\`\`typescript
-import { Theme } from 'lexio';
-
-const myTheme: Theme = {
-  colors: {
-    // ... all color values required
-  },
-  typography: {
-    // ... all typography values required
-  },
-  spacing: {
-    // ... all spacing values required
-  },
-  borderRadius: {
-    // ... all border radius values required
-  }
-};
-\`\`\`
-
-Apply your custom theme:
-
-\`\`\`typescript
-<RAGProvider theme={myTheme}>
-  <YourComponents />
-</RAGProvider>
-\`\`\`
-
-Try out the interactive examples below to see different theme variations in action.
+Check out the interactive example below to see how different style overrides affect the components. The example shows custom styling for the ChatWindow, AdvancedQueryField, and SourcesDisplay components.
 `
             }
         }
     },
     tags: ['autodocs'],
-    argTypes: {
-        customTheme: {
-            control: 'select',
-            options: ['default', 'warm', 'modern'],
-            mapping: {
-                default: defaultTheme,
-                warm: warmTheme,
-                modern: modernTheme
-            },
-            description: 'Select a predefined theme to see how it affects the components.',
-        },
-    }
-} satisfies Meta<typeof SourceTypesExample>;
+} satisfies Meta<typeof StyleOverridesExample>;
 
 export default meta;
 
-export const Docs: Story = {
-    args: {
-        customTheme: defaultTheme,
-    }
-};
+export const Docs: Story = {};
