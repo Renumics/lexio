@@ -60,6 +60,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   assistantLabel = 'Assistant: ',
 }) => {
   const { messages, currentStream } = useRAGMessages();
+  // Add ref for scrolling
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom whenever messages or currentStream changes
+  React.useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, currentStream]);
 
   // --- use theme ---
   const theme = useContext(ThemeContext);
@@ -87,17 +94,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       {messages.map((msg, index) => (
         <div key={index} className={`mb-2 ${msg.role}`}>
           {showRoleLabels && (
-            <strong>{msg.role === 'user' ? userLabel : assistantLabel}</strong>
+            <strong className="inline-block mr-2">{msg.role === 'user' ? userLabel : assistantLabel}</strong>
           )}
-          {msg.content}
+          <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
         </div>
       ))}
       {currentStream && (
         <div className="mb-2 assistant streaming">
-          {showRoleLabels && <strong>{assistantLabel}</strong>}
-          {currentStream.content}
+          {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
+          <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{currentStream.content}</div>
         </div>
       )}
+      <div ref={chatEndRef} />
     </div>
   );
 };
