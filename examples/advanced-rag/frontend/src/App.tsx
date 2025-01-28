@@ -1,203 +1,191 @@
-import React from 'react';
-import { 
-  RAGProvider, 
-  ChatWindow, 
-  AdvancedQueryField, 
-  SourcesDisplay, 
-  ErrorDisplay, 
-  GenerateStreamChunk, 
-  RetrievalResult 
-} from 'lexio';
-import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { useCallback } from 'react';
+import {
+    ChatWindow,
+    RAGProvider,
+    SourcesDisplay,
+    ContentDisplay,
+    AdvancedQueryField,
+    ErrorDisplay,
+    useSSESource,
+    SourceReference,
+    SourceContent,
+    PDFSourceContent,
+    HTMLSourceContent,
+    MarkdownSourceContent
+} from 'lexio'
 import './App.css';
 
-interface Message {
-  role: string;
-  content: string;
-}
 
-interface Source {
-  doc_path: string;
-  text: string;
-  id: string;
-  score: number;
-}
 
 function App() {
-  return (
-    <div className="app-container" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <RAGProvider
-        retrieveAndGenerate={(messages: Message[]) => {
-          // The last user message to pass as 'query'
-          const lastMessage = messages[messages.length - 1];
+    const getDataSource = useCallback(async (source: SourceReference): Promise<SourceContent> => {
+        // Use the ID from metadata to fetch the content
+        const id = source.metadata?.id;
+        if (!id) {
+            throw new Error('No ID provided in source metadata');
+        }
 
-          // We'll use this resolver to pass the retrieval sources to the RAGProvider
-          let sourcesResolver: (sources: RetrievalResult[]) => void;
-          const sourcesPromise = new Promise<RetrievalResult[]>(resolve => {
-            sourcesResolver = resolve;
-          });
+        const url = `http://localhost:8000/pdfs/${encodeURIComponent(id)}`;
+        const response = await fetch(url);
 
-          /**
-           * This async generator streams chunks from SSE in real-time
-           */
-          async function* streamChunks(query: string): AsyncIterable<GenerateStreamChunk> {
-            // A simple FIFO queue for incoming chunks
-            const messageQueue: GenerateStreamChunk[] = [];
+        if (!response.ok) {
+            throw new Error(`Failed to get content. HTTP Status: ${response.status} ${response.statusText}`);
+        }
 
-            // A function to wake up the generator when new chunks arrive
-            let notifyGenerator: (() => void) | null = null;
+        // Handle different content types
+        if (source.type === "pdf") {
+            const arrayBuffer = await response.arrayBuffer();
+            const pdfContent: PDFSourceContent = {
+                type: 'pdf',
+                content: new Uint8Array(arrayBuffer),
+                metadata: source.metadata || {},
+                highlights: source.highlights || []
+            };
+            return pdfContent;
+        } else if (source.type === "html") {
+            const text = await response.text();
+            const content: HTMLSourceContent = {
+                type: 'html',
+                content: text,
+                metadata: source.metadata || {}
+            };
+            return content;
+        } else if (source.type === "markdown") {
+            const text = await response.text();
+            // Replace any existing backtick sequences with escaped versions
+            const escapedText = text.replace(/`/g, '\\`');
+            const content: MarkdownSourceContent = {
+                type: 'markdown',
+                content: `\`\`\`markdown\n${escapedText}\n\`\`\``,
+                metadata: source.metadata || {}
+            };
+            return content;
+        }
 
-            // Track if the stream is finished (due to 'done' or errors)
-            let finished = false;
+        throw new Error(`Unsupported source type: ${source.type}`);
+    }, []);
 
-            // Start the SSE, but *do not* await this call
-            const ssePromise = (async () => {
-              try {
-                await fetchEventSource('http://localhost:8000/api/retrieve-and-generate', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ query }),
-                  onmessage(ev) {
-                    try {
-                      // Skip empty messages or ping messages
-                      if (!ev.data) {
-                        return;
-                      }
 
-                      const data = JSON.parse(ev.data);
+    const parseEvent = useCallback((data: any) => {
+        // If there's an array of sources, convert them to RetrievalResult format
+        if (Array.isArray(data.sources)) {
+            console.log(data.sources);
+            const sources = data.sources.map((item: any) => {
+                // Convert null/undefined score to undefined
+                const relevanceScore = item.score != null ? item.score : undefined;
+                // Extract filename from path
+                const fileName = item.doc_path.split('/').pop();
 
-                      // If the server sends sources, resolve them
-                      if (data.sources) {
-                        sourcesResolver(
-                          data.sources.map((source: any) => ({
-                            text: source.text,
-                            sourceName: source.doc_path,
-                            relevanceScore: source.score || 0,
-                            metadata: { id: source.id },
-                          }))
-                        );
-                        return;
-                      }
-
-                      // Otherwise, push chunk content to the queue
-                      messageQueue.push({
-                        content: data.content ?? '',
-                        done: !!data.done,
-                      });
-
-                      // If there's a "done" signal from the server, mark the stream finished
-                      if (data.done) {
-                        finished = true;
-                      }
-
-                      // Wake up the generator
-                      notifyGenerator?.();
-                    } catch (err) {
-                      console.warn('Failed to parse SSE message:', ev.data, err);
-                      // Don't throw here - just skip invalid messages
+                // Always create a SourceReference with a fallback type of 'markdown'
+                return {
+                    type: item.doc_path.endsWith('.pdf') ? 'pdf' :
+                        item.doc_path.endsWith('.html') ? 'html' : 'markdown',
+                    sourceReference: item.doc_path,
+                    sourceName: fileName,
+                    relevanceScore,
+                    highlights: item.highlights?.map((highlight: any) => ({
+                        page: highlight.page,
+                        rect: {
+                            left: highlight.bbox.l,
+                            top: highlight.bbox.t,
+                            width: highlight.bbox.r - highlight.bbox.l,
+                            height: highlight.bbox.b - highlight.bbox.t
+                        }
+                    })),
+                    metadata: {
+                        id: item.id,
+                        page: item.page
                     }
-                  },
-                  onerror(err) {
-                    console.error('EventSource onerror:', err);
-                    finished = true;
-                    notifyGenerator?.();
-                    throw err;
-                  },
-                  onclose() {
-                    // If the server closes the stream, consider it finished
-                    finished = true;
-                    notifyGenerator?.();
-                  },
-                });
-              } catch (err) {
-                console.error('SSE Stream error:', err);
-                finished = true;
-                notifyGenerator?.();
-              }
-            })();
+                } as SourceReference;
+            });
 
-            // The generator loop that yields chunks as soon as they appear
-            try {
-              while (true) {
-                // Wait if no chunks are available and we're not finished
-                if (messageQueue.length === 0 && !finished) {
-                  await new Promise<void>((resolve) => {
-                    notifyGenerator = resolve;
-                  });
-                  notifyGenerator = null;
-                }
+            return { sources, done: false };
+        }
 
-                // If we're finished and there are no more queued chunks, break
-                if (messageQueue.length === 0 && finished) {
-                  break;
-                }
+        // If there's a string 'content', treat it as a chunk
+        if (typeof data.content === 'string') {
+            return { content: data.content, done: !!data.done };
+        }
 
-                // Dequeue and yield the next chunk
-                const chunk = messageQueue.shift()!;
-                yield chunk;
+        // Otherwise, ignore this SSE message
+        return {};
+    }, []);
 
-                // If chunk.done was set, mark finished (or break directly)
-                if (chunk.done) {
-                  finished = true;
-                }
-              }
-            } finally {
-              // Ensure the SSE promise completes for cleanup
-              await ssePromise;
-            }
-          }
+    // Create the SSE-based retrieveAndGenerate function
+    const retrieveAndGenerate = useSSESource({
+        endpoint: 'http://localhost:8000/api/retrieve-and-generate',
+        parseEvent,
+    });
 
-          // Return the streams: the sources promise + the chunk generator
-          return {
-            sources: sourcesPromise,
-            response: streamChunks(lastMessage.content),
-          };
-        }}
-      >
-        <div style={{ 
-          display: 'grid',
-          height: '100vh',
-          gridTemplateColumns: '3fr 1fr',
-          gridTemplateRows: '1fr auto 300px',
-          gap: '20px',
-          gridTemplateAreas: `
-            "chat sources"
-            "input sources"
-            "viewer viewer"
-          `
-        }}>
-          {/* Main chat UI */}
-          <div style={{ gridArea: 'chat' }}>
-            <ChatWindow />
-          </div>
+    return (
+        <div className="app-container">
+            <RAGProvider
+                retrieveAndGenerate={retrieveAndGenerate}
+                getDataSource={getDataSource}
+                config={{
+                    timeouts: {
+                        stream: 10000
+                    }
+                }}
+            >
+                <div style={{
+                    display: 'grid',
+                    height: '100vh',
+                    width: '100%',
+                    gridTemplateColumns: '1fr 2fr',
+                    gridTemplateRows: '1fr 100px',
+                    gap: '20px',
+                    gridTemplateAreas: `
+            "chat viewer"
+            "input viewer"
+          `,
+                    maxHeight: '100vh',
+                    overflow: 'hidden',
+                    padding: '20px',
+                    boxSizing: 'border-box'
+                }}>
+                    {/* Main chat UI */}
+                    <div style={{
+                        gridArea: 'chat',
+                        overflow: 'auto',
+                        minWidth: 0,
+                        maxWidth: '100%'
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                <SourcesDisplay />
+                            </div>
+                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                <ChatWindow />
+                            </div>
+                        </div>
+                    </div>
 
-          {/* Advanced query input */}
-          <div style={{ gridArea: 'input' }}>
-            <AdvancedQueryField />
-          </div>
+                    {/* Advanced query input */}
+                    <div style={{
+                        gridArea: 'input',
+                        height: '100px',
+                        minWidth: 0,
+                        maxWidth: '100%'
+                    }}>
+                        <AdvancedQueryField />
+                    </div>
 
-          {/* Sources panel */}
-          <div style={{ gridArea: 'sources' }}>
-            <SourcesDisplay />
-          </div>
-
-          {/* Content viewer */}
-          <div style={{ 
-            gridArea: 'viewer',
-            border: '1px solid #ccc',
-            borderRadius: '8px',
-            padding: '20px',
-            overflowY: 'auto'
-          }}>
-            <h3>Content Viewer</h3>
-            {/* Add additional UI or content display logic if desired */}
-          </div>
+                    {/* Content viewer */}
+                    <div style={{
+                        gridArea: 'viewer',
+                        overflow: "hidden",
+                        width: '100%',
+                        height: '100%'
+                    }}>
+                        <ContentDisplay />
+                    </div>
+                </div>
+                {/* Handle any encountered errors */}
+                <ErrorDisplay />
+            </RAGProvider>
         </div>
-        {/* Handle any encountered errors */}
-        <ErrorDisplay />
-      </RAGProvider>
-    </div>
-  );
+    );
 }
 
 export default App;

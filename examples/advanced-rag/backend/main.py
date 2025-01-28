@@ -187,24 +187,25 @@ async def retrieve_and_generate(request: RetrieveAndGenerateRequest):
 
     except Exception as e:
         return {"error": str(e)}
+    
+class GenerateRequest(BaseModel):
+    messages: List[Message]
+    source_ids: Optional[List[str]] = None
 
 @app.post("/api/generate")
-async def generate_endpoint(
-    messages: str,  # JSON string of messages
-    source_ids: Optional[str] = None  # Comma-separated list of IDs
-):
+async def generate_endpoint(request: GenerateRequest):
     """
     SSE endpoint for follow-up requests using:
-      - messages: previous chat messages (as JSON string)
-      - source_ids: optional doc references to build context (comma-separated)
+      - messages: list of previous chat messages
+      - source_ids: optional list of doc references to build context
     Streams the model response in real time.
     """
     try:
-        # Parse the messages JSON string
-        messages_list = [Message(**msg) for msg in json.loads(messages)]
+        # No need to parse messages JSON string anymore
+        messages_list = request.messages
         
-        # Parse source_ids if provided
-        source_ids_list = source_ids.split(',') if source_ids else None
+        # Use source_ids directly as a list
+        source_ids_list = request.source_ids
         
         # 1) Build context from source IDs (if provided)
         context_str = ""
