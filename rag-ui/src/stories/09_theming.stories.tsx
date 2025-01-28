@@ -7,10 +7,80 @@ import {
     ContentDisplay,
     useRAGSources, Message, useRAGMessages
 } from '../../lib/main';
-import type {GetDataSourceResponse} from '../../lib/main';
-import {createTheme} from "../../lib/theme";
+import type {GetDataSourceResponse, SourceReference} from '../../lib/main';
+import {createTheme, defaultTheme} from "../../lib/theme";
 import {Theme} from "../../lib/theme/types.ts";
 import {useEffect} from "react";
+
+// Example themes to showcase different styling possibilities
+const darkTheme = createTheme({
+    colors: {
+        primary: '#90CAF9',
+        secondary: '#64B5F6',
+        contrast: '#FFFFFF',
+        background: '#121212',
+        secondaryBackground: '#1E1E1E',
+        toolbarBackground: '#1976D2',
+        text: '#FFFFFF',
+        secondaryText: '#B0B0B0',
+        lightText: '#757575',
+    },
+    typography: {
+        fontFamily: '"Roboto", sans-serif',
+        fontSizeBase: '16px',
+        lineHeight: '1.6',
+    }
+});
+
+const warmTheme = createTheme({
+    colors: {
+        primary: '#FF7043',
+        secondary: '#FFB74D',
+        contrast: '#FFFFFF',
+        background: '#FFF3E0',
+        secondaryBackground: '#FFFFFF',
+        toolbarBackground: '#F4511E',
+        text: '#3E2723',
+        secondaryText: '#5D4037',
+        lightText: '#8D6E63',
+    },
+    typography: {
+        fontFamily: '"Lato", sans-serif',
+        fontSizeBase: '18px',
+        lineHeight: '1.8',
+    },
+    borderRadius: {
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+    }
+});
+
+const modernTheme = createTheme({
+    colors: {
+        primary: '#6200EA',
+        secondary: '#B388FF',
+        contrast: '#FFFFFF',
+        background: '#F5F5F5',
+        secondaryBackground: '#FFFFFF',
+        toolbarBackground: '#651FFF',
+        text: '#212121',
+        secondaryText: '#616161',
+        lightText: '#9E9E9E',
+    },
+    typography: {
+        fontFamily: '"Inter", system-ui, sans-serif',
+        fontSizeBase: '16px',
+        lineHeight: '1.75',
+    },
+    spacing: {
+        xs: '8px',
+        sm: '16px',
+        md: '24px',
+        lg: '32px',
+        xl: '48px',
+    }
+});
 
 const customTheme = createTheme({
     colors: {
@@ -135,7 +205,7 @@ const getSourcesAndResponse = () => {
 };
 
 // Mocked getDataSource function that returns SourceContent
-const getDataSource = (source): GetDataSourceResponse => {
+const getDataSource = (source: SourceReference): GetDataSourceResponse => {
     if (source.type === 'pdf') {
         return fetch('https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf')
             .then(response => response.arrayBuffer())
@@ -168,14 +238,18 @@ const getDataSource = (source): GetDataSourceResponse => {
     return Promise.reject(new Error('Unsupported type'));
 };
 
-const SourceTypesExample = ({theme}: Theme) => {
+interface ThemeStoryProps {
+    customTheme?: Theme;
+}
+
+const SourceTypesExample = ({customTheme}: ThemeStoryProps) => {
     const {setActiveSourceIndex} = useRAGSources();
     return (
         <BaseLayout>
             <RAGProvider
                 retrieveAndGenerate={() => getSourcesAndResponse()}
                 getDataSource={(source) => getDataSource(source)}
-                theme={theme}
+                theme={customTheme}
             >
                 {/* We use the Dataloader to add messages to the ChatWindow, the retrieveAndGenerate function will populate the SourcesDisplay */}
                 <DataLoader/>
@@ -187,7 +261,6 @@ const SourceTypesExample = ({theme}: Theme) => {
 
 type Story = StoryObj<typeof SourceTypesExample>;
 
-// TODO: Create Theming tutorial - 2 possibilites - create from scratch or modify default theme
 const meta = {
     title: 'Getting Started/09. Theming',
     component: SourceTypesExample,
@@ -196,40 +269,169 @@ const meta = {
         docs: {
             description: {
                 component: `
-## Type Definitions
+# Theming
+
+The RAG UI library provides a flexible theming system that allows you to customize the look and feel of all components. You can either use the default theme, modify specific parts of it, or create an entirely new theme.
+
+## Theme Structure
+
+The theme consists of four main parts:
 
 \`\`\`typescript
-import {defaultTheme} from "../lib/theme";
-import {Theme} from "../../lib/theme/types.ts";
+interface Theme {
+  colors: Colors;       // Color palette
+  typography: Typography; // Font settings
+  spacing: Spacing;     // Spacing scale
+  borderRadius: BorderRadius; // Border radius scale
+}
+\`\`\`
 
-// todo: describe how to customize the default theme
-const myCustomTheme: Theme = {
-    ...defaultTheme,
-    colors: {
-        primary: '#ff0000', // we change the primary color to red
-    }
+### Colors
+
+The color system includes:
+
+\`\`\`typescript
+interface Colors {
+  primary: string;            // Primary brand color
+  secondary: string;          // Secondary brand color
+  contrast: string;           // Contrast color for text on primary/secondary
+  background: string;         // Main background color
+  secondaryBackground: string; // Secondary background color
+  toolbarBackground: string;   // Background for toolbars
+  text: string;               // Main text color
+  secondaryText: string;      // Secondary text color
+  lightText: string;          // Light text color
+  success: string;            // Success state color
+  warning: string;            // Warning state color
+  error: string;              // Error state color
+}
+\`\`\`
+
+### Typography
+
+Font settings include:
+
+\`\`\`typescript
+interface Typography {
+  fontFamily: string;    // Main font family
+  fontSizeBase: string;  // Base font size
+  lineHeight: string;    // Base line height
+}
+\`\`\`
+
+### Spacing
+
+A consistent spacing scale:
+
+\`\`\`typescript
+interface Spacing {
+  none: string;  // No spacing (0px)
+  xs: string;    // Extra small spacing
+  sm: string;    // Small spacing
+  md: string;    // Medium spacing
+  lg: string;    // Large spacing
+  xl: string;    // Extra large spacing
+}
+\`\`\`
+
+### Border Radius
+
+Border radius scale for consistent corner rounding:
+
+\`\`\`typescript
+interface BorderRadius {
+  none: string;  // No border radius
+  sm: string;    // Small border radius
+  md: string;    // Medium border radius
+  lg: string;    // Large border radius
+  xl: string;    // Extra large border radius
+}
+\`\`\`
+
+## Using Themes
+
+### Default Theme
+
+The default theme is automatically applied when no theme is provided:
+
+\`\`\`typescript
+import { RAGProvider } from '@renumics/rag-ui';
+
+function App() {
+  return (
+    <RAGProvider>
+      <YourComponents />
+    </RAGProvider>
+  );
+}
+\`\`\`
+
+### Custom Theme
+
+You can create a custom theme in two ways:
+
+1. Modify the default theme:
+
+\`\`\`typescript
+import { createTheme } from '@renumics/rag-ui';
+
+const myTheme = createTheme({
+  colors: {
+    primary: '#1976D2',
+    secondary: '#424242',
+  },
+  typography: {
+    fontFamily: '"Inter", sans-serif',
+  }
+});
+\`\`\`
+
+2. Create a complete theme from scratch:
+
+\`\`\`typescript
+import { Theme } from 'lexio';
+
+const myTheme: Theme = {
+  colors: {
+    // ... all color values required
+  },
+  typography: {
+    // ... all typography values required
+  },
+  spacing: {
+    // ... all spacing values required
+  },
+  borderRadius: {
+    // ... all border radius values required
+  }
 };
+\`\`\`
 
-// todo: describe how to use the theme in the RAGProvider
-<RAGProvider
-    ...
-    theme={myCustomTheme}
-    >
-    <App />
+Apply your custom theme:
+
+\`\`\`typescript
+<RAGProvider theme={myTheme}>
+  <YourComponents />
 </RAGProvider>
 \`\`\`
 
-Try out the interactive example below and switch between different source types using the controls.
-Next, move on to "03. Streaming Responses" to learn how to provide a more interactive experience with streaming responses.
-        `
+Try out the interactive examples below to see different theme variations in action.
+`
             }
         }
     },
     tags: ['autodocs'],
     argTypes: {
-        theme: {
-            control: 'object',
-            description: 'Customizable Theme object. Use the controls to modify the theme here.',
+        customTheme: {
+            control: 'select',
+            options: ['default', 'dark', 'warm', 'modern'],
+            mapping: {
+                default: defaultTheme,
+                dark: darkTheme,
+                warm: warmTheme,
+                modern: modernTheme
+            },
+            description: 'Select a predefined theme to see how it affects the components.',
         },
     }
 } satisfies Meta<typeof SourceTypesExample>;
@@ -238,6 +440,25 @@ export default meta;
 
 export const Docs: Story = {
     args: {
-        theme: customTheme,
+        customTheme: defaultTheme,
+    }
+};
+
+// Additional examples showing different theme variations
+export const DarkMode: Story = {
+    args: {
+        customTheme: darkTheme,
+    }
+};
+
+export const WarmColors: Story = {
+    args: {
+        customTheme: warmTheme,
+    }
+};
+
+export const ModernStyle: Story = {
+    args: {
+        customTheme: modernTheme,
     }
 };

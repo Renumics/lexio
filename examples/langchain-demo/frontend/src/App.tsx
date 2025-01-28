@@ -25,7 +25,7 @@ const demoTheme = createTheme({
         background: 'white',
         toolbarBackground: '#366563',
         secondaryBackground: '#bbd5d3',
-    }
+    },
 });
 
 function App() {
