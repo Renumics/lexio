@@ -48,11 +48,10 @@ def test_rect_creation():
 def test_pdf_highlight_creation():
     """Test creating a PDFHighlight."""
     rect = Rect(top=0, left=0, width=100, height=100)
-    highlight = PDFHighlight(page=1, rect=rect, comment="Test comment")
+    highlight = PDFHighlight(page=1, rect=rect)
     
     assert highlight.page == 1
     assert highlight.rect == rect
-    assert highlight.comment == "Test comment"
 
 
 def test_pdf_highlight_minimal():
@@ -62,7 +61,6 @@ def test_pdf_highlight_minimal():
     
     assert highlight.page == 1
     assert highlight.rect == rect
-    assert highlight.comment is None
 
 
 def test_text_content_creation():
