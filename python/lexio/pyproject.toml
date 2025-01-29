@@ -48,7 +48,7 @@ dev = [
 source = "vcs"
 
 [tool.hatch.version.raw-options]
-version_scheme = "no-guess-dev"
+version_scheme = "guess-next-dev" # less verbose versioning w/o dev suffix
 root = "../.." # required for hatch-vcs to find git versioning metadata
 
 [tool.hatch.build.hooks.vcs]
