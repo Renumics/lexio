@@ -182,7 +182,7 @@ const SourceTypesExample = ({ variant }: ExampleProps) => {
 type Story = StoryObj<typeof SourceTypesExample>;
 
 const meta = {
-  title: 'Getting Started/02. Source Types',
+  title: 'Tutorial/02. Source Types',
   component: SourceTypesExample,
   parameters: {
     layout: 'centered',
