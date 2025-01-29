@@ -17,7 +17,7 @@ import {
 const Placeholder = () => null;
 
 const meta: Meta<typeof Placeholder> = {
-  title: 'Getting Started/10. Using Connectors',
+  title: 'Tutorial/11. Using Connectors',
   component: Placeholder,
   parameters: {
     layout: 'centered',

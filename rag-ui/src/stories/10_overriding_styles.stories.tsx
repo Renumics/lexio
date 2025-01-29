@@ -136,7 +136,7 @@ const StyleOverridesExample = ({ styleOverrides }: StyleOverridesExampleProps) =
 type Story = StoryObj<typeof StyleOverridesExample>;
 
 const meta = {
-    title: 'Getting Started/10. Style Overrides',
+    title: 'Tutorial/10. Style Overrides',
     component: StyleOverridesExample,
     parameters: {
         layout: 'centered',
