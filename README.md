@@ -1,2 +1,79 @@
-# Lexio
-Quickest way to production grade RAG UI.
+# 🚀 Welcome
+
+Lexio is a robust React library for Retrieval-Augmented Generation (RAG) document QA interfaces, handling complex workflows out of the box while remaining simple to use. 
+
+It supports multiple document types (PDF, HTML, Markdown) with advanced features like streaming responses and source highlighting. 
+
+Developers can use ready-made components or easily build custom ones using React hooks.
+
+![RAG UI Example](lexio/src/stories/assets/shot_lexio_llama_index.png)
+
+
+## Quick Start
+
+You can install the library with npm or yarn:
+
+```bash
+npm install lexio
+```
+
+To use the GUI components, you need to provide retrieval and generation functions to the `RAGProvider` context:
+
+```tsx
+import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay, ErrorDisplay } from 'lexio';
+
+const App = () => (
+<RAGProvider
+  retrieveAndGenerate={(messages) => {
+    return {
+      sources: Promise.resolve([
+        {
+          source: "example-doc.pdf",
+        },
+          relevanceScore: 0.95
+        }
+      ]),
+      response: Promise.resolve("This is a sample response based on the retrieved documents.")
+    };
+  }}
+>
+  <ChatWindow />
+  <AdvancedQueryField />
+  <SourcesDisplay />
+  <ContentDisplay />
+  <ErrorDisplay />
+</RAGProvider>
+);
+```
+Follow the Tutorial to learn more about the library.
+
+## Key Features
+- **Powerful Viewers**: Pre-built components for chat interfaces, source selection and viewing with source highlighting
+- **Integrated State Management**: Transparent state handling for interaction between components
+- **Opinionated Architecture**: Implements RAG best practices out of the box
+- **Highly Customizable**: Theming and component customization options through ...
+
+## Advantages
+- **Quick Implementation**: Get your RAG interface running with just a few lines of code
+- **Production Ready**: Built for integration into mature web applications
+- **Best Practices Built-in**: Follows RAG implementation patterns from real-world applications
+- **Framework Agnostic**: Works with any backend RAG implementation
+
+## Target Groups
+
+### 🚀 Startups
+- Rapid prototyping capabilities
+- Quick time-to-market
+- Flexible customization options
+
+### 🌐 Enterprise
+- Enterprise-grade reliability
+- Seamless integration with existing systems
+- Production-ready components
+- Professional support options
+
+### 👨‍💻 AI Developers
+- Full control over RAG pipeline
+- Custom component development
+- Advanced configuration options
+- Direct access to underlying state
