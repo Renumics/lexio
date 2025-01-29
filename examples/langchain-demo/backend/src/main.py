@@ -288,7 +288,11 @@ async def get_source(filename: str):
     """
     try:
         # Assuming files are stored in a 'data' directory relative to the backend
-        file_path = os.path.join("data", filename)
+        base_path = os.path.abspath("data")
+        file_path = os.path.normpath(os.path.join(base_path, filename))
+
+        if not file_path.startswith(base_path):
+            raise HTTPException(status_code=400, detail="Invalid file path")
 
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="File not found")
