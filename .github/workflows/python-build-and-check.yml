@@ -36,14 +36,14 @@ jobs:
     - name: Generate Python Types
       working-directory: ${{ github.workspace }}
       run: |
-        cd rag-ui
+        cd lexio
         npm ci
         npm run generate-types
 
     - name: Generate Python Package
       working-directory: ${{ github.workspace }}
       run: |
-        cd rag-ui
+        cd lexio
         npm ci
         npm run generate-python-package
 

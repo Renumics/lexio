@@ -3,12 +3,12 @@
   "version": "0.0.1",
   "type": "module",
   "license": "GPL-3.0-or-later",
-  "module": "dist/rag-ui.es.js",
-  "types": "dist/rag-ui.d.ts",
+  "module": "dist/lexio.es.js",
+  "types": "dist/lexio.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/rag-ui.es.js",
-      "types": "./dist/rag-ui.d.ts"
+      "import": "./dist/lexio.es.js",
+      "types": "./dist/lexio.d.ts"
     }
   },
   "files": [

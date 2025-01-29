@@ -3,8 +3,8 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
-    "../../../../rag-ui/lib/**/*.{js,ts,jsx,tsx}",
-    "../../../../rag-ui/src/**/*.{js,ts,jsx,tsx}"
+    "../../../../lexio/lib/**/*.{js,ts,jsx,tsx}",
+    "../../../../lexio/src/**/*.{js,ts,jsx,tsx}"
   ],
   theme: {
     extend: {},
