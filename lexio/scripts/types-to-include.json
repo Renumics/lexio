@@ -4,7 +4,6 @@
     "BaseSourceContent",
     "BaseRetrievalResult",
     "Message",
-    "MessageHistory",
     "SourceReference",
     "TextContent",
     "MarkdownSourceContent",

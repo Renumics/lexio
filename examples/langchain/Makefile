@@ -16,6 +16,7 @@ setup-backend:
 	@echo "Activating virtual environment and installing backend dependencies..."
 	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/pip install -e .
 	@echo "Backend setup complete. Don't forget to create a .env file with your OpenAI API key."
+	@echo "Place your PDFs in the 'backend/data' directory to index them."
 
 # Frontend setup
 setup-frontend:
