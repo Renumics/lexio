@@ -417,15 +417,6 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         }
 
 
-        /*backgroundColor?: string;
-        color?: string;
-        padding?: string;
-        fontFamily?: string;
-        borderRadius?: string;
-        contentBackground?: string;
-        contentPadding?: string;
-        */
-
         return (
             <ViewerToolbar 
                 zoomIn={wrappedActions.zoomIn} 
