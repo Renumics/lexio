@@ -13,8 +13,8 @@ import {
     ContentDisplay,
     Message,
     AdvancedQueryField
-} from 'rag-ui'
-import { GenerateInput, GenerateStreamChunk } from 'rag-ui'
+} from 'lexio'
+import { GenerateInput, GenerateStreamChunk } from 'lexio'
 
 function App() {
     const retrieveAndGenerate = (input: GenerateInput): RetrieveAndGenerateResponse => {
@@ -33,13 +33,25 @@ function App() {
               // Log the data to inspect its structure
               console.log('Fetched data:', data)
     
-              // Assuming `data` is structured to match SourceReference
-              const sources: SourceReference[] = data.source_nodes.map((doc: any) => ({
+              // Assuming `data` is structured to match SourceReference        
+
+            const sources: SourceReference[] = data.source_nodes.map((doc: any) => ({
                 type: 'pdf', // or derive from doc if available
                 relevanceScore: doc.score,
-                source: doc.node.extra_info.file_name,
+                sourceReference: doc.node.extra_info.file_name,
+                highlights: [{
+                    page: doc.node.extra_info.bounding_box.page_number,
+                    rect: {
+                        left: doc.node.extra_info.bounding_box.x0,
+                        top: doc.node.extra_info.bounding_box.top,
+                        width: doc.node.extra_info.bounding_box.x1 - doc.node.extra_info.bounding_box.x0,
+                        height: doc.node.extra_info.bounding_box.bottom - doc.node.extra_info.bounding_box.top
+                    }
+                }],
                 //metadata: doc.metadata,
               }))
+
+              console.log('sources', sources)
     
               resolve({
                 sources: sources,
@@ -59,17 +71,64 @@ function App() {
           response: responsePromise,
         }
       }
+    
+      const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
+        let url: string;
+        url = `http://localhost:8000/getDataSource?source_reference=${source.sourceReference}`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
+        }
+
+        if (source.type === "html") {
+            const text = await response.text();
+            const htmlContent: HTMLSourceContent = {
+                type: 'html',
+                content: `<div class="source-content">${text}</div>`,
+                metadata: source.metadata || {}
+            };
+            return htmlContent;
+        } else if (source.type === "markdown") {
+            const text = await response.text();
+            const markdownContent: MarkdownSourceContent = {
+                type: 'markdown',
+                content: text,
+                metadata: source.metadata || {}
+            };
+            return markdownContent
+        } else if (source.type === "pdf") {
+            const arrayBuffer = await response.arrayBuffer();
+            console.log('source.highlights', source.highlights)
+            const pdfContent: PDFSourceContent = {
+                type: 'pdf',
+                content: new Uint8Array(arrayBuffer),
+                metadata: source.metadata || {},
+                highlights: source.highlights || []
+            };
+            return pdfContent;
+        }
+
+        throw new Error("Invalid source type");
+    };
 
 
 
     return (
-        <div >
-            <h1>RAG UI</h1>
+      <div style={{ 
+          width: '100%', 
+          height: '100vh', 
+          padding: '10px',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          margin: 0
+      }}>
+          <h1>RAG UI</h1>
             <RAGProvider
                 retrieve={() => {}}
                 retrieveAndGenerate={retrieveAndGenerate}
                 generate={() => {}}
-                getDataSource={() => {}}
+                getDataSource={getDataSource}
                 config={{
                     timeouts: {
                         stream: 10000,
@@ -83,29 +142,31 @@ function App() {
                 //     }
                 // }}
             >
-                <div className="w-full max-w-6xl h-full flex gap-4">
-                    
-                    {/* Left side: Chat and Query */}
-                    <div className="flex flex-1 flex-col gap-4 w-1/3">
-                        <div className="h-1/3 min-h-0"> {/* Chat window */}
-                            <ChatWindow />
-                        </div>
-                        <div className="min-h-0"> {/* Query field */}
-                            {/* <QueryField onSubmit={() => {
-                            }} /> */}
-                            <AdvancedQueryField />
-                        </div>
-
-                        <div className="h-1/3 flex-1"> {/* Sources panel */}
-                            <SourcesDisplay />
-                        </div>
+                <div style={{ 
+                    display: 'grid',
+                    height: 'calc(100vh - 80px)',
+                    gridTemplateColumns: '2fr 1fr 2fr',
+                    gridTemplateRows: '1fr auto',
+                    gap: '20px',
+                    gridTemplateAreas: `
+                        "chat sources viewer"
+                        "input sources viewer"
+                    `
+                }}>
+                    <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
+                        <ChatWindow />
                     </div>
-
-                    <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
+                    <div style={{ gridArea: 'input' }}>
+                        <AdvancedQueryField />
+                    </div>
+                    <div style={{ gridArea: 'sources', minHeight: 0, overflow: 'auto' }}>
+                        <SourcesDisplay />
+                    </div>
+                    <div style={{ gridArea: 'viewer', minHeight: 0, overflow: 'auto' }}>
                         <ContentDisplay />
                     </div>
-                    <ErrorDisplay />
                 </div>
+                <ErrorDisplay />
             </RAGProvider>
         </div>
     );

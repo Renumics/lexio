@@ -1,5 +1,7 @@
 import { Meta, Markdown } from '@storybook/blocks';
 
+import RAGUIExample from "./assets/shot_lexio_llama_index.png";
+
 <Meta title="Welcome" />
 
 # 🚀 Welcome
@@ -10,11 +12,45 @@ It supports multiple document types (PDF, HTML, Markdown) with advanced features
 
 Developers can use ready-made components or easily build custom ones using React hooks.
 
+<img src={RAGUIExample} alt="RAG UI Example" />
 
-## Getting Started
-CODE 
-VIDEO
+## Quick Start
 
+You can install the library with npm or yarn:
+
+```bash
+npm install rag-ui
+```
+
+To use the GUI components, you need to provide retrieval and generation functions to the `RAGProvider` context:
+
+```tsx
+import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay, ErrorDisplay } from 'rag-ui';
+
+const App = () => (
+<RAGProvider
+  retrieveAndGenerate={(messages) => {
+    return {
+      sources: Promise.resolve([
+        {
+          source: "example-doc.pdf",
+        },
+          relevanceScore: 0.95
+        }
+      ]),
+      response: Promise.resolve("This is a sample response based on the retrieved documents.")
+    };
+  }}
+>
+  <ChatWindow />
+  <AdvancedQueryField />
+  <SourcesDisplay />
+  <ContentDisplay />
+  <ErrorDisplay />
+</RAGProvider>
+);
+```
+Follow the Tutorial to learn more about the library.
 
 ## Key Features
 - **Powerful Viewers**: Pre-built components for chat interfaces, source selection and viewing with source highlighting
