@@ -1,4 +1,14 @@
-# 🚀 Welcome
+<p align="center"><a href="https://spotlight.renumics.com"><img src="lexio/src/stories/assets/lexio logo transparent.png" alt="Gray shape shifter" height="60"/></a></p>
+
+<p align="center">Quickest way to production grade RAG UI. </p>
+
+
+  <h3 align="center">
+   <a href="https://renumics.com/lexio-ui"><b>Documentation</b></a> &bull;
+   <a href="https://renumics.com/blog/"><b>Blog</b></a> 
+
+ </h3>
+
 
 Lexio is a robust React library for Retrieval-Augmented Generation (RAG) document QA interfaces, handling complex workflows out of the box while remaining simple to use. 
 
