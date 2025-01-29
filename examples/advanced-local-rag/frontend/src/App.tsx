@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useMemo } from 'react';
 import {
     ChatWindow,
     RAGProvider,
@@ -6,120 +6,125 @@ import {
     ContentDisplay,
     AdvancedQueryField,
     ErrorDisplay,
+    useSSERetrieveAndGenerateSource,
+    useSSEGenerateSource,
     SourceReference,
-    SourceContent,
-    PDFSourceContent,
-    HTMLSourceContent,
-    MarkdownSourceContent
+    Message,
+    RetrievalResult,
+    useRestContentSource,
 } from 'lexio'
 import './App.css';
 
 
 
 function App() {
-    const getDataSource = useCallback(async (source: SourceReference): Promise<SourceContent> => {
-        // Use the ID from metadata to fetch the content
-        const id = source.metadata?.id;
-        if (!id) {
-            throw new Error('No ID provided in source metadata');
-        }
 
-        const url = `http://localhost:8000/pdfs/${encodeURIComponent(id)}`;
-        const response = await fetch(url);
+    const getDataSourceOptions = useMemo(() => ({
+        buildFetchRequest: (source: SourceReference) => {
+          const id = source.metadata?.id;
+          if (!id) {
+            throw new Error('No ID in source metadata');
+          }
+          // For PDFs or text, always use the same endpoint for now
+          return {
+            url: `http://localhost:8000/pdfs/${encodeURIComponent(id)}`, 
+          };
+        }, 
+        parseText: (text: string, source: SourceReference) => {
+            const codeFileExtensions = ['.tsx', '.ts', '.js', '.jsx', '.py', '.java', '.cpp', '.c', '.rs'];
+            const isCodeFile = source.sourceName && codeFileExtensions.some(ext => source.sourceName?.endsWith(ext));
 
-        if (!response.ok) {
-            throw new Error(`Failed to get content. HTTP Status: ${response.status} ${response.statusText}`);
-        }
-
-        // Handle different content types
-        if (source.type === "pdf") {
-            const arrayBuffer = await response.arrayBuffer();
-            const pdfContent: PDFSourceContent = {
-                type: 'pdf',
-                content: new Uint8Array(arrayBuffer),
-                metadata: source.metadata || {},
-                highlights: source.highlights || []
-            };
-            return pdfContent;
-        } else if (source.type === "html") {
-            const text = await response.text();
-            const content: HTMLSourceContent = {
-                type: 'html',
+            if (isCodeFile) {
+                // For code files, escape backticks and wrap in code fence
+                const escapedText = text.replace(/`/g, '\\`');
+                const extension = source.sourceName?.split('.').pop() || 'txt';
+                return {
+                    type: source.type,
+                    content: `\`\`\`${extension}\n${escapedText}\n\`\`\``,
+                    metadata: source.metadata || {}
+                };
+            }
+            
+            // For all other files, return as-is with original type
+            return {
+                type: source.type,
                 content: text,
                 metadata: source.metadata || {}
             };
-            return content;
-        } else if (source.type === "markdown") {
-            const text = await response.text();
-            // Replace any existing backtick sequences with escaped versions
-            const escapedText = text.replace(/`/g, '\\`');
-            const content: MarkdownSourceContent = {
-                type: 'markdown',
-                content: `\`\`\`markdown\n${escapedText}\n\`\`\``,
-                metadata: source.metadata || {}
-            };
-            return content;
         }
+    }), []);
 
-        throw new Error(`Unsupported source type: ${source.type}`);
-    }, []);
+    const getDataSource = useRestContentSource(getDataSourceOptions);
+    
 
-
-    const parseEvent = useCallback((data: any) => {
-        // If there's an array of sources, convert them to RetrievalResult format
-        if (Array.isArray(data.sources)) {
-            console.log(data.sources);
-            const sources = data.sources.map((item: any) => {
-                // Convert null/undefined score to undefined
-                const relevanceScore = item.score != null ? item.score : undefined;
-                // Extract filename from path
-                const fileName = item.doc_path.split('/').pop();
-
-                // Always create a SourceReference with a fallback type of 'markdown'
-                return {
-                    type: item.doc_path.endsWith('.pdf') ? 'pdf' :
-                        item.doc_path.endsWith('.html') ? 'html' : 'markdown',
-                    sourceReference: item.doc_path,
-                    sourceName: fileName,
-                    relevanceScore,
-                    highlights: item.highlights?.map((highlight: any) => ({
-                        page: highlight.page,
-                        rect: {
-                            left: highlight.bbox.l,
-                            top: highlight.bbox.t,
-                            width: highlight.bbox.r - highlight.bbox.l,
-                            height: highlight.bbox.b - highlight.bbox.t
-                        }
-                    })),
-                    metadata: {
-                        id: item.id,
-                        page: item.page
-                    }
-                } as SourceReference;
-            });
-
-            return { sources, done: false };
-        }
-
-        // If there's a string 'content', treat it as a chunk
-        if (typeof data.content === 'string') {
-            return { content: data.content, done: !!data.done };
-        }
-
-        // Otherwise, ignore this SSE message
-        return {};
-    }, []);
-
-    // Create the SSE-based retrieveAndGenerate function
-    const retrieveAndGenerate = useSSESource({
+    // Memoize the options for retrieve and generate
+    const retrieveAndGenerateOptions = useMemo(() => ({
         endpoint: 'http://localhost:8000/api/retrieve-and-generate',
-        parseEvent,
-    });
+        method: 'POST' as const,
+        buildRequestBody: (messages: Message[], metadata?: Record<string, any>) => ({
+            query: messages[messages.length - 1].content,
+            metadata: metadata
+        }),
+        parseEvent: (data: any) => {
+            if (Array.isArray(data.sources)) {
+                const sources = data.sources.map((item: any) => {
+                    const relevanceScore = item.score != null ? item.score : undefined;
+                    const fileName = item.doc_path.split('/').pop();
+
+                    return {
+                        type: item.doc_path.endsWith('.pdf') ? 'pdf' :
+                            item.doc_path.endsWith('.html') ? 'html' : 'markdown',
+                        sourceReference: item.doc_path,
+                        sourceName: fileName,
+                        relevanceScore,
+                        highlights: item.highlights?.map((highlight: any) => ({
+                            page: highlight.page,
+                            rect: {
+                                left: highlight.bbox.l,
+                                top: highlight.bbox.t,
+                                width: highlight.bbox.r - highlight.bbox.l,
+                                height: highlight.bbox.b - highlight.bbox.t
+                            }
+                        })),
+                        metadata: {
+                            id: item.id,
+                            page: item.page
+                        }
+                    } as SourceReference;
+                });
+                return { sources, done: false };
+            }
+            if (typeof data.content === 'string') {
+                return { content: data.content, done: !!data.done };
+            }
+            return {};
+        }
+    }), []);
+
+    const generateOptions = useMemo(() => ({
+        endpoint: 'http://localhost:8000/api/generate',
+        method: 'POST' as const,
+        buildRequestBody: (messages: Message[], sources?: RetrievalResult[]) => ({
+            messages,
+            source_ids: sources?.map(source => 
+                'sourceReference' in source ? source.metadata?.id : null
+            ).filter(Boolean)
+        }),
+        parseEvent: (data: any) => ({
+            content: data.content,
+            done: !!data.done
+        })
+    }), []);
+
+    // Create the SSE-based functions using the memoized options
+    const retrieveAndGenerate = useSSERetrieveAndGenerateSource(retrieveAndGenerateOptions);
+    const generate = useSSEGenerateSource(generateOptions);
 
     return (
         <div className="app-container">
             <RAGProvider
                 retrieveAndGenerate={retrieveAndGenerate}
+                generate={generate}
                 getDataSource={getDataSource}
                 config={{
                     timeouts: {
