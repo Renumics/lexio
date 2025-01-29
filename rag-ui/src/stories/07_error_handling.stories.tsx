@@ -91,7 +91,7 @@ const ExampleComponent = ({ errorType }: ErrorDemoProps) => (
 );
 
 const meta = {
-  title: 'Getting Started/07. Error Handling',
+  title: 'Tutorial/07. Error Handling',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',

@@ -36,7 +36,7 @@ const ExampleComponent = () => (
 );
 
 const meta = {
-  title: 'Getting Started/01. Basic Usage',
+  title: 'Tutorial/01. Basic Usage',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',
