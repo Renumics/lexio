@@ -31,14 +31,14 @@ jobs:
           pip install ".[dev]"
 
       - name: Generate Python Types
+        working-directory: ./rag-ui
         run: |
-          cd rag-ui
           npm ci
           npm run generate-types
 
       - name: Generate Python Package
+        working-directory: ./rag-ui
         run: |
-          cd rag-ui
           npm ci
           npm run generate-python-package
 
@@ -53,7 +53,7 @@ jobs:
         with:
           name: dist
           path: python/lexio/dist/
-          retention-days: 7
+          retention-days: 2
 
   test:
     needs: build
