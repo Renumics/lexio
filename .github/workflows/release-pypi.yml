@@ -1,9 +1,7 @@
-name: Python Package Release
+name: Release to Test PyPI
 
 on:
   push:
-#    branches:
-#      - main
     tags:
       - 'v*'  # Trigger on version tags
   workflow_dispatch:  # Allows manual triggering

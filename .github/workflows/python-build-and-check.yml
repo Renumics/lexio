@@ -1,9 +1,6 @@
 name: Python CI
 
 on:
-  push:
-    tags:
-      - 'v*'  # Trigger on version tags
   pull_request:
     branches:
       - main
