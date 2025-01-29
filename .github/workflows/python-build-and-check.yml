@@ -6,16 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
-  workflow_call:
-    inputs:
-      build-python-version:
-        required: false
-        type: string
-        default: "3.12"
-
 jobs:
   build:
-    name: Build Package with Python ${{ inputs.python-version }}
+    name: Build Package with Python 3.12
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ inputs.build-python-version }}
+          python-version: "3.12"
           cache: 'pip'
 
       - name: Install dependencies
@@ -64,7 +57,7 @@ jobs:
 
   test:
     needs: build
-    name: Test Python ${{ matrix.python-version }}
+    name: Test Python Package
     runs-on: ubuntu-latest
     strategy:
       matrix:
