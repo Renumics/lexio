@@ -9,6 +9,11 @@ on:
 jobs:
   build-and-check:
     uses: ./.github/workflows/python-build-and-check.yml
+    with:
+      python-version: "3.12"  # Optional: specify Python version if needed
+    secrets:
+      TEST_PYPI_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
     needs: build-and-check

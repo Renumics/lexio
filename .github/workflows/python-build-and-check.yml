@@ -1,61 +1,72 @@
-name: Python CI
+name: Python Build and Check
 
 on:
+  push:
+    branches: [ "main" ]
   pull_request:
-    branches:
-      - main
-  workflow_dispatch:  # Allows users to manually trigger the workflow from the GitHub Actions tab
+    branches: [ "main" ]
+
+  workflow_call:
+    inputs:
+      python-version:
+        required: false
+        type: string
+        default: "3.12"
+
+    secrets:
+      TEST_PYPI_TOKEN:
+        required: true
+      GITHUB_TOKEN:
+        required: true
 
 jobs:
   build:
-    name: Build Package
+    name: Build Package with Python ${{ inputs.python-version }}
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: python/lexio
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Required for hatch-vcs
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Erforderlich für hatch-vcs
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: 'pip'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install ".[dev]"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
 
-    - name: Generate Python Types
-      working-directory: ${{ github.workspace }}
-      run: |
-        cd rag-ui
-        npm ci
-        npm run generate-types
+      - name: Generate Python Types
+        run: |
+          cd rag-ui
+          npm ci
+          npm run generate-types
 
-    - name: Generate Python Package
-      working-directory: ${{ github.workspace }}
-      run: |
-        cd rag-ui
-        npm ci
-        npm run generate-python-package
+      - name: Generate Python Package
+        run: |
+          cd rag-ui
+          npm ci
+          npm run generate-python-package
 
-    - name: Run Python Tests
-      run: pytest tests -v
+      - name: Run Python Tests
+        run: pytest tests -v
 
-    - name: Build package
-      run: hatch build
+      - name: Build package
+        run: hatch build
 
-    - name: Upload package artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: dist
-        path: python/lexio/dist/
-        retention-days: 7
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: python/lexio/dist/
+          retention-days: 7
 
   test:
     needs: build
@@ -69,31 +80,29 @@ jobs:
         working-directory: python/lexio
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
 
-    - name: Download built package
-      uses: actions/download-artifact@v4
-      with:
-        name: dist
-        path: python/lexio/dist
+      - name: Download built package
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: python/lexio/dist
 
-    - name: Install test dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pytest pytest-asyncio pytest-cov  # Add coverage dependencies
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-cov  # Fügen Sie Coverage-Abhängigkeiten hinzu
 
-    - name: Install wheel package
-      working-directory: python/lexio
-      run: pip install dist/*.whl
+      - name: Install wheel package
+        run: pip install dist/*.whl
 
-    - name: Run tests against installed wheel
-      working-directory: python/lexio
-      run:  |
-        rm -rf lexio
-        pytest tests -v
+      - name: Run tests against installed wheel
+        run: |
+          rm -rf lexio
+          pytest tests -v
