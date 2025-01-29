@@ -42,7 +42,7 @@ const ExampleComponent = () => (
 );
 
 const meta = {
-  title: 'Getting Started/04. Follow-up Questions',
+  title: 'Tutorial/04. Follow-up Questions',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',

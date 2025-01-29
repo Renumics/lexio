@@ -140,7 +140,7 @@ const ExampleComponent = () => (
 );
 
 const meta = {
-  title: 'Getting Started/08. Building Custom Components',
+  title: 'Tutorial/08. Building Custom Components',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',
