@@ -6,8 +6,30 @@ import './HtmlViewer.css';
 import DOMPurify from 'dompurify';
 import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
 
+/**
+ * Constants for the HTMLViewer component's zoom functionality.
+ * 
+ * @internal
+ */
 const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 
+/**
+ * Style configuration interface for the HtmlViewer component.
+ * Extends ViewerToolbarStyles to include additional styling options specific to HTML content display.
+ * 
+ * @interface HtmlViewerStyles
+ * @extends {ViewerToolbarStyles}
+ * @property {string} [backgroundColor] - Background color of the entire HTMLViewer
+ * @property {string} [color] - Text color for the text elements in the HTMLViewer
+ * @property {string} [padding] - Padding around the content
+ * @property {string} [fontFamily] - Font family for the text elements in the HTMLViewer
+ * @property {string} [viewerBorderRadius] - Border radius of the HTMLViewer container
+ * @property {string} [viewerBackground] - Background color of the HTMLViewer area
+ * @property {string} [viewerPadding] - Padding around the HTMLViewer area
+ * @property {string} [contentBackground] - Background color of the content area
+ * @property {string} [contentPadding] - Padding around the content area
+ * @property {string} [contentBorderRadius] - Border radius of the content area
+ */
 export interface HtmlViewerStyles extends ViewerToolbarStyles {
     backgroundColor?: string;
     color?: string;
@@ -21,11 +43,55 @@ export interface HtmlViewerStyles extends ViewerToolbarStyles {
     contentBorderRadius?: string;
 }
 
+/**
+ * Props for the HtmlViewer component.
+ * 
+ * @interface HTMLViewerProps
+ * @property {React.ReactNode | string} htmlContent - The HTML content to display. Can be either a string of HTML or React elements
+ * @property {HtmlViewerStyles} [styleOverrides] - Optional style overrides for customizing the viewer's appearance
+ */
 interface HTMLViewerProps {
-    htmlContent: React.ReactNode | string; // Accept both string and React elements
+    /**
+     * The HTML content to display. Can be either a string of HTML or React elements
+     * 
+     * @remarks
+     * - Supports both HTML strings (sanitized with DOMPurify) and React elements (unsafe)
+     */
+    htmlContent: React.ReactNode | string;
+    /**
+     * Optional style overrides for customizing the viewer's appearance
+     * 
+     * @remarks
+     * - The default styling uses the theme system for consistent styling
+     */
     styleOverrides?: HtmlViewerStyles;
 }
 
+/**
+ * A component for displaying HTML content with zoom controls and theme support.
+ * Used in the RAG UI system to display HTML source content retrieved from the data source.
+ * 
+ * @component
+ * @param {HTMLViewerProps} props - The props for the HtmlViewer
+ * @returns {JSX.Element} A themed HTML viewer with zoom controls
+ * 
+ * @remarks
+ * - Supports both HTML strings (sanitized with DOMPurify) and React elements (unsafe)
+ * - Includes zoom controls via toolbar and keyboard shortcuts (Ctrl/Cmd + Up/Down)
+ * - Integrates with the theme system for consistent styling
+ * - Used internally by ContentDisplay when displaying HTML source content
+ * 
+ * @example
+ * ```tsx
+ * <HtmlViewer
+ *   htmlContent="<div>Your HTML content here</div>"
+ *   styleOverrides={{
+ *     contentBackground: '#ffffff',
+ *     contentPadding: '20px'
+ *   }}
+ * />
+ * ```
+ */
 const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
     const [scale, setScale] = React.useState(1);
     const containerRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
