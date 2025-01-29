@@ -1,68 +1,64 @@
 name: Python CI
 
 on:
+  workflow_call:
   push:
-    tags:
-      - 'v*'  # Trigger on version tags
+    branches: [ "main" ]
   pull_request:
-    branches:
-      - main
-  workflow_dispatch:  # Allows users to manually trigger the workflow from the GitHub Actions tab
+    branches: [ "main" ]
 
 jobs:
   build:
-    name: Build Package
+    name: Build with 🐍 3.12
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: python/lexio
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Required for hatch-vcs
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Erforderlich für hatch-vcs
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install ".[dev]"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
 
-    - name: Generate Python Types
-      working-directory: ${{ github.workspace }}
-      run: |
-        cd rag-ui
-        npm ci
-        npm run generate-types
+      - name: Generate Python Types
+        working-directory: ./lexio
+        run: |
+          npm ci
+          npm run generate-types
 
-    - name: Generate Python Package
-      working-directory: ${{ github.workspace }}
-      run: |
-        cd rag-ui
-        npm ci
-        npm run generate-python-package
+      - name: Generate Python Package
+        working-directory: ./lexio
+        run: |
+          npm ci
+          npm run generate-python-package
 
-    - name: Run Python Tests
-      run: pytest tests -v
+      - name: Run Python Tests
+        run: pytest tests -v
 
-    - name: Build package
-      run: hatch build
+      - name: Build package
+        run: hatch build
 
-    - name: Upload package artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: dist
-        path: python/lexio/dist/
-        retention-days: 7
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: python/lexio/dist/
+          retention-days: 2
 
   test:
     needs: build
-    name: Test Python ${{ matrix.python-version }}
+    name: Test Python Package
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -72,25 +68,29 @@ jobs:
         working-directory: python/lexio
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
 
-    - name: Download built package
-      uses: actions/download-artifact@v4
-      with:
-        name: dist
-        path: dist
+      - name: Download built package
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: python/lexio/dist
 
-    - name: Install built package
-      run: |
-        python -m pip install --upgrade pip
-        pip install dist/*.whl
-        pip install ".[dev]"
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-cov  # Fügen Sie Coverage-Abhängigkeiten hinzu
 
-    - name: Run tests
-      run: pytest tests -v
+      - name: Install wheel package
+        run: pip install dist/*.whl
+
+      - name: Run tests against installed wheel
+        run: |
+          rm -rf lexio
+          pytest tests -v

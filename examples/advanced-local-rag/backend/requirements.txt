@@ -10,5 +10,5 @@ semantic-text-splitter
 tree-sitter-python
 tree-sitter-javascript
 tree-sitter-typescript
-# bitsandbytes
-# flash-attn
+bitsandbytes
+flash-attn

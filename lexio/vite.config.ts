@@ -26,8 +26,8 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'lib/main.ts'),
       formats: ['es'], // add umd if we want to export web components!
-      name: 'rag-ui',
-      fileName: (format) => `rag-ui.${format}.js`
+      name: 'lexio',
+      fileName: (format) => `lexio.${format}.js`
     },
     rollupOptions: {
       //external: ["react", "react-dom", "react/jsx-runtime", "pdfjs-dist", "jotai", "@react-hook/resize-observer", "react-toastify"], // potentially add tailwindcss this all has to be removed if building as umd and not installing react?

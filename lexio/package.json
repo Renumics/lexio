@@ -3,12 +3,12 @@
   "version": "0.0.1",
   "type": "module",
   "license": "GPL-3.0-or-later",
-  "module": "dist/rag-ui.es.js",
-  "types": "dist/rag-ui.d.ts",
+  "module": "dist/lexio.es.js",
+  "types": "dist/lexio.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/rag-ui.es.js",
-      "types": "./dist/rag-ui.d.ts"
+      "import": "./dist/lexio.es.js",
+      "types": "./dist/lexio.d.ts"
     }
   },
   "files": [
@@ -77,7 +77,7 @@
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.15.0",
     "typescript-json-schema": "^0.65.1",
-    "vite": "^6.0.1",
+    "vite": "^6.0.11",
     "vite-plugin-css-injected-by-js": "^3.5.2",
     "vite-plugin-dts": "^4.3.0",
     "vite-plugin-static-copy": "^2.2.0",
