@@ -81,8 +81,11 @@ export interface BaseRetrievalResult {
   sourceName?: string;
   /**
    * Optional score indicating relevance to the query. Scores must be in the range [0, 1].
+   *
+   * @minimum 0
+   * @maximum 1
    */
-  relevanceScore?: number & { min: 0, max: 1 };
+  relevanceScore?: number;
   /**
    * Optional metadata associated with the result. Can be used to store additional information.
    * @remarks Metadata is not used by the RAG provider. It is shown as-is in the SourcesDisplay component.
@@ -168,6 +171,8 @@ export interface MarkdownSourceContent extends BaseSourceContent {
   content: string;
   /**
    * Must be "markdown". Indicates this is Markdown content.
+   *
+   * @default "markdown"
    */
   type: 'markdown';
 }
@@ -187,6 +192,8 @@ export interface HTMLSourceContent extends BaseSourceContent {
   content: string;
   /**
    * Must be "html". Indicates this is HTML content.
+   *
+   * @default "html"
    */
   type: 'html';
 }
@@ -199,6 +206,8 @@ export interface HTMLSourceContent extends BaseSourceContent {
  * @property {Uint8Array} content - The binary PDF content
  * @property {'pdf'} type - Must be "pdf". Indicates this is PDF content.
  * @property {PDFHighlight[]} [highlights] - Optional array of highlights in the PDF
+ *
+ * @todo This type will change due to upcoming changes in how to define the page number for PDF content.
  */
 export interface PDFSourceContent extends BaseSourceContent {
   /**
@@ -207,6 +216,8 @@ export interface PDFSourceContent extends BaseSourceContent {
   content: Uint8Array;
   /**
    * Must be "pdf". Indicates this is PDF content.
+   *
+   * @default "pdf"
    */
   type: 'pdf';
   /**

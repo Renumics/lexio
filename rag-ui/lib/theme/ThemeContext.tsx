@@ -67,7 +67,7 @@ interface ThemeProviderProps {
  * 
  * @remarks
  * The ThemeProvider is typically used within the RAGProvider component, which
- * handles the complete setup of the RAG UI system.
+ * handles the complete setup of the RAG UI system --> **There is no need to use the ThemeProvider directly.**
  * 
  * @example
  * ```tsx
