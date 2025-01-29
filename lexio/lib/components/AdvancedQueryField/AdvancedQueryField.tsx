@@ -219,7 +219,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     mentionChipBackground: '#bee3f8', // Light blue default // todo: check if using contrast makes sense
     mentionChipColor: '#2c5282',      // Darker blue text
     inputBackgroundColor: 'white',
-    inputBorderColor: '#e5e7eb',
+    inputBorderColor: colors.secondary,
     buttonBackground: colors.primary,
     buttonTextColor: colors.contrast,
     buttonBorderRadius: componentDefaults.borderRadius,

@@ -206,9 +206,8 @@ function App() {
                     }}
                     theme={demoTheme}
                 >
-                    <div className="w-full h-full max-h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
-                        {/* Left side: Chat and Query */}
-                        <div className="h-3/4 gap-4 w-1/4 flex flex-col">
+                    <div className="w-full h-full max-h-full max-w-full mx-auto flex flex-row gap-6 p-4">
+                        <div className="gap-4 w-1/4 flex flex-col">
                             <div className="shrink-0"> {/* Query field */}
                                 <QueryField onSubmit={() => {
                                 }}/>
@@ -217,11 +216,11 @@ function App() {
                                 <ChatWindow/>
                             </div>
                         </div>
-                        <div className="w-1/6 h-full"> {/* Sources panel */}
-                            <SourcesDisplay/>
-                        </div>
-                        <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
+                        <div className="w-1/2 h-full overflow-hidden"> {/* Sources panel */}
                             <ContentDisplay/>
+                        </div>
+                        <div className="w-1/4 h-full"> {/* Sources panel */}
+                            <SourcesDisplay/>
                         </div>
                         <ErrorDisplay/>
                     </div>

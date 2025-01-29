@@ -89,7 +89,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
     borderColor: '#e5e7eb',
     borderRadius: componentDefaults.borderRadius,
     inputBackgroundColor: 'white',
-    inputBorderColor: '#e5e7eb',
+    inputBorderColor: colors.secondary,
     inputBorderRadius: componentDefaults.borderRadius,
     buttonBackground: colors.primary,
     buttonTextColor: colors.contrast,

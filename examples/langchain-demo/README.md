@@ -1,5 +1,6 @@
-# Langchain Demo
+# Lexio RAG Demo with Langchain, ChromaDB, and OpenAI + PDF Highlights with PyMuPDF
 
+[//]: # (TODO: add logo, screenshots and place in gallery)
 This repository demonstrates how to build a Retrieval-Augmented Generation (RAG) system using Langchain and the Lexio UI components. The demo showcases:
 
 - **Advanced PDF Processing** with PyMuPDF for intelligent text extraction and highlighting
@@ -129,7 +130,7 @@ For convenience, you can use the provided Makefile commands:
 
 ```bash
 make setup-backend    # Set up the Python environment and install dependencies
-make index            # Index the PDF documents
+make index            # Index the PDF documents - assert that the data directory is populated
 make setup-frontend   # Install frontend dependencies
 make start-backend    # Start the FastAPI server
 make start-frontend   # Start the Vite development server

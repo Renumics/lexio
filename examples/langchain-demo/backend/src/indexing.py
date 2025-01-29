@@ -62,8 +62,8 @@ class DocumentIndexer:
             self,
             data_dir: str = DATA_DIR,
             db_dir: str = DB_DIR,
-            chunk_size: int = 1000,
-            chunk_overlap: int = 200,
+            chunk_size: int = 512,
+            chunk_overlap: int = 128,
     ):
         """Initialize the DocumentIndexer.
 
