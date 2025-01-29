@@ -16,9 +16,9 @@ export const defaultTheme: Theme = {
     error: '#E53935',
   },
   typography: {
-    fontFamily: '"Poppins", Helvetica, Arial, sans-serif',  // Modern Google Font
-    fontSizeBase: '1.rem',  // Slightly larger for readability
-    lineHeight: '1.75',  // Increased for a spacious feel
+    fontFamily: '"Poppins", Helvetica, Arial, sans-serif',
+    fontSizeBase: '1.rem',
+    lineHeight: '1.75',
   },
   componentDefaults: {
     borderRadius: '0.5rem',
@@ -26,6 +26,27 @@ export const defaultTheme: Theme = {
   },
 };
 
+/**
+ * Creates a new theme by merging the default theme with the provided overrides.
+ *
+ * @param {Partial<PartialTheme>} overrides - The theme overrides to apply on top of the default theme.
+ * @returns {Theme} The new theme object with the applied overrides.
+ * @example
+ * ```tsx
+ * import { createTheme, RAGProvider } from 'lexio';
+ *
+ * const customTheme = createTheme({
+ *    colors: {
+ *      primary: '#1E88E5',
+ *      secondary: '#64B5F6'
+ *      }
+ * });
+ *
+ * <RAGProvider theme={customTheme}>
+ *     ... your app components ...
+ * <RAGProvider />
+ * ```
+ */
 export const createTheme = (overrides: Partial<PartialTheme>): Theme => {
     return {
         ...defaultTheme,

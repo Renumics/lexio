@@ -15,14 +15,13 @@ import { useRESTGenerateSource } from './connectors/useRestGenerateSource'
 import { useRESTRetrieveAndGenerateSource } from './connectors/useRestRetrieveAndGenerateSource'
 import { useRestContentSource } from './connectors/useRestContentSource'
 
+import { defaultTheme, createTheme } from './theme/index.ts'
+
 export { QueryField, AdvancedQueryField, ChatWindow,
     PdfViewer, RAGProvider, useRAGMessages, useRAGSources, useRAGStatus,
     SourcesDisplay, ErrorDisplay, ContentDisplay, useSSERetrieveAndGenerateSource,
     useSSEGenerateSource, useRESTGenerateSource, useRESTRetrieveAndGenerateSource,
-    useRestContentSource }
-export { defaultTheme, createTheme } from './theme/index.ts'
-export * from './theme/types'
-
-export { QueryField, AdvancedQueryField, ChatWindow, PdfViewer, RAGProvider, useRAGMessages, useRAGSources, useRAGStatus, SourcesDisplay, ErrorDisplay, ContentDisplay, useSSESource }
+    useRestContentSource, createTheme, defaultTheme }
 export * from './types'
+export * from './theme/types'
 
