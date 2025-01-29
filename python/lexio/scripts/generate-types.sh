@@ -11,6 +11,7 @@ datamodel-codegen \
   --output-model-type pydantic_v2.BaseModel \
   --use-annotated \
   --enum-field-as-literal all \
+  --use-one-literal-as-default \
   --target-python-version 3.9
 
 echo "Generated types in $OUTPUT_FILE"

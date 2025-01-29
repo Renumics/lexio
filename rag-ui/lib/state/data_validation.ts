@@ -44,12 +44,12 @@ function isTextContent(result: unknown): result is TextContent {
 function isHighlight(value: unknown): value is Highlight {
     if (!isRecord(value)) return false;
 
-    const allowedKeys: (keyof PDFHighlight)[] = ['page', 'rect', 'comment'];
+    const allowedKeys: (keyof PDFHighlight)[] = ['page', 'rect'];
     if (!hasOnlyAllowedKeys<PDFHighlight>(value, allowedKeys)) {
         return false;
     }
 
-    const {rect, comment} = value;
+    const {rect} = value;
     if (!isRecord(rect)) return false;
 
     const rectKeys: (keyof PDFHighlight['rect'])[] = ['top', 'left', 'width', 'height'];
@@ -62,8 +62,7 @@ function isHighlight(value: unknown): value is Highlight {
         typeof rect.top === 'number' &&
         typeof rect.left === 'number' &&
         typeof rect.width === 'number' &&
-        typeof rect.height === 'number' &&
-        (comment === undefined || typeof comment === 'string')
+        typeof rect.height === 'number'
     );
 }
 

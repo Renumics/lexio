@@ -14,13 +14,30 @@ import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
 import {useHotkeys, Options} from 'react-hotkeys-hook';
 import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
 
+// Configure PDF.js worker - we explicitly use the pdfjs worker from the react-pdf package to avoid conflicts with the worker versions.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
     import.meta.url,
 ).toString();
 
+/**
+ * Constants for the PdfViewer component's zoom functionality.
+ * 
+ * @internal
+ */
 const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 
+/**
+ * Style configuration interface for the PdfViewer component.
+ * Extends ViewerToolbarStyles to include additional styling options specific to PDF display.
+ * 
+ * @interface PdfViewerStyles
+ * @extends {ViewerToolbarStyles}
+ * @property {string} [color] - Text color for the viewer
+ * @property {string} [fontFamily] - Font family for text elements
+ * @property {string} [contentBackground] - Background color of the PDF content area
+ * @property {string} [contentPadding] - Padding around the PDF content
+ */
 export interface PdfViewerStyles extends ViewerToolbarStyles {
     color?: string;
     fontFamily?: string;
@@ -30,6 +47,15 @@ export interface PdfViewerStyles extends ViewerToolbarStyles {
     borderRadius?: string;
 }
 
+/**
+ * Props for the PdfViewer component.
+ * 
+ * @interface PdfViewerProps
+ * @property {Uint8Array} data - The binary PDF data to display
+ * @property {any[]} [highlights] - Optional array of highlight annotations to display on the PDF
+ * @property {number} [page] - Optional page number to display initially
+ * @property {PdfViewerStyles} [styleOverrides] - Optional style overrides for customizing the viewer's appearance
+ */
 interface PdfViewerProps {
     data: Uint8Array;
     highlights?: any[];
@@ -37,6 +63,52 @@ interface PdfViewerProps {
     styleOverrides?: PdfViewerStyles;
 }
 
+/**
+ * A component for displaying PDF documents with advanced viewing controls.
+ * Used in the ContentDisplay component to display PDF source content with highlight support.
+ * 
+ * @component
+ * @param {PdfViewerProps} props - The props for the PdfViewer
+ * @returns {JSX.Element} A themed PDF viewer with navigation and zoom controls
+ * 
+ * @remarks
+ * Features include:
+ * - Page navigation with keyboard shortcuts (Left/Right arrows, Space, Backspace)
+ * - Zoom controls (Ctrl/Cmd + Up/Down)
+ * - Page rotation (.)
+ * - Support for highlight annotations
+ * - Automatic page selection based on highlight density
+ * - Mouse wheel zoom support
+ * 
+ * Keyboard Shortcuts:
+ * - Next Page: Right Arrow, Space
+ * - Previous Page: Left Arrow, Backspace
+ * - First Page: Home
+ * - Last Page: End
+ * - Zoom In: Ctrl/Cmd + Up
+ * - Zoom Out: Ctrl/Cmd + Down
+ * - Fit to View: Ctrl/Cmd + 0
+ * - Rotate Page: .
+ * 
+ * @example
+ * ```tsx
+ * <PdfViewer
+ *   data={pdfBinaryData}
+ *   highlights={[
+ *     { page: 1, rect: { top: 0.1, left: 0.1, width: 0.2, height: 0.05 } }
+ *   ]}
+ *   page={1}
+ *   styleOverrides={{
+ *     contentBackground: '#ffffff',
+ *     contentPadding: '20px'
+ *   }}
+ * />
+ * ```
+ * 
+ * @todo: 
+ *  - change / unify mechanism to select page based on highlights / page number
+ *  - add support for text search
+ */
 const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);

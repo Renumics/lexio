@@ -204,7 +204,6 @@ function App() {
                         request: 60000
                     }
                 }}
-                theme={customTheme}
             >
                 <div style={{ 
                     display: 'grid',
