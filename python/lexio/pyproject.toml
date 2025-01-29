@@ -48,7 +48,8 @@ dev = [
 source = "vcs"
 
 [tool.hatch.version.raw-options]
-version_scheme = "release-branch-semver"
+version_scheme = "no-guess-dev"
+local_scheme = "no-local-version"
 root = "../.." # required for hatch-vcs to find git versioning metadata
 
 [tool.hatch.build.hooks.vcs]
