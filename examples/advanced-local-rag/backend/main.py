@@ -187,24 +187,28 @@ async def retrieve_and_generate(request: RetrieveAndGenerateRequest):
 
     except Exception as e:
         return {"error": str(e)}
+    
+class GenerateRequest(BaseModel):
+    messages: List[Message]
+    source_ids: Optional[List[str]] = None
 
 @app.post("/api/generate")
-async def generate_endpoint(
-    messages: str,  # JSON string of messages
-    source_ids: Optional[str] = None  # Comma-separated list of IDs
-):
+async def generate_endpoint(request: GenerateRequest):
     """
     SSE endpoint for follow-up requests using:
-      - messages: previous chat messages (as JSON string)
-      - source_ids: optional doc references to build context (comma-separated)
+      - messages: list of previous chat messages
+      - source_ids: optional list of doc references to build context
     Streams the model response in real time.
     """
     try:
-        # Parse the messages JSON string
-        messages_list = [Message(**msg) for msg in json.loads(messages)]
+        # Log message history length and content
+        messages_list = request.messages
+        print(f"Chat history length: {len(messages_list)}")
+        print("Message roles:", [msg.role for msg in messages_list])
         
-        # Parse source_ids if provided
-        source_ids_list = source_ids.split(',') if source_ids else None
+        # Log source usage
+        source_ids_list = request.source_ids
+        print(f"Using source IDs: {source_ids_list if source_ids_list else 'No sources'}")
         
         # 1) Build context from source IDs (if provided)
         context_str = ""
@@ -212,10 +216,17 @@ async def generate_endpoint(
             table = db_utils.get_table()
             source_ids_str = "('" + "','".join(source_ids_list) + "')"
             chunks = table.search().where(f"id in {source_ids_str}", prefilter=True).to_list()
+            
+            # Log retrieved chunks info
+            print(f"Retrieved {len(chunks)} chunks from database")
+            for chunk in chunks:
+                print(f"Document: {chunk['doc_path']}")
+            
             context_str = "\n\n".join([
                 f"[Document: {chunk['doc_path']}]\n{chunk['text']}"
                 for chunk in chunks
             ])
+            print(f"Total context length: {len(context_str)} characters")
 
         # 2) Build async generator for SSE
         async def event_generator():

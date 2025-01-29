@@ -4,9 +4,7 @@ import { useCallback } from 'react';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 /**
- * -------------------------------------------------------
- *  Minimal references to external or domain-specific types
- * -------------------------------------------------------
+ * Minimal references to your domain-specific types
  */
 import type {
   Message,
@@ -17,21 +15,15 @@ import type {
 
 /**
  * This is the shape of the object returned by your `parseEvent`.
- * We do not require a "type" field. Instead:
  *  - If `sources` is an array, we treat it as a "sources" event.
- *  - Else if `content` is a string, we treat it as a "chunk" event.
+ *  - If `content` is a string, we treat it as a "chunk" event.
  *  - If neither is present, we ignore the message.
  *
  * If `done` is `true`, we mark the stream as finished.
  */
 export interface SSEParsedEvent {
-  /** If present, we treat this as a "sources" event and fulfill the sources promise. */
   sources?: RetrievalResult[];
-
-  /** If present, we treat this as a "chunk" of text to yield in the streaming response. */
   content?: string;
-
-  /** If true, we end the stream once this event is processed. */
   done?: boolean;
 }
 
@@ -40,45 +32,71 @@ export interface SSEParsedEvent {
  */
 export interface SSEConnectorOptions {
   /**
-   * The endpoint to POST the (last user message) query to.
-   * This endpoint must produce Server-Sent Events.
+   * The endpoint that returns SSEs. Usually a URL on your server.
    */
   endpoint: string;
 
   /**
-   * A user-defined function that takes the raw SSE message data (parsed from JSON)
-   * and returns an `SSEParsedEvent` object, with optional `sources`, `content`, and `done`.
+   * (Optional) HTTP method to use for the request.
+   * Defaults to 'POST'.
+   */
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+
+  /**
+   * (Optional) A function that builds the request body from
+   * the array of messages and the optional metadata. Only used
+   * if `method` != 'GET'.
    *
-   * If it returns no keys (an empty object), or something that doesn't have `sources` or `content`,
-   * the hook will ignore that SSE message.
+   * Default: it will create { query: lastMessage.content, metadata }
+   */
+  buildRequestBody?: (messages: Message[], metadata?: Record<string, any>) => any;
+
+  /**
+   * A user-defined function that takes the raw SSE message data (parsed from JSON)
+   * and returns an `SSEParsedEvent` object (with optional `sources`, `content`, `done`).
+   * If it returns neither `sources` nor `content`, the message is ignored.
    */
   parseEvent(data: any): SSEParsedEvent;
 }
 
 /**
- * A React hook returning a function you can pass to <RAGProvider retrieveAndGenerate={...}>.
+ * A React hook returning a function you can pass to <RAGProvider retrieveAndGenerate={...}> or call directly.
  *
  * The returned function, when called with (messages, metadata):
- *  - Opens an SSE stream to `options.endpoint`
- *  - For each event, calls `parseEvent(data)`:
- *     * If `parsed.sources` is present => it resolves the "sources" promise
- *     * If `parsed.content` is present => it yields a streaming "chunk"
- *     * If `parsed.done` is true => mark the stream finished
- *     * Otherwise => ignore the message
- *  - Returns { sources: Promise<RetrievalResult[]>, response: AsyncIterable<GenerateStreamChunk> }
+ *  1) Constructs a request (method, body) to `options.endpoint`.
+ *  2) Opens an SSE stream to that endpoint.
+ *  3) For each event, calls `parseEvent(data)`:
+ *     - If `parsed.sources` is present => resolves the "sources" promise
+ *     - If `parsed.content` is present => yields a streaming "chunk"
+ *     - If `parsed.done` is true => mark the stream finished
+ *     - Otherwise => ignore the message
+ *  4) Returns { sources: Promise<RetrievalResult[]>, response: AsyncIterable<GenerateStreamChunk> }
  *
  * NOTE: If `parseEvent` changes every render, the returned function changes too.
  *       You can memoize `parseEvent` for performance.
  */
-export function useSSESource(options: SSEConnectorOptions) {
-  const { endpoint, parseEvent } = options;
+export function useSSERetrieveAndGenerateSource(options: SSEConnectorOptions) {
+  const {
+    endpoint,
+    parseEvent,
+    method = 'POST',
+    buildRequestBody = defaultBuildRequestBody,
+  } = options;
 
-  // We return a stable callback unless endpoint/parseEvent change.
+  // Return a stable callback (unless dependencies change)
   return useCallback(
     (messages: Message[], metadata?: Record<string, any>): RetrieveAndGenerateResponse => {
-      // 1) The last user message is our "query"
-      const lastMessage = messages[messages.length - 1];
-      const query = lastMessage?.content ?? '';
+      // 1) Prepare the request
+      const requestInit: any = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+      };
+
+      // If we're not GET, build the JSON body
+      if (method !== 'GET') {
+        const bodyObj = buildRequestBody(messages, metadata);
+        requestInit.body = JSON.stringify(bodyObj);
+      }
 
       // 2) We'll store a resolver for the sources promise
       let sourcesResolver!: (src: RetrievalResult[]) => void;
@@ -86,7 +104,7 @@ export function useSSESource(options: SSEConnectorOptions) {
         sourcesResolver = resolve;
       });
 
-      // 3) Our async generator for chunk streaming
+      // 3) Create the generator for chunk streaming
       async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
         const messageQueue: GenerateStreamChunk[] = [];
         let notifyGenerator: (() => void) | null = null;
@@ -96,10 +114,7 @@ export function useSSESource(options: SSEConnectorOptions) {
         const ssePromise = (async () => {
           try {
             await fetchEventSource(endpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              // You can also include your metadata in the POST body if needed:
-              body: JSON.stringify({ query, metadata }),
+              ...requestInit,
 
               onmessage(ev) {
                 // skip if empty/ping
@@ -186,12 +201,25 @@ export function useSSESource(options: SSEConnectorOptions) {
         }
       }
 
-      // 4) Return the object that <RAGProvider> expects
+      // 4) Return the object that <RAGProvider> or your code expects
       return {
         sources: sourcesPromise,
         response: streamChunks(),
       };
     },
-    [endpoint, parseEvent]
+    [endpoint, parseEvent, method, buildRequestBody]
   );
 }
+
+/**
+ * Default way to build the request body if none is given:
+ *  - Takes the messages array
+ *  - Includes the metadata if present
+ */
+function defaultBuildRequestBody(messages: Message[], metadata?: Record<string, any>) {
+  return {
+    messages,
+    metadata
+  };
+}
+
