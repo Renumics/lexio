@@ -1,5 +1,6 @@
 import {Theme} from './theme/types'
 
+// todo: some docstrings are missing
 export type WorkflowMode =
   | 'init'           // Initial state, no conversation yet
   | 'follow-up'      // Using existing context and sources
@@ -325,5 +326,4 @@ export interface RAGConfig {
     stream?: number;  // Timeout between stream chunks in ms
     request?: number; // Overall request timeout in ms
   },
-
 }
