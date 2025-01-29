@@ -35,9 +35,12 @@ export interface HtmlViewerStyles extends ViewerToolbarStyles {
     color?: string;
     padding?: string;
     fontFamily?: string;
+    fontSize?: string;
+
     viewerBorderRadius?: string;
     viewerBackground?: string;
     viewerPadding?: string;
+
     contentBackground?: string;
     contentPadding?: string;
     contentBorderRadius?: string;
@@ -101,20 +104,27 @@ const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
     if (!theme) {
         throw new Error('ThemeContext is undefined');
     }
-    const { colors, spacing, borderRadius } = theme.theme;
+    const { colors, typography, componentDefaults } = theme.theme;
 
     // --- merge theme defaults + overrides ---
     const style: HtmlViewerStyles = {
         backgroundColor: colors.background,
         color: colors.text,
-        padding: spacing.none,
-        borderRadius: borderRadius.md,
-        viewerBorderRadius: borderRadius.sm,
+        fontFamily: typography.fontFamily,
+        fontSize: typography.fontSizeBase,
+        padding: 'none',
+        borderRadius: componentDefaults.borderRadius,
+
+        toolbarBorderRadius: componentDefaults.borderRadius,
+        toolbarButtonBackground: colors.primary,
+        toolbarButtonColor: 'white',
+
+        viewerBorderRadius: '0.8rem',
         viewerBackground: colors.background,
-        viewerPadding: spacing.none,
+        viewerPadding: 'none',
         contentBackground: colors.secondaryBackground,
-        contentPadding: spacing.md,
-        contentBorderRadius: borderRadius.sm,
+        contentPadding: componentDefaults.padding,
+        contentBorderRadius: '0.8rem',
         ...removeUndefined(styleOverrides),
     };
 

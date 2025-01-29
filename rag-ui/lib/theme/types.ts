@@ -17,13 +17,17 @@
  */
 export interface Colors {
   primary: string;
+  contrast: string;
   secondary: string;
+
   background: string;
   secondaryBackground: string;
   toolbarBackground: string;
+
   text: string;
   secondaryText: string;
   lightText: string;
+
   success: string;
   warning: string;
   error: string;
@@ -50,43 +54,16 @@ export interface Typography {
 }
 
 /**
- * Defines the spacing scale used for margins, padding, and layout gaps.
- * Provides consistent spacing values throughout the application.
- * 
- * @interface Spacing
- * @property {string} none - No spacing (0px)
- * @property {string} xs - Extra small spacing (6px)
- * @property {string} sm - Small spacing (12px)
- * @property {string} md - Medium spacing (20px)
- * @property {string} lg - Large spacing (32px)
- * @property {string} xl - Extra large spacing (48px)
+ * Defines the default styling for components in the application.
+ * These values are used to provide consistent padding and border radius for components.
+ *
+ * @interface ComponentDefaults
+ * @property {string} borderRadius - Default border radius for components.
+ * @property {string} padding - Default padding for components.
  */
-export interface Spacing {
-  none: string;
-  xs: string;
-  sm: string;
-  md: string;
-  lg: string;
-  xl: string;
-}
-
-/**
- * Defines the border radius scale used for rounding corners of UI elements.
- * Provides consistent border radius values throughout the application.
- * 
- * @interface BorderRadius
- * @property {string} none - No border radius (0px)
- * @property {string} sm - Small border radius (6px)
- * @property {string} md - Medium border radius (12px)
- * @property {string} lg - Large border radius (24px)
- * @property {string} xl - Extra large border radius (40px)
- */
-export interface BorderRadius {
-  none: string;
-  sm: string;
-  md: string;
-  lg: string;
-  xl: string;
+export interface ComponentDefaults {
+  borderRadius: string;
+  padding: string;
 }
 
 /**
@@ -96,8 +73,7 @@ export interface BorderRadius {
  * @interface Theme
  * @property {Colors} colors - Color palette configuration for the application.
  * @property {Typography} typography - Typography settings for consistent text rendering.
- * @property {Spacing} spacing - Spacing scale for layout consistency.
- * @property {BorderRadius} borderRadius - Border radius scale for consistent corner rounding.
+ * @property {ComponentDefaults} componentDefaults - Component defaults for consistent styling.
  * 
  * @remarks
  * The theme is provided to the application via the RAGProvider component, which wraps the entire application.
@@ -116,6 +92,19 @@ export interface BorderRadius {
 export interface Theme {
   colors: Colors;
   typography: Typography;
-  spacing: Spacing;
-  borderRadius: BorderRadius;
+  componentDefaults: ComponentDefaults;
+}
+
+/**
+ * Partial theme interface that allows for partial overrides of the main theme configuration.
+ *
+ * @interface PartialTheme
+ * @property {Partial<Colors>} colors - Partial color palette configuration for the application.
+ * @property {Partial<Typography>} typography - Partial typography settings for consistent text rendering.
+ * @property {Partial<ComponentDefaults>} componentDefaults - Partial component defaults for consistent styling.
+ */
+export interface PartialTheme {
+  colors: Partial<Colors>;
+  typography: Partial<Typography>;
+  componentDefaults: Partial<ComponentDefaults>;
 }

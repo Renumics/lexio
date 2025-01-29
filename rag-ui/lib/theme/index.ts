@@ -1,9 +1,10 @@
-import type { Theme } from './types';
+import type { Theme, PartialTheme } from './types';
 
 export const defaultTheme: Theme = {
   colors: {
     primary: '#1E88E5',
     secondary: '#64B5F6',
+    contrast: '#FFFFFF',
     background: '#F4F6F8',
     secondaryBackground: '#FFFFFF',
     toolbarBackground: '#2196F3',
@@ -15,23 +16,51 @@ export const defaultTheme: Theme = {
     error: '#E53935',
   },
   typography: {
-    fontFamily: '"Poppins", Helvetica, Arial, sans-serif',  // Modern Google Font
-    fontSizeBase: '18px',  // Slightly larger for readability
-    lineHeight: '1.75',  // Increased for a spacious feel
+    fontFamily: '"Poppins", Helvetica, Arial, sans-serif',
+    fontSizeBase: '1.rem',
+    lineHeight: '1.75',
   },
-  spacing: {
-    none: '0px',
-    xs: '6px',
-    sm: '12px',
-    md: '20px',
-    lg: '32px',
-    xl: '48px',
-  },
-  borderRadius: {
-    none: '0px',
-    sm: '6px',  // Slightly rounded edges for softer look
-    md: '12px',
-    lg: '24px',
-    xl: '40px',
+  componentDefaults: {
+    borderRadius: '0.5rem',
+    padding: '1.0rem',
   },
 };
+
+/**
+ * Creates a new theme by merging the default theme with the provided overrides.
+ *
+ * @param {Partial<PartialTheme>} overrides - The theme overrides to apply on top of the default theme.
+ * @returns {Theme} The new theme object with the applied overrides.
+ * @example
+ * ```tsx
+ * import { createTheme, RAGProvider } from 'lexio';
+ *
+ * const customTheme = createTheme({
+ *    colors: {
+ *      primary: '#1E88E5',
+ *      secondary: '#64B5F6'
+ *      }
+ * });
+ *
+ * <RAGProvider theme={customTheme}>
+ *     ... your app components ...
+ * <RAGProvider />
+ * ```
+ */
+export const createTheme = (overrides: Partial<PartialTheme>): Theme => {
+    return {
+        ...defaultTheme,
+        colors: {
+            ...defaultTheme.colors,
+            ...(overrides.colors || {}),
+        },
+        typography: {
+            ...defaultTheme.typography,
+            ...(overrides.typography || {}),
+        },
+        componentDefaults: {
+            ...defaultTheme.componentDefaults,
+            ...(overrides.componentDefaults || {}),
+        },
+    };
+}

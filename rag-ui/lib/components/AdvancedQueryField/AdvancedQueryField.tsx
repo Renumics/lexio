@@ -47,6 +47,10 @@ export interface AdvancedQueryFieldStyles extends CSSProperties {
    */
   fontFamily?: string;
   /**
+   *  Font size for the container text
+   */
+  fontSize?: string;
+  /**
    * General border color (used for the editor)
    */
   borderColor?: string;
@@ -70,10 +74,6 @@ export interface AdvancedQueryFieldStyles extends CSSProperties {
    * Border color for the editor field or input boxes
    */
   inputBorderColor?: string;
-  /**
-   * (If you wish) a focus ring color for input fields
-   */
-  inputFocusRingColor?: string;
   /**
    * Background color for the "Send" button
    */
@@ -205,24 +205,24 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     throw new Error('ThemeContext is undefined');
   }
 
-  const { colors, spacing, borderRadius } = theme.theme;
+  const { colors, typography, componentDefaults } = theme.theme;
 
   // Merge theme defaults + overrides
   const defaultStyle: AdvancedQueryFieldStyles = {
     backgroundColor: colors.background,
     color: colors.text,
-    padding: spacing.md,
-    fontFamily: 'inherit',
+    padding: componentDefaults.padding,
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizeBase,
     borderColor: '#e5e7eb',
-    borderRadius: borderRadius.md,
-    mentionChipBackground: '#bee3f8', // Light blue default
+    borderRadius: componentDefaults.borderRadius,
+    mentionChipBackground: '#bee3f8', // Light blue default // todo: check if using contrast makes sense
     mentionChipColor: '#2c5282',      // Darker blue text
     inputBackgroundColor: 'white',
     inputBorderColor: '#e5e7eb',
-    inputFocusRingColor: colors.primary,
     buttonBackground: colors.primary,
-    buttonTextColor: 'white',
-    buttonBorderRadius: borderRadius.md,
+    buttonTextColor: colors.contrast,
+    buttonBorderRadius: componentDefaults.borderRadius,
     modeInitColor: colors.primary,
     modeFollowUpColor: colors.success,
     modeReRetrieveColor: colors.secondary,
@@ -394,7 +394,8 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       chip.contentEditable = 'false';
 
       // NOTE: applying dynamic styles from the theme:
-      chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 text-sm select-none align-baseline rounded';
+      chip.className = 'inline-flex items-center px-2 py-0.5 mx-1 select-none align-baseline rounded';
+      chip.style.fontSize = style.fontSize || '0.8rem';
       chip.style.backgroundColor = style.mentionChipBackground || '#bee3f8';
       chip.style.color = style.mentionChipColor || '#2c5282';
       // If you also want to unify corner rounding:
@@ -754,7 +755,8 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
         backgroundColor: style.backgroundColor,
         color: style.color,
         padding: style.padding,
-        fontFamily: style.fontFamily
+        fontFamily: style.fontFamily,
+        borderRadius: style.borderRadius,
       }}
     >
       <div className="relative">
@@ -763,7 +765,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
           className="
             w-full resize-none px-3 py-2
             border rounded-lg
-            focus:ring-1 focus:ring-blue-500 focus:outline-none
+            focus:ring-1 focus:ring-gray-300 focus:outline-none
             min-h-[2.5rem] max-h-[200px]
             empty:before:content-[attr(data-placeholder)]
             empty:before:text-gray-400
@@ -780,6 +782,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             color: style.color,
             borderColor: style.inputBorderColor,
             borderRadius: style.borderRadius,
+            fontSize: style.fontSize,
           }}
         />
 
@@ -806,12 +809,13 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                 type="text"
                 className="
                   w-full px-2 py-1 border rounded
-                  focus:outline-none focus:ring-2 
+                  focus:outline-none focus:ring-2
                 "
                 style={{
                   backgroundColor: style.inputBackgroundColor,
                   color: style.color,
                   borderColor: style.inputBorderColor,
+                  fontSize: style.fontSize,
                   // The ring color is still from Tailwind. 
                   // For a truly dynamic ring color, you'd use inline focus styles or a custom class.
                 }}
@@ -841,19 +845,31 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                     >
                       <div className="flex flex-col max-w-full">
                         <span
-                          className="font-medium truncate max-w-full"
+                          className="truncate max-w-full"
                           title={displayText}
+                          style={{
+                            fontSize: `calc(${style.fontSize} * 0.9)`,
+                            lineHeight: '1.1'
+                          }}
                         >
                           {displayText}
                         </span>
                         <div className="flex items-center gap-2 mt-1">
                           {isSourceReference(source) && source.type && (
-                            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded whitespace-nowrap">
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded whitespace-nowrap"
+                                  style={{
+                                    fontSize: `calc(${style.fontSize} * 0.8)`
+                                  }}
+                            >
                               {source.type}
                             </span>
                           )}
                           {source.relevanceScore !== undefined && (
-                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                            <span className="text-gray-500 whitespace-nowrap"
+                                  style={{
+                                    fontSize: `calc(${style.fontSize} * 0.8)`
+                                  }}
+                            >
                               Score: {Math.round(source.relevanceScore * 100)}%
                             </span>
                           )}
@@ -876,7 +892,10 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             className="h-2.5 w-2.5 rounded-full animate-pulse"
             style={{ backgroundColor: workflowStatus[workflowMode].color }}
           />
-          <span className="text-sm font-medium">
+          <span className="font-medium" style={{
+              fontFamily: style.fontFamily,
+              fontSize: `calc(${style.fontSize} * 0.85)`
+          }}>
             {workflowStatus[workflowMode].label}
           </span>
         </div>
@@ -892,6 +911,7 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             backgroundColor: style.buttonBackground,
             color: style.buttonTextColor,
             borderRadius: style.buttonBorderRadius,
+            fontSize: `calc(${style.fontSize} * 0.95)`
           }}
         >
           Send

@@ -13,11 +13,11 @@ export interface QueryFieldStyles extends React.CSSProperties {
   color?: string;
   padding?: string;
   fontFamily?: string;
+  fontSize?: string;
   borderColor?: string;
   borderRadius?: string;
   inputBackgroundColor?: string;
   inputBorderColor?: string;
-  inputFocusRingColor?: string;
   inputBorderRadius?: string;
   buttonBackground?: string;
   buttonTextColor?: string;
@@ -77,23 +77,23 @@ const QueryField: React.FC<QueryFieldProps> = ({
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { colors, spacing, borderRadius } = theme.theme;
+  const { colors, typography, componentDefaults } = theme.theme;
 
   // Minimal defaults, similar to AdvancedQueryField
   const defaultStyle: QueryFieldStyles = {
     backgroundColor: colors.background,
     color: colors.text,
-    padding: spacing.md,
+    padding: componentDefaults.padding,
     fontFamily: 'inherit',
+    fontSize: typography.fontSizeBase,  // todo
     borderColor: '#e5e7eb',
-    borderRadius: borderRadius.md,
+    borderRadius: componentDefaults.borderRadius,
     inputBackgroundColor: 'white',
     inputBorderColor: '#e5e7eb',
-    inputFocusRingColor: colors.primary,
-    inputBorderRadius: borderRadius.md,
+    inputBorderRadius: componentDefaults.borderRadius,
     buttonBackground: colors.primary,
-    buttonTextColor: 'white',
-    buttonBorderRadius: borderRadius.md,
+    buttonTextColor: colors.contrast,
+    buttonBorderRadius: componentDefaults.borderRadius,
     modeInitColor: colors.primary,
     modeFollowUpColor: colors.success,
     modeReRetrieveColor: colors.secondary,
@@ -186,6 +186,8 @@ const QueryField: React.FC<QueryFieldProps> = ({
         color: style.color,
         padding: style.padding,
         fontFamily: style.fontFamily,
+        borderRadius: style.borderRadius,
+        fontSize: style.fontSize,
       }}
     >
       <textarea
@@ -198,7 +200,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
         rows={1}
         // Keep some tailwind classes for layout, plus inline theming
         className={`w-full resize-none min-h-[2.5rem] max-h-full transition-colors 
-          focus:ring-1 focus:ring-blue-500 focus:outline-none
+          focus:ring-1 focus:ring-gray-300 focus:outline-none
           ${shouldShowScrollbar ? 'overflow-y-auto' : 'overflow-y-hidden'}
         `}
         style={{
@@ -206,6 +208,8 @@ const QueryField: React.FC<QueryFieldProps> = ({
           color: style.color,
           border: `1px solid ${style.inputBorderColor}`,
           borderRadius: style.inputBorderRadius,
+          fontFamily: style.fontFamily,
+          fontSize: style.fontSize,
           padding: '0.5rem 0.75rem',
           outline: 'none',
         }}
@@ -215,11 +219,17 @@ const QueryField: React.FC<QueryFieldProps> = ({
         <div className="flex items-center gap-2">
           <div
             className="h-2.5 w-2.5 rounded-full animate-pulse"
-            style={{ backgroundColor: workflowStatus[workflowMode].color }}
+            style={{
+              backgroundColor: workflowStatus[workflowMode].color,
+            }}
           />
           <span
-            className="text-sm font-medium"
-            style={{ color: style.statusTextColor }}
+            className="font-medium"
+            style={{
+              color: style.statusTextColor,
+              fontFamily: style.fontFamily,
+              fontSize: `calc(${style.fontSize} * 0.85)`
+            }}
           >
             {workflowStatus[workflowMode].label}
           </span>
@@ -232,6 +242,8 @@ const QueryField: React.FC<QueryFieldProps> = ({
             backgroundColor: style.buttonBackground,
             color: style.buttonTextColor,
             borderRadius: style.buttonBorderRadius,
+            fontFamily: style.fontFamily,
+            fontSize: `calc(${style.fontSize} * 0.95)`
           }}
         >
           Send

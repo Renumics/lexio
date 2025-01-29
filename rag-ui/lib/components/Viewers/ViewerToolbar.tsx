@@ -8,18 +8,22 @@ import {
 import { ViewerToolbarProps } from "./types";
 
 export interface ViewerToolbarStyles extends React.CSSProperties {
+    fontFamily?: string;
+    fontSize?: string;
+
     toolbarBorderRadius?: string;
     toolbarTextColor?: string;
     toolbarBackground?: string;
     toolbarSecondaryBackground?: string;
+
     toolbarButtonBackground?: string;
     toolbarButtonColor?: string;
     toolbarButtonBorderRadius?: string;
-    toolbarButtonSize?: 'sm' | 'md' | 'lg';
     toolbarBoxShadow?: string;
-    toolbarDisplayBackground?: string;
-    toolbarDisplayBorderRadius?: string;
-    toolbarDisplayInputBackground?: string;
+
+    toolbarChipBackground?: string;
+    toolbarChipBorderRadius?: string;
+    toolbarChipInputBackground?: string;
 }
 
 export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isLoaded = true, styleOverrides = {} }: ViewerToolbarProps) => {
@@ -28,26 +32,28 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
     if (!theme) {
         throw new Error('ThemeContext is undefined');
     }
-    const { colors, borderRadius } = theme.theme;
+    const { colors, typography, componentDefaults } = theme.theme;
 
     // --- merge theme defaults + overrides ---
     const style: ViewerToolbarStyles = {
-        toolbarDisplayBackground: '#ffffff',
-        toolbarDisplayBorderRadius: borderRadius.md,
-        toolbarDisplayInputBackground: '#ffffff',
-        toolbarBorderRadius: borderRadius.md,
+        fontFamily: typography.fontFamily,
+        fontSize: typography.fontSizeBase,
+
+        toolbarChipBackground: '#ffffff',
+        toolbarChipBorderRadius: '0.375rem',
+        toolbarChipInputBackground: '#ffffff',
+
+        toolbarBorderRadius: componentDefaults.borderRadius,
+        toolbarBoxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)',
         toolbarTextColor: colors.text,
         toolbarBackground: colors.toolbarBackground,
         toolbarSecondaryBackground: colors.secondaryBackground,
+
         toolbarButtonBackground: colors.primary,
-        toolbarButtonColor: 'white',
-        toolbarButtonBorderRadius: borderRadius.sm,
-        toolbarButtonSize: 'sm',
-        toolbarBoxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)',
+        toolbarButtonColor: colors.contrast,
+        toolbarButtonBorderRadius: '0.5rem',
         ...removeUndefined(styleOverrides),
     };
-
-    // todo: make use of buttonSize
 
     return (
         <div className="px-2 gap-x-1 flex flex-row justify-between z-10 py-1"
@@ -75,8 +81,8 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
                 <div className="m-auto min-w-14 text-center"
                     style={{
                         color: style.toolbarTextColor,
-                        backgroundColor: style.toolbarDisplayBackground,
-                        borderRadius: style.toolbarDisplayBorderRadius,
+                        backgroundColor: style.toolbarChipBackground,
+                        borderRadius: style.toolbarChipBorderRadius,
                     }}
                 >
                     {isLoaded ? Math.round(scale * 100) + '%' : '--'}

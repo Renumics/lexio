@@ -6,6 +6,7 @@ import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 
 export interface ErrorDisplayStyles {
   fontFamily?: string;
+  fontSize?: string;
   backgroundColor?: string;
   textColor?: string;
   borderRadius?: string;
@@ -28,11 +29,12 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ styleOverrides = {} }) => {
 
   // Merge theme defaults + overrides
   const style: ErrorDisplayStyles = {
-    backgroundColor: colors.error,
-    textColor: colors.lightText,
+    backgroundColor: 'white',
+    textColor: colors.error,
     borderRadius: '0.375rem',
     fontFamily: typography.fontFamily,
-    progressBarColor: colors.primary,
+    fontSize: typography.fontSizeBase,
+    progressBarColor: colors.error,
     ...removeUndefined(styleOverrides),
   };
 
@@ -50,6 +52,7 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ styleOverrides = {} }) => {
           color: style.textColor,
           borderRadius: style.borderRadius,
           fontFamily: style.fontFamily,
+          fontSize: style.fontSize,
         },
         progressStyle: {
           background: style.progressBarColor,

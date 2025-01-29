@@ -8,10 +8,10 @@ export interface SourcesDisplayStyles extends React.CSSProperties {
   color?: string;
   padding?: string;
   fontFamily?: string;
+  fontSize?: string;
   borderRadius?: string;
   inputBackgroundColor?: string;
   inputBorderColor?: string;
-  inputFocusRingColor?: string;
   buttonBackground?: string;
   buttonTextColor?: string;
   buttonBorderRadius?: string;
@@ -21,6 +21,7 @@ export interface SourcesDisplayStyles extends React.CSSProperties {
   selectedSourceBorderColor?: string;
   inactiveSourceBackground?: string;
   inactiveSourceBorderColor?: string;
+  inputFocusRingColor?: string;
   metadataTagBackground?: string;
   metadataTagColor?: string;
   relevanceScoreColor?: string;
@@ -103,38 +104,39 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { colors, spacing, borderRadius } = theme.theme;
+  const { colors, typography, componentDefaults } = theme.theme;
 
   // Merge theme defaults + overrides
   const style: SourcesDisplayStyles = {
     backgroundColor: colors.background,
     color: colors.text,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
+    padding: componentDefaults.padding,
+    borderRadius: componentDefaults.borderRadius,
+    fontSize: typography.fontSizeBase,
 
-    inputBackgroundColor: colors.secondaryBackground,
+    inputBackgroundColor: 'white',
     inputBorderColor: 'gray',
     inputFocusRingColor: colors.primary,
 
     buttonBackground: colors.primary,
-    buttonTextColor: colors.lightText,
-    buttonBorderRadius: borderRadius.md,
+    buttonTextColor: colors.contrast,
+    buttonBorderRadius: componentDefaults.borderRadius,
 
     activeSourceBackground: colors.secondaryBackground,
     activeSourceBorderColor: colors.primary,
 
     selectedSourceBackground: colors.secondaryBackground,
-    selectedSourceBorderColor: colors.success,
+    selectedSourceBorderColor: colors.secondary,
 
     inactiveSourceBackground: colors.secondaryBackground,
-    inactiveSourceBorderColor: colors.text + '20',
+    inactiveSourceBorderColor: 'transparent',
 
-    metadataTagBackground: colors.text + '10',
+    metadataTagBackground: colors.background,
     metadataTagColor: colors.secondaryText,
-    relevanceScoreColor: colors.secondary,
+    relevanceScoreColor: colors.primary,
 
-    sourceTypeBackground: colors.primary + '20',
-    sourceTypeColor: colors.primary,
+    sourceTypeBackground: colors.secondary + '30',
+    sourceTypeColor: colors.secondary,
     ...removeUndefined(styleOverrides),
   };
 
@@ -161,8 +163,9 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
       padding: style.padding,
       borderRadius: style.borderRadius,
       fontFamily: style.fontFamily,
+      fontSize: style.fontSize,
     }}>
-      <h2 className="text-lg font-semibold mb-4" style={{ color: style.color }}>{title}</h2>
+      <h2 className="font-semibold mb-4" style={{ color: style.color, fontSize: `calc(${style.fontSize} * 1.15)` }}>{title}</h2>
       {/* Search field and button */}
       {showSearch && (
         <div className="w-full flex gap-2 mb-4">
@@ -172,7 +175,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={searchPlaceholder}
-            className="w-full flex-1 transition-colors focus:ring-2"
+            className="w-full flex-1 transition-colors focus:ring-2 focus:ring-gray-300 focus:outline-none"
             style={{
               color: style.color,
               padding: '0.5rem 0.75rem',
@@ -181,6 +184,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
               borderRadius: style.buttonBorderRadius,
               borderColor: style.inputBorderColor,
               backgroundColor: style.inputBackgroundColor,
+              fontSize: `calc(${style.fontSize} * 0.95)`
             }}
           />
           <button
@@ -191,6 +195,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
               color: style.buttonTextColor,
               borderRadius: style.borderRadius,
               padding: '0.5rem 1rem',
+              fontSize: `calc(${style.fontSize} * 0.95)`
             }}
           >
             Search
@@ -199,7 +204,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
       )}
 
       {sources.length === 0 ? (
-        <p style={{ color: style.color, fontStyle: 'italic' }}>No sources available</p>
+        <p style={{ color: style.color, fontStyle: 'italic', fontSize: style.fontSize }}>No sources available</p>
       ) : (
         <ul className="space-y-3">
           {sources.map((source, index) => (
@@ -207,7 +212,6 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
               key={index}
               className="p-4 shadow-sm border transition-all cursor-pointer"
               style={{
-                // todo: check this?? did this ever work as expected?
                 backgroundColor: index === activeSourceIndex
                   ? style.activeSourceBackground
                   : currentSources.includes(source)
@@ -222,6 +226,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                     : style.inactiveSourceBorderColor,
                 opacity: currentSources.length > 0 && !currentSources.includes(source) ? 0.6 : 1,
                 borderRadius: style.borderRadius,
+                fontSize: style.fontSize,
               }}
               onClick={() => setActiveSourceIndex(index)}
             >
@@ -231,16 +236,17 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                     {source.sourceName || (isSourceReference(source) ? source.sourceReference : source.text.slice(0, 50))}
                   </p>
                   {isSourceReference(source) && source.type && (
-                    <span className="inline-block px-2 py-1 text-xs font-medium rounded-full mt-1" style={{
+                    <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
                       backgroundColor: style.sourceTypeBackground,
                       color: style.sourceTypeColor,
+                      fontSize: `calc(${style.fontSize} * 0.75)`
                     }}>
                       {source.type}
                     </span>
                   )}
                   {showRelevanceScore && source.relevanceScore !== undefined && (
                     <div className="mt-2 flex items-center">
-                      <span className="text-sm" style={{ color: style.color + '90' }}>Relevance:</span>
+                      <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
                       <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
                         <div
                           className="h-2 rounded-full"
@@ -260,10 +266,12 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                     {Object.entries(source.metadata).map(([key, value]) => (
                       <span
                         key={key}
-                        className="inline-flex items-center px-2 py-1 rounded-md text-xs"
+                        className="inline-flex items-center px-2 py-1 rounded-md"
                         style={{
                           backgroundColor: style.metadataTagBackground,
                           color: style.metadataTagColor,
+                          fontSize: `calc(${style.fontSize} * 0.75)`,
+                          lineHeight: '1.2',
                         }}
                       >
                         {key}: {value}
