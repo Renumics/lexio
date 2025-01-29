@@ -115,7 +115,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
     fontSize: typography.fontSizeBase,
 
     inputBackgroundColor: 'white',
-    inputBorderColor: colors.secondary,
+    inputBorderColor: colors.primary,
     inputFocusRingColor: colors.primary,
 
     buttonBackground: colors.primary,

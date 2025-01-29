@@ -47,7 +47,6 @@ export interface Typography {
   /**
    * Base font size from which other sizes are calculated.
    * @remarks This value is used to calculate other font sizes in the application using a relative scale.
-   * @alpha This feature is not yet fully implemented and may change in future versions.
    */
   fontSizeBase: string;
   lineHeight: string;
