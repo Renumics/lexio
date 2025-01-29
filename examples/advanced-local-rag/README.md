@@ -59,6 +59,7 @@ This repository demonstrates how to build a _complex Retrieval-Augmented Generat
    ```bash
    cd ../frontend
    npm install
+   npm install ../../../rag-ui --install-links
    ```
 
 4. **Add your documents**:
