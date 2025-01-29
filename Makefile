@@ -1,6 +1,6 @@
 # Variables
 BACKEND_DIR = fastapi-example
-FRONTEND_DIR = rag-ui
+FRONTEND_DIR = lexio
 
 # Check for Python installation
 PYTHON := $(shell command -v python3 2> /dev/null)
