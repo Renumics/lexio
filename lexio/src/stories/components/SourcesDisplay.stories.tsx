@@ -73,5 +73,13 @@ export default meta;
 type Story = StoryObj<typeof SourcesDisplay>;
 
 export const Docs: Story = {
-
+  args: {
+    title: "Retrieved Sources",
+    searchPlaceholder: "Search sources...",
+    showSearch: true,
+    showRelevanceScore: true,
+    showMetadata: true,
+    styleOverrides: {
+    }
+  }
 }; 
