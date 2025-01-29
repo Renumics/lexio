@@ -14,6 +14,8 @@ import {
     TextContent,
     createTheme,
 } from 'lexio';
+import LexioLogo from './assets/lexio.svg';
+import LexioIcon from './assets/icon.svg';
 
 // we create a custom theme for the demo which overrides the default theme values
 const demoTheme = createTheme({
@@ -24,6 +26,10 @@ const demoTheme = createTheme({
         background: 'white',
         toolbarBackground: '#366563',
         secondaryBackground: '#bbd5d3',
+    },
+    typography: {
+        // fontFamily: 'Arial',
+        fontSizeBase: '1.0rem',
     },
 });
 
@@ -153,10 +159,11 @@ function App() {
     return (
         <div className="w-full h-screen flex flex-col">
             {/* Modern Navbar */}
-            <nav className="w-full bg-white shadow-sm px-6 py-3">
-                <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <nav className="w-full bg-white shadow-sm p-2">
+                <div className="max-w-7xl mx-auto flex items-center justify-between px-4">
+                    <img src={LexioLogo} alt="Lexio Logo" className="h-10" />
                     <h2 className="text-2xl">
-                        RAG with Lexio📚 + Langchain🦜 + ChromaDB🔥
+                        PDF RAG with Lexio <img src={LexioIcon} alt="Lexio Logo" className="h-8 inline-block" /> + Langchain🦜 + ChromaDB🔥
                     </h2>
                     <div className="flex items-center gap-4">
                         <a
@@ -204,9 +211,8 @@ function App() {
                     }}
                     theme={demoTheme}
                 >
-                    <div className="w-full h-full max-h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
-                        {/* Left side: Chat and Query */}
-                        <div className="h-3/4 gap-4 w-1/4 flex flex-col">
+                    <div className="w-full h-full max-h-full max-w-full mx-auto flex flex-row gap-6 p-4">
+                        <div className="gap-4 w-1/4 flex flex-col">
                             <div className="shrink-0"> {/* Query field */}
                                 <QueryField onSubmit={() => {
                                 }}/>
@@ -215,11 +221,11 @@ function App() {
                                 <ChatWindow/>
                             </div>
                         </div>
-                        <div className="w-1/6 h-full"> {/* Sources panel */}
-                            <SourcesDisplay/>
-                        </div>
-                        <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
+                        <div className="w-1/2 h-full overflow-hidden flex flex-col"> {/* Sources panel */}
                             <ContentDisplay/>
+                        </div>
+                        <div className="w-1/4 h-full"> {/* Sources panel */}
+                            <SourcesDisplay/>
                         </div>
                         <ErrorDisplay/>
                     </div>

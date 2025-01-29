@@ -1,6 +1,6 @@
 .ruff_cache
 .venv/
-data/
+backend/data/*
 __pycache__/
 
 node_modules/

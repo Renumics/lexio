@@ -1,11 +1,20 @@
-# Langchain Demo
+import { Meta, Markdown } from '@storybook/blocks';
+import Shot from "../assets/shot_langchain.png";
 
-This repository demonstrates how to build a Retrieval-Augmented Generation (RAG) system using Langchain and the Lexio UI components. The demo showcases:
+<Meta title="Gallery/Base: Langchain" />
+
+# Lexio RAG Demo with Langchain, ChromaDB, and OpenAI + PDF Highlights with PyMuPDF
+
+This repository demonstrates how to build a Retrieval-Augmented Generation (RAG) system on PDF data using
+Langchain, ChromaDB, PyMuPDF and the Lexio UI components. The demo showcases:
 
 - **Advanced PDF Processing** with PyMuPDF for intelligent text extraction and highlighting
 - **Real-time streaming** of responses (via Server-Sent Events)
 - **Document retrieval** from a ChromaDB vector store
 - **Modern React frontend** with Lexio UI components
+
+
+<img src={Shot} alt="Screenshot of the demo" />
 
 ## Tech Stack
 
@@ -44,20 +53,29 @@ This repository demonstrates how to build a Retrieval-Augmented Generation (RAG)
 
 ## Setup & Installation
 
+### Requirements
+
+- Make (optional)
+- Python 3.12 or higher
+- Node.js 20 or higher
+- OpenAI API key
+- Modern web browser with SSE support
+
 ### Backend
 
-1. Navigate to the backend directory:
+1. **Clone this repository** and navigate into the demo `backend` folder:
 ```bash
-cd backend
+git clone <repo_url>
+cd examples/langchain/backend
 ```
 
-2. Create a virtual environment and activate it:
+2. **Create a virtual environment** and activate it:
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-3. Install dependencies:
+3. **Install dependencies**:
 ```bash
 pip install -e .
 ```
@@ -67,80 +85,49 @@ pip install -e .
 echo "OPENAI_API_KEY=your-api-key-here" > .env
 ```
 
-5. Add your documents to the `data` directory
+5. **Add your PDF documents** to the `data` directory
 
-6. Index the documents:
+6. **Index** the documents:
 ```bash
 index-files
 ```
 
-7. Start the backend server:
+7. **Start** the backend server:
 ```bash
 run-server
 ```
 
 ### Frontend
 
-1. Navigate to the frontend directory:
+1. **Navigate to the frontend directory:**
 ```bash
-cd frontend
+cd examples/langchain/frontend
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
 ```
 
-3. Start the development server:
+3. **Start** the development server:
 ```bash
 npm run dev
 ```
 
 4. Open http://localhost:5173 in your browser
 
-## Project Structure
+## Usage
 
-### Backend Components
+1. **Open the frontend** in your browser.
+   Typically at [http://localhost:5173](http://localhost:5173).
 
-- **PDF Processing**: PyMuPDF-powered text extraction with positional information
-- **Document Indexing**: Uses Langchain's document loaders and text splitters for processing
-- **Vector Store**: ChromaDB for efficient similarity search
-- **API Routes**: FastAPI endpoints for querying and document retrieval
-- **Streaming**: SSE implementation for real-time response streaming
+2. **Ask a question** about the PDFs that you added.
+   - The system will retrieve relevant chunks from ChromaDB and stream a response from the OpenAI model.
 
-### Frontend Components
+3. **View sources**
+   - In the SourcesDisplay component, you’ll see clickable references.
+   - Click on any source link to open it in the ContentDisplay in the middle.
 
-- **PDF Viewer**: Interactive document display with highlight overlay
-- **Chat Interface**: Real-time conversation with streaming responses
-- **Query Input**: Clean interface for user questions
-- **Error Handling**: Graceful error display and recovery
 
-## Development
-
-The project uses modern development tools and practices:
-
-- **Type Safety**: TypeScript for frontend, Python type hints for backend
-- **Code Quality**: ESLint, Prettier, Black, and Ruff for code formatting
-- **Development Server**: Vite for frontend, Uvicorn for backend
-- **Package Management**: npm for frontend, pip for backend
-
-## Quick Start with Make
-
-For convenience, you can use the provided Makefile commands:
-
-```bash
-make setup-backend    # Set up the Python environment and install dependencies
-make index            # Index the PDF documents
-make setup-frontend   # Install frontend dependencies
-make start-backend    # Start the FastAPI server
-make start-frontend   # Start the Vite development server
-```
-
-## Requirements
-
-- Python 3.10 or higher
-- Node.js 18 or higher
-- OpenAI API key
-- Modern web browser with SSE support
-
+[//]: # (TODO: add usage instructions + add Backend and frontend highlights + next steps)
 ---

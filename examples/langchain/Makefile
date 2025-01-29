@@ -14,8 +14,9 @@ setup-backend:
 	@echo "Setting up backend..."
 	cd $(BACKEND_DIR) && python -m venv $(VENV_DIR)
 	@echo "Activating virtual environment and installing backend dependencies..."
-	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/pip install -e . && $(VENV_DIR)/bin/pip install -e ../../../python/lexio/
+	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/pip install -e .
 	@echo "Backend setup complete. Don't forget to create a .env file with your OpenAI API key."
+	@echo "Place your PDFs in the 'backend/data' directory to index them."
 
 # Frontend setup
 setup-frontend:
