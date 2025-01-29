@@ -1,6 +1,7 @@
-name: Python Build and Check
+name: Python CI
 
 on:
+  workflow_call:
   push:
     branches: [ "main" ]
   pull_request:
@@ -8,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build Package with Python 3.12
+    name: Build with 🐍 3.12
     runs-on: ubuntu-latest
     defaults:
       run:

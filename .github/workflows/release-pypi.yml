@@ -9,11 +9,6 @@ on:
 jobs:
   build-and-check:
     uses: ./.github/workflows/python-build-and-check.yml
-    with:
-      python-version: "3.12"  # Optional: specify Python version if needed
-    secrets:
-      TEST_PYPI_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
     needs: build-and-check
@@ -28,7 +23,7 @@ jobs:
         name: dist
         path: python/lexio/dist
         
-    - name: Set up Python
+    - name: Set up Python 🐍 3.12
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
