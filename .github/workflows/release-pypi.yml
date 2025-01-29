@@ -23,6 +23,12 @@ jobs:
         name: dist
         path: python/lexio/dist
         
+    - name: Clean up package filenames
+      working-directory: python/lexio
+      run: |
+        sed -i -E 's/\+.*//' dist/*.whl
+        sed -i -E 's/\+.*//' dist/*.tar.gz
+
     - name: Set up Python 🐍 3.12
       uses: actions/setup-python@v5
       with:
