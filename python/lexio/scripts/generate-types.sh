@@ -3,7 +3,7 @@ OUTPUT_FILE=lexio/types/__init__.py
 
 # Generate types using datamodel-codegen for pydantic v2, the json schema is generated from lexio frontend
 datamodel-codegen \
-  --input ../../rag-ui/scripts/types.json \
+  --input ../../lexio/scripts/types.json \
   --output $OUTPUT_FILE \
   --input-file-type jsonschema \
   --use-schema-description \

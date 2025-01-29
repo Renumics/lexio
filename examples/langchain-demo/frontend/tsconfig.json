@@ -23,9 +23,9 @@
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@renumics/rag-ui": ["../../rag-ui/lib/main"]
+      "@renumics/rag-ui": ["../../lexio/lib/main"]
     }
   },
-  "include": ["src", "../../rag-ui/lib"],
+  "include": ["src", "../../lexio/lib"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

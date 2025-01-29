@@ -20,7 +20,7 @@ setup-backend:
 # Frontend setup
 setup-frontend:
 	@echo "Setting up frontend..."
-	cd $(FRONTEND_DIR) && npm install &&  npm install --install-links ../../../rag-ui/
+	cd $(FRONTEND_DIR) && npm install &&  npm install --install-links ../../../lexio/
 
 # Start backend server
 start-backend:

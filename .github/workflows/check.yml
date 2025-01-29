@@ -18,13 +18,13 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: './rag-ui/package.json'
+        cache-dependency-path: './lexio/package.json'
     - name: Install dependencies
-      working-directory: ./rag-ui
+      working-directory: ./lexio
       run: npm ci
     - name: Type check
-      working-directory: ./rag-ui
+      working-directory: ./lexio
       run: npm run typecheck
     - name: Run tests
-      working-directory: ./rag-ui
+      working-directory: ./lexio
       run: npm test
