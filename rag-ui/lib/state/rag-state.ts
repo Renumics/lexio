@@ -580,7 +580,7 @@ export const createGetDataSourceAtom = (getDataSourceFn: ((source: SourceReferen
           const response: SourceContent = {
             content: retrievalResult.text,
             metadata: retrievalResult.metadata,
-            type: 'html'
+            type: 'markdown'
           };
           set(currentSourceContentAtom, response);
           set(loadingAtom, false);

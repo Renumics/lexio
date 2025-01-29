@@ -29,32 +29,39 @@ export interface Message {
  * Represents a highlight annotation in a PDF document.
  * 
  * @interface PDFHighlight
- * @property {number} page - The page number where the highlight appears
+ * @property {number} page - The page number where the highlight appears. Page numbers are 1-based.
  * @property {object} rect - The rectangle coordinates of the highlight
  * @property {number} rect.top - Top position of the highlight (relative to the page)
  * @property {number} rect.left - Left position of the highlight (relative to the page)
  * @property {number} rect.width - Width of the highlight (relative to the page width)
  * @property {number} rect.height - Height of the highlight (relative to the page height)
- * @property {string} [comment] - Optional comment associated with the highlight
  */
 export interface PDFHighlight {
   /**
-   * The page number where the highlight appears
+   * The page number where the highlight appears. Page numbers are 1-based.
    */
   page: number;
   /**
    * The rectangle coordinates of the highlight
    */
   rect: {
+    /**
+     * Top position of the highlight (relative to the page)
+     */
     top: number;
+    /**
+     * Left position of the highlight (relative to the page)
+     */
     left: number;
+    /**
+     * Width of the highlight (relative to the page width)
+     */
     width: number;
+    /**
+     * Height of the highlight (relative to the page height)
+     */
     height: number;
   };
-  /**
-   * Optional comment associated with the highlight
-   */
-  comment?: string;
 }
 
 /**
@@ -67,9 +74,22 @@ export interface PDFHighlight {
  * @property {PDFHighlight[]} [highlights] - Optional array of PDF highlights
  */
 export interface BaseRetrievalResult {
+  /**
+   * Optional name of the source document. If not provided, the source reference will be used.
+   */
   sourceName?: string;
-  relevanceScore?: number;
+  /**
+   * Optional score indicating relevance to the query. Scores must be in the range [0, 1].
+   */
+  relevanceScore?: number & { min: 0, max: 1 };
+  /**
+   * Optional metadata associated with the result. Can be used to store additional information.
+   * @remarks Metadata is not used by the RAG provider. It is shown as-is in the SourcesDisplay component.
+   */
   metadata?: Record<string, any>;
+  /**
+   * Optional array of PDF highlights. Only used for PDF source references.
+   */
   highlights?: PDFHighlight[];
 }
 
@@ -82,7 +102,25 @@ export interface BaseRetrievalResult {
  * @property {string} sourceReference - Reference identifier for the source
  */
 export interface SourceReference extends BaseRetrievalResult {
+  /**
+   * The type of the source document. Can be either "pdf", "html", or "markdown".
+   */
   type?: 'pdf' | 'html' | 'markdown';
+  /**
+   * Reference identifier for the source. This can be everything from a URL, over a unique identifier to a database key and must be handled by the user in the getDataSource function.
+   * @remarks In the getDataSource function, the sourceReference is given as an argument to the function and the function should return the actual content of the source document.
+   * @example
+   * const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
+   *     const url = `http://localhost:8000/getDaa/${encodeURIComponent(source.sourceReference)}`;
+   *     const response = await fetch(url);
+   *     if (!response.ok) {
+   *         throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
+   *     }
+   *     ... your code here ...
+   *
+   *     return pdfContent;
+   * };
+   */
   sourceReference: string;
 }
 
@@ -91,9 +129,12 @@ export interface SourceReference extends BaseRetrievalResult {
  * 
  * @interface TextContent
  * @extends {BaseRetrievalResult}
- * @property {string} text - The extracted text content
+ * @property {string} text - The content of the RetrievalResult. If you are using the ComponentDisplay component, the text will be displayed with the **MarkdownViewer** component.
  */
 export interface TextContent extends BaseRetrievalResult {
+  /**
+   * The content of the RetrievalResult. If you are using the ComponentDisplay component, the text will be displayed with the **MarkdownViewer** component.
+   */
   text: string;
 }
 
@@ -101,9 +142,13 @@ export interface TextContent extends BaseRetrievalResult {
  * Base interface for all source content types.
  * 
  * @interface BaseSourceContent
- * @property {Record<string, any>} [metadata] - Optional metadata associated with the content
+ * @property {Record<string, any>} [metadata] - Optional metadata associated with the content. Can be used to store additional information.
  */
 interface BaseSourceContent {
+  /**
+   * Optional metadata associated with the content. Can be used to store additional information.
+   * @remarks Metadata is not used by the RAG provider. It is also not shown in the UI. For metadata to be displayed, it must be included in the SourceReference object.
+   */
   metadata?: Record<string, any>;
 }
 
@@ -112,11 +157,17 @@ interface BaseSourceContent {
  * 
  * @interface MarkdownSourceContent
  * @extends {BaseSourceContent}
- * @property {string} content - The Markdown content
- * @property {'markdown'} type - Indicates this is Markdown content
+ * @property {string} content - The Markdown content as a string
+ * @property {'markdown'} type - Must be "markdown". Indicates this is Markdown content
  */
 export interface MarkdownSourceContent extends BaseSourceContent {
+  /**
+   * The Markdown content as a string.
+   */
   content: string;
+  /**
+   * Must be "markdown". Indicates this is Markdown content.
+   */
   type: 'markdown';
 }
 
@@ -125,11 +176,17 @@ export interface MarkdownSourceContent extends BaseSourceContent {
  * 
  * @interface HTMLSourceContent
  * @extends {BaseSourceContent}
- * @property {string} content - The HTML content
- * @property {'html'} type - Indicates this is HTML content
+ * @property {string} content - The HTML content as a string
+ * @property {'html'} type - Must be "html". Indicates this is HTML content
  */
 export interface HTMLSourceContent extends BaseSourceContent {
+  /**
+   * The HTML content as a string.
+   */
   content: string;
+  /**
+   * Must be "html". Indicates this is HTML content.
+   */
   type: 'html';
 }
 
@@ -139,12 +196,21 @@ export interface HTMLSourceContent extends BaseSourceContent {
  * @interface PDFSourceContent
  * @extends {BaseSourceContent}
  * @property {Uint8Array} content - The binary PDF content
- * @property {'pdf'} type - Indicates this is PDF content
+ * @property {'pdf'} type - Must be "pdf". Indicates this is PDF content.
  * @property {PDFHighlight[]} [highlights] - Optional array of highlights in the PDF
  */
 export interface PDFSourceContent extends BaseSourceContent {
+  /**
+   * The binary PDF content.
+   */
   content: Uint8Array;
+  /**
+   * Must be "pdf". Indicates this is PDF content.
+   */
   type: 'pdf';
+  /**
+   * Optional array of highlights in the PDF.
+   */
   highlights?: PDFHighlight[];
 }
 
@@ -152,6 +218,8 @@ export interface PDFSourceContent extends BaseSourceContent {
  * Union type of all possible source content types.
  * 
  * @typedef {HTMLSourceContent | PDFSourceContent | MarkdownSourceContent} SourceContent
+ *
+ * @remarks This type is used in the ComponentDisplay component. The type of the content is determined by the type property of the object.
  */
 export type SourceContent = HTMLSourceContent | PDFSourceContent | MarkdownSourceContent;
 
@@ -182,6 +250,8 @@ export interface GenerateStreamChunk {
  * Union type representing either a source reference or text content.
  * 
  * @typedef {SourceReference | TextContent} RetrievalResult
+ *
+ * @remarks This is the type of objects returned by the retrieve function.
  */
 export type RetrievalResult = SourceReference | TextContent;
 
@@ -189,9 +259,18 @@ export type RetrievalResult = SourceReference | TextContent;
  * Type representing the response from a retrieve operation.
  * 
  * @typedef {Promise<RetrievalResult[]>} RetrieveResponse
+ *
+ * @remarks The response is an array of RetrievalResult objects. These can be either SourceReference or TextContent objects.
  */
 export type RetrieveResponse = Promise<RetrievalResult[]>;
 
+/**
+ * Represents the response from a retrieve and generate operation.
+ *
+ * @interface RetrieveAndGenerateResponse
+ * @property {Promise<RetrievalResult[]>} [sources] - Optional promise resolving to an array of retrieval results.
+ * @property {Promise<string> | AsyncIterable<GenerateStreamChunk>} response - The response, which can be either a promise resolving to a string or an async iterable of generate stream chunks.
+ */
 export interface RetrieveAndGenerateResponse {
   sources?: Promise<RetrievalResult[]>;
   response: Promise<string> | AsyncIterable<GenerateStreamChunk>;
