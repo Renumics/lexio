@@ -32,13 +32,13 @@ jobs:
           pip install ".[dev]"
 
       - name: Generate Python Types
-        working-directory: ./rag-ui
+        working-directory: ./lexio
         run: |
           npm ci
           npm run generate-types
 
       - name: Generate Python Package
-        working-directory: ./rag-ui
+        working-directory: ./lexio
         run: |
           npm ci
           npm run generate-python-package
