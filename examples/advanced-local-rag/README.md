@@ -46,7 +46,7 @@ This repository demonstrates how to build a _complex Retrieval-Augmented Generat
 1. **Clone this repository** and navigate into it:
    ```bash
    git clone <repo_url>
-   cd advanced-rag
+   cd examples/advanced-local-rag
    ```
 
 2. **Install backend dependencies**:
