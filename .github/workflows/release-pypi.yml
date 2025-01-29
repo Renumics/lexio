@@ -41,12 +41,3 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
       run: twine upload --verbose -r testpypi dist/*
-
-#    - name: Create Release
-#      env:
-#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#      run: |
-#        gh release create "${GITHUB_REF#refs/tags/}" \
-#          --title "Release ${GITHUB_REF#refs/tags/}" \
-#          --generate-notes \
-#          dist/*
