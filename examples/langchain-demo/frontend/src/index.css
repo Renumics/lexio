@@ -1,0 +1,18 @@
+@import '../../../../lexio/lib/tailwind.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #1D3D3C;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}

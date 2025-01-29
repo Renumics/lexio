@@ -9,3 +9,7 @@ examples/data/
 
 # Dummy Package
 dummy-package/
+
+.vscode/
+
+examples/llama-index/frontend/rag-ui/

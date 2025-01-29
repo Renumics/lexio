@@ -43,6 +43,14 @@ async def retrieve_and_generate(messages: str = Query(...)):
     print(response)
     return response
 
+@app.get("/getDataSource")
+async def get_data_source(source_reference: str):
+    path = os.path.normpath(os.path.join(DATA_FOLDER, source_reference))
+    if not path.startswith(os.path.abspath(DATA_FOLDER)):
+        raise HTTPException(status_code=400, detail="Invalid file path")
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(path, filename=source_reference)
 
 if __name__ == "__main__":
     uvicorn.run(app, port=8000)

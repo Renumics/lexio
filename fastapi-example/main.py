@@ -132,7 +132,7 @@ def retrieve_helper(query: str) -> List[RetrievalResult]:
     
     # Add some text content as well
     text_content = TextContent(
-        text="<div><h1>Quick Tips</h1>Here are some relevant tips about your query.</div>",
+        text="# Quick Tips \nHere are some relevant tips about your query.",
         sourceName="Quick Tips",
         relevanceScore=0.82,
         metadata={"type": "Tips"}
