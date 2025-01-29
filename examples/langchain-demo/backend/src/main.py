@@ -1,18 +1,21 @@
 import json
 import os
-from typing import Any, Dict, List, Union, Optional
+from typing import List
 
 import uvicorn
 from dotenv import load_dotenv
+from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from langchain.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-from pydantic import BaseModel
 from sse_starlette import EventSourceResponse
 from fastapi.responses import FileResponse, HTMLResponse
 import mimetypes
 import os.path
+
+# We import the necessary classes from lexio to interact with the frontend
+from lexio import SourceReference, RetrievalResult, Message
 
 from src.indexing import DocumentIndexer
 from src.utils import convert_bboxes_to_highlights
@@ -35,18 +38,6 @@ app.add_middleware(
 )
 
 
-class Message(BaseModel):
-    """A model representing a chat message.
-
-    Attributes:
-        role: The role of the message sender (e.g., 'user', 'assistant')
-        content: The content of the message
-    """
-
-    role: str
-    content: str
-
-
 class MessageHistory(BaseModel):
     """A model representing a chat conversation history.
 
@@ -56,65 +47,6 @@ class MessageHistory(BaseModel):
 
     messages: List[Message]
 
-
-class MessagesRequest(BaseModel):
-    """A model representing the expected JSON schema for the messages query parameter.
-
-    Example:
-        {
-            "messages": [
-                {"role": "user", "content": "Hello"},
-                {"role": "assistant", "content": "Hi there!"},
-                {"role": "user", "content": "How are you?"}
-            ]
-        }
-
-    Attributes:
-        messages: List of chat messages, where each message has a role and content
-    """
-    messages: List[Message]
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "messages": [
-                        {"role": "user", "content": "Was ist Machine Learning?"},
-                        {"role": "assistant", "content": "Machine Learning ist ein Teilbereich der KI..."},
-                        {"role": "user", "content": "Kannst du das genauer erklären?"}
-                    ]
-                }
-            ]
-        }
-    }
-
-
-class BaseSourceContent(BaseModel):
-    metadata: Dict[str, Any] | None = None
-
-
-class PDFSourceContent(BaseSourceContent):
-    content: Any
-    type: str = "pdf"
-
-
-class BaseRetrievalResult(BaseModel):
-    sourceName: Optional[str] = None
-    relevanceScore: Optional[float] = None
-    metadata: Dict[str, Any] | None = None
-    highlights: List[Dict[str, Any]] = None
-
-
-class SourceReference(BaseRetrievalResult):
-    sourceReference: str
-    type: str = "pdf"
-
-
-class TextContent(BaseRetrievalResult):
-    text: str
-
-
-RetrievalResult = Union[SourceReference, TextContent]
 
 # Initialize components
 indexer = DocumentIndexer()

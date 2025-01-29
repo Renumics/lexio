@@ -110,10 +110,9 @@ npm run dev
 
 ### Frontend Components
 
-- **PDF Viewer**: Interactive document display with highlight overlay
-- **Chat Interface**: Real-time conversation with streaming responses
-- **Query Input**: Clean interface for user questions
-- **Error Handling**: Graceful error display and recovery
+- **Content Display with PDFViewer + MarkdownViewer + HTMLViewer**: Interactive document display with highlight overlay
+- **ChatWindow**: Real-time conversation with streaming responses
+- **AdvancedQueryField**: Clean interface for user questions
 
 ## Development
 

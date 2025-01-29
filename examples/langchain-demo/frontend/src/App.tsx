@@ -14,6 +14,7 @@ import {
     TextContent,
     createTheme,
 } from 'lexio';
+import LexioLogo from '/src/lexio logo.svg';
 
 // we create a custom theme for the demo which overrides the default theme values
 const demoTheme = createTheme({
@@ -153,8 +154,9 @@ function App() {
     return (
         <div className="w-full h-screen flex flex-col">
             {/* Modern Navbar */}
-            <nav className="w-full bg-white shadow-sm px-6 py-3">
+            <nav className="w-full bg-white shadow-sm p-2">
                 <div className="max-w-6xl mx-auto flex items-center justify-between">
+                    <image src={LexioLogo} alt="Lexio Logo" className="w-12 h-12"/>
                     <h2 className="text-2xl">
                         RAG with Lexio📚 + Langchain🦜 + ChromaDB🔥
                     </h2>

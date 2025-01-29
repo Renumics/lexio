@@ -241,7 +241,7 @@ function App() {
                             preserveHistory: false
                         }
                     }}
-                    theme={demoTheme}
+                    theme={customTheme}
                 >
                     <div className="w-full h-full max-h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
                         {/* Left side: Chat and Query */}
