@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { QueryField } from '../../../lib/components/QueryField/QueryField';
 import { RAGProvider } from '../../../lib/components/RAGProvider';
 import 'tailwindcss/tailwind.css';
+import {configureDocsRendering, extractComponentDescriptionHelper, renderDocsBlocks} from "./helper.tsx";
 
 // Sample message handler for the story
 const SAMPLE_HANDLER = async (message: string) => {
@@ -12,9 +13,15 @@ const meta: Meta<typeof QueryField> = {
   title: 'Components/QueryField',
   component: QueryField,
   tags: ['autodocs'],
+  parameters: {
+      docs: {
+          extractComponentDescription: extractComponentDescriptionHelper,
+          page: renderDocsBlocks,
+      },
+  },
   decorators: [
     (Story) => (
-      <div style={{ width: '600px', minHeight: '500px', padding: '1rem' }}>
+      <div className="h-fit"  style={{ width: '600px', padding: '1rem' }}>
         <RAGProvider retrieve={async () => []}>
           <Story />
         </RAGProvider>

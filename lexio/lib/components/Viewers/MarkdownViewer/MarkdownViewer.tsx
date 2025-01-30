@@ -5,6 +5,7 @@ import type { HtmlViewerStyles } from "../HtmlViewer/HtmlViewer";
 
 /**
  * Props for the MarkdownViewer component.
+ * @see {@link MarkdownViewer}
  * 
  * @interface MarkdownViewerProps
  * @property {string} markdownContent - The raw markdown string to render
@@ -24,13 +25,15 @@ interface MarkdownViewerProps {
  * @component
  * @param {MarkdownViewerProps} props - The props for the MarkdownViewer
  * @returns {JSX.Element} A themed markdown viewer with zoom controls
- * 
+ *
  * @remarks
+ * **Highlights:**
  * - Uses react-markdown with remark-gfm plugin for GitHub Flavored Markdown support
  * - Inherits all features from HtmlViewer (zoom, theme support, etc.)
  * - Used internally by ContentDisplay when displaying Markdown source content
- * 
+ *
  * @example
+ *
  * ```tsx
  * <MarkdownViewer
  *   markdownContent="# Hello World\n\nThis is **markdown** content"

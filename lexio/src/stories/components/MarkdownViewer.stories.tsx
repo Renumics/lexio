@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type {Meta, StoryObj} from '@storybook/react';
 import 'tailwindcss/tailwind.css';
 import {RAGProvider} from "../../../lib/components/RAGProvider";
 import {MarkdownViewer} from "../../../lib/components/Viewers";
-import {extractComponentDescription} from "@storybook/docs-tools";
+import {extractComponentDescriptionHelper, renderDocsBlocks} from "./helper.tsx";
 
 const testContent = `# Test Markdown Content
 
@@ -23,52 +23,32 @@ This is a **test paragraph** to showcase Markdown rendering in the \`MarkdownVie
 `;
 
 const meta: Meta<typeof MarkdownViewer> = {
-  title: 'Components/MarkDownViewer',
-  component: MarkdownViewer,
-  tags: ['autodocs'],
-  parameters: {
+    title: 'Components/MarkDownViewer',
+    component: MarkdownViewer,
+    tags: ['autodocs'],
+    parameters: {
         docs: {
-            extractComponentDescription: (component, { notes }) => {
-                // Use Storybook's default extractor
-                let description = extractComponentDescription(component, { notes });
-
-                if (description) {
-                    // Customize the description by filtering unwanted TSDoc decorators
-                    description = description
-                        .split('\n') // Split lines
-                        .filter(line =>
-                            !line.startsWith('@param') &&  // Remove @param tags
-                            !line.startsWith('@component') &&  // Remove @param tags
-                            !line.startsWith('@remarks') &&  // Remove @param tags
-                            !line.startsWith('@example') &&  // Remove @param tags
-                            !line.startsWith('@todo') &&  // Remove @param tags
-                            !line.startsWith('@returns')   // Remove @returns tags
-                        )
-                        .join('\n'); // Rejoin the lines
-                }
-
-                return description || ""; // Return modified description
-            },
+            extractComponentDescription: extractComponentDescriptionHelper,
+            page: renderDocsBlocks,
         },
     },
-  decorators: [
-    (Story) => (
-      <div style={{ width: '600px', minHeight: '600px', padding: '1rem' }}>
-        <RAGProvider>
-          <Story />
-          </RAGProvider>
-      </div>
-    ),
-  ],
+    decorators: [
+        (Story) => (
+            <div className="h-fit" style={{width: '600px', padding: '1rem'}}>
+                <RAGProvider>
+                    <Story/>
+                </RAGProvider>
+            </div>
+        ),
+    ],
 };
 
 export default meta;
 type Story = StoryObj<typeof MarkdownViewer>;
 
 export const Docs: Story = {
-  args: {
-    markdownContent: testContent,
-    styleOverrides: {
-    }
-  },
+    args: {
+        markdownContent: testContent,
+        styleOverrides: {}
+    },
 };

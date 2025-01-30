@@ -39,31 +39,26 @@ export interface SourcesDisplayProps {
    * @default "Retrieved Sources"
    */
   title?: string;
-
   /**
    * Placeholder text for the search input field
    * @default "Search sources..."
    */
   searchPlaceholder?: string;
-
   /**
    * Controls visibility of the search functionality
    * @default true
    */
   showSearch?: boolean;
-
   /**
    * Controls visibility of relevance scores
    * @default true
    */
   showRelevanceScore?: boolean;
-
   /**
    * Controls visibility of metadata tags
    * @default true
    */
   showMetadata?: boolean;
-
   /**
    * Style customization options
    */
@@ -72,7 +67,9 @@ export interface SourcesDisplayProps {
 
 /**
  * SourcesDisplay component shows a list of retrieved sources with search functionality
- * 
+ *
+ * @example
+ *
  * ```tsx
  * <SourcesDisplay 
  *   title="Search Results"

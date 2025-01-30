@@ -77,14 +77,16 @@ interface HTMLViewerProps {
  * @component
  * @param {HTMLViewerProps} props - The props for the HtmlViewer
  * @returns {JSX.Element} A themed HTML viewer with zoom controls
- * 
+ *
  * @remarks
+ * **Features:**
  * - Supports both HTML strings (sanitized with DOMPurify) and React elements (unsafe)
  * - Includes zoom controls via toolbar and keyboard shortcuts (Ctrl/Cmd + Up/Down)
  * - Integrates with the theme system for consistent styling
  * - Used internally by ContentDisplay when displaying HTML source content
- * 
+ *
  * @example
+ *
  * ```tsx
  * <HtmlViewer
  *   htmlContent="<div>Your HTML content here</div>"
