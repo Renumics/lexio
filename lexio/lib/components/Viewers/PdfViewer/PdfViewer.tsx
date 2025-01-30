@@ -104,10 +104,6 @@ interface PdfViewerProps {
  *   }}
  * />
  * ```
- * 
- * @todo: 
- *  - change / unify mechanism to select page based on highlights / page number
- *  - add support for text search
  */
 const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
