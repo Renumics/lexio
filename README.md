@@ -2,13 +2,17 @@
 
 <p align="center">Quickest way to production grade RAG UI. </p>
 
+<p align="center">
+	<a href="https://github.com/Renumics/lexio/blob/main/LICENSE"><img src="https://img.shields.io/github/license/renumics/lexio" height="20"/></a>
+    <a href="README.md"><img src="https://img.shields.io/github/actions/workflow/status/Renumics/lexio/check.yml" height="20"/></a>
+    <a href="https://www.npmjs.com/package/lexio"><img src="https://img.shields.io/npm/v/lexio" height="20"/></a>
+    <a href="https://pypi.org/project/lexio/"><img src="https://img.shields.io/pypi/v/lexio" height="20"/></a>
+</p>
 
-  <h3 align="center">
+<h3 align="center">
    <a href="https://renumics.com/lexio-ui"><b>Documentation</b></a> &bull;
-   <a href="https://renumics.com/blog/"><b>Blog</b></a> 
-
+   <a href="https://renumics.com/blog/"><b>Blog</b></a>
  </h3>
-
 
 Lexio is a robust React library for Retrieval-Augmented Generation (RAG) document QA interfaces, handling complex workflows out of the box while remaining simple to use. 
 
