@@ -40,7 +40,7 @@ const meta: Meta<typeof ChatWindow> = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <div style={{ width: '600px', minHeight: '500px', padding: '1rem' }}>
+      <div className="h-fit" style={{ width: '600px', padding: '1rem' }}>
         <RAGProvider
           retrieveAndGenerate={(messages: GenerateInput): RetrieveAndGenerateResponse => ({
             sources: Promise.resolve([]),
@@ -60,6 +60,5 @@ type Story = StoryObj<typeof ChatWindow>;
 
 export const Docs: Story = {
   args: {
-
   },
 }; 

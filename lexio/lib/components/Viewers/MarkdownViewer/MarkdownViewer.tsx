@@ -5,6 +5,7 @@ import type { HtmlViewerStyles } from "../HtmlViewer/HtmlViewer";
 
 /**
  * Props for the MarkdownViewer component.
+ * @see {@link MarkdownViewer}
  * 
  * @interface MarkdownViewerProps
  * @property {string} markdownContent - The raw markdown string to render

@@ -52,7 +52,7 @@ const meta: Meta<typeof SourcesDisplay> = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <div style={{ width: '600px', minHeight: '500px', padding: '1rem' }}>
+      <div className="h-fit" style={{ width: '600px',  padding: '1rem' }}>
         <RAGProvider 
           retrieve={async () => {
             // Add small delay to simulate network request
@@ -80,6 +80,6 @@ export const Docs: Story = {
     showRelevanceScore: true,
     showMetadata: true,
     styleOverrides: {
-    }
-  }
+    },
+  },
 }; 

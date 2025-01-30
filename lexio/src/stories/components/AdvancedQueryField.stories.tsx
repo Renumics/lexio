@@ -15,7 +15,7 @@ const meta: Meta<typeof AdvancedQueryField> = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <div style={{ width: '600px', minHeight: '500px', padding: '1rem' }}>
+      <div className="h-fit"  style={{ width: '600px', padding: '1rem' }}>
         <RAGProvider retrieve={async () => []}>
           <Story />
         </RAGProvider>

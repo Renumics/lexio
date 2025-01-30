@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import 'tailwindcss/tailwind.css';
 import {RAGProvider} from "../../../lib/components/RAGProvider";
 import {MarkdownViewer} from "../../../lib/components/Viewers";
-import {extractComponentDescription} from "@storybook/docs-tools";
+import {extractComponentDescriptionHelper} from "./helper.tsx";
 
 const testContent = `# Test Markdown Content
 
@@ -28,32 +28,12 @@ const meta: Meta<typeof MarkdownViewer> = {
   tags: ['autodocs'],
   parameters: {
         docs: {
-            extractComponentDescription: (component, { notes }) => {
-                // Use Storybook's default extractor
-                let description = extractComponentDescription(component, { notes });
-
-                if (description) {
-                    // Customize the description by filtering unwanted TSDoc decorators
-                    description = description
-                        .split('\n') // Split lines
-                        .filter(line =>
-                            !line.startsWith('@param') &&  // Remove @param tags
-                            !line.startsWith('@component') &&  // Remove @param tags
-                            !line.startsWith('@remarks') &&  // Remove @param tags
-                            !line.startsWith('@example') &&  // Remove @param tags
-                            !line.startsWith('@todo') &&  // Remove @param tags
-                            !line.startsWith('@returns')   // Remove @returns tags
-                        )
-                        .join('\n'); // Rejoin the lines
-                }
-
-                return description || ""; // Return modified description
-            },
+            extractComponentDescription: extractComponentDescriptionHelper,
         },
     },
   decorators: [
     (Story) => (
-      <div style={{ width: '600px', minHeight: '600px', padding: '1rem' }}>
+      <div className="h-fit" style={{ width: '600px', padding: '1rem' }}>
         <RAGProvider>
           <Story />
           </RAGProvider>
