@@ -1,6 +1,6 @@
 {
   "name": "lexio",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "type": "module",
   "license": "GPL-3.0-or-later",
   "module": "dist/lexio.es.js",
@@ -26,7 +26,9 @@
     "build-storybook": "storybook build",
     "generate-types": "node scripts/generate-json-schema.js && cp scripts/types.json ../python/lexio/scripts/types.json && echo 'Types copied to python/lexio/scripts/types.json'  && cp scripts/types-to-include.json ../python/lexio/scripts/types-to-include.json && echo 'Include list copied to python/lexio/scripts/types-to-include.json'",
     "generate-python-package": "cd ../python/lexio && bash -c 'source ./scripts/setup-dev-env.sh && ./scripts/generate-types.sh && python ./scripts/generate_init.py'",
-    "test-python-package": "cd ../python/lexio && bash -c 'source ./scripts/setup-dev-env.sh && pytest tests -v'"
+    "test-python-package": "cd ../python/lexio && bash -c 'source ./scripts/setup-dev-env.sh && pytest tests -v'",
+    "sync-version": "node scripts/sync-version.js",
+    "build-python-package": "npm run generate-types && npm run generate-python-package && npm run test-python-package && npm run sync-version && cd ../python/lexio && bash -c 'source ./scripts/setup-dev-env.sh && hatch build'"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.3",
