@@ -41,9 +41,9 @@ jobs:
 
       # Add condition to only run actual publish for tag pushes
       # Uncomment for the real publish
-      # - name: Publish to NPM
-      #   if: startsWith(github.ref, 'refs/tags/v')  # Only run on version tags
-      #   working-directory: ./lexio
-      #   run: npm publish --access public
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to NPM
+        if: startsWith(github.ref, 'refs/tags/v')  # Only run on version tags
+        working-directory: ./lexio
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
