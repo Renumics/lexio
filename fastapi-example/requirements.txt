@@ -1,4 +1,0 @@
-fastapi[standard]
-pypdf
-uvicorn
-sse-starlette
