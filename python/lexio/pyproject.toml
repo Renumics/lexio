@@ -1,17 +1,17 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
 name = "lexio"
-dynamic = ["version"]
+version = "0.0.3"
 description = "Python type definitions for the lexio frontend library. Provides Pydantic models for type-safe interaction with the lexio UI components, including source references."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
     { name = "Renumics" },
 ]
-keywords = ["lexio", "frontend", "types", "pydantic", "ui", "rag", "typescript"]
+keywords = ["lexio", "frontend", "types", "pydantic", "ui", "rag", "typescript", "chatbot", "rag-ui"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -42,18 +42,8 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "hatch>=1.7.0",
     "twine>=4.0.0",
+    "bump-my-version>=0.30.1",
 ]
-
-[tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.version.raw-options]
-version_scheme = "no-guess-dev"
-local_scheme = "no-local-version"
-root = "../.." # required for hatch-vcs to find git versioning metadata
-
-[tool.hatch.build.hooks.vcs]
-version-file = "lexio/_version.py"
 
 [tool.hatch.build.targets.sdist]
 only-include = ["lexio", "pyproject.toml", "README.md"]
