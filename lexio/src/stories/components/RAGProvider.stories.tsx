@@ -8,6 +8,7 @@ import type {
   SourceContent,
 } from '../../../lib/types';
 import 'tailwindcss/tailwind.css';
+import {configureDocsRendering, extractComponentDescriptionHelper, renderDocsBlocks} from "./helper.tsx";
 
 // Sample handlers for the story
 const sampleHandlers = {
@@ -66,8 +67,15 @@ const meta: Meta<typeof RAGProvider> = {
   component: RAGProvider,
   tags: ['autodocs'],
   parameters: {
+      docs: {
+          extractComponentDescription: extractComponentDescriptionHelper,
+          page: renderDocsBlocks,
+          canvas: {
+            sourceState: 'hidden'
+          },
+      },
     layout: 'centered',
-    controls: { hideNoControlsWarning: true }
+    controls: { hideNoControlsWarning: true },
   }
 };
 
@@ -79,7 +87,7 @@ export const Docs: Story = {
     retrieveAndGenerate: sampleHandlers.retrieveAndGenerate,
     generate: sampleHandlers.generate,
     getDataSource: sampleHandlers.getDataSource,
-    children: <div>RAGProvider wraps your app components</div>,
+    children: <div>RAGProvider wraps your app components. There is no preview.</div>,
     config: {
       timeouts: {
         stream: 10000,

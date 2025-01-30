@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import 'tailwindcss/tailwind.css';
 import {RAGProvider} from "../../../lib/components/RAGProvider";
 import {HtmlViewer} from "../../../lib/components/Viewers";
-import {extractComponentDescriptionHelper} from "./helper.tsx"
+import {extractComponentDescriptionHelper, configureDocsRendering, renderDocsBlocks} from "./helper.tsx"
 
 const testContent = `<div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; color: #333;">
   <h1 style="color: #4A90E2;">Test HTML Content</h1>
@@ -41,10 +41,11 @@ const meta: Meta<typeof HtmlViewer> = {
   component: HtmlViewer,
   tags: ['autodocs'],
   parameters: {
-        docs: {
-            extractComponentDescription: extractComponentDescriptionHelper
-        },
-    },
+      docs: {
+          extractComponentDescription: extractComponentDescriptionHelper,
+          page: renderDocsBlocks,
+      },
+  },
   decorators: [
     (Story) => (
       <div className="h-fit" style={{ width: '600px', padding: '1rem' }}>

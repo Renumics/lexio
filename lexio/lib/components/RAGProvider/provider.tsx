@@ -23,7 +23,9 @@ import { defaultTheme } from '../../theme';
  * - Wires up theme context, using either a custom theme or default theme.
  * - Supplies user-defined retrieval/generation logic to internal atoms.
  * - Optionally accepts a callback (`onAddMessage`) to modify the workflow mode on new messages.
- * 
+ *
+ * @example
+ *
  * ```tsx
  * <RAGProvider
  *   retrieve={myRetrieveFn}

@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type {Meta, StoryObj} from '@storybook/react';
 import 'tailwindcss/tailwind.css';
 import {RAGProvider} from "../../../lib/components/RAGProvider";
 import {MarkdownViewer} from "../../../lib/components/Viewers";
-import {extractComponentDescriptionHelper} from "./helper.tsx";
+import {extractComponentDescriptionHelper, renderDocsBlocks} from "./helper.tsx";
 
 const testContent = `# Test Markdown Content
 
@@ -23,32 +23,32 @@ This is a **test paragraph** to showcase Markdown rendering in the \`MarkdownVie
 `;
 
 const meta: Meta<typeof MarkdownViewer> = {
-  title: 'Components/MarkDownViewer',
-  component: MarkdownViewer,
-  tags: ['autodocs'],
-  parameters: {
+    title: 'Components/MarkDownViewer',
+    component: MarkdownViewer,
+    tags: ['autodocs'],
+    parameters: {
         docs: {
             extractComponentDescription: extractComponentDescriptionHelper,
+            page: renderDocsBlocks,
         },
     },
-  decorators: [
-    (Story) => (
-      <div className="h-fit" style={{ width: '600px', padding: '1rem' }}>
-        <RAGProvider>
-          <Story />
-          </RAGProvider>
-      </div>
-    ),
-  ],
+    decorators: [
+        (Story) => (
+            <div className="h-fit" style={{width: '600px', padding: '1rem'}}>
+                <RAGProvider>
+                    <Story/>
+                </RAGProvider>
+            </div>
+        ),
+    ],
 };
 
 export default meta;
 type Story = StoryObj<typeof MarkdownViewer>;
 
 export const Docs: Story = {
-  args: {
-    markdownContent: testContent,
-    styleOverrides: {
-    }
-  },
+    args: {
+        markdownContent: testContent,
+        styleOverrides: {}
+    },
 };

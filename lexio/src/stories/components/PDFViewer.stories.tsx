@@ -3,7 +3,7 @@ import React, {useEffect, useState} from 'react';
 import {PdfViewer} from '../../../lib/components/Viewers/PdfViewer';
 import 'tailwindcss/tailwind.css';
 import {RAGProvider} from "../../../lib/components/RAGProvider";
-import {extractComponentDescriptionHelper} from "./helper.tsx"
+import {extractComponentDescriptionHelper, renderDocsBlocks} from "./helper.tsx"
 
 async function fetchPdfAsUint8Array(url: string): Promise<Uint8Array> {
     try {
@@ -46,9 +46,10 @@ const meta: Meta<typeof PdfViewer> = {
     component: PdfViewer,
     tags: ['autodocs'],
     parameters: {
-        docs: {
-            extractComponentDescription: extractComponentDescriptionHelper,
-        },
+      docs: {
+          extractComponentDescription: extractComponentDescriptionHelper,
+          page: renderDocsBlocks,
+      },
     },
     decorators: [
         (Story) => (

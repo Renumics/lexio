@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { AdvancedQueryField } from '../../../lib/components/AdvancedQueryField/AdvancedQueryField';
 import { RAGProvider } from '../../../lib/components/RAGProvider';
 import 'tailwindcss/tailwind.css';
+import {configureDocsRendering, extractComponentDescriptionHelper, renderDocsBlocks} from './helper';
 
 // Sample message handler for the story
 const SAMPLE_HANDLER = async (message: string, mentions: any[]) => {
@@ -13,6 +14,12 @@ const meta: Meta<typeof AdvancedQueryField> = {
   title: 'Components/AdvancedQueryField',
   component: AdvancedQueryField,
   tags: ['autodocs'],
+  parameters: {
+      docs: {
+          extractComponentDescription: extractComponentDescriptionHelper,
+          page: renderDocsBlocks,
+      },
+  },
   decorators: [
     (Story) => (
       <div className="h-fit"  style={{ width: '600px', padding: '1rem' }}>

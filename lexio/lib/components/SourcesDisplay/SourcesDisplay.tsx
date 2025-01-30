@@ -67,7 +67,9 @@ export interface SourcesDisplayProps {
 
 /**
  * SourcesDisplay component shows a list of retrieved sources with search functionality
- * 
+ *
+ * @example
+ *
  * ```tsx
  * <SourcesDisplay 
  *   title="Search Results"
