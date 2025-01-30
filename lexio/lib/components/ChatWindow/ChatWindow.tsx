@@ -129,7 +129,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 className={`mb-2 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
                 <div
-                    className={`px-3 py-2 rounded-lg w-fit max-w-[90%] flex items-start`}
+                    className={`px-3 py-2 rounded-lg w-fit max-w-[90%] flex items-start drop-shadow-sm`}
                     style={{backgroundColor: msg.role === 'user' ? style.textBackground : style.assistantTextBackground, borderRadius: style.borderRadius}}
                 >
                     {showRoleLabels && msg.role === 'assistant' && (
@@ -165,7 +165,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 <div className="mb-2 flex assistant streaming justify-start">
                     <div
                         className={`px-3 py-2 w-fit max-w-[90%] flex items-start`}
-                        style={{backgroundColor: style.assistantTextBackground, borderRadius: style.borderRadius}}
+                        style={{
+                            backgroundColor: style.assistantTextBackground,
+                            borderRadius: style.borderRadius
+                        }}
                     >
                         {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
                         <div className="inline" style={{whiteSpace: 'pre-wrap'}}>{renderContent(currentStream.content)}</div>

@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 import {configureDocsRendering, extractComponentDescriptionHelper, renderDocsBlocks} from './helper';
 
 // Sample data for the story
-const SAMPLE_MESSAGES: Message[] = [
+/*const SAMPLE_MESSAGES: Message[] = [
   {
     role: 'user',
     content: 'What is machine learning?',
@@ -15,6 +15,17 @@ const SAMPLE_MESSAGES: Message[] = [
   {
     role: 'assistant',
     content: 'Machine learning is a branch of artificial intelligence that enables systems to learn and improve from experience without being explicitly programmed.',
+  },
+];*/
+
+const SAMPLE_MESSAGES: Message[] = [
+  {
+    role: 'user',
+    content: 'What is machine learning?',
+  },
+  {
+    role: 'assistant',
+    content: 'Machine learning is a branch of **artificial intelligence** that enables systems to learn and improve from experience without being explicitly programmed. \n# test heading',
   },
 ];
 
@@ -68,4 +79,4 @@ type Story = StoryObj<typeof ChatWindow>;
 export const Docs: Story = {
   args: {
   },
-}; 
+};
