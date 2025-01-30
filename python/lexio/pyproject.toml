@@ -54,3 +54,6 @@ root = "../.." # required for hatch-vcs to find git versioning metadata
 
 [tool.hatch.build.hooks.vcs]
 version-file = "lexio/_version.py"
+
+[tool.hatch.build.targets.sdist]
+only-include = ["lexio", "pyproject.toml", "README.md"]
