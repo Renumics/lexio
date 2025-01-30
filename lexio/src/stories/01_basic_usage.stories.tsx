@@ -46,7 +46,7 @@ const meta = {
 # Basic Usage
 
 This is the first step in learning how to use the RAG UI. Here you'll learn:
-- Basic setup of the [RAGProvider](docs/concepts#RagProvider)
+- Basic setup of the [RAGProvider](../?path=/docs/components-ragprovider--docs)
 - How to implement a simple retrieveAndGenerate function
 - Basic source and response handling
 
@@ -112,4 +112,4 @@ Next, move on to "02. Source Types" to learn about different types of sources an
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Docs: Story = {}; 
+export const Docs: Story = {};

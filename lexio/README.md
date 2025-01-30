@@ -1,64 +1,89 @@
-# React + TypeScript + Vite
+<p align="center"><a href="https://spotlight.renumics.com"><img src="lexio/src/stories/assets/lexio logo transparent.png" alt="Gray shape shifter" height="60"/></a></p>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<p align="center">Quickest way to production grade RAG UI. </p>
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+  <h3 align="center">
+   <a href="https://renumics.com/lexio-ui"><b>Documentation</b></a> &bull;
+   <a href="https://renumics.com/blog/"><b>Blog</b></a> 
 
-## Expanding the ESLint configuration
+ </h3>
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
 
-- Configure the top-level `parserOptions` property like this:
+Lexio is a robust React library for Retrieval-Augmented Generation (RAG) document QA interfaces, handling complex workflows out of the box while remaining simple to use. 
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+It supports multiple document types (PDF, HTML, Markdown) with advanced features like streaming responses and source highlighting. 
+
+Developers can use ready-made components or easily build custom ones using React hooks.
+
+![RAG UI Example](lexio/src/stories/assets/shot_lexio_llama_index.png)
+
+
+## Quick Start
+
+You can install the library with npm or yarn:
+
+```bash
+npm install lexio
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+To use the GUI components, you need to provide retrieval and generation functions to the `RAGProvider` context:
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+```tsx
+import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay, ErrorDisplay } from 'lexio';
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+const App = () => (
+<RAGProvider
+  retrieveAndGenerate={(messages) => {
+    return {
+      sources: Promise.resolve([
+        {
+          source: "example-doc.pdf",
+        },
+          relevanceScore: 0.95
+        }
+      ]),
+      response: Promise.resolve("This is a sample response based on the retrieved documents.")
+    };
+  }}
+>
+  <ChatWindow />
+  <AdvancedQueryField />
+  <SourcesDisplay />
+  <ContentDisplay />
+  <ErrorDisplay />
+</RAGProvider>
+);
 ```
+Follow the Tutorial to learn more about the library.
 
-## Python package
+## Key Features
+- **Powerful Viewers**: Pre-built components for chat interfaces, source selection and viewing with source highlighting
+- **Integrated State Management**: Transparent state handling for interaction between components
+- **Opinionated Architecture**: Implements RAG best practices out of the box
+- **Highly Customizable**: Theming and component customization options through ...
 
-The Python package can be automatically generated from the frontend library. It contains API types for the lexio frontend library. Follow these steps to release the package:
+## Advantages
+- **Quick Implementation**: Get your RAG interface running with just a few lines of code
+- **Production Ready**: Built for integration into mature web applications
+- **Best Practices Built-in**: Follows RAG implementation patterns from real-world applications
+- **Framework Agnostic**: Works with any backend RAG implementation
 
-1. Update the frontend library with the latest changes.
-2. If needed, update the [types-to-include.json](scripts%2Ftypes-to-include.json) file to modify the exported types.
-3. Run `npm run build-python-package` to generate the Python package, run tests and build the package in the `python/lexio` folder.
-4. Commit the changes and push them to the repository.
+## Target Groups
 
-> Note: We use the version from the frontend library's `package.json` file as the version for the Python package.
+### 🚀 Startups
+- Rapid prototyping capabilities
+- Quick time-to-market
+- Flexible customization options
 
-Since we are creating the `lexio` python package automatically we run several test with 'pytest' to ensure the package is working as expected. The tests are located in the [tests](tests)[tests](..%2Fpython%2Flexio%2Ftests) folder.
-If you add new types which are exported to the python package, you should also add tests for them.
+### 🌐 Enterprise
+- Enterprise-grade reliability
+- Seamless integration with existing systems
+- Production-ready components
+- Professional support options
+
+### 👨‍💻 AI Developers
+- Full control over RAG pipeline
+- Custom component development
+- Advanced configuration options
+- Direct access to underlying state

@@ -177,9 +177,9 @@ interface AdvancedQueryFieldProps {
  * - Visual workflow status indicator
  * - Customizable styling
  * - Responsive design
- * 
- * Usage:
- * 
+ *
+ * @example
+ *
  * ```tsx
  * <AdvancedQueryField
  *   onSubmit={(message, mentions) => {

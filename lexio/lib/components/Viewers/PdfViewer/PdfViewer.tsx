@@ -72,15 +72,16 @@ interface PdfViewerProps {
  * @returns {JSX.Element} A themed PDF viewer with navigation and zoom controls
  * 
  * @remarks
- * Features include:
+ * **Features:**
  * - Page navigation with keyboard shortcuts (Left/Right arrows, Space, Backspace)
  * - Zoom controls (Ctrl/Cmd + Up/Down)
  * - Page rotation (.)
  * - Support for highlight annotations
  * - Automatic page selection based on highlight density
  * - Mouse wheel zoom support
- * 
- * Keyboard Shortcuts:
+ *
+ * @remarks
+ * **Keyboard Shortcuts:**
  * - Next Page: Right Arrow, Space
  * - Previous Page: Left Arrow, Backspace
  * - First Page: Home
@@ -91,6 +92,7 @@ interface PdfViewerProps {
  * - Rotate Page: .
  * 
  * @example
+ *
  * ```tsx
  * <PdfViewer
  *   data={pdfBinaryData}

@@ -4,6 +4,7 @@ import { RAGProvider, useRAGMessages } from '../../../lib/components/RAGProvider
 import 'tailwindcss/tailwind.css';
 import type { Message, GenerateInput, RetrieveAndGenerateResponse } from '../../../lib/types';
 import { useEffect } from 'react';
+import {configureDocsRendering, extractComponentDescriptionHelper, renderDocsBlocks} from './helper';
 
 // Sample data for the story
 const SAMPLE_MESSAGES: Message[] = [
@@ -38,9 +39,15 @@ const meta: Meta<typeof ChatWindow> = {
   title: 'Components/ChatWindow',
   component: ChatWindow,
   tags: ['autodocs'],
+  parameters: {
+      docs: {
+          extractComponentDescription: extractComponentDescriptionHelper,
+          page: renderDocsBlocks,
+      },
+  },
   decorators: [
     (Story) => (
-      <div style={{ width: '600px', minHeight: '500px', padding: '1rem' }}>
+      <div className="h-fit" style={{ width: '600px', padding: '1rem' }}>
         <RAGProvider
           retrieveAndGenerate={(messages: GenerateInput): RetrieveAndGenerateResponse => ({
             sources: Promise.resolve([]),
@@ -60,6 +67,5 @@ type Story = StoryObj<typeof ChatWindow>;
 
 export const Docs: Story = {
   args: {
-
   },
 }; 

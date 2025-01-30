@@ -5,6 +5,7 @@ import { useRAGSources } from '../../../lib/components/RAGProvider/hooks';
 import { useEffect } from 'react';
 import 'tailwindcss/tailwind.css';
 import type { RetrievalResult } from '../../../lib/types';
+import {configureDocsRendering, extractComponentDescriptionHelper, renderDocsBlocks} from "./helper.tsx";
 
 // Sample data for the story
 const SAMPLE_RESULTS: RetrievalResult[] = [
@@ -50,9 +51,15 @@ const meta: Meta<typeof SourcesDisplay> = {
   title: 'Components/SourcesDisplay',
   component: SourcesDisplay,
   tags: ['autodocs'],
+  parameters: {
+      docs: {
+          extractComponentDescription: extractComponentDescriptionHelper,
+          page: renderDocsBlocks,
+      },
+  },
   decorators: [
     (Story) => (
-      <div style={{ width: '600px', minHeight: '500px', padding: '1rem' }}>
+      <div className="h-fit" style={{ width: '600px',  padding: '1rem' }}>
         <RAGProvider 
           retrieve={async () => {
             // Add small delay to simulate network request
@@ -80,6 +87,6 @@ export const Docs: Story = {
     showRelevanceScore: true,
     showMetadata: true,
     styleOverrides: {
-    }
-  }
+    },
+  },
 }; 
