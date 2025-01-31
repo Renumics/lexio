@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { RAGProvider, ChatWindow, AdvancedQueryField, ErrorDisplay } from '../../lib/main';
 import type { Message } from '../../lib/main';
 
-const testContent = `# Test Markdown Content
+// TODO: remove before merge
+const testConten = `# Test Markdown Content
 
 This is a **test paragraph** to showcase Markdown rendering in the \`MarkdownViewer\` component.
 
@@ -19,17 +20,32 @@ This is a **test paragraph** to showcase Markdown rendering in the \`MarkdownVie
 | John Doe  | 30  | New York     |
 | Jane Doe  | 28  | Los Angeles  |
 
-\`\`\`bash
-test Code
+\`\`\`python
+import lexio
+
+def main():
+    source = lexio.SourceReference("example-doc.pdf", type="pdf", metadata={"title": "Example Document"})
+    print(source)
 \`\`\`
 `;
 
+const testContent = `# Test Markdown Content
+
+\`\`\`python
+import lexio
+
+def main():
+    source = lexio.SourceReference("example-doc.pdf", type="pdf", metadata={"title": "Example Document"})
+    print(source)
+\`\`\`
+`;
 
 const response = async function* () {
   for (const word of testContent.split('')) {
     yield { content: word };
     await new Promise(resolve => setTimeout(resolve, 10));
   }
+  yield { content: '', done: true };
 };
 
 const ExampleComponent = () => (
@@ -85,4 +101,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Docs: Story = {}; 
+export const Docs: Story = {
+  args: {
+
+  },
+};
