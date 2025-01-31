@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useState} from 'react';
+import React, {useContext, useEffect, useMemo, useState} from 'react';
 import {ThemeContext} from '../../theme/ThemeContext';
 import {Message} from '../../types';
 import {useRAGMessages} from '../RAGProvider/hooks';
@@ -82,14 +82,22 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                                    assistantLabel = 'Assistant:',
                                                    renderAsMarkdown = true,
                                                }) => {
-    const [animateMarkdownContainerStyle, setAnimateMarkdownContainerStyle] = useState<React.CSSProperties>({})
     const {messages, currentStream} = useRAGMessages();
     // Add ref for scrolling
     const chatEndRef = React.useRef<HTMLDivElement>(null);
 
     // Scroll to bottom whenever messages or currentStream changes
     React.useEffect(() => {
-        chatEndRef.current?.scrollIntoView({behavior: 'smooth'});
+        // If there are no messages and no currentStream, don't scroll
+        if (messages.length === 0 && !currentStream) {
+            return;
+        }
+        // Get the parent element of the chatEndRef and scroll to the bottom
+        const container = chatEndRef.current?.parentElement;
+        if (container) {
+            // Scroll to the bottom of the container by setting scrollTop to scrollHeight
+            container.scrollTop = container.scrollHeight;
+        }
     }, [messages, currentStream]);
 
     // --- use theme ---
@@ -112,12 +120,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         ...styleOverrides, // ensure these override theme defaults
     };
 
-    useEffect(() => {
-        setAnimateMarkdownContainerStyle({ "--base-font-size": `1rem` } as React.CSSProperties)
+    // use this to set the fontBaseSize as css-var for the markdown container
+    const animateMarkdownContainerStyle = useMemo(() => {
+        return { "--base-font-size": `1rem` } as React.CSSProperties;
     }, [typography.fontSizeBase]);
 
-    console.log(animateMarkdownContainerStyle)
-
+    // todo: this component re-renders on every message update. Optimize this by using a memoized version of the messages
     const renderContent = (content: string) => {
         if (!renderAsMarkdown) {
             return content;
