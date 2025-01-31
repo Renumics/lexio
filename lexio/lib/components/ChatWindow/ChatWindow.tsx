@@ -1,11 +1,11 @@
-import React, {useContext} from 'react';
+import React, {useContext, useEffect, useState} from 'react';
 import {ThemeContext} from '../../theme/ThemeContext';
 import {Message} from '../../types';
 import {useRAGMessages} from '../RAGProvider/hooks';
+import {AnimatedMarkdown} from "flowtoken";
 import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-
-// todo: css for markdown
+import "./ChatWindowMarkdown.css"
+import remarkGfm from "remark-gfm";
 
 const hexToRgb = (hex: string) => {
   hex = hex.replace(/^#/, '');
@@ -82,6 +82,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                                    assistantLabel = 'Assistant:',
                                                    renderAsMarkdown = true,
                                                }) => {
+    const [animateMarkdownContainerStyle, setAnimateMarkdownContainerStyle] = useState<React.CSSProperties>({})
     const {messages, currentStream} = useRAGMessages();
     // Add ref for scrolling
     const chatEndRef = React.useRef<HTMLDivElement>(null);
@@ -111,14 +112,30 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         ...styleOverrides, // ensure these override theme defaults
     };
 
+    useEffect(() => {
+        setAnimateMarkdownContainerStyle({ "--base-font-size": `1rem` } as React.CSSProperties)
+    }, [typography.fontSizeBase]);
+
+    console.log(animateMarkdownContainerStyle)
+
     const renderContent = (content: string) => {
         if (!renderAsMarkdown) {
             return content;
         }
         return (
-            <Markdown remarkPlugins={[remarkGfm]}>
-                {content}
-            </Markdown>
+            <div
+                className={"prose lg:prose-md prose-pre:p-0 prose-pre:m-0 prose-pre:bg-transparent chat-markdown-content"}
+                style={animateMarkdownContainerStyle}
+                >
+                {/*<AnimatedMarkdown*/}
+                {/*    content={content}*/}
+                {/*    sep="word"*/}
+                {/*    animation={"fadeIn"}*/}
+                {/*    animationDuration="0.1s"*/}
+                {/*    animationTimingFunction="ease-in-out"*/}
+                {/*/>*/}
+                <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+            </div>
         );
     }
 
