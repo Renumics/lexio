@@ -1,4 +1,4 @@
-import React, {useContext, useMemo, useState} from 'react';
+import React, {useContext, useMemo} from 'react';
 import {ThemeContext} from '../../theme/ThemeContext';
 import {Message} from '../../types';
 import {useRAGMessages} from '../RAGProvider/hooks';
