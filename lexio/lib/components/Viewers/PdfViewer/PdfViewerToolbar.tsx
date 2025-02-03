@@ -8,7 +8,7 @@ import {useEffect, useState} from "react";
  */
 export interface PdfViewerToolbarProps {
     numPages: number | null;
-    pageNumber: number | null;
+    pageNumber: number;
     scale: number;
     rotate: number;
     canvasDimensions: CanvasDimensions;

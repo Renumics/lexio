@@ -46,7 +46,7 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
     if (!theme) {
         throw new Error('ThemeContext is undefined');
     }
-    const { colors, typography, componentDefaults } = theme.theme;
+    const { colors, typography } = theme.theme;
 
     // --- merge theme defaults + overrides ---
     const style: ViewerToolbarStyles = {
@@ -91,7 +91,7 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
                     disabled={!isLoaded}>
                     <MagnifyingGlassPlusIcon className="size-5"/>
                 </button>
-                <div className="m-auto px-2 text-center font-default"
+                <div className="m-auto px-2 text-center font-default min-w-10"
                     style={{
                         color: style.toolbarTextColor,
                         backgroundColor: style.toolbarChipBackground,

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState, useContext} from "react";
+import {useCallback, useEffect, useRef, useState, useContext} from "react";
 import {Highlight} from "./Highlight.tsx"
 import {pdfjs, Document, Page} from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
@@ -64,6 +64,8 @@ interface PdfViewerProps {
 /**
  * A component for displaying PDF documents with advanced viewing controls.
  * Used in the ContentDisplay component to display PDF source content with highlight support.
+ *
+ * If no `page` number is provided, the component will automatically select the most frequently highlighted page.
  * 
  * @component
  * @param {PdfViewerProps} props - The props for the PdfViewer
@@ -159,8 +161,13 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
     useEffect(() => {
         if (data) {
             let targetPage = 1; // default to first page
-            
-            if (highlights && highlights.length > 0) {
+
+            // Set target page based on the provided page prop
+            if (page) {
+                targetPage = page;
+
+            // Otherwise, set target page based on the most frequent page in the highlights
+            } else if (highlights && highlights.length > 0) {
                 // Count page occurrences in highlights
                 const pageCount = highlights.reduce((acc: {[key: number]: number}, highlight) => {
                     const highlightPage = highlight.page;
@@ -173,8 +180,6 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                     .reduce((a, b) => (b[1] > a[1] ? b : a))[0];
                 
                 targetPage = parseInt(mostFrequentPage) || page || 1;
-            } else if (page) {
-                targetPage = page;
             }
 
             setPageNumber(targetPage);
@@ -405,6 +410,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
             style={{
                 color: style.color,
                 fontFamily: style.fontFamily,
+                backgroundColor: style.contentBackground,
             }}
         >
             <PdfViewerToolbar
@@ -430,7 +436,8 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                 ref={documentContainerRef}
             >
                 <Document
-                    file={pdfData as File} // File object with binary data
+                    // @ts-ignore: TS2352
+                    file={pdfData as File}
                     onLoadSuccess={onDocumentLoadSuccess}
                     onLoadError={onDocumentLoadError}
                     className="w-full h-full"
