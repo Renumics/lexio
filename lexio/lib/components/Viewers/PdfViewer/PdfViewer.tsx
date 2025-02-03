@@ -13,7 +13,8 @@ import { ViewerToolbar, ViewerToolbarStyles } from "../ViewerToolbar";
 import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
 import {useHotkeys, Options} from 'react-hotkeys-hook';
 import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
-
+import { PDFDocumentProxy } from 'pdfjs-dist';
+import { SearchMatch, usePDFSearch } from "./usePDFSearch";
 // Configure PDF.js worker - we explicitly use the pdfjs worker from the react-pdf package to avoid conflicts with the worker versions.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -63,6 +64,12 @@ interface PdfViewerProps {
     styleOverrides?: PdfViewerStyles;
 }
 
+const TEST_HIGHLIGHTS = [
+    {"text": "Agents are great", "page": 1},
+    {"text": "Tooluse is helpful"},
+    {"text": "Introduction"},
+]
+
 /**
  * A component for displaying PDF documents with advanced viewing controls.
  * Used in the ContentDisplay component to display PDF source content with highlight support.
@@ -110,11 +117,16 @@ interface PdfViewerProps {
 const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
+    const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
+    const [pageMatches, setPageMatches] = useState<SearchMatch[]>([]);
+    const { searchPage, clearCache } = usePDFSearch(document);
     const [scale, setScale] = useState<number>(1); // Scale of the PDF page
     const [rotate, setRotate] = useState<number>(0);
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
     
+    
+
     // --- use theme ---
     const theme = useContext(ThemeContext);
     if (!theme) {
@@ -147,8 +159,9 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
     const file = useMemo(() => ({data: data}), [data]);
 
     // Function to handle successful loading of the document
-    const onDocumentLoadSuccess = ({numPages}: {numPages: number}) => {
-        setNumPages(numPages);
+    const onDocumentLoadSuccess = (loadResult: PDFDocumentProxy) => {
+        setNumPages(loadResult.numPages);
+        setDocument(loadResult);
     };
 
     useEffect(() => {
@@ -177,6 +190,24 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         }
     }, [data, highlights, page]);
 
+    useEffect(() => {
+        if (!document || !pageNumber) return;
+
+        const searchCurrentPage = async () => {
+            const allMatches: SearchMatch[] = [];
+            
+            // Search for each highlight text on the current page
+            for (const highlight of TEST_HIGHLIGHTS) {
+                const matches = await searchPage(highlight.text, pageNumber);
+                allMatches.push(...matches);
+            }
+            console.log(allMatches);
+            setPageMatches(allMatches);
+        };
+
+        searchCurrentPage();
+    }, [document, pageNumber, searchPage]);
+    
     // Function to handle successful loading of the PDF page and retrieve its original dimensions
     const onPageLoadSuccess = (page: PDFPageProxy) => {
         const {width: pageWidth, height: pageHeight} = page.getViewport({scale: 1}); // Get original page width and height
