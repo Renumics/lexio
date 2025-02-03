@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { ThemeContext } from '../../theme/ThemeContext';
 import { useRAGMessages } from '../RAGProvider/hooks';
-import { withStyleReset } from '../../utils/withStyleReset';
+import { ResetWrapper } from '../../utils/ResetWrapper';
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -56,7 +56,7 @@ export interface ChatWindowProps {
  * />
  * ```
  */
-const ChatWindowBase: React.FC<ChatWindowProps> = ({ 
+const ChatWindow: React.FC<ChatWindowProps> = ({ 
   styleOverrides = {},
   showRoleLabels = true,
   userLabel = 'User: ',
@@ -90,6 +90,7 @@ const ChatWindowBase: React.FC<ChatWindowProps> = ({
   };
 
   return (
+    <ResetWrapper>
     <div
       className="w-full h-full overflow-y-auto"
       style={style}
@@ -108,9 +109,10 @@ const ChatWindowBase: React.FC<ChatWindowProps> = ({
           <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{currentStream.content}</div>
         </div>
       )}
-      <div ref={chatEndRef} />
-    </div>
+        <div ref={chatEndRef} />
+      </div>
+    </ResetWrapper>
   );
 };
 
-export const ChatWindow = withStyleReset(ChatWindowBase);
+export { ChatWindow }

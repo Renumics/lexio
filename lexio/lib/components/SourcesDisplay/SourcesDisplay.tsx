@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { RetrievalResult, SourceReference } from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
-import { withStyleReset } from "../../utils/withStyleReset";
+import { ResetWrapper } from "../../utils/ResetWrapper";
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
   color?: string;
@@ -85,7 +85,7 @@ export interface SourcesDisplayProps {
  * />
  * ```
  */
-const SourcesDisplayBase: React.FC<SourcesDisplayProps> = ({
+const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   title = "Retrieved Sources",
   searchPlaceholder = "Search sources...",
   showSearch = true,
@@ -154,6 +154,7 @@ const SourcesDisplayBase: React.FC<SourcesDisplayProps> = ({
   };
 
   return (
+    <ResetWrapper>
     <div className="w-full h-full overflow-y-auto" style={{
       backgroundColor: style.backgroundColor,
       color: style.color,
@@ -282,7 +283,8 @@ const SourcesDisplayBase: React.FC<SourcesDisplayProps> = ({
         </ul>
       )}
     </div>
+    </ResetWrapper>
   );
 };
 
-export const SourcesDisplay = withStyleReset(SourcesDisplayBase);
+export { SourcesDisplay }
