@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { ThemeContext } from '../../theme/ThemeContext';
 import { useRAGMessages } from '../RAGProvider/hooks';
+import { withReset } from '../../utils/withReset';
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -55,7 +56,7 @@ export interface ChatWindowProps {
  * />
  * ```
  */
-const ChatWindow: React.FC<ChatWindowProps> = ({ 
+const ChatWindowBase: React.FC<ChatWindowProps> = ({ 
   styleOverrides = {},
   showRoleLabels = true,
   userLabel = 'User: ',
@@ -112,4 +113,4 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   );
 };
 
-export { ChatWindow };
+export const ChatWindow = withReset(ChatWindowBase);

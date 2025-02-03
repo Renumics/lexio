@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { RetrievalResult, SourceReference } from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
-
+import { withReset } from "../../utils/withReset";
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
   color?: string;
@@ -85,7 +85,7 @@ export interface SourcesDisplayProps {
  * />
  * ```
  */
-const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
+const SourcesDisplayBase: React.FC<SourcesDisplayProps> = ({
   title = "Retrieved Sources",
   searchPlaceholder = "Search sources...",
   showSearch = true,
@@ -285,4 +285,4 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   );
 };
 
-export { SourcesDisplay };
+export const SourcesDisplay = withReset(SourcesDisplayBase);
