@@ -54,7 +54,7 @@ __all__ = [
         all_list=all_list,
         timestamp=timestamp
     ))
-    print(f"Generated {init_path}")
+    print(f"✅ Generated {init_path}")
 
 
 if __name__ == '__main__':

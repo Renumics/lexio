@@ -107,7 +107,7 @@ if (referencedTypes.size > 0) {
 // Write the filtered schema to file
 try {
   fs.writeFileSync(outputJsonPath, JSON.stringify(filteredSchema, null, 2));
-  console.log(`Schema successfully written to ${outputJsonPath}`);
+  console.log(`✅ Schema successfully written to ${outputJsonPath}`);
 } catch (error) {
   console.error('Error writing schema to file:', error);
   process.exit(1);
