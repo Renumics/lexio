@@ -112,7 +112,7 @@ const PdfViewerToolbar = ({
             }}
         >
             <div className="flex flex-row justify-between w-full">
-                <div className="flex flex-row gap-x-1 text-md">
+                <div className="flex flex-row justify-between gap-x-1 text-md">
                     <button
                         className="px-2 py-1 transition-transform transition-shadow duration-200 ease-in-out hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{
@@ -140,7 +140,7 @@ const PdfViewerToolbar = ({
                                     value={pageNumberInput}
                                     onChange={(e) => setPageNumberInput(e.target.value)}
                                     onKeyDown={setPageNumberFromInput}
-                                    className="text-center rounded-md mx-1 w-8"
+                                    className="text-right mx-1 w-8 focus:outline-none focus:underline"
                                     style={{
                                         backgroundColor: style.toolbarChipInputBackground,
                                     }}
@@ -149,7 +149,7 @@ const PdfViewerToolbar = ({
                                     aria-label="Enter page number"
                                     aria-live="polite"
                                 /> /
-                                <span className="text-gray-600 mx-1"> {numPages || '--'}</span>
+                                <span className="text-gray-600 mx-1">{numPages || '--'}</span>
                             </>
                         ) : '--'
                         }

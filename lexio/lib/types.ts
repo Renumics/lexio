@@ -104,6 +104,7 @@ export interface BaseRetrievalResult {
  * @extends {BaseRetrievalResult}
  * @property {('pdf' | 'html' | 'markdown')} [type] - The type of the source document
  * @property {string} sourceReference - Reference identifier for the source
+ * @property {{ page: number } & Record<string, any>} [metadata] - Optional metadata associated with the result. If you provide the `page` property in the metadata and `type` is 'pdf', the PdfViewer will display a PDFSourceContent associated to this SourceReference on that page. Page numbers are 1-based.
  */
 export interface SourceReference extends BaseRetrievalResult {
   /**
@@ -126,6 +127,16 @@ export interface SourceReference extends BaseRetrievalResult {
    * };
    */
   sourceReference: string;
+  /**
+   * Optional metadata associated with the result. Can be used to store additional information.
+   *
+   * If you provide the `page` property in the metadata and `type` is 'pdf', the PdfViewer will display a PDFSourceContent associated to this SourceReference on that page. Page numbers are 1-based.
+   *
+   * @remarks Metadata is not used by the RAG provider. It is shown as-is in the SourcesDisplay component.
+   */
+  metadata?: {
+    page?: number
+  } & Record<string, any>;
 }
 
 /**
@@ -200,14 +211,15 @@ export interface HTMLSourceContent extends BaseSourceContent {
 
 /**
  * Represents PDF source content.
+ *
+ * @remarks The PDFSourceContent value for page is automatically set if the associated SourceReference has a page property in its metadata.
  * 
  * @interface PDFSourceContent
  * @extends {BaseSourceContent}
  * @property {Uint8Array} content - The binary PDF content
  * @property {'pdf'} type - Must be "pdf". Indicates this is PDF content.
  * @property {PDFHighlight[]} [highlights] - Optional array of highlights in the PDF
- *
- * @todo This type will change due to upcoming changes in how to define the page number for PDF content.
+ * @property {number} [page] - The page number to display when rendering the PDF. Page numbers are 1-based. If not provided, the PdfViewer will set the default page number based on the highlights (if no highlights are provided, the first page will be displayed).
  */
 export interface PDFSourceContent extends BaseSourceContent {
   /**
@@ -224,6 +236,10 @@ export interface PDFSourceContent extends BaseSourceContent {
    * Optional array of highlights in the PDF.
    */
   highlights?: PDFHighlight[];
+  /**
+   * The page number to display when rendering the PDF. Page numbers are 1-based. If not provided, the PdfViewer will set the default page number based on the highlights (if no highlights are provided, the first page will be displayed).
+   */
+  page?: number;
 }
 
 /**

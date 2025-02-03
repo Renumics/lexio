@@ -93,7 +93,7 @@ interface PdfViewerProps {
  *
  * ```tsx
  * <PdfViewer
- *   data={pdfBinaryData}
+ *   data={pdfBinaryData as Uint8Array}
  *   highlights={[
  *     { page: 1, rect: { top: 0.1, left: 0.1, width: 0.2, height: 0.05 } }
  *   ]}
@@ -133,7 +133,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         contentPadding: 'none',
         borderRadius: componentDefaults.borderRadius,
 
-        toolbarBorderRadius: componentDefaults.borderRadius,
+        toolbarBorderRadius: '0.35rem',
         toolbarBoxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)',
         toolbarChipBackground: '#ffffff',
         toolbarChipBorderRadius: '0.375rem',

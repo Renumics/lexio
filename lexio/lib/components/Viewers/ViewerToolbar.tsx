@@ -57,7 +57,7 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
         toolbarChipBorderRadius: '0.375rem',
         toolbarChipInputBackground: '#ffffff',
 
-        toolbarBorderRadius: componentDefaults.borderRadius,
+        toolbarBorderRadius: '0.35rem',
         toolbarBoxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)',
         toolbarTextColor: colors.text,
         toolbarBackground: colors.toolbarBackground,
@@ -72,9 +72,7 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
     return (
         <div className="px-2 gap-x-1 flex flex-row justify-between z-10 py-1"
              style={{
-                 // borderTopLeftRadius: style.toolbarBorderRadius,
-                 // borderTopRightRadius: style.toolbarBorderRadius,
-                 borderRadius: '0.35rem',
+                 borderRadius: style.toolbarBorderRadius,
                  boxShadow: style.toolbarBoxShadow,
                  backgroundColor: style.toolbarBackground,
              }}
@@ -93,7 +91,7 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
                     disabled={!isLoaded}>
                     <MagnifyingGlassPlusIcon className="size-5"/>
                 </button>
-                <div className="m-auto min-w-14 text-center"
+                <div className="m-auto px-2 text-center font-default"
                     style={{
                         color: style.toolbarTextColor,
                         backgroundColor: style.toolbarChipBackground,
