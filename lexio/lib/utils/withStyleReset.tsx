@@ -9,7 +9,7 @@ interface ResetWrapperProps {
 /**
  * Higher-Order Component that wraps any component with style reset
  */
-export function withReset<P extends object>(
+export function withStyleReset<P extends object>(
   WrappedComponent: React.ComponentType<P>
 ): React.FC<P & ResetWrapperProps> {
   return function ResetWrapper({ wrapperStyle, className, ...props }: P & ResetWrapperProps) {

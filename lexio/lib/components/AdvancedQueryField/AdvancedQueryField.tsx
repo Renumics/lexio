@@ -24,7 +24,7 @@ import {
 } from '../RAGProvider/hooks';
 import { RetrievalResult, SourceReference, WorkflowMode } from '../../types';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
-import { withReset } from '../../utils/withReset';
+import { withStyleReset } from '../../utils/withStyleReset';
 
 /**
  * Styles interface for the AdvancedQueryField component
@@ -922,4 +922,4 @@ const AdvancedQueryFieldBase: React.FC<AdvancedQueryFieldProps> = ({
   );
 };
 
-export const AdvancedQueryField = withReset(AdvancedQueryFieldBase);
+export const AdvancedQueryField = withStyleReset(AdvancedQueryFieldBase);

@@ -3,7 +3,7 @@ import useResizeObserver from '@react-hook/resize-observer';
 import type { WorkflowMode } from '../../types';
 import { useRAGMessages, useRAGStatus } from '../RAGProvider/hooks';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
-import { withReset } from '../../utils/withReset';
+import { withStyleReset } from '../../utils/withStyleReset';
 
 /**
  * Styles interface for the QueryField component
@@ -254,4 +254,4 @@ const QueryFieldBase: React.FC<QueryFieldProps> = ({
   );
 };
 
-export const QueryField = withReset(QueryFieldBase);
+export const QueryField = withStyleReset(QueryFieldBase);

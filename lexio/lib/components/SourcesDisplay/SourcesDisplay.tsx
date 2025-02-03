@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { RetrievalResult, SourceReference } from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
-import { withReset } from "../../utils/withReset";
+import { withStyleReset } from "../../utils/withStyleReset";
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
   color?: string;
@@ -285,4 +285,4 @@ const SourcesDisplayBase: React.FC<SourcesDisplayProps> = ({
   );
 };
 
-export const SourcesDisplay = withReset(SourcesDisplayBase);
+export const SourcesDisplay = withStyleReset(SourcesDisplayBase);
