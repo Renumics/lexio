@@ -26,6 +26,20 @@ export interface ViewerToolbarStyles extends React.CSSProperties {
     toolbarChipInputBackground?: string;
 }
 
+/**
+ * ViewerToolbar component provides a toolbar with zoom in, zoom out, and fit to parent buttons
+ *
+ * @internal
+ *
+ * @param zoomIn - Zoom in button click handler
+ * @param zoomOut - Zoom out button click handler
+ * @param scale - Current scale value
+ * @param fitParent - Fit to parent button click handler
+ * @param children - Additional toolbar components
+ * @param isLoaded - Flag to indicate if the viewer is loaded
+ * @param styleOverrides - Style overrides for the toolbar
+ * @constructor
+ */
 export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isLoaded = true, styleOverrides = {} }: ViewerToolbarProps) => {
     // --- use theme ---
     const theme = useContext(ThemeContext);
@@ -58,8 +72,9 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
     return (
         <div className="px-2 gap-x-1 flex flex-row justify-between z-10 py-1"
              style={{
-                 borderTopLeftRadius: style.toolbarBorderRadius,
-                 borderTopRightRadius: style.toolbarBorderRadius,
+                 // borderTopLeftRadius: style.toolbarBorderRadius,
+                 // borderTopRightRadius: style.toolbarBorderRadius,
+                 borderRadius: '0.35rem',
                  boxShadow: style.toolbarBoxShadow,
                  backgroundColor: style.toolbarBackground,
              }}

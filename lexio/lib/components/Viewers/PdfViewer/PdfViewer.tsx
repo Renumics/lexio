@@ -1,24 +1,22 @@
 import {useCallback, useEffect, useMemo, useRef, useState, useContext} from "react";
-import {
-    ArrowUturnDownIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-} from "@heroicons/react/24/solid";
 import {Highlight} from "./Highlight.tsx"
 import {pdfjs, Document, Page} from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import { ViewerToolbar, ViewerToolbarStyles } from "../ViewerToolbar";
+import { ViewerToolbarStyles } from "../ViewerToolbar";
+import { PdfViewerToolbar } from "./PdfViewerToolbar";
 import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
 import {useHotkeys, Options} from 'react-hotkeys-hook';
 import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
+import { PDFHighlight } from "../../../types";
 
 // Configure PDF.js worker - we explicitly use the pdfjs worker from the react-pdf package to avoid conflicts with the worker versions.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
     import.meta.url,
 ).toString();
+
 
 /**
  * Constants for the PdfViewer component's zoom functionality.
@@ -52,13 +50,13 @@ export interface PdfViewerStyles extends ViewerToolbarStyles {
  * 
  * @interface PdfViewerProps
  * @property {Uint8Array} data - The binary PDF data to display
- * @property {any[]} [highlights] - Optional array of highlight annotations to display on the PDF
+ * @property {PDFHighlight[]} [highlights] - Optional array of highlight annotations to display on the PDF
  * @property {number} [page] - Optional page number to display initially
  * @property {PdfViewerStyles} [styleOverrides] - Optional style overrides for customizing the viewer's appearance
  */
 interface PdfViewerProps {
     data: Uint8Array;
-    highlights?: any[];
+    highlights?: PDFHighlight[];
     page?: number;
     styleOverrides?: PdfViewerStyles;
 }
@@ -108,10 +106,14 @@ interface PdfViewerProps {
  * ```
  */
 const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
+    const [pdfData, setPdfData] = useState<{data: object} | undefined>();
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
-    const [scale, setScale] = useState<number>(1); // Scale of the PDF page
+    const [renderedPageNumber, setRenderedPageNumber] = useState<number>(1);
     const [rotate, setRotate] = useState<number>(0);
+
+    // state variables for scale of the PDF page
+    const [scale, setScale] = useState<number>(1); // Scale of the PDF page
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
     
@@ -143,14 +145,17 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         ...removeUndefined(styleOverrides),
     };
 
-    // parse data object to file object which can be consumed by react-pdf
-    const file = useMemo(() => ({data: data}), [data]);
-
     // Function to handle successful loading of the document
     const onDocumentLoadSuccess = ({numPages}: {numPages: number}) => {
         setNumPages(numPages);
     };
 
+    useEffect(() => {
+        // parse data object to file object which can be consumed by react-pdf. we run it only once when data is set
+        setPdfData({data: new Uint8Array(data)});
+    }, []);
+
+    // Function to calculate the target page based on the highlights
     useEffect(() => {
         if (data) {
             let targetPage = 1; // default to first page
@@ -207,6 +212,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         }
     }, [canvasDimensions, rotate]);
 
+    const changePageTo = (newPage: number) => setPageNumber(newPage);
     const changePage = (offset: number) => setPageNumber(prevPageNumber => prevPageNumber + offset);
     const previousPage = () => changePage(-1);
     const nextPage = () => changePage(1);
@@ -249,27 +255,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                 pdfContainer.removeEventListener('wheel', handleWheel);
             }
         };
-    }, [zoomIn, zoomOut]); 
-
-    const setPageNumberFromInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            const inputValue = (e.target as HTMLInputElement).value;
-            if (inputValue === '') {
-                setPageNumber(1); // Default to page 1 if input is empty
-                return;
-            }
-            if (numPages === null) {
-                return;
-            }
-            const newPageNumber = parseInt(inputValue, 10);
-            if (!isNaN(newPageNumber)) {
-                // Clamp value between 1 and numPages
-                const clampedPageNumber = Math.max(1, Math.min(newPageNumber, numPages!));
-                setPageNumber(clampedPageNumber);
-            }
-        }
-    };
-
+    }, [zoomIn, zoomOut]);
 
     // ---- Hotkeys ----
     // Common options for hotkeys
@@ -405,106 +391,6 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         }
     };
 
-    const Toolbar = () => {
-        // Initialize scalePercentage with scale
-        let scalePercentage = scale;
-        
-        // Calculate actual scale percentage if we have the container width
-        if (documentContainerRef.current && canvasDimensions.width > 0 && numPages !== null) {
-            const isRotated = rotate % 180 !== 0;
-            const pageWidth = isRotated ? canvasDimensions.height : canvasDimensions.width;
-            const containerWidth = documentContainerRef.current?.clientWidth;
-            if (containerWidth > 0) {
-                scalePercentage = (scale * pageWidth) / containerWidth;
-            }
-        }
-
-        return (
-            <ViewerToolbar 
-                zoomIn={wrappedActions.zoomIn} 
-                zoomOut={wrappedActions.zoomOut} 
-                scale={scalePercentage} 
-                fitParent={wrappedActions.fitParent}
-                isLoaded={numPages !== null}
-                styleOverrides={{
-                    toolbarBorderRadius: style.toolbarBorderRadius,
-                    toolbarBackground: style.toolbarBackground,
-                    toolbarButtonBackground: style.toolbarButtonBackground,
-                    toolbarButtonColor: style.toolbarButtonColor,
-                    toolbarButtonBorderRadius: style.toolbarButtonBorderRadius,
-                    toolbarTextColor: style.toolbarTextColor,
-                    toolbarBoxShadow: style.toolbarBoxShadow,
-                }}
-            >
-                <div className="flex flex-row justify-between w-full">
-                    <div className="flex flex-row gap-x-1 text-md">
-                        <button
-                            className="px-2 py-1 transition-transform transition-shadow duration-200 ease-in-out hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{
-                                color: style.toolbarButtonColor,
-                                backgroundColor: style.toolbarButtonBackground,
-                                borderRadius: style.toolbarButtonBorderRadius,
-                            }}
-                            disabled={pageNumber <= 1 || numPages === null}
-                            onClick={wrappedActions.previousPage}
-                            title="Previous Page (Left Arrow, Backspace)">
-                            <ChevronLeftIcon className="size-4"/>
-                        </button>
-                        <div className="m-auto px-1"
-                            style={{
-                                color: style.toolbarTextColor,
-                                backgroundColor: style.toolbarChipBackground,
-                                borderRadius: style.toolbarChipBorderRadius,
-                            }}
-                        >
-                            {numPages !== null ? (
-                                <>
-                                    <input
-                                        className="text-center rounded-md mx-1 w-8"
-                                        style={{
-                                            backgroundColor: style.toolbarChipInputBackground,
-                                        }}
-                                        onKeyDown={setPageNumberFromInput}
-                                        defaultValue={pageNumber || (numPages ? 1 : '--')}
-                                        placeholder="Page"
-                                        aria-label="Enter page number"
-                                        aria-live="polite"
-                                    /> /
-                                    <span className="text-gray-600 mx-1"> {numPages || '--'}</span>
-                                </>
-                            ) : '--'
-                            }
-                        </div>
-                        <button
-                            className="px-2 py-1 transition-transform transition-shadow duration-200 ease-in-out hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{
-                                color: style.toolbarButtonColor,
-                                backgroundColor: style.toolbarButtonBackground,
-                                borderRadius: style.toolbarButtonBorderRadius,
-                            }}
-                            disabled={numPages === null || pageNumber >= numPages}
-                            onClick={wrappedActions.nextPage}
-                            title="Next Page (Right Arrow, Space)">
-                            <ChevronRightIcon className="size-4"/>
-                        </button>
-                    </div>
-                    <button
-                        className="px-2 py-1 transition-transform transition-shadow duration-200 ease-in-out hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{
-                            color: style.toolbarButtonColor,
-                            backgroundColor: style.toolbarButtonBackground,
-                            borderRadius: style.toolbarButtonBorderRadius,
-                        }}
-                        onClick={wrappedActions.rotatePage}
-                        disabled={numPages === null}
-                        title="Rotate Page (.)">
-                        <ArrowUturnDownIcon className="size-5"/>
-                    </button>
-                </div>
-            </ViewerToolbar>
-        );
-    }
-
     return (
         <div 
             className="h-full w-full flex flex-col focus:outline-none"
@@ -521,7 +407,17 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                 fontFamily: style.fontFamily,
             }}
         >
-            <Toolbar />
+            <PdfViewerToolbar
+                numPages={numPages}
+                pageNumber={pageNumber}
+                scale={scale}
+                canvasDimensions={canvasDimensions}
+                rotate={rotate}
+                documentContainerRef={documentContainerRef}
+                wrappedActions={wrappedActions}
+                style={style}
+                changePageTo={changePageTo}
+            />
             <div 
                 className="flex justify-center items-start flex-grow overflow-auto relative w-full"
                 style={{
@@ -534,7 +430,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                 ref={documentContainerRef}
             >
                 <Document
-                    file={file}
+                    file={pdfData as File} // File object with binary data
                     onLoadSuccess={onDocumentLoadSuccess}
                     onLoadError={onDocumentLoadError}
                     className="w-full h-full"
@@ -546,13 +442,29 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                             display: 'inline-block',
                         }}
                     >
+                        {renderedPageNumber !== pageNumber ? (
+                            //* Render the previous page to avoid flickering when changing pages, see https://github.com/wojtekmaj/react-pdf/issues/418 */
+                            <Page
+                                key={renderedPageNumber}
+                                pageNumber={renderedPageNumber}
+                                scale={scale}
+                                className="max-w-full max-h-full block shadow-lg"
+                                renderMode="canvas"
+                                rotate={rotate}
+                                onLoadSuccess={onPageLoadSuccess}
+                            />
+                        ): null}
                         <Page
+                            key={pageNumber}
                             pageNumber={pageNumber}
                             scale={scale}
-                            className="max-w-full max-h-full block shadow-lg"
+                            className={`${renderedPageNumber !== pageNumber ? 'hidden' : ''} max-w-full max-h-full block shadow-lg`}
                             renderMode="canvas"
                             rotate={rotate}
                             onLoadSuccess={onPageLoadSuccess}
+                            onRenderSuccess={() => {
+                                setRenderedPageNumber(pageNumber);
+                            }}
                         />
                         {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
                             <Highlight
