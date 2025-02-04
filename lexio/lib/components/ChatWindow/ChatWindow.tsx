@@ -10,6 +10,12 @@ import "./ChatWindowMarkdown.css"
 // syntax highlighting
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+// icons
+import {
+    UserOutlineIcon,
+    MagnifyingGlassMinusIcon,
+    MagnifyingGlassPlusIcon,
+} from "@heroicons/react/24/solid";
 
 const hexToRgb = (hex: string) => {
   hex = hex.replace(/^#/, '');
@@ -159,12 +165,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         return (
             <div
                 className={"prose lg:prose-md prose-pre:p-0 prose-pre:m-0 prose-pre:bg-transparent chat-markdown-content"}
-                style={{...animateMarkdownContainerStyle, overflowX: 'auto', maxWidth: '100%'}}
+                style={{...animateMarkdownContainerStyle, overflowX: 'auto', width: '100%'}}
                 >
                 <Markdown
                     components={{
                         // We override the code block rendering to add a copy button and syntax highlighting
-                        code({ node, className, children, ...props }) {
+                        code({ node, inline, className, children, ...props }) {
                             const match = /language-(\w+)/.exec(className || '');
                             const language = match ? match[1] : 'plaintext';
 
@@ -172,8 +178,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                 navigator.clipboard.writeText(String(children));
                             }
 
+                            // Block code (triple ```)
                             return (
-                                <div style={{position: 'relative', marginBottom: '1rem'}} {...(props as React.HTMLProps<HTMLDivElement>)} >
+                                <div style={{position: 'relative', marginBottom: '1rem', width: '100%'}} {...(props as React.HTMLProps<HTMLDivElement>)} >
                                     {match && (
                                         <div
                                             style={{
@@ -231,15 +238,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                     className={`mb-2 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                     <div
-                        className={`px-3 py-2 rounded-lg w-fit max-w-[90%] flex items-start drop-shadow-sm`}
+                        className={`flex flex-row items-start px-3 py-2 rounded-lg max-w-[90%] drop-shadow-sm ${msg.role === 'user' ? 'w-fit' : 'w-[90%]'}`}
                         style={{backgroundColor: msg.role === 'user' ? style.textBackground : style.assistantTextBackground, borderRadius: style.borderRadius}}
                     >
+                        {/* this W is the issue */}
                         {showRoleLabels && msg.role === 'assistant' && (
-                            <strong className="mr-2 whitespace-nowrap">
+                            <strong className="mr-2 mt-2 whitespace-nowrap w-[15%] text-sm">
                                 {assistantLabel}
                             </strong>
                         )}
-                        <div className="whitespace-pre-wrap overflow-scroll">{renderContent(msg.content)}</div>
+                        <div className={`whitespace-pre-wrap ${msg.role === 'user' ? 'w-full' : 'w-[85%] overflow-hidden'}`}>
+                            {renderContent(msg.content)}
+                        </div>
                         {showRoleLabels && msg.role === 'user' && userLabel !== '' && (
                             <strong className="ml-2 whitespace-nowrap">
                                 {userLabel}
@@ -247,6 +257,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                         )}
                     </div>
                 </div>
+
                 {addCopy && msg.role === 'assistant' && (
                     <div
                         className={`flex place-self-center p-1 text-sm rounded-md hover:bg-gray-200 active:bg-gray-300 transition`}
@@ -288,7 +299,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                             }}
                         >
                             {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
-                            <div className="inline whitespace-pre-wrap overflow-scroll">{renderContent(currentStream.content)}</div>
+                            <div className="inline whitespace-pre-wrap">{renderContent(currentStream.content)}</div>
                         </div>
                     </div>
                 )}

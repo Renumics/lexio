@@ -5,7 +5,7 @@ import type { Message } from '../../lib/main';
 // TODO: remove before merge
 const testConten = `# Test Markdown Content
 
-This is a **test paragraph** to showcase Markdown rendering in the \`MarkdownViewer\` component.
+This is a **test paragraph** to showcase Markdown rendering in the 'MarkdownViewer' component.
 
 ## Lists:
 
@@ -30,6 +30,15 @@ def main():
 `;
 
 const testContent = `# Test Markdown Content
+This is a **test paragraph** to showcase Markdown rendering in the 'MarkdownViewer' component.
+
+\`\`\`
+import lexio
+
+def main():
+    source = lexio.SourceReference("example-doc.pdf", type="pdf", metadata={"title": "Example Document"})
+    print(source)
+\`\`\`
 
 \`\`\`python
 import lexio
