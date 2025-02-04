@@ -65,9 +65,7 @@ interface PdfViewerProps {
 }
 
 const TEST_HIGHLIGHTS = [
-    {"text": "Agents are great", "page": 1},
-    {"text": "Tooluse is helpful"},
-    {"text": "Introduction"},
+    {"text": "I would reflect on my sources, come up with a structure, useExcel to calculate tables and draw figures, and discuss the whole thing with colleagues."},
 ]
 
 /**
@@ -119,7 +117,10 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
     const [pageMatches, setPageMatches] = useState<SearchMatch[]>([]);
-    const { searchPage, clearCache } = usePDFSearch(document);
+    const { searchPage, clearCache } = usePDFSearch(document, {
+        threshold: 0.3,
+        minMatchCharLength: 2
+    });
     const [scale, setScale] = useState<number>(1); // Scale of the PDF page
     const [rotate, setRotate] = useState<number>(0);
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
