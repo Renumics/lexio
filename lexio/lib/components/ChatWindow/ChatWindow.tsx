@@ -5,7 +5,6 @@ import { ResetWrapper } from '../../utils/ResetWrapper';
 import { ChatWindowUserMessage} from "./ChatWindowUserMessage.tsx";
 import { ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage.tsx";
 import { scaleFontSize } from '../../utils/scaleFontSize';
-import { UserIcon} from "@heroicons/react/24/outline";
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -70,7 +69,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   userLabel = 'User',
   userIcon = undefined,
   assistantLabel = 'Assistant',
-  // assistantIcon = <UserIcon className={"w-4 h-4"} />,
   assistantIcon = undefined,
   styleOverrides = {},
   showRoleIndicator = true,

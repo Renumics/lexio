@@ -6,6 +6,8 @@ import type { Message, GenerateInput, RetrieveAndGenerateResponse } from '../../
 import { useEffect } from 'react';
 import {configureDocsRendering, extractComponentDescriptionHelper, renderDocsBlocks} from './helper';
 
+// todo: add docu for new styling of component and new props
+
 // Sample data for the story
 const SAMPLE_MESSAGES: Message[] = [
   {
