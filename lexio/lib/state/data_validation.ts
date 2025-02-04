@@ -114,7 +114,7 @@ export function validateSourceContent(content: unknown): SourceContent {
         }
 
         // Define allowed keys specifically for `type: 'pdf'`
-        const allowedKeys = ['content', 'metadata', 'type', 'highlights'] as (keyof PDFSourceContent)[];
+        const allowedKeys = ['content', 'metadata', 'type', 'highlights', 'page'] as (keyof PDFSourceContent)[];
         if (!hasOnlyAllowedKeys<PDFSourceContent>(content, allowedKeys)) {
             throw new Error(`Source content contains extra fields. Allowed fields are: ${allowedKeys.join(', ')}`);
         }

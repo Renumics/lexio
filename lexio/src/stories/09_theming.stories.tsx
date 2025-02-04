@@ -140,7 +140,7 @@ const getSourcesAndResponse = () => {
                 relevanceScore: 0.95,
                 metadata: {
                     title: "Understanding RAG Systems",
-                    page: 1,
+                    page: 2,
                     author: "Research Team"
                 },
             },
@@ -184,7 +184,7 @@ const getDataSource = (source: SourceReference): GetDataSourceResponse => {
                 type: 'pdf',
                 content: new Uint8Array(buffer),
                 metadata: source.metadata,
-                highlights: source.highlights
+                highlights: source.highlights,
             }));
     } else if (source.type === 'html') {
         return Promise.resolve({

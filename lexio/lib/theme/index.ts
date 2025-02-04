@@ -7,7 +7,7 @@ export const defaultTheme: Theme = {
     contrast: '#FFFFFF',
     background: '#F4F6F8',
     secondaryBackground: '#FFFFFF',
-    toolbarBackground: '#2196F3',
+    toolbarBackground: '#42a6f5',
     text: '#212121',
     secondaryText: '#757575',
     lightText: '#E0E0E0',

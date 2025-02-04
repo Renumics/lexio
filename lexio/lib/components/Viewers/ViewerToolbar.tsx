@@ -26,13 +26,27 @@ export interface ViewerToolbarStyles extends React.CSSProperties {
     toolbarChipInputBackground?: string;
 }
 
+/**
+ * ViewerToolbar component provides a toolbar with zoom in, zoom out, and fit to parent buttons
+ *
+ * @internal
+ *
+ * @param zoomIn - Zoom in button click handler
+ * @param zoomOut - Zoom out button click handler
+ * @param scale - Current scale value
+ * @param fitParent - Fit to parent button click handler
+ * @param children - Additional toolbar components
+ * @param isLoaded - Flag to indicate if the viewer is loaded
+ * @param styleOverrides - Style overrides for the toolbar
+ * @constructor
+ */
 export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isLoaded = true, styleOverrides = {} }: ViewerToolbarProps) => {
     // --- use theme ---
     const theme = useContext(ThemeContext);
     if (!theme) {
         throw new Error('ThemeContext is undefined');
     }
-    const { colors, typography, componentDefaults } = theme.theme;
+    const { colors, typography } = theme.theme;
 
     // --- merge theme defaults + overrides ---
     const style: ViewerToolbarStyles = {
@@ -43,7 +57,7 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
         toolbarChipBorderRadius: '0.375rem',
         toolbarChipInputBackground: '#ffffff',
 
-        toolbarBorderRadius: componentDefaults.borderRadius,
+        toolbarBorderRadius: '0.35rem',
         toolbarBoxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)',
         toolbarTextColor: colors.text,
         toolbarBackground: colors.toolbarBackground,
@@ -58,8 +72,7 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
     return (
         <div className="px-2 gap-x-1 flex flex-row justify-between z-10 py-1"
              style={{
-                 borderTopLeftRadius: style.toolbarBorderRadius,
-                 borderTopRightRadius: style.toolbarBorderRadius,
+                 borderRadius: style.toolbarBorderRadius,
                  boxShadow: style.toolbarBoxShadow,
                  backgroundColor: style.toolbarBackground,
              }}
@@ -78,7 +91,7 @@ export const ViewerToolbar = ({ zoomIn, zoomOut, scale, fitParent, children, isL
                     disabled={!isLoaded}>
                     <MagnifyingGlassPlusIcon className="size-5"/>
                 </button>
-                <div className="m-auto min-w-14 text-center"
+                <div className="m-auto px-2 text-center font-default min-w-10"
                     style={{
                         color: style.toolbarTextColor,
                         backgroundColor: style.toolbarChipBackground,
