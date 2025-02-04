@@ -1,10 +1,10 @@
-import React, { useContext } from 'react';
-import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
-import { useRAGMessages } from '../RAGProvider/hooks';
-import { ResetWrapper } from '../../utils/ResetWrapper';
-import { ChatWindowUserMessage} from "./ChatWindowUserMessage.tsx";
-import { ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage.tsx";
-import { scaleFontSize } from '../../utils/scaleFontSize';
+import React, {useContext} from 'react';
+import {ThemeContext, removeUndefined} from '../../theme/ThemeContext';
+import {useRAGMessages} from '../RAGProvider/hooks';
+import {ResetWrapper} from '../../utils/ResetWrapper';
+import {ChatWindowUserMessage} from "./ChatWindowUserMessage.tsx";
+import {ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage.tsx";
+import {scaleFontSize} from '../../utils/scaleFontSize';
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -25,27 +25,28 @@ export interface ChatWindowStyles extends React.CSSProperties {
  * @see {@link ChatWindow}
  */
 export interface ChatWindowProps {
-  /**
-   * Style overrides for the component
-   */
-  styleOverrides?: ChatWindowStyles;
-  /**
-   * Whether to show role labels (User, Assistant) or Icons before messages
-   * @default true
-   */
-  showRoleIndicator?: boolean;
-  /**
-   * Custom label for user messages
-   * @default "User"
-   */
-  userLabel?: string;
-  /**
-   * Custom label for assistant messages
-   * @default "Assistant"
-   */
-  assistantLabel?: string;
-  userIcon?: React.ReactNode
-  assistantIcon?: React.ReactNode;
+    /**
+     * Style overrides for the component
+     */
+    styleOverrides?: ChatWindowStyles;
+    /**
+     * Whether to show role labels (User, Assistant) or Icons before messages
+     * @default true
+     */
+    showRoleIndicator?: boolean;
+    /**
+     * Custom label for user messages
+     * @default "User"
+     */
+    userLabel?: string;
+    /**
+     * Custom label for assistant messages
+     * @default "Assistant"
+     */
+    assistantLabel?: string;
+    userIcon?: React.ReactNode
+    assistantIcon?: React.ReactNode;
+    markdown?: boolean;
 }
 
 /**
@@ -66,67 +67,100 @@ export interface ChatWindowProps {
  * ```
  */
 const ChatWindow: React.FC<ChatWindowProps> = ({
-  userLabel = 'User',
-  userIcon = undefined,
-  assistantLabel = 'Assistant',
-  assistantIcon = undefined,
-  styleOverrides = {},
-  showRoleIndicator = true,
-}) => {
-  const { messages, currentStream } = useRAGMessages();
-  // Add ref for scrolling
-  const chatEndRef = React.useRef<HTMLDivElement>(null);
+                                                   userLabel = 'User',
+                                                   userIcon = undefined,
+                                                   assistantLabel = 'Assistant',
+                                                   assistantIcon = undefined,
+                                                   styleOverrides = {},
+                                                   showRoleIndicator = true,
+                                                   markdown = true,
+                                               }) => {
+    const {messages, currentStream} = useRAGMessages();
+    // Add ref for scrolling
+    const chatEndRef = React.useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom whenever messages or currentStream changes
-  React.useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, currentStream]);
+    // Scroll to bottom whenever messages or currentStream changes
+    React.useEffect(() => {
+        // If there are no messages and no currentStream, don't scroll
+        if (messages.length === 0 && !currentStream) {
+            return;
+        }
+        // Get the parent element of the chatEndRef and scroll to the bottom
+        const container = chatEndRef.current?.parentElement;
+        if (container) {
+            // Scroll to the bottom of the container by setting scrollTop to scrollHeight
+            container.scrollTop = container.scrollHeight;
+        }
+    }, [messages, currentStream]);
 
-  // --- use theme ---
-  const theme = useContext(ThemeContext);
-  if (!theme) {
-      throw new Error('ThemeContext is undefined');
-  }
-  const { colors, typography, componentDefaults } = theme.theme;
+    // --- use theme ---
+    const theme = useContext(ThemeContext);
+    if (!theme) {
+        throw new Error('ThemeContext is undefined');
+    }
+    const {colors, typography, componentDefaults} = theme.theme;
 
-  // Merge theme defaults + overrides
-  const style: ChatWindowStyles = {
-    backgroundColor: colors.background,
-    messageBackgroundColor: colors.primary + '15',  // add opacity to primary color ~ 12.5%
-    messageBorderRadius: componentDefaults.borderRadius,
-    messageFontSize: typography.fontSizeBase,
-    roleLabelFontSize: scaleFontSize(typography.fontSizeBase, 0.8),
-    color: colors.text,
-    padding: componentDefaults.padding,
-    fontFamily: typography.fontFamily,
-    fontSize: typography.fontSizeBase,
-    borderRadius: componentDefaults.borderRadius,
-    ...removeUndefined(styleOverrides), // ensure these override theme defaults
-  };
+    // Merge theme defaults + overrides
+    const style: ChatWindowStyles = {
+        backgroundColor: colors.background,
+        messageBackgroundColor: colors.primary + '15',  // add opacity to primary color ~ 12.5%
+        messageBorderRadius: componentDefaults.borderRadius,
+        messageFontSize: typography.fontSizeBase,
+        roleLabelFontSize: scaleFontSize(typography.fontSizeBase, 0.8),
+        color: colors.text,
+        padding: componentDefaults.padding,
+        fontFamily: typography.fontFamily,
+        fontSize: typography.fontSizeBase,
+        borderRadius: componentDefaults.borderRadius,
+        ...removeUndefined(styleOverrides), // ensure these override theme defaults
+    };
 
-  return (
-    <ResetWrapper>
-      <div
-        className="w-full h-full overflow-y-auto flex flex-col gap-y-6"
-        style={style}
-      >
-        {messages.map((msg, index) => (
-          <>
-            {msg.role == "user" && (
-              <ChatWindowUserMessage key={index} message={msg.content} style={style} showRoleIndicator={showRoleIndicator} roleLabel={userLabel} icon={userIcon} />
-            )}
-            {msg.role == "assistant" && (
-              <ChatWindowAssistantMessage key={index} message={msg.content} style={style} showRoleIndicator={showRoleIndicator} roleLabel={assistantLabel} icon={assistantIcon} />
-            )}
-          </>
-        ))}
-        {currentStream && (
-          <ChatWindowAssistantMessage key={'stream'} message={currentStream.content} style={style} showRoleIndicator={showRoleIndicator} roleLabel={assistantLabel} icon={assistantIcon} />
-        )}
-          <div ref={chatEndRef} />
-        </div>
-    </ResetWrapper>
-  );
+    return (
+        <ResetWrapper>
+            <div
+                className="w-full h-full overflow-y-auto flex flex-col gap-y-6"
+                style={style}
+            >
+                {messages.map((msg, index) => (
+                    <>
+                        {msg.role == "user" && (
+                            <ChatWindowUserMessage
+                                key={index}
+                                message={msg.content}
+                                style={style}
+                                showRoleIndicator={showRoleIndicator}
+                                roleLabel={userLabel}
+                                icon={userIcon}
+                            />
+                        )}
+                        {msg.role == "assistant" && (
+                            <ChatWindowAssistantMessage
+                                key={index}
+                                message={msg.content}
+                                style={style}
+                                showRoleIndicator={showRoleIndicator}
+                                roleLabel={assistantLabel}
+                                icon={assistantIcon}
+                                markdown={markdown}
+                            />
+                        )}
+                    </>
+                ))}
+                {currentStream && (
+                    <ChatWindowAssistantMessage
+                        key={'stream'}
+                        message={currentStream.content}
+                        style={style}
+                        showRoleIndicator={showRoleIndicator}
+                        roleLabel={assistantLabel}
+                        icon={assistantIcon}
+                        markdown={markdown}
+                    />
+                )}
+                <div ref={chatEndRef}/>
+            </div>
+        </ResetWrapper>
+    );
 };
 
-export { ChatWindow }
+export {ChatWindow}

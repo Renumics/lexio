@@ -1,0 +1,76 @@
+/* AssistantMarkdownContent.css */
+:root {
+  --base-font-size: 1.0rem; /* Default */
+}
+
+/* Headings */
+.assistant-markdown-content h1 {
+    font-size: calc(var(--base-font-size) * 1.5);
+}
+
+.assistant-markdown-content h2 {
+    font-size: calc(var(--base-font-size) * 1.25);
+    margin-bottom: 0;
+}
+
+.assistant-markdown-content h3 {
+    font-size: calc(var(--base-font-size) * 1.15);
+}
+
+.assistant-markdown-content h4 {
+    font-size: calc(var(--base-font-size) * 1.1);
+}
+
+/* Paragraphs */
+.assistant-markdown-content p {
+    margin-bottom: 0px;
+}
+
+/* Lists */
+.assistant-markdown-content ul {
+    margin-top: 0;
+    list-style: disc inside;
+    padding-left: 10px;
+}
+
+.assistant-markdown-content ol {
+    list-style: decimal inside;
+    padding-left: 10px;
+}
+
+/* Tables */
+.assistant-markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.assistant-markdown-content th, .assistant-markdown-content td {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    padding: 5px;
+}
+
+.assistant-markdown-content th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+    text-align: left;
+}
+
+/* Blockquotes */
+.assistant-markdown-content blockquote {
+    border-left: 5px solid #ddd;
+    padding-left: 15px;
+    font-style: italic;
+    color: #555;
+}
+
+/* Links */
+.assistant-markdown-content a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.assistant-markdown-content a:hover {
+    text-decoration: underline;
+}
