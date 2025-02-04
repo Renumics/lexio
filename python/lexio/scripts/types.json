@@ -47,8 +47,8 @@
           "title": "relevanceScore"
         },
         "metadata": {
-          "$ref": "#/definitions/Record",
           "description": "Optional metadata associated with the result. Can be used to store additional information.",
+          "type": "object",
           "title": "metadata"
         },
         "highlights": {
@@ -120,6 +120,11 @@
           "type": "string",
           "title": "sourceReference"
         },
+        "metadata": {
+          "description": "Optional metadata associated with the result. Can be used to store additional information.\nFor PDF documents, you can provide a `page` property to make the PdfViewer display that specific page.\nPage numbers are 1-based.",
+          "type": "object",
+          "title": "metadata"
+        },
         "sourceName": {
           "description": "Optional name of the source document. If not provided, the source reference will be used.",
           "type": "string",
@@ -131,11 +136,6 @@
           "maximum": 1,
           "type": "number",
           "title": "relevanceScore"
-        },
-        "metadata": {
-          "$ref": "#/definitions/Record",
-          "description": "Optional metadata associated with the result. Can be used to store additional information.",
-          "title": "metadata"
         },
         "highlights": {
           "description": "Optional array of PDF highlights. Only used for PDF source references.",
@@ -151,9 +151,9 @@
       "propertyOrder": [
         "type",
         "sourceReference",
+        "metadata",
         "sourceName",
         "relevanceScore",
-        "metadata",
         "highlights"
       ],
       "required": [
@@ -183,8 +183,8 @@
           "title": "relevanceScore"
         },
         "metadata": {
-          "$ref": "#/definitions/Record",
           "description": "Optional metadata associated with the result. Can be used to store additional information.",
+          "type": "object",
           "title": "metadata"
         },
         "highlights": {
@@ -304,6 +304,11 @@
           },
           "title": "highlights"
         },
+        "page": {
+          "description": "The page number to display when rendering the PDF. Page numbers are 1-based. If not provided, the PdfViewer will set the default page number based on the highlights (if no highlights are provided, the first page will be displayed).",
+          "type": "number",
+          "title": "page"
+        },
         "metadata": {
           "$ref": "#/definitions/Record",
           "description": "Optional metadata associated with the content. Can be used to store additional information.",
@@ -316,6 +321,7 @@
         "content",
         "type",
         "highlights",
+        "page",
         "metadata"
       ],
       "required": [

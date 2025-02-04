@@ -65,6 +65,7 @@ export interface PDFHighlight {
   };
 }
 
+
 /**
  * Base interface for all retrieval results, providing common properties.
  * 
@@ -89,6 +90,8 @@ export interface BaseRetrievalResult {
   /**
    * Optional metadata associated with the result. Can be used to store additional information.
    * @remarks Metadata is not used by the RAG provider. It is shown as-is in the SourcesDisplay component.
+   * @TJS-type object
+   * @TJS-additionalProperties {{ type: "any" }}
    */
   metadata?: Record<string, any>;
   /**
@@ -98,15 +101,27 @@ export interface BaseRetrievalResult {
 }
 
 /**
+ * Metadata type for source references with explicit page property hint
+ */
+export type SourceReferenceMetadata = {
+  /**
+   * The page number to display for PDF documents. Page numbers are 1-based.
+   * @TJS-type integer
+   * @minimum 1
+   */
+  page?: number;
+} & Record<string, any>;
+
+/**
  * Represents a reference to a source document.
  * 
  * @interface SourceReference
  * @extends {BaseRetrievalResult}
  * @property {('pdf' | 'html' | 'markdown')} [type] - The type of the source document
  * @property {string} sourceReference - Reference identifier for the source
- * @property {{ page: number } & Record<string, any>} [metadata] - Optional metadata associated with the result. If you provide the `page` property in the metadata and `type` is 'pdf', the PdfViewer will display a PDFSourceContent associated to this SourceReference on that page. Page numbers are 1-based.
+ * @property {SourceReferenceMetadata} [metadata] - Optional metadata associated with the result. For PDF documents, you can provide a `page` property (number) to make the PdfViewer display that specific page. Page numbers are 1-based.
  */
-export interface SourceReference extends BaseRetrievalResult {
+export interface SourceReference extends Omit<BaseRetrievalResult, 'metadata'> {
   /**
    * The type of the source document. Can be either "pdf", "html", or "markdown".
    */
@@ -129,14 +144,13 @@ export interface SourceReference extends BaseRetrievalResult {
   sourceReference: string;
   /**
    * Optional metadata associated with the result. Can be used to store additional information.
-   *
-   * If you provide the `page` property in the metadata and `type` is 'pdf', the PdfViewer will display a PDFSourceContent associated to this SourceReference on that page. Page numbers are 1-based.
-   *
+   * For PDF documents, you can provide a `page` property to make the PdfViewer display that specific page.
+   * Page numbers are 1-based.
    * @remarks Metadata is not used by the RAG provider. It is shown as-is in the SourcesDisplay component.
+   * @TJS-type object
+   * @TJS-additionalProperties {{ type: "any" }}
    */
-  metadata?: {
-    page?: number
-  } & Record<string, any>;
+  metadata?: SourceReferenceMetadata;
 }
 
 /**
