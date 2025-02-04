@@ -762,15 +762,17 @@ export const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       <div className="relative">
         <div
           ref={editorRef}
-          className="
+          className={`
             w-full resize-none px-3 py-2
             border rounded-lg
             focus:ring-1 focus:ring-gray-300 focus:outline-none
             min-h-[2.5rem] max-h-[200px]
             empty:before:content-[attr(data-placeholder)]
             empty:before:text-gray-400
+            empty:before:pointer-events-none
+            cursor-${disabled ? 'not-allowed' : 'text'}
             whitespace-pre-wrap break-words
-          "
+          `}
           contentEditable={!disabled}
           data-placeholder={placeholder}
           suppressContentEditableWarning
