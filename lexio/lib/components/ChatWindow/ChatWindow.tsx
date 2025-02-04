@@ -94,7 +94,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   // Merge theme defaults + overrides
   const style: ChatWindowStyles = {
     backgroundColor: colors.background,
-    messageBackgroundColor: colors.primary + '20',  // add opacity to primary color ~ 12.5%
+    messageBackgroundColor: colors.primary + '15',  // add opacity to primary color ~ 12.5%
     messageBorderRadius: componentDefaults.borderRadius,
     messageFontSize: typography.fontSizeBase,
     roleLabelFontSize: scaleFontSize(typography.fontSizeBase, 0.8),
