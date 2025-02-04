@@ -1,21 +1,8 @@
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import React, {useContext, useMemo} from 'react';
 import {ThemeContext} from '../../theme/ThemeContext';
-import {Message} from '../../types';
 import {useRAGMessages} from '../RAGProvider/hooks';
-// markdown rendering
-import Markdown from 'react-markdown'
-import remarkGfm from "remark-gfm";
-import "./ChatWindowMarkdown.css"
-// syntax highlighting
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
-// icons
-import {
-    UserOutlineIcon,
-    MagnifyingGlassMinusIcon,
-    MagnifyingGlassPlusIcon,
-} from "@heroicons/react/24/solid";
+import { ChatWindowMessage, ChatWindowMessageContent } from './ChatWindowMessage';
 
 const hexToRgb = (hex: string) => {
   hex = hex.replace(/^#/, '');
@@ -103,15 +90,14 @@ export interface ChatWindowProps {
  * ```
  */
 const ChatWindow: React.FC<ChatWindowProps> = ({
-                                                   styleOverrides = {},
+                                                   addCopy = true,
+                                                   addCopyCode = true,
                                                    showRoleLabels = true,
-                                                   userLabel = '',
+                                                   userLabel = undefined,
                                                    assistantLabel = 'Assistant:',
                                                    asMarkdown = true,
-                                                   addCopyCode = true,
-                                                   addCopy = true,
+                                                   styleOverrides = {},
                                                }) => {
-    // todo: this component re-renders on every message update. Optimize this by using a memoized version of the messages
     const {messages, currentStream} = useRAGMessages();
     // Add ref for scrolling
     const chatEndRef = React.useRef<HTMLDivElement>(null);
@@ -155,126 +141,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         return { "--base-font-size": `1rem` } as React.CSSProperties;
     }, [typography.fontSizeBase]);
 
-    // todo: we can introduce a new directive to render a custom component for the message content based on regex match
-
-    // render the content of the message either as plain text or markdown with syntax highlighting
-    const renderContent = (content: string) => {
-        if (!asMarkdown) {
-            return content;
-        }
-        return (
-            <div
-                className={"prose lg:prose-md prose-pre:p-0 prose-pre:m-0 prose-pre:bg-transparent chat-markdown-content"}
-                style={{...animateMarkdownContainerStyle, overflowX: 'auto', width: '100%'}}
-                >
-                <Markdown
-                    components={{
-                        // We override the code block rendering to add a copy button and syntax highlighting
-                        code({ node, inline, className, children, ...props }) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            const language = match ? match[1] : 'plaintext';
-
-                            const handleCopy = () => {
-                                navigator.clipboard.writeText(String(children));
-                            }
-
-                            // Block code (triple ```)
-                            return (
-                                <div style={{position: 'relative', marginBottom: '1rem', width: '100%'}} {...(props as React.HTMLProps<HTMLDivElement>)} >
-                                    {match && (
-                                        <div
-                                            style={{
-                                                marginLeft: '0.33rem',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 'bold',
-                                                background: '#f5f5f5',
-                                                padding: '4px 8px',
-                                                borderTopLeftRadius: '5px',
-                                                borderTopRightRadius: '5px',
-                                                borderBottom: '1px solid #ccc',
-                                                display: 'inline-block',
-                                            }}
-                                        >
-                                            {language}
-                                        </div>
-                                    )}
-                                    <div className="relative">
-                                        <SyntaxHighlighter
-                                            style={docco}
-                                            language={language}
-                                            PreTag="div"
-                                            wrapLongLine={true}
-                                        >
-                                            {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
-                                        {addCopyCode && (
-                                            <div
-                                                className="absolute top-1 right-1 p-1 text-sm bg-white rounded-md hover:bg-gray-200 active:bg-gray-300 transition"
-                                            >
-                                                <button
-                                                    onClick={handleCopy}
-                                                >
-                                                    Copy
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        },
-                    }}
-                    remarkPlugins={[remarkGfm]}>
-                        {content}
-                </Markdown>
-            </div>
-        );
-    }
-
-    const renderMessage = ({index, msg}: { index: number, msg: Message }) => {
-        return (
-            <>
-                <div
-                    key={index}
-                    className={`mb-2 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                    <div
-                        className={`flex flex-row items-start px-3 py-2 rounded-lg max-w-[90%] drop-shadow-sm ${msg.role === 'user' ? 'w-fit' : 'w-[90%]'}`}
-                        style={{backgroundColor: msg.role === 'user' ? style.textBackground : style.assistantTextBackground, borderRadius: style.borderRadius}}
-                    >
-                        {/* this W is the issue */}
-                        {showRoleLabels && msg.role === 'assistant' && (
-                            <strong className="mr-2 mt-2 whitespace-nowrap w-[15%] text-sm">
-                                {assistantLabel}
-                            </strong>
-                        )}
-                        <div className={`whitespace-pre-wrap ${msg.role === 'user' ? 'w-full' : 'w-[85%] overflow-hidden'}`}>
-                            {renderContent(msg.content)}
-                        </div>
-                        {showRoleLabels && msg.role === 'user' && userLabel !== '' && (
-                            <strong className="ml-2 whitespace-nowrap">
-                                {userLabel}
-                            </strong>
-                        )}
-                    </div>
-                </div>
-
-                {addCopy && msg.role === 'assistant' && (
-                    <div
-                        className={`flex place-self-center p-1 text-sm rounded-md hover:bg-gray-200 active:bg-gray-300 transition`}
-                    >
-                        <button
-                            onClick={() => {
-                                navigator.clipboard.writeText(msg.content);
-                            }}
-                        >
-                            Copy
-                        </button>
-                    </div>
-                )}
-            </>
-        );
-    }
-
     return (
         <ResetWrapper>
             <div
@@ -288,7 +154,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                     fontSize: style.fontSize
                 }}
             >
-                {messages.map((msg, index) => renderMessage({index: index, msg}))}
+                {messages.map((msg, index) =>
+                    <ChatWindowMessage
+                        key={index}
+                        index={index}
+                        msg={msg}
+                        addCopy={addCopy}
+                        addCopyCode={addCopyCode}
+                        showRoleLabels={showRoleLabels}
+                        userLabel={userLabel}
+                        assistantLabel={assistantLabel}
+                        style={style}
+                        asMarkdown={asMarkdown}
+                        animateMarkdownContainerStyle={animateMarkdownContainerStyle}
+                    />
+                )}
                 {currentStream && (
                     <div className="mb-2 flex assistant streaming justify-start">
                         <div
@@ -299,7 +179,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                             }}
                         >
                             {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
-                            <div className="inline whitespace-pre-wrap">{renderContent(currentStream.content)}</div>
+                            <div className="inline whitespace-pre-wrap">
+                                <ChatWindowMessageContent
+                                    content={currentStream.content}
+                                    asMarkdown={asMarkdown}
+                                    animateMarkdownContainerStyle={animateMarkdownContainerStyle}
+                                    addCopyCode={addCopyCode}
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
