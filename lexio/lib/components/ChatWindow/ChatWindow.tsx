@@ -1,16 +1,20 @@
 import React, { useContext } from 'react';
-import { ThemeContext } from '../../theme/ThemeContext';
+import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { useRAGMessages } from '../RAGProvider/hooks';
 import { ResetWrapper } from '../../utils/ResetWrapper';
+import { ChatWindowUserMessage} from "./ChatWindowUserMessage.tsx";
+import { ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage.tsx";
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
-  backgroundColor?: string;
-  color?: string;
-  padding?: string;
-  fontFamily?: string;
-  fontSize?: string;
-  borderRadius?: string;
+    backgroundColor?: string;
+    messageBackgroundColor?: string;
+    messageBorderRadius?: string;
+    color?: string;
+    padding?: string;
+    fontFamily?: string;
+    fontSize?: string;
+    borderRadius?: string;
 }
 
 /**
@@ -26,7 +30,7 @@ export interface ChatWindowProps {
    * Whether to show role labels (User:, Assistant:) before messages
    * @default true
    */
-  showRoleLabels?: boolean;
+  showRoleLabel?: boolean;
   /**
    * Custom label for user messages
    * @default "User: "
@@ -58,9 +62,9 @@ export interface ChatWindowProps {
  */
 const ChatWindow: React.FC<ChatWindowProps> = ({ 
   styleOverrides = {},
-  showRoleLabels = true,
-  userLabel = 'User: ',
-  assistantLabel = 'Assistant: ',
+  showRoleLabel = true,
+  userLabel = 'User',
+  assistantLabel = 'Assistant',
 }) => {
   const { messages, currentStream } = useRAGMessages();
   // Add ref for scrolling
@@ -81,36 +85,37 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   // Merge theme defaults + overrides
   const style: ChatWindowStyles = {
     backgroundColor: colors.background,
+    messageBackgroundColor: colors.primary + '20',  // add opacity to primary color ~ 12.5%
+    messageBorderRadius: componentDefaults.borderRadius,
     color: colors.text,
     padding: componentDefaults.padding,
     fontFamily: typography.fontFamily,
     fontSize: typography.fontSizeBase,
     borderRadius: componentDefaults.borderRadius,
-    ...styleOverrides, // ensure these override theme defaults
+    ...removeUndefined(styleOverrides), // ensure these override theme defaults
   };
 
   return (
     <ResetWrapper>
-    <div
-      className="w-full h-full overflow-y-auto"
-      style={style}
-    >
-      {messages.map((msg, index) => (
-        <div key={index} className={`mb-2 ${msg.role}`}>
-          {showRoleLabels && (
-            <strong className="inline-block mr-2">{msg.role === 'user' ? userLabel : assistantLabel}</strong>
-          )}
-          <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+      <div
+        className="w-full h-full overflow-y-auto"
+        style={style}
+      >
+        {messages.map((msg, index) => (
+          <>
+            {msg.role == "user" && (
+              <ChatWindowUserMessage key={index} message={msg.content} style={style} showRoleLabel={showRoleLabel} roleLabel={userLabel} />
+            )}
+            {msg.role == "assistant" && (
+              <ChatWindowAssistantMessage key={index} message={msg.content} style={style} showRoleLabel={showRoleLabel} roleLabel={assistantLabel} />
+            )}
+          </>
+        ))}
+        {currentStream && (
+          <ChatWindowAssistantMessage key={'stream'} message={currentStream.content} style={style} showRoleLabel={showRoleLabel} roleLabel={assistantLabel} />
+        )}
+          <div ref={chatEndRef} />
         </div>
-      ))}
-      {currentStream && (
-        <div className="mb-2 assistant streaming">
-          {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
-          <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{currentStream.content}</div>
-        </div>
-      )}
-        <div ref={chatEndRef} />
-      </div>
     </ResetWrapper>
   );
 };
