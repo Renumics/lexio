@@ -76,7 +76,7 @@ def test_text_content_creation():
     assert text_content.text == "Sample text"
     assert text_content.sourceName == "test.txt"
     assert text_content.relevanceScore == 0.8
-    assert text_content.metadata.root == {"key": "value"}
+    assert text_content.metadata == {"key": "value"}
     assert len(text_content.highlights) == 1
 
 
@@ -121,7 +121,7 @@ def test_source_reference_creation():
     assert source.sourceReference == "example.pdf"
     assert source.sourceName == "Example PDF"
     assert source.relevanceScore == 0.95
-    assert source.metadata.root == {"pages": 10}
+    assert source.metadata == {"pages": 10}
     assert len(source.highlights) == 1
     assert source.highlights[0].page == 1
     assert source.highlights[0].rect.top == 0
@@ -171,7 +171,7 @@ def test_base_retrieval_result():
     
     assert result.sourceName == "test.txt"
     assert result.relevanceScore == 0.8
-    assert result.metadata.root == {"key": "value"}
+    assert result.metadata == {"key": "value"}
     assert len(result.highlights) == 1
 
 

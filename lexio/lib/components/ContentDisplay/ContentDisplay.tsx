@@ -45,7 +45,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
       return (
         <PdfViewer 
           data={currentSourceContent.content}
-          page={currentSourceContent.metadata?.page}
+          page={currentSourceContent?.page}
           highlights={currentSourceContent.highlights}
         />
       );

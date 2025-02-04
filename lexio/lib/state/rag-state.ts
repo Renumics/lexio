@@ -598,6 +598,13 @@ export const createGetDataSourceAtom = (getDataSourceFn: ((source: SourceReferen
         // For SourceReference, use the getDataSourceFn
         return getDataSourceFn(retrievalResult)
           .then(response => {
+            // Set page number for PDFSourceContent if not provided
+            if (response.type && response.type === 'pdf' && !response.page) {
+              // Set page number from metadata if available
+              if (retrievalResult.metadata && retrievalResult.metadata?.page && typeof retrievalResult.metadata?.page === 'number') {
+                response.page = retrievalResult.metadata.page;
+              }
+            }
             set(currentSourceContentAtom, response);
             return response;
           })

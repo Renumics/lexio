@@ -126,7 +126,7 @@ const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
         viewerPadding: 'none',
         contentBackground: colors.secondaryBackground,
         contentPadding: componentDefaults.padding,
-        contentBorderRadius: '0.8rem',
+        contentBorderRadius: '0',
         ...removeUndefined(styleOverrides),
     };
 
@@ -250,6 +250,7 @@ const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
                 ...{
                     color: style.color,
                     fontFamily: style.fontFamily,
+                    backgroundColor: style.backgroundColor,
                 }
             }}
             tabIndex={-1}
@@ -275,6 +276,8 @@ const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
                     width: '100%',
                     height: '100%',
                     backgroundColor: style.viewerBackground,
+                    borderBottomLeftRadius: style.viewerBorderRadius,
+                    borderBottomRightRadius: style.viewerBorderRadius,
                     padding: style.viewerPadding,
                 }}
             >

@@ -3,6 +3,7 @@ import useResizeObserver from '@react-hook/resize-observer';
 import type { WorkflowMode } from '../../types';
 import { useRAGMessages, useRAGStatus } from '../RAGProvider/hooks';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
+import { ResetWrapper } from '../../utils/ResetWrapper';
 
 /**
  * Styles interface for the QueryField component
@@ -177,6 +178,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
     textareaRef.current.scrollHeight > formRef.current.clientHeight - 50;
 
   return (
+    <ResetWrapper>
     <form
       ref={formRef}
       onSubmit={handleSubmit}
@@ -250,7 +252,8 @@ const QueryField: React.FC<QueryFieldProps> = ({
         </button>
       </div>
     </form>
+    </ResetWrapper>
   );
 };
 
-export { QueryField };
+export { QueryField }
