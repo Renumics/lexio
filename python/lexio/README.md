@@ -27,5 +27,3 @@ GPL-3.0 license
 ## Development
 
 > **Note:** This package is automatically generated from the [lexio](https://github.com/Renumics/lexio) frontend library. Do not modify the files in this package directly.
-
-<!-- Use `SETUPTOOLS_SCM_PRETEND_VERSION=0.0.1-dev0 hatch build` to build the package locally with a fixed version. -->

@@ -1,3 +1,4 @@
+import { ResetWrapper } from '../../utils/ResetWrapper';
 import React, {useContext, useMemo} from 'react';
 import {ThemeContext} from '../../theme/ThemeContext';
 import {Message} from '../../types';
@@ -264,35 +265,37 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     }
 
     return (
-        <div
-            className="w-full h-full overflow-y-auto"
-            style={{
-                backgroundColor: style.backgroundColor,
-                borderRadius: style.borderRadius,
-                color: style.color,
-                padding: style.padding,
-                fontFamily: style.fontFamily,
-                fontSize: style.fontSize
-            }}
-        >
-            {messages.map((msg, index) => renderMessage({index: index, msg}))}
-            {currentStream && (
-                <div className="mb-2 flex assistant streaming justify-start">
-                    <div
-                        className={`px-3 py-2 w-full max-w-[90%] flex items-start`}
-                        style={{
-                            backgroundColor: style.assistantTextBackground,
-                            borderRadius: style.borderRadius
-                        }}
-                    >
-                        {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
-                        <div className="inline whitespace-pre-wrap overflow-scroll">{renderContent(currentStream.content)}</div>
+        <ResetWrapper>
+            <div
+                className="w-full h-full overflow-y-auto"
+                style={{
+                    backgroundColor: style.backgroundColor,
+                    borderRadius: style.borderRadius,
+                    color: style.color,
+                    padding: style.padding,
+                    fontFamily: style.fontFamily,
+                    fontSize: style.fontSize
+                }}
+            >
+                {messages.map((msg, index) => renderMessage({index: index, msg}))}
+                {currentStream && (
+                    <div className="mb-2 flex assistant streaming justify-start">
+                        <div
+                            className={`px-3 py-2 w-full max-w-[90%] flex items-start`}
+                            style={{
+                                backgroundColor: style.assistantTextBackground,
+                                borderRadius: style.borderRadius
+                            }}
+                        >
+                            {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
+                            <div className="inline whitespace-pre-wrap overflow-scroll">{renderContent(currentStream.content)}</div>
+                        </div>
                     </div>
-                </div>
-            )}
-            <div ref={chatEndRef}/>
-        </div>
+                )}
+                <div ref={chatEndRef}/>
+            </div>
+        </ResetWrapper>
     );
 };
 
-export {ChatWindow};
+export { ChatWindow }
