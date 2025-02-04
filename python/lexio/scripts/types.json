@@ -49,6 +49,7 @@
         "metadata": {
           "description": "Optional metadata associated with the result. Can be used to store additional information.",
           "type": "object",
+          "additionalProperties": "{{ type: \"any\" }}",
           "title": "metadata"
         },
         "highlights": {
@@ -123,6 +124,7 @@
         "metadata": {
           "description": "Optional metadata associated with the result. Can be used to store additional information.\nFor PDF documents, you can provide a `page` property to make the PdfViewer display that specific page.\nPage numbers are 1-based.",
           "type": "object",
+          "additionalProperties": "{{ type: \"any\" }}",
           "title": "metadata"
         },
         "sourceName": {
@@ -185,6 +187,7 @@
         "metadata": {
           "description": "Optional metadata associated with the result. Can be used to store additional information.",
           "type": "object",
+          "additionalProperties": "{{ type: \"any\" }}",
           "title": "metadata"
         },
         "highlights": {
