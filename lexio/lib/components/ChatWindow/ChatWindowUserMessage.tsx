@@ -1,6 +1,15 @@
 import React, {ReactNode} from "react";
 import {ChatWindowStyles} from "./ChatWindow.tsx";
 
+/**
+ * Props for the ChatWindowUserMessage component.
+ * @typedef {Object} ChatWindowUserMessageProps
+ * @property {string} message - The user message content.
+ * @property {ChatWindowStyles} style - Styling options for the chat window.
+ * @property {string} roleLabel - Label indicating the role of the user.
+ * @property {boolean} showRoleIndicator - Flag to show or hide the role indicator.
+ * @property {ReactNode} [icon] - Optional icon to display alongside the message.
+ */
 interface ChatWindowUserMessageProps {
     message: string;
     style: ChatWindowStyles;
@@ -9,6 +18,12 @@ interface ChatWindowUserMessageProps {
     icon?: ReactNode;
 }
 
+/**
+ * Renders a user message within the chat window, supporting role indicators and optional icons.
+ *
+ * @param {ChatWindowUserMessageProps} props - The props for the component.
+ * @returns {JSX.Element} The rendered user message.
+ */
 const ChatWindowUserMessage: React.FC<ChatWindowUserMessageProps> = ({
                                                                          message,
                                                                          style,
