@@ -6,6 +6,8 @@ import {ChatWindowUserMessage} from "./ChatWindowUserMessage.tsx";
 import {ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage.tsx";
 import {scaleFontSize} from '../../utils/scaleFontSize';
 
+// todo: add docu, add docstrings to new components
+
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
     backgroundColor?: string;
@@ -44,9 +46,24 @@ export interface ChatWindowProps {
      * @default "Assistant"
      */
     assistantLabel?: string;
-    userIcon?: React.ReactNode
-    assistantIcon?: React.ReactNode;
+    /**
+     * Custom icon for user messages. Must be a ReactElement. If provided, this will be shown instead of the role label
+     */
+    userIcon?: React.ReactElement
+    /**
+     * Custom icon for assistant messages. Must be a ReactElement. If provided, this will be shown instead of the role label
+     */
+    assistantIcon?: React.ReactElement;
+    /**
+     * Whether to render markdown in assistant messages
+     * @default true
+     */
     markdown?: boolean;
+    /**
+     * Whether to show the copy button in assistant messages
+     * @default true
+     */
+    showCopy?: boolean;
 }
 
 /**
@@ -57,7 +74,8 @@ export interface ChatWindowProps {
  * ```tsx
  * <ChatWindow 
  *   showRoleLabels={true}
- *   userLabel="You"
+ *   userLabel=""
+ *   userIcon={<UserIcon className="w-6 h-6" />}
  *   assistantLabel="LexioAI"
  *   styleOverrides={{
  *     backgroundColor: '#f5f5f5',
@@ -74,6 +92,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                                    styleOverrides = {},
                                                    showRoleIndicator = true,
                                                    markdown = true,
+                                                   showCopy = true,
                                                }) => {
     const {messages, currentStream} = useRAGMessages();
     // Add ref for scrolling
@@ -130,7 +149,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                 style={style}
                                 showRoleIndicator={showRoleIndicator}
                                 roleLabel={userLabel}
-                                icon={userIcon}
+                                icon={userIcon || undefined}
                             />
                         )}
                         {msg.role == "assistant" && (
@@ -140,8 +159,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                 style={style}
                                 showRoleIndicator={showRoleIndicator}
                                 roleLabel={assistantLabel}
-                                icon={assistantIcon}
+                                icon={assistantIcon || undefined}
                                 markdown={markdown}
+                                showCopy={showCopy}
                             />
                         )}
                     </>
@@ -153,8 +173,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                         style={style}
                         showRoleIndicator={showRoleIndicator}
                         roleLabel={assistantLabel}
-                        icon={assistantIcon}
+                        icon={assistantIcon || undefined}
                         markdown={markdown}
+                        isStreaming={true}
                     />
                 )}
                 <div ref={chatEndRef}/>
