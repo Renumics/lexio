@@ -250,7 +250,8 @@ const HtmlViewer = ({ htmlContent, styleOverrides = {} }: HTMLViewerProps) => {
                 ...{
                     color: style.color,
                     fontFamily: style.fontFamily,
-                    backgroundColor: style.backgroundColor,
+                    backgroundColor: style.contentBackground,
+                    borderRadius: style.viewerBorderRadius
                 }
             }}
             tabIndex={-1}
