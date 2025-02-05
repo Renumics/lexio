@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { RAGProvider, ChatWindow, AdvancedQueryField, ErrorDisplay } from '../../lib/main';
 import type { Message } from '../../lib/main';
 
-// TODO: remove before merge
+// TODO: move this into Streaming response example and highlight markdown feature
 const testConten = `# Test Markdown Content
 
 This is a **test paragraph** to showcase Markdown rendering in the 'MarkdownViewer' component.
@@ -93,7 +93,7 @@ const ExampleComponent = () => (
 );
 
 const meta = {
-  title: 'Tutorial/00. TEST Streaming Responses',
+  title: 'Tutorial/12. Customized ChatWindow with Markdown support',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',

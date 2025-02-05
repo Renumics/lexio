@@ -23,6 +23,8 @@ interface ChatWindowUserMessageProps {
  *
  * @param {ChatWindowUserMessageProps} props - The props for the component.
  * @returns {JSX.Element} The rendered user message.
+ *
+ * @internal
  */
 const ChatWindowUserMessage: React.FC<ChatWindowUserMessageProps> = ({
                                                                          message,

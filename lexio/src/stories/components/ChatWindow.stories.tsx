@@ -4,7 +4,8 @@ import { RAGProvider, useRAGMessages } from '../../../lib/components/RAGProvider
 import 'tailwindcss/tailwind.css';
 import type { Message, GenerateInput, RetrieveAndGenerateResponse } from '../../../lib/types';
 import { useEffect } from 'react';
-import {configureDocsRendering, extractComponentDescriptionHelper, renderDocsBlocks} from './helper';
+import { extractComponentDescriptionHelper, renderDocsBlocks} from './helper';
+import { UserIcon, SparklesIcon } from "@heroicons/react/24/outline";
 
 // todo: add docu for new styling of component and new props
 
@@ -47,6 +48,24 @@ const meta: Meta<typeof ChatWindow> = {
           page: renderDocsBlocks,
       },
   },
+    argTypes: {
+        userIcon: {
+            control: { type: 'select' }, // Use a dropdown control
+            options: ['none', 'UserIcon'], // User selects from these options
+            mapping: {
+                UserIcon: <UserIcon className={"w-5 h-5"}/>,
+                none: null,
+            },
+        },
+        assistantIcon: {
+            control: { type: 'select' }, // Use a dropdown control
+            options: ['none', 'SparklesIcon'], // User selects from these options
+            mapping: {
+                SparklesIcon: <SparklesIcon className={"w-5 h-5"}/>,
+                none: null,
+            },
+        },
+    },
   decorators: [
     (Story) => (
       <div className="h-fit" style={{ width: '600px', padding: '1rem' }}>
@@ -70,4 +89,4 @@ type Story = StoryObj<typeof ChatWindow>;
 export const Docs: Story = {
   args: {
   },
-}; 
+};

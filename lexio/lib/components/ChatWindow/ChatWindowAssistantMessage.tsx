@@ -23,6 +23,8 @@ interface AssistantMarkdownContentProps {
  *
  * @param {AssistantMarkdownContentProps} props - The props for the component.
  * @returns {JSX.Element} The rendered markdown content.
+ *
+ * @internal
  */
 const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({content, style}) => {
     return (

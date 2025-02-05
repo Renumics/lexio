@@ -6,7 +6,7 @@ import {ChatWindowUserMessage} from "./ChatWindowUserMessage.tsx";
 import {ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage.tsx";
 import {scaleFontSize} from '../../utils/scaleFontSize';
 
-// todo: add docu, add docstrings to new components
+// todo: Add docu for new components, remove border around icon, add longer description
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -67,14 +67,13 @@ export interface ChatWindowProps {
 }
 
 /**
- * ChatWindow component displays a conversation between a user and an assistant
+ * ChatWindow component displays a conversation between a user and an assistant.
  *
  * @example
  *
  * ```tsx
  * <ChatWindow 
  *   showRoleLabels={true}
- *   userLabel=""
  *   userIcon={<UserIcon className="w-6 h-6" />}
  *   assistantLabel="LexioAI"
  *   styleOverrides={{
