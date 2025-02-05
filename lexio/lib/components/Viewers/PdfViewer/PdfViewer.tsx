@@ -411,6 +411,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                 color: style.color,
                 fontFamily: style.fontFamily,
                 backgroundColor: style.contentBackground,
+                borderRadius: style.borderRadius
             }}
         >
             <PdfViewerToolbar
