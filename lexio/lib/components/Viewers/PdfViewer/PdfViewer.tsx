@@ -123,7 +123,6 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         threshold: 0.3,
         minMatchCharLength: 2
     });
-    const [scale, setScale] = useState<number>(1); // Scale of the PDF page
 
     const [renderedPageNumber, setRenderedPageNumber] = useState<number>(1);
 
