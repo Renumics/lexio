@@ -5,16 +5,16 @@
 
 /* Headings */
 .assistant-markdown-content h1 {
-    font-size: calc(var(--base-font-size) * 1.5);
+    font-size: calc(var(--base-font-size) * 1.8);
 }
 
 .assistant-markdown-content h2 {
-    font-size: calc(var(--base-font-size) * 1.25);
+    font-size: calc(var(--base-font-size) * 1.4);
     margin-bottom: 0;
 }
 
 .assistant-markdown-content h3 {
-    font-size: calc(var(--base-font-size) * 1.15);
+    font-size: calc(var(--base-font-size) * 1.25);
 }
 
 .assistant-markdown-content h4 {
@@ -23,7 +23,7 @@
 
 /* Paragraphs */
 .assistant-markdown-content p {
-    margin-bottom: 0px;
+    margin-bottom: 0;
 }
 
 /* Lists */
@@ -73,4 +73,9 @@
 
 .assistant-markdown-content a:hover {
     text-decoration: underline;
+}
+
+/* Code */
+.assistant-markdown-content code {
+    font-size: calc(var(--base-font-size));
 }

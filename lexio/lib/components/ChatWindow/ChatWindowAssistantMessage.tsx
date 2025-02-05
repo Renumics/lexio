@@ -7,7 +7,7 @@ import remarkGfm from "remark-gfm";
 import "./AssistantMarkdownContent.css";
 
 // todo: colors, background, copy?, props, docs
-const AssistantMarkdownContent = ({content}: {content: string}) => {
+const AssistantMarkdownContent = ({content, style}: {content: string, style: ChatWindowStyles}) => {
     return (
         <Markdown
             components={{
@@ -15,9 +15,14 @@ const AssistantMarkdownContent = ({content}: {content: string}) => {
                 code({ node, className, children, ...props }) {
                     const match = /language-(\w+)/.exec(className || '');
                     const language = match ? match[1] : 'plaintext';
+                    const [copied, setCopied] = React.useState(false);
 
                     const handleCopy = () => {
                         navigator.clipboard.writeText(String(children));
+                        setCopied(true);
+                        setTimeout(() => {
+                            setCopied(false);
+                        }, 1500); // Reset copied state after 1.5 seconds
                     }
 
                     // Block code (triple ```)
@@ -40,7 +45,7 @@ const AssistantMarkdownContent = ({content}: {content: string}) => {
                                     {language}
                                 </div>
                             )}
-                            <div className="relative assistant-markdown-content">
+                            <div className="relative">
                                 <SyntaxHighlighter
                                     style={docco}
                                     language={language}
@@ -51,12 +56,15 @@ const AssistantMarkdownContent = ({content}: {content: string}) => {
                                 </SyntaxHighlighter>
 
                                 <div
-                                    className="absolute top-1 right-1 p-1 text-sm bg-white rounded-md hover:bg-gray-200 active:bg-gray-300 transition"
+                                    className="absolute top-1 right-1 p-1 text-sm rounded-md hover:shadow-md "
+                                    style={{
+                                        backgroundColor: style.messageBackgroundColor,
+                                    }}
                                 >
                                     <button
                                         onClick={handleCopy}
                                     >
-                                        Copy
+                                        {copied ? "Copied!" : "Copy"}
                                     </button>
                                 </div>
                             </div>
@@ -116,11 +124,11 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
             fontSize: style.messageFontSize,
         }}>
             {markdown ? (
-                <div style={assistantMarkdownContentStyling}>
-                    <AssistantMarkdownContent content={message} />
+                <div className={"whitespace-pre-wrap assistant-markdown-content"} style={assistantMarkdownContentStyling}>
+                    <AssistantMarkdownContent content={message} style={style} />
                 </div>
             ) : (
-                <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>
+                <div className="inline whitespace-pre-wrap">
                     {message}
                 </div>
             )}
