@@ -67,21 +67,43 @@ export interface ChatWindowProps {
 }
 
 /**
- * ChatWindow component displays a conversation between a user and an assistant.
+ * ChatWindow component displays a real-time conversation between a user and an assistant.
+ *
+ * This component is responsible for rendering a dynamic chat interface using messages provided by
+ * the RAG message provider (via the `useRAGMessages` hook). It supports both static and streaming messages,
+ * and automatically scrolls to the most recent message upon updates.
+ *
+ * The appearance of the ChatWindow is primarily determined by theme defaults from the `ThemeContext`
+ * but can be customized via the `styleOverrides` prop. These overrides merge with the default theme styles,
+ * ensuring a consistent yet flexible look and feel.
+ * 
+ * Role Indicators via labels or icons can be shown or hidden via the `showRoleIndicator` prop.
+ *
+ * **Key features include:
+ * - **Role Indicators:** Displays either textual labels or custom icons for each message depending on the sender.
+ * - **Markdown Support:** Optionally renders assistant messages in markdown format (default is true)
+ * - **Copy Button:** Provides an easy-to-use copy-to-clipboard button for assistant messages and code blocks in markdown.
+ * - **Auto Scrolling:** Automatically scrolls the container to the bottom when new messages or streaming content is added.
  *
  * @example
- *
- * ```tsx
+ * ```   
  * <ChatWindow 
- *   showRoleLabels={true}
- *   userIcon={<UserIcon className="w-6 h-6" />}
- *   assistantLabel="LexioAI"
+ *   userLabel="User"
+ *   assistantIcon={<BotIcon className="w-6 h-6" />}
  *   styleOverrides={{
  *     backgroundColor: '#f5f5f5',
- *     padding: '1rem'
+ *     padding: '1rem',
+ *     messageBackgroundColor: '#ffffff',
+ *     borderRadius: '8px',
  *   }}
+ *   showRoleIndicator={true}
+ *   markdown={true}
+ *   showCopy={true}
  * />
  * ```
+ *
+ * @see ChatWindowUserMessage for details on rendering user messages.
+ * @see ChatWindowAssistantMessage for details on rendering assistant messages.
  */
 const ChatWindow: React.FC<ChatWindowProps> = ({
                                                    userLabel = 'User',
