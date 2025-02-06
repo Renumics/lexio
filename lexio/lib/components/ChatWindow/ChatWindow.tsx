@@ -56,7 +56,7 @@ export interface ChatWindowProps {
  * />
  * ```
  */
-const ChatWindow: React.FC<ChatWindowProps> = ({ 
+const ChatWindow: React.FC<ChatWindowProps> = ({
   styleOverrides = {},
   showRoleLabels = true,
   userLabel = 'User: ',
