@@ -52,7 +52,6 @@ const ChatWindowUserMessage: React.FC<ChatWindowUserMessageProps> = ({
             {showIcon && <div className="flex flex-col items-center m-2">
                 <div className="w-fit h-fit p-1 rounded-3xl" style={{
                     backgroundColor: style.messageBackgroundColor,
-                    border: `2px solid ${style.messageBackgroundColor}`,
                 }}>
                     {icon}
                 </div>
