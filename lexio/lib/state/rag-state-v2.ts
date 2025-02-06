@@ -21,6 +21,13 @@ type UserAction =
   | { type: 'SET_FILTER_SOURCES', filter: any, source: Component }
   | { type: 'RESET_FILTER_SOURCES', source: Component }
 
+const allowedPayloadKeys: Record<UserAction['type'], string[]> = {
+  ADD_USER_MESSAGE: ['message', 'messages', 'sources', 'actionOptions'],
+  SET_ACTIVE_MESSAGE: ['actionOptions']
+  // Add additional mappings for other actions as needed.
+};
+
+
 // Input -> User message, set active source/ filter source, reset all, reset chat, reset_filter
 // Viewer -> nichts
 // ChatWindow ->  reset all, reset chat,
@@ -65,6 +72,8 @@ export const configAtom = atom<RAGConfig>({
 // message
 export const completedMessagesAtom = atom<Message[]>([]);
 export const currentStreamAtom = atom<Message | null>(null);
+export const activeMessageAtom = atom<string | null>(null);
+
 
 // sources
 export const retrievedSourcesAtom = atom<Source[]>([]);
@@ -126,6 +135,8 @@ class CrazyAgentMessageManipulator {
   }
 }
 
+
+// handling of user messages
 const addUserMessageAtom = atom(
   null,
   (
@@ -290,6 +301,11 @@ class StreamTimeout {
   }
 }
 
+// set active message
+const setActiveMessageAtom = atom(null, (_get, set, messageId: string, setActiveMessageModifier?: UserActionModifier) => {
+  set(activeMessageAtom, messageId);
+});
+
 
 // central dispatch atom / function
 export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
@@ -306,7 +322,7 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
   }
 
   // Let the handler construct the concrete async tasks.
-  const { message, messages, sources, actionOptions } = handler.handler(
+  const payload = handler.handler(
     action,
     get(completedMessagesAtom),
     get(retrievedSourcesAtom),
@@ -314,10 +330,27 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
     get(selectedSourceAtom)
   );
 
+  // Check for any extra keys in the payload that we do not use.
+  const allowed = allowedPayloadKeys[action.type] || [];
+  const extraKeys = Object.keys(payload).filter(key => !allowed.includes(key));
+  if (extraKeys.length > 0) {
+    console.warn(
+      `Handler for action "${action.type}" returned unused properties: ${extraKeys.join(', ')}`
+    );
+  }
+
+  const { message, messages, sources, actionOptions } = payload;
+
   // Delegate to the concrete functionality.
   switch (action.type) {
     case 'ADD_USER_MESSAGE':
       set(addUserMessageAtom, { message, messages, sources, addMessageModifier: actionOptions?.current });
+      break;
+    case 'SET_ACTIVE_MESSAGE':
+      set(setActiveMessageAtom, action.messageId, actionOptions?.current);
+      break;
+    case 'CLEAR_MESSAGES':
+      set(clearMessagesAtom);
       break;
 
     // Other action types can be added here.
