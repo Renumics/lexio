@@ -74,6 +74,9 @@ export const selectedSourceAtom = atom<Source | null>(null);
 // loading state of system -> can be used to block other actions
 export const loadingAtom = atom(false);
 
+// error state of system -> can be used to block other actions
+export const errorAtom = atom<string | null>(null);
+
 
 type UserActionModifier = any
 
@@ -123,109 +126,128 @@ class CrazyAgentMessageManipulator {
   }
 }
 
-const addUserMessageAtom = atom(null, (get, set, { message, messages, sources, addMessageModifier }:
-  { 
-    message?: Promise<Message> | AsyncIterable<{ content: string, done?: boolean }>, 
-    messages?: Promise<Message[]>, 
-    sources?: Promise<Source[]>, 
-    addMessageModifier?: UserActionModifier 
-  }
-) => {
-  if (message && messages) {
-    throw new Error('addUserMessageAtom: message and messages cannot be set at the same time');
-  }
+const addUserMessageAtom = atom(
+  null,
+  (
+    get,
+    set,
+    {
+      message,
+      messages,
+      sources,
+      addMessageModifier,
+    }: {
+      message?: Promise<Message> | AsyncIterable<{ content: string; done?: boolean }>;
+      messages?: Promise<Message[]>;
+      sources?: Promise<Source[]>;
+      addMessageModifier?: UserActionModifier;
+    }
+  ) => {
+    // Save previous state for rollback.
+    const previousMessages = get(completedMessagesAtom);
+    const previousSources = get(retrievedSourcesAtom);
 
-  // Get the configuration for timeouts (and any other settings)
-  const config = get(configAtom);
-
-  // Process any provided sources with a timeout.
-  if (sources) {
+    // Read configuration and create a common AbortController.
+    const config = get(configAtom);
     const abortController = new AbortController();
-    addTimeout(
-      sources.then(sourcesData => {
-        set(retrievedSourcesAtom, sourcesData);
-        set(activeSourcesAtom, []);
-        set(selectedSourceAtom, null);
-        return sourcesData;
-      }),
-      config.timeouts?.request,
-      'Sources request timeout exceeded',
-      abortController.signal
-    ).catch(error => {
-      toast.error(`Failed to process sources: ${error.message}`);
-    });
-  }
 
-  // Process a single message (response)
-  if (message) {
-    const abortController = new AbortController();
-    let accumulatedContent = '';
+    // Process sources independently.
+    const processSources = async () => {
+      if (!sources) return;
+      const sourcesData = await addTimeout(
+        sources.then(srcs => srcs),
+        config.timeouts?.request,
+        'Sources request timeout exceeded',
+        abortController.signal
+      );
+      // Update sources-related state.
+      set(retrievedSourcesAtom, sourcesData);
+      set(activeSourcesAtom, []);
+      set(selectedSourceAtom, null);
+      return sourcesData;
+    };
 
-    // Check if the message is a streaming response (AsyncIterable)
-    if (Symbol.asyncIterator in message) {
-      const processStream = async () => {
-        // Create a stream timeout checker with the configured stream timeout.
-        const streamTimeout = new StreamTimeout(config.timeouts?.stream);
-        for await (const chunk of message as AsyncIterable<{ content: string, done?: boolean }>) {
-          if (abortController.signal.aborted) break;
-          streamTimeout.check(); // ensure each chunk arrives on time
-
-          accumulatedContent += chunk.content;
-          
-          // Update the current stream state as chunks arrive.
-          set(currentStreamAtom, {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: accumulatedContent
-          });
-
-          if (chunk.done) {
-            // Finalize the streaming message by appending it to completed messages.
-            set(completedMessagesAtom, prev => [...prev, {
+    // Process the user message or streaming response independently.
+    const processMessage = async () => {
+      if (message) {
+        let accumulatedContent = '';
+        if (Symbol.asyncIterator in message) {
+          // Streaming response: process each chunk with its own per-chunk timeout.
+          const streamTimeout = new StreamTimeout(config.timeouts?.stream);
+          for await (const chunk of message as AsyncIterable<{ content: string; done?: boolean }>) {
+            if (abortController.signal.aborted) break;
+            streamTimeout.check();
+            accumulatedContent += chunk.content;
+            // Provide immediate feedback as streaming chunks arrive.
+            set(currentStreamAtom, {
               id: crypto.randomUUID(),
               role: 'assistant',
               content: accumulatedContent
-            }]);
-            set(currentStreamAtom, null);
+            });
           }
+          // Finalize streaming: update the completed messages.
+          set(completedMessagesAtom, [
+            ...get(completedMessagesAtom),
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: accumulatedContent
+            }
+          ]);
+          set(currentStreamAtom, null);
+          return accumulatedContent;
+        } else {
+          // Non-streaming (single promise) response.
+          const messageData = await addTimeout(
+            message as Promise<Message>,
+            config.timeouts?.request,
+            'Response timeout exceeded',
+            abortController.signal
+          );
+          set(completedMessagesAtom, [...get(completedMessagesAtom), messageData]);
+          return messageData;
         }
-        return accumulatedContent;
-      };
+      }
+      if (messages) {
+        throw new Error('Not implemented yet. Should serve more agentic use cases lateron.');
+      }
+    };
 
-      // Enforce an overall timeout for the streaming process.
-      addTimeout(
-        processStream(),
-        config.timeouts?.request,
-        'Stream processing timeout exceeded',
-        abortController.signal
-      ).catch(error => {
-        toast.error(`Stream processing failed: ${error.message}`);
-      }).finally(() => {
-        set(loadingAtom, false);
-      });
-    }
-    // Process a non-streaming message (Promise based response)
-    else {
-      addTimeout(
-        message as Promise<Message>,
-        config.timeouts?.request,
-        'Response timeout exceeded',
-        abortController.signal
-      ).then(messageData => {
-        set(completedMessagesAtom, prev => [...prev, messageData]);
-      }).catch(error => {
-        toast.error(`Failed to process message: ${error.message}`);
-      }).finally(() => {
-        set(loadingAtom, false);
-      });
-    }
-  }
+    // Execute sources and message processing concurrently.
+    (async () => {
+      // The concrete function manages its own loading state.
+      set(loadingAtom, true);
+      try {
+        const results = await Promise.allSettled([processSources(), processMessage()]);
+        const errors = results.filter(result => result.status === 'rejected');
 
-  // Process an array of messages if provided.
-  if (messages) {
-    throw new Error('Not implemented yet. Should serve more agentic use cases lateron.');
+        if (errors.length > 0) {
+          // Abort any remaining work and restore the previous state.
+          abortController.abort();
+          set(completedMessagesAtom, previousMessages);
+          set(retrievedSourcesAtom, previousSources);
+          set(currentStreamAtom, null);
+
+          // Aggregate error messages.
+          const errorMessages = errors
+            .map((e: PromiseRejectedResult) =>
+              e.reason instanceof Error ? e.reason.message : String(e.reason)
+            )
+            .join('; ');
+          throw new Error(errorMessages);
+        }
+      } catch (error) {
+        // Notify about the error and propagate it.
+        set(errorAtom, `Failed to process user message: ${error instanceof Error ? error.message : error}`);
+        throw error;
+      } finally {
+        set(loadingAtom, false);
+      }
+    })().catch(err => {
+      console.error('addUserMessageAtom error:', err);
+    });
   }
-});
+);
 
 // ---- helpers for handling stream timeout and stream abortion ----
 const addTimeout = <T>(
@@ -271,22 +293,41 @@ class StreamTimeout {
 
 // central dispatch atom / function
 export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
+  // Set the global loading state immediately.
   set(loadingAtom, true);
+
+  // Find the concrete handler based on the action source.
   const handlers = get(registeredActionHandlersAtom);
   const handler = handlers.find(h => h.component === action.source);
   if (!handler) {
-    toast.warning(`Handler for component ${action.source} not found`);
+    console.warn(`Handler for component ${action.source} not found`);
     set(loadingAtom, false);
     return;
   }
-  const { message, messages, sources, actionOptions } = handler.handler(action, get(completedMessagesAtom), get(retrievedSourcesAtom), get(activeSourcesAtom), get(selectedSourceAtom));
 
+  // Let the handler construct the concrete async tasks.
+  const { message, messages, sources, actionOptions } = handler.handler(
+    action,
+    get(completedMessagesAtom),
+    get(retrievedSourcesAtom),
+    get(activeSourcesAtom),
+    get(selectedSourceAtom)
+  );
+
+  // Delegate to the concrete functionality.
   switch (action.type) {
     case 'ADD_USER_MESSAGE':
       set(addUserMessageAtom, { message, messages, sources, addMessageModifier: actionOptions?.current });
       break;
+
+    // Other action types can be added here.
   }
 
+  // Handle any follow-up actions.
+  if (actionOptions?.followUp) {
+    set(dispatchAtom, actionOptions.followUp);
+  }
 
+  // Clear the global loading state.
   set(loadingAtom, false);
-})
+});
