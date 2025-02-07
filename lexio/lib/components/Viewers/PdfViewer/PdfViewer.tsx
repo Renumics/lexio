@@ -10,6 +10,7 @@ import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
 import {useHotkeys, Options} from 'react-hotkeys-hook';
 import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
 import { PDFHighlight } from "../../../types";
+import { verifyAnswer } from "../../../utils/answer-verification/main2";
 
 // Configure PDF.js worker - we explicitly use the pdfjs worker from the react-pdf package to avoid conflicts with the worker versions.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -58,6 +59,7 @@ interface PdfViewerProps {
     data: Uint8Array;
     highlights?: PDFHighlight[];
     page?: number;
+    lastMessageContent?: string;
     styleOverrides?: PdfViewerStyles;
 }
 
@@ -107,7 +109,7 @@ interface PdfViewerProps {
  * />
  * ```
  */
-const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
+const PdfViewer = ({data, highlights, page, lastMessageContent, styleOverrides = {}}: PdfViewerProps) => {
     const [pdfData, setPdfData] = useState<{data: object} | undefined>();
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
@@ -119,6 +121,10 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
     const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
     
+    useEffect(() => {
+        verifyAnswer();
+    }, [lastMessageContent, data, renderedPageNumber]);
+
     // --- use theme ---
     const theme = useContext(ThemeContext);
     if (!theme) {
@@ -395,6 +401,9 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
             focusContainer();
         }
     };
+
+
+    console.log(lastMessageContent);
 
     return (
         <div 

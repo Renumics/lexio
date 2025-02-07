@@ -1,8 +1,8 @@
-import React, { useContext } from 'react';
+import React, { useContext, useMemo } from 'react';
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { MarkdownViewer } from "../Viewers/MarkdownViewer";
-import { useRAGSources } from "../RAGProvider/hooks";
+import { useRAGMessages, useRAGSources } from "../RAGProvider/hooks";
 import { isPDFContent, isHTMLContent, isMarkdownContent } from "../../types";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 
@@ -19,7 +19,13 @@ interface ContentDisplayProps {
 
 const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) => {
   const { currentSourceContent } = useRAGSources();
-  
+  const { messages } = useRAGMessages();
+
+  const lastMessageContent = useMemo(
+    () => messages[messages.length - 1]?.content,
+    [messages]
+  );
+
   // use theme
   const theme = useContext(ThemeContext);
   if (!theme) {
@@ -43,10 +49,11 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
   const renderContent = () => {
     if (isPDFContent(currentSourceContent)) {
       return (
-        <PdfViewer 
+        <PdfViewer
           data={currentSourceContent.content}
           page={currentSourceContent?.page}
           highlights={currentSourceContent.highlights}
+          lastMessageContent={lastMessageContent}
         />
       );
     }
