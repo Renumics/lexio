@@ -3,6 +3,8 @@ import { RetrievalResult, SourceReference } from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
+import {addOpacity} from "../../utils/scaleFontSize.tsx";
+
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
   color?: string;
@@ -132,7 +134,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
     metadataTagColor: colors.secondaryText,
     relevanceScoreColor: colors.primary,
 
-    sourceTypeBackground: colors.secondary + '30',
+    sourceTypeBackground: addOpacity(colors.secondary, 0.17),
     sourceTypeColor: colors.secondary,
     ...removeUndefined(styleOverrides),
   };
@@ -244,7 +246,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   )}
                   {showRelevanceScore && source.relevanceScore !== undefined && (
                     <div className="mt-2 flex items-center">
-                      <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
+                      <span style={{ color: addOpacity(style.color || colors.text, 0.6), fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
                       <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
                         <div
                           className="h-2 rounded-full"

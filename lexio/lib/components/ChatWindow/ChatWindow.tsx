@@ -4,7 +4,7 @@ import {useRAGMessages} from '../RAGProvider/hooks';
 import {ResetWrapper} from '../../utils/ResetWrapper';
 import {ChatWindowUserMessage} from "./ChatWindowUserMessage.tsx";
 import {ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage.tsx";
-import {scaleFontSize} from '../../utils/scaleFontSize';
+import {addOpacity, scaleFontSize} from '../../utils/scaleFontSize';
 
 // todo: Add docu for new components, remove border around icon, add longer description
 
@@ -146,11 +146,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     // Merge theme defaults + overrides
     const style: ChatWindowStyles = {
         backgroundColor: colors.background,
-        messageBackgroundColor: colors.primary + '15',  // add opacity to primary color ~ 12.5% - todo: remove since colors can be different from HEX!
+        messageBackgroundColor: addOpacity(colors.primary, 0.12), // add opacity
         messageBorderRadius: componentDefaults.borderRadius,
         messageFontSize: typography.fontSizeBase,
         roleLabelFontSize: scaleFontSize(typography.fontSizeBase, 0.8),
-        accent: colors.primary + '50',  // add opacity
+        accent: addOpacity(colors.primary, 0.3),  // add opacity
         color: colors.text,
         padding: componentDefaults.padding,
         fontFamily: typography.fontFamily,
