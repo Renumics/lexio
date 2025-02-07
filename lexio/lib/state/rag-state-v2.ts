@@ -25,7 +25,7 @@ interface AddUserMessageActionModifier {
 
 }
 interface SetActiveMessageActionModifier {
-
+  messageId: string
 }
 interface ClearMessagesActionModifier {
 
@@ -37,10 +37,10 @@ interface ClearSourcesActionModifier {
 
 }
 interface SetActiveSourcesActionModifier {
-
+  activeSourceIds: string[]
 }
 interface SetSelectedSourceActionModifier {
-  sourceId: string | null
+  selectedSourceId: string | null
 }
 interface SetFilterSourcesActionModifier {
 
@@ -100,13 +100,37 @@ export const configAtom = atom<RAGConfig>({
 // message
 export const completedMessagesAtom = atom<Message[]>([]);
 export const currentStreamAtom = atom<Message | null>(null);
-export const activeMessageAtom = atom<string | null>(null);
+export const activeMessageIdAtom = atom<string | null>(null);
+
+export const activeMessageAtom = atom(
+  (get) => {
+    const activeMessageId = get(activeMessageIdAtom);
+    const completedMessages = get(completedMessagesAtom);
+    return activeMessageId ? completedMessages.find(message => message.id === activeMessageId) ?? null : null;
+  }
+);
 
 
 // sources
 export const retrievedSourcesAtom = atom<Source[]>([]);
-export const activeSourcesAtom = atom<Source[]>([]);
-export const selectedSourceAtom = atom<Source | null>(null);
+export const activeSourceIdsAtom = atom<string[]>([]);
+export const selectedSourceIdAtom = atom<string | null>(null);
+
+export const activeSourcesAtom = atom(
+  (get) => {
+    const retrievedSources = get(retrievedSourcesAtom);
+    const activeIds = get(activeSourceIdsAtom);
+    return retrievedSources.filter(source => activeIds.includes(source.id));
+  }
+);
+
+export const selectedSourceAtom = atom(
+  (get) => {
+    const retrievedSources = get(retrievedSourcesAtom);
+    const selectedId = get(selectedSourceIdAtom);
+    return selectedId ? retrievedSources.find(source => source.id === selectedId) ?? null : null;
+  }
+);
 
 // loading state of system -> can be used to block other actions
 export const loadingAtom = atom(false);
@@ -330,8 +354,8 @@ class StreamTimeout {
 }
 
 // set active message
-const setActiveMessageAtom = atom(null, (_get, set, {messageId, setActiveMessageModifier}: {messageId: string, setActiveMessageModifier?: SetActiveMessageActionModifier}) => {
-  set(activeMessageAtom, messageId);
+const setActiveMessageAtom = atom(null, (_get, set, {setActiveMessageModifier}: {setActiveMessageModifier?: SetActiveMessageActionModifier}) => {
+  set(activeMessageIdAtom, setActiveMessageModifier?.messageId);
 });
 
 // clear messages
@@ -377,8 +401,8 @@ const searchSourcesAtom = atom(
       set(retrievedSourcesAtom, timedSources);
 
       // Optionally reset related state associated with sources.
-      set(activeSourcesAtom, []);
-      set(selectedSourceAtom, null);
+      set(activeSourceIdsAtom, []);
+      set(selectedSourceIdAtom, null);
 
       return timedSources;
     } catch (error) {
@@ -406,24 +430,23 @@ const searchSourcesAtom = atom(
 // clear sources
 const clearSourcesAtom = atom(null, (_get, set, {clearSourcesModifier}: {clearSourcesModifier?: ClearSourcesActionModifier}) => {
   set(retrievedSourcesAtom, []);
-  set(activeSourcesAtom, []);
-  set(selectedSourceAtom, null);
+  set(activeSourceIdsAtom, []);
+  set(selectedSourceIdAtom, null);
 });
 
 // set active sources
-const setActiveSourcesAtom = atom(null, (_get, set, {setActiveSourcesModifier}: {setActiveSourcesModifier?: SetActiveSourcesActionModifier}) => {
-  set(activeSourcesAtom, []);
+const setActiveSourcesAtom = atom(null, (get, set, {setActiveSourcesModifier}: {setActiveSourcesModifier?: SetActiveSourcesActionModifier}) => {
+  const activeSourceIds = setActiveSourcesModifier?.activeSourceIds;
+  if (activeSourceIds) {
+    set(activeSourceIdsAtom, activeSourceIds);
+  }
 });
 
 // set selected source
-const setSelectedSourceAtom = atom(null, (_get, set, {setSelectedSourceModifier}: {setSelectedSourceModifier?: SetSelectedSourceActionModifier}) => {
-  const currentSources = get(retrievedSourcesAtom);
-  const sourceId = setSelectedSourceModifier?.sourceId;
-  if (sourceId) {
-    const source = currentSources.find(s => s.id === sourceId);
-    if (source) {
-      set(selectedSourceAtom, source);
-    }
+const setSelectedSourceAtom = atom(null, (get, set, {setSelectedSourceModifier}: {setSelectedSourceModifier?: SetSelectedSourceActionModifier}) => {
+  const selectedSourceId = setSelectedSourceModifier?.selectedSourceId;
+  if (selectedSourceId) {
+    set(selectedSourceIdAtom, selectedSourceId);
   }
 });
 
