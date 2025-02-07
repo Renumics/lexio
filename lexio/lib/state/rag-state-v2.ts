@@ -21,6 +21,34 @@ type UserAction =
   | { type: 'SET_FILTER_SOURCES', filter: any, source: Component }
   | { type: 'RESET_FILTER_SOURCES', source: Component }
 
+interface AddUserMessageActionModifier {
+
+}
+interface SetActiveMessageActionModifier {
+
+}
+interface ClearMessagesActionModifier {
+
+}
+interface SearchSourcesActionModifier {
+
+}
+interface ClearSourcesActionModifier {
+
+}
+interface SetActiveSourcesActionModifier {
+
+}
+interface SetSelectedSourceActionModifier {
+
+}
+interface SetFilterSourcesActionModifier {
+
+}
+interface ResetFilterSourcesActionModifier {
+
+}
+
 const allowedPayloadKeys: Record<UserAction['type'], string[]> = {
   ADD_USER_MESSAGE: ['message', 'messages', 'sources', 'actionOptions'],
   SET_ACTIVE_MESSAGE: ['actionOptions']
@@ -87,7 +115,7 @@ export const loadingAtom = atom(false);
 export const errorAtom = atom<string | null>(null);
 
 
-type UserActionModifier = any
+type UserActionModifier = AddUserMessageActionModifier | SetActiveMessageActionModifier | ClearMessagesActionModifier | SearchSourcesActionModifier | ClearSourcesActionModifier | SetActiveSourcesActionModifier | SetSelectedSourceActionModifier | SetFilterSourcesActionModifier | ResetFilterSourcesActionModifier
 
 type ActionHandler = {
   component: Component;
@@ -151,7 +179,7 @@ const addUserMessageAtom = atom(
       message?: Promise<Message> | AsyncIterable<{ content: string; done?: boolean }>;
       messages?: Promise<Message[]>;
       sources?: Promise<Source[]>;
-      addMessageModifier?: UserActionModifier;
+      addMessageModifier?: AddUserMessageActionModifier;
     }
   ) => {
     // Save previous state for rollback.
@@ -302,12 +330,12 @@ class StreamTimeout {
 }
 
 // set active message
-const setActiveMessageAtom = atom(null, (_get, set, {messageId, setActiveMessageModifier}: {messageId: string, setActiveMessageModifier?: UserActionModifier}) => {
+const setActiveMessageAtom = atom(null, (_get, set, {messageId, setActiveMessageModifier}: {messageId: string, setActiveMessageModifier?: SetActiveMessageActionModifier}) => {
   set(activeMessageAtom, messageId);
 });
 
 // clear messages
-const clearMessagesAtom = atom(null, (_get, set, {clearMessagesModifier}: {clearMessagesModifier?: UserActionModifier}) => {
+const clearMessagesAtom = atom(null, (_get, set, {clearMessagesModifier}: {clearMessagesModifier?: ClearMessagesActionModifier}) => {
   set(completedMessagesAtom, []);
 });
 
@@ -318,7 +346,7 @@ const searchSourcesAtom = atom(
   async (
     get,
     set,
-    { sources, searchSourcesModifier }: { sources?: Promise<Source[]>; searchSourcesModifier?: UserActionModifier }
+    { sources, searchSourcesModifier }: { sources?: Promise<Source[]>; searchSourcesModifier?: SearchSourcesActionModifier }
   ) => {
     // Save previous state for rollback.
     const previousSources = get(retrievedSourcesAtom);
@@ -375,6 +403,18 @@ const searchSourcesAtom = atom(
   }
 );
 
+// clear sources
+const clearSourcesAtom = atom(null, (_get, set, {clearSourcesModifier}: {clearSourcesModifier?: ClearSourcesActionModifier}) => {
+  set(retrievedSourcesAtom, []);
+  set(activeSourcesAtom, []);
+  set(selectedSourceAtom, null);
+});
+
+// set active sources
+const setActiveSourcesAtom = atom(null, (_get, set, {setActiveSourcesModifier}: {setActiveSourcesModifier?: SetActiveSourcesActionModifier}) => {
+  set(activeSourcesAtom, []);
+});
+
 // central dispatch atom / function
 export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
   // Set the global loading state immediately.
@@ -423,6 +463,14 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
     case 'SEARCH_SOURCES':
       set(searchSourcesAtom, {sources, searchSourcesModifier: actionOptions?.current});
       break;
+    case 'CLEAR_SOURCES':
+      set(clearSourcesAtom, {clearSourcesModifier: actionOptions?.current});
+      break;
+    case 'SET_ACTIVE_SOURCES':
+      set(setActiveSourcesAtom, {setActiveSourcesModifier: actionOptions?.current});
+      break;
+ 
+  
 
     // Other action types can be added here.
   }
