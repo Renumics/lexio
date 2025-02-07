@@ -68,10 +68,11 @@ export interface ChatWindowProps {
 }
 
 /**
- * ChatWindow component displays a real-time conversation between a user and an assistant.
+ * The ChatWindow component displays a conversation between a user and an assistant. It supports the display
+ * of **markdown-formatted** messages, **role indicators**, and **custom icons** for user and assistant messages.
  *
  * This component is responsible for rendering a dynamic chat interface using messages provided by
- * the RAG message provider (via the `useRAGMessages` hook). It supports both static and streaming messages,
+ * the `RAGProvider` (via the `useRAGMessages` hook). It supports both **static and streaming messages**,
  * and automatically scrolls to the most recent message upon updates.
  *
  * The appearance of the ChatWindow is primarily determined by theme defaults from the `ThemeContext`
