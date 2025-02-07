@@ -302,10 +302,78 @@ class StreamTimeout {
 }
 
 // set active message
-const setActiveMessageAtom = atom(null, (_get, set, messageId: string, setActiveMessageModifier?: UserActionModifier) => {
+const setActiveMessageAtom = atom(null, (_get, set, {messageId, setActiveMessageModifier}: {messageId: string, setActiveMessageModifier?: UserActionModifier}) => {
   set(activeMessageAtom, messageId);
 });
 
+// clear messages
+const clearMessagesAtom = atom(null, (_get, set, {clearMessagesModifier}: {clearMessagesModifier?: UserActionModifier}) => {
+  set(completedMessagesAtom, []);
+});
+
+
+// search sources
+const searchSourcesAtom = atom(
+  null,
+  async (
+    get,
+    set,
+    { sources, searchSourcesModifier }: { sources?: Promise<Source[]>; searchSourcesModifier?: UserActionModifier }
+  ) => {
+    // Save previous state for rollback.
+    const previousSources = get(retrievedSourcesAtom);
+
+    // Retrieve timeout configuration.
+    const config = get(configAtom);
+    const abortController = new AbortController();
+
+    // Set the loading state to block concurrent operations.
+    set(loadingAtom, true);
+
+    try {
+      // If no sources promise is provided, skip updating and return early.
+      if (!sources) {
+        console.warn("No sources provided to searchSourcesAtom. Operation skipped.");
+        return previousSources;
+      }
+
+      // Await the sources, applying the configured timeout.
+      const timedSources = await addTimeout(
+        sources,
+        config.timeouts?.request,
+        'Sources request timeout exceeded in searchSourcesAtom',
+        abortController.signal
+      );
+
+      // If successful, update the retrieved sources.
+      set(retrievedSourcesAtom, timedSources);
+
+      // Optionally reset related state associated with sources.
+      set(activeSourcesAtom, []);
+      set(selectedSourceAtom, null);
+
+      return timedSources;
+    } catch (error) {
+      // Abort any further processing if an error occurs.
+      abortController.abort();
+
+      // Roll back to the previous state.
+      set(retrievedSourcesAtom, previousSources);
+
+      // Store the error message in the global error state.
+      set(
+        errorAtom,
+        `Failed to search sources: ${error instanceof Error ? error.message : String(error)}`
+      );
+
+      // Propagate the error for any higher-level handling.
+      throw error;
+    } finally {
+      // Clear loading state irrespective of outcome.
+      set(loadingAtom, false);
+    }
+  }
+);
 
 // central dispatch atom / function
 export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
@@ -347,10 +415,13 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
       set(addUserMessageAtom, { message, messages, sources, addMessageModifier: actionOptions?.current });
       break;
     case 'SET_ACTIVE_MESSAGE':
-      set(setActiveMessageAtom, action.messageId, actionOptions?.current);
+      set(setActiveMessageAtom, {messageId: action.messageId, setActiveMessageModifier: actionOptions?.current});
       break;
     case 'CLEAR_MESSAGES':
-      set(clearMessagesAtom);
+      set(clearMessagesAtom, {clearMessagesModifier: actionOptions?.current});
+      break;
+    case 'SEARCH_SOURCES':
+      set(searchSourcesAtom, {sources, searchSourcesModifier: actionOptions?.current});
       break;
 
     // Other action types can be added here.
