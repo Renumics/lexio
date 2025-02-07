@@ -105,21 +105,20 @@ This feature is particularly useful for:
 
 ## Usage
 
-To enable markdown support, simply pass the \`markdown\` prop to the ChatWindow component:
+The ChatWindow component accepts a \`markdown\` prop to enable markdown rendering, it is set to \`true\` by default.
 
 \`\`\`tsx
 <ChatWindow markdown />
 \`\`\`
 
 ## Supported Markdown Features
-- Headers (H1-H6)
+- Headers (H1-H4)
 - Bold and italic text
 - Code blocks with syntax highlighting
 - Tables
 - Lists (ordered and unordered)
 - Blockquotes
 - Links
-- And more!
 
 The markdown rendering is handled by a markdown processor that ensures safe and consistent output while maintaining the streaming capability of the chat interface.
         `

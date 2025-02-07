@@ -15,6 +15,7 @@ export interface ChatWindowStyles extends React.CSSProperties {
     messageBorderRadius?: string;
     messageFontSize?: string;
     roleLabelFontSize?: string;
+    accent?: string;
     color?: string;
     padding?: string;
     fontFamily?: string;
@@ -79,11 +80,12 @@ export interface ChatWindowProps {
  * 
  * Role Indicators via labels or icons can be shown or hidden via the `showRoleIndicator` prop.
  *
- * **Key features include:
- * - **Role Indicators:** Displays either textual labels or custom icons for each message depending on the sender.
- * - **Markdown Support:** Optionally renders assistant messages in markdown format (default is true)
- * - **Copy Button:** Provides an easy-to-use copy-to-clipboard button for assistant messages and code blocks in markdown.
+ * **Key features:**
+ * - **Markdown Support:** Optionally renders assistant messages in markdown format (default is true, set via `markdown` prop).
  * - **Auto Scrolling:** Automatically scrolls the container to the bottom when new messages or streaming content is added.
+ * - **Role Indicators:** Displays either textual labels or custom icons for each message depending on the sender.
+ * - **Icon Support:** Allows custom icons for user and assistant messages via the `userIcon` and `assistantIcon` props. Must be a ReactElement.
+ * - **Copy Button:** Provides an easy-to-use copy-to-clipboard button for assistant messages and code blocks in markdown.
  *
  * @example
  * ```   
@@ -143,10 +145,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     // Merge theme defaults + overrides
     const style: ChatWindowStyles = {
         backgroundColor: colors.background,
-        messageBackgroundColor: colors.primary + '15',  // add opacity to primary color ~ 12.5%
+        messageBackgroundColor: colors.primary + '15',  // add opacity to primary color ~ 12.5% - todo: remove since colors can be different from HEX!
         messageBorderRadius: componentDefaults.borderRadius,
         messageFontSize: typography.fontSizeBase,
         roleLabelFontSize: scaleFontSize(typography.fontSizeBase, 0.8),
+        accent: colors.primary + '50',  // add opacity
         color: colors.text,
         padding: componentDefaults.padding,
         fontFamily: typography.fontFamily,

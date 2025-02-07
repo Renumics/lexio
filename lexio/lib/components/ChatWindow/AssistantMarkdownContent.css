@@ -1,45 +1,66 @@
 /* AssistantMarkdownContent.css */
 :root {
-  --base-font-size: 1.0rem; /* Default */
+    --font-size-h1: 1.6rem;
+    --font-size-h2: 1.4rem;
+    --font-size-h3: 1.25rem;
+    --font-size-h4: 1.1rem;
+    --font-size-base: 1rem;
+    --font-size-code: 1rem;
+    --font-size-small: 0.8rem;
+    --accent-color: #666;
+}
+
+.assistant-markdown-content {
+    white-space: wrap;
 }
 
 /* Headings */
 .assistant-markdown-content h1 {
-    font-size: calc(var(--base-font-size) * 1.8);
+    font-size: var(--font-size-h1);
+    margin-top: 8px;
 }
 
 .assistant-markdown-content h2 {
-    font-size: calc(var(--base-font-size) * 1.4);
-    margin-bottom: 0;
+    font-size: var(--font-size-h2);
+    margin-top: 6px;
 }
 
 .assistant-markdown-content h3 {
-    font-size: calc(var(--base-font-size) * 1.25);
+    font-size:  var(--font-size-h3);
+    margin-top: 6px;
 }
 
 .assistant-markdown-content h4 {
-    font-size: calc(var(--base-font-size) * 1.1);
+    font-size: var(--font-size-h4);
+    margin-top: 6px;
 }
 
 /* Paragraphs */
 .assistant-markdown-content p {
-    margin-bottom: 0;
+    font-size: var(--font-size-base);
+    margin-top: 10px;
 }
 
 /* Lists */
 .assistant-markdown-content ul {
-    margin-top: 0;
+    white-space: nowrap;
+    margin-top: 6px;
+    margin-bottom: 6px;
     list-style: disc inside;
     padding-left: 10px;
 }
 
 .assistant-markdown-content ol {
+    white-space: nowrap;
+    margin-top: 6px;
+    margin-bottom: 6px;
     list-style: decimal inside;
     padding-left: 10px;
 }
 
 /* Tables */
 .assistant-markdown-content table {
+    margin-top: 6px;
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
@@ -59,10 +80,12 @@
 
 /* Blockquotes */
 .assistant-markdown-content blockquote {
-    border-left: 5px solid #ddd;
+    white-space: wrap;
+    padding-bottom: 6px;
+    border-left: 5px solid var(--accent-color);
     padding-left: 15px;
     font-style: italic;
-    color: #555;
+    colors: #666;
 }
 
 /* Links */
@@ -77,5 +100,5 @@
 
 /* Code */
 .assistant-markdown-content code {
-    font-size: calc(var(--base-font-size));
+    font-size: calc(var(--font-size-code));
 }

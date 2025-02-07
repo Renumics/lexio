@@ -6,6 +6,7 @@ import {docco} from "react-syntax-highlighter/dist/esm/styles/hljs";
 import remarkGfm from "remark-gfm";
 import "./AssistantMarkdownContent.css";
 import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline";
+import {scaleFontSize} from "../../utils/scaleFontSize.tsx";
 
 /**
  * Props for the AssistantMarkdownContent component.
@@ -65,10 +66,10 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({cont
                                 <div
                                     style={{
                                         marginLeft: '0.33rem',
-                                        fontSize: '0.75rem',
+                                        fontSize: 'var(--font-size-small)',
                                         fontWeight: 'bold',
                                         background: '#f5f5f5',
-                                        padding: '4px 8px',
+                                        padding: '0 8px',
                                         borderTopLeftRadius: '5px',
                                         borderTopRightRadius: '5px',
                                         borderBottom: '1px solid #ccc',
@@ -171,8 +172,17 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
      * Styles for the markdown content, setting the base font size.
      */
     const assistantMarkdownContentStyling = useMemo(() => {
-        return {"--base-font-size": `1rem`} as React.CSSProperties;
-    }, [style.messageFontSize]);
+        return {
+            "--font-size-h1": scaleFontSize(style.messageFontSize || '1rem', 1.6),
+            "--font-size-h2": scaleFontSize(style.messageFontSize || '1rem', 1.4),
+            "--font-size-h3": scaleFontSize(style.messageFontSize || '1rem', 1.25),
+            "--font-size-h4": scaleFontSize(style.messageFontSize || '1rem', 1.1),
+            "--font-size-base": style.messageFontSize || '1rem',
+            "--font-size-code": scaleFontSize(style.messageFontSize || '1rem', 1),
+            "--font-size-small": scaleFontSize(style.messageFontSize || '1rem', 0.75),
+            "--accent-color": style.accent
+        } as React.CSSProperties;
+    }, [style.messageFontSize, style.color]);
 
     return (
         <div className={`w-full flex ${showIcon ? 'justify-start' : 'flex-col items-start'} pe-10`}>
@@ -195,7 +205,7 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                 fontSize: style.messageFontSize,
             }}>
                 {markdown ? (
-                    <div className={"whitespace-pre-wrap assistant-markdown-content"}
+                    <div className={"assistant-markdown-content"}
                          style={assistantMarkdownContentStyling}>
                         <AssistantMarkdownContent content={message} style={style}/>
                     </div>
