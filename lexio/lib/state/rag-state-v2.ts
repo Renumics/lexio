@@ -40,7 +40,7 @@ interface SetActiveSourcesActionModifier {
 
 }
 interface SetSelectedSourceActionModifier {
-
+  sourceId: string | null
 }
 interface SetFilterSourcesActionModifier {
 
@@ -415,6 +415,28 @@ const setActiveSourcesAtom = atom(null, (_get, set, {setActiveSourcesModifier}: 
   set(activeSourcesAtom, []);
 });
 
+// set selected source
+const setSelectedSourceAtom = atom(null, (_get, set, {setSelectedSourceModifier}: {setSelectedSourceModifier?: SetSelectedSourceActionModifier}) => {
+  const currentSources = get(retrievedSourcesAtom);
+  const sourceId = setSelectedSourceModifier?.sourceId;
+  if (sourceId) {
+    const source = currentSources.find(s => s.id === sourceId);
+    if (source) {
+      set(selectedSourceAtom, source);
+    }
+  }
+});
+
+// set filter sources
+const setFilterSourcesAtom = atom(null, (_get, set, {setFilterSourcesModifier}: {setFilterSourcesModifier?: SetFilterSourcesActionModifier}) => {
+  throw new Error('Not implemented yet');
+});
+
+// reset filter sources
+const resetFilterSourcesAtom = atom(null, (_get, set, {resetFilterSourcesModifier}: {resetFilterSourcesModifier?: ResetFilterSourcesActionModifier}) => {
+  throw new Error('Not implemented yet');
+});
+
 // central dispatch atom / function
 export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
   // Set the global loading state immediately.
@@ -452,24 +474,42 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
   // Delegate to the concrete functionality.
   switch (action.type) {
     case 'ADD_USER_MESSAGE':
-      set(addUserMessageAtom, { message, messages, sources, addMessageModifier: actionOptions?.current });
+      const addMessageModifier = actionOptions?.current as AddUserMessageActionModifier;
+      set(addUserMessageAtom, { message, messages, sources, addMessageModifier: addMessageModifier });
       break;
     case 'SET_ACTIVE_MESSAGE':
-      set(setActiveMessageAtom, {messageId: action.messageId, setActiveMessageModifier: actionOptions?.current});
+      const setActiveMessageModifier = actionOptions?.current as SetActiveMessageActionModifier;
+      set(setActiveMessageAtom, {messageId: action.messageId, setActiveMessageModifier: setActiveMessageModifier});
       break;
     case 'CLEAR_MESSAGES':
-      set(clearMessagesAtom, {clearMessagesModifier: actionOptions?.current});
+      const clearMessagesModifier = actionOptions?.current as ClearMessagesActionModifier;
+      set(clearMessagesAtom, {clearMessagesModifier: clearMessagesModifier});
       break;
     case 'SEARCH_SOURCES':
-      set(searchSourcesAtom, {sources, searchSourcesModifier: actionOptions?.current});
+      const searchSourcesModifier = actionOptions?.current as SearchSourcesActionModifier;
+      set(searchSourcesAtom, {sources, searchSourcesModifier: searchSourcesModifier});
       break;
     case 'CLEAR_SOURCES':
-      set(clearSourcesAtom, {clearSourcesModifier: actionOptions?.current});
+      const clearSourcesModifier = actionOptions?.current as ClearSourcesActionModifier;
+      set(clearSourcesAtom, {clearSourcesModifier: clearSourcesModifier});
       break;
     case 'SET_ACTIVE_SOURCES':
-      set(setActiveSourcesAtom, {setActiveSourcesModifier: actionOptions?.current});
+      const setActiveSourcesModifier = actionOptions?.current as SetActiveSourcesActionModifier;
+      set(setActiveSourcesAtom, {setActiveSourcesModifier: setActiveSourcesModifier});
       break;
- 
+    case 'SET_SELECTED_SOURCE':
+      const setSelectedSourceModifier = actionOptions?.current as SetSelectedSourceActionModifier;
+      set(setSelectedSourceAtom, {setSelectedSourceModifier: setSelectedSourceModifier});
+      break;
+    case 'SET_FILTER_SOURCES':
+      const setFilterSourcesModifier = actionOptions?.current as SetFilterSourcesActionModifier;
+      set(setFilterSourcesAtom, {setFilterSourcesModifier: setFilterSourcesModifier});
+      break;
+    case 'RESET_FILTER_SOURCES':
+      const resetFilterSourcesModifier = actionOptions?.current as ResetFilterSourcesActionModifier;
+      set(resetFilterSourcesAtom, {resetFilterSourcesModifier: resetFilterSourcesModifier});
+      break;
+
   
 
     // Other action types can be added here.
