@@ -9,6 +9,7 @@ type Component =
   | 'Viewer'
   | 'ChatWindow'
   | 'SourceDisplay'
+  | 'RAGProvider2'
 
 type UserAction =
   | { type: 'ADD_USER_MESSAGE', source: Component } // User message
@@ -147,7 +148,7 @@ export const errorAtom = atom<string | null>(null);
 
 type UserActionModifier = AddUserMessageActionModifier | SetActiveMessageActionModifier | ClearMessagesActionModifier | SearchSourcesActionModifier | ClearSourcesActionModifier | SetActiveSourcesActionModifier | SetSelectedSourceActionModifier | SetFilterSourcesActionModifier | ResetFilterSourcesActionModifier
 
-type ActionHandler = {
+export type ActionHandler = {
   component: Component;
   handler: (action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => ({
     message: Promise<Message> | AsyncIterable<{ content: string, done?: boolean }>
@@ -160,7 +161,7 @@ type ActionHandler = {
   })
 }
 // ---- handler registry -----
-const registeredActionHandlersAtom = atom<ActionHandler[]>([]);
+export const registeredActionHandlersAtom = atom<ActionHandler[]>([]);
 
 // register a new action handler
 // handlers should be uniquely identified by component name + key TODO
