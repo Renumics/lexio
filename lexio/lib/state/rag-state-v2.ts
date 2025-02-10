@@ -360,12 +360,12 @@ class StreamTimeout {
 }
 
 // set active message
-const setActiveMessageAtom = atom(null, (_get, set, {setActiveMessageModifier}: {setActiveMessageModifier?: SetActiveMessageActionModifier}) => {
+const setActiveMessageAtom = atom(null, (_get, set, { setActiveMessageModifier }: { setActiveMessageModifier?: SetActiveMessageActionModifier }) => {
   set(activeMessageIdAtom, setActiveMessageModifier?.messageId);
 });
 
 // clear messages
-const clearMessagesAtom = atom(null, (_get, set, {clearMessagesModifier}: {clearMessagesModifier?: ClearMessagesActionModifier}) => {
+const clearMessagesAtom = atom(null, (_get, set, { clearMessagesModifier }: { clearMessagesModifier?: ClearMessagesActionModifier }) => {
   set(completedMessagesAtom, []);
 });
 
@@ -434,14 +434,14 @@ const searchSourcesAtom = atom(
 );
 
 // clear sources
-const clearSourcesAtom = atom(null, (_get, set, {clearSourcesModifier}: {clearSourcesModifier?: ClearSourcesActionModifier}) => {
+const clearSourcesAtom = atom(null, (_get, set, { clearSourcesModifier }: { clearSourcesModifier?: ClearSourcesActionModifier }) => {
   set(retrievedSourcesAtom, []);
   set(activeSourceIdsAtom, []);
   set(selectedSourceIdAtom, null);
 });
 
 // set active sources
-const setActiveSourcesAtom = atom(null, (get, set, {setActiveSourcesModifier}: {setActiveSourcesModifier?: SetActiveSourcesActionModifier}) => {
+const setActiveSourcesAtom = atom(null, (get, set, { setActiveSourcesModifier }: { setActiveSourcesModifier?: SetActiveSourcesActionModifier }) => {
   const activeSourceIds = setActiveSourcesModifier?.activeSourceIds;
   if (activeSourceIds) {
     set(activeSourceIdsAtom, activeSourceIds);
@@ -449,7 +449,7 @@ const setActiveSourcesAtom = atom(null, (get, set, {setActiveSourcesModifier}: {
 });
 
 // set selected source
-const setSelectedSourceAtom = atom(null, (get, set, {setSelectedSourceModifier}: {setSelectedSourceModifier?: SetSelectedSourceActionModifier}) => {
+const setSelectedSourceAtom = atom(null, (get, set, { setSelectedSourceModifier }: { setSelectedSourceModifier?: SetSelectedSourceActionModifier }) => {
   const selectedSourceId = setSelectedSourceModifier?.selectedSourceId;
   if (selectedSourceId) {
     set(selectedSourceIdAtom, selectedSourceId);
@@ -457,26 +457,33 @@ const setSelectedSourceAtom = atom(null, (get, set, {setSelectedSourceModifier}:
 });
 
 // set filter sources
-const setFilterSourcesAtom = atom(null, (_get, set, {setFilterSourcesModifier}: {setFilterSourcesModifier?: SetFilterSourcesActionModifier}) => {
+const setFilterSourcesAtom = atom(null, (_get, set, { setFilterSourcesModifier }: { setFilterSourcesModifier?: SetFilterSourcesActionModifier }) => {
   throw new Error('Not implemented yet');
 });
 
 // reset filter sources
-const resetFilterSourcesAtom = atom(null, (_get, set, {resetFilterSourcesModifier}: {resetFilterSourcesModifier?: ResetFilterSourcesActionModifier}) => {
+const resetFilterSourcesAtom = atom(null, (_get, set, { resetFilterSourcesModifier }: { resetFilterSourcesModifier?: ResetFilterSourcesActionModifier }) => {
   throw new Error('Not implemented yet');
 });
 
 // central dispatch atom / function
-export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
+export const dispatchAtom = atom(null, (get, set, action: UserAction, recursiveCall: boolean = false) => {
+  // Exit if loading is already true
+  if (!recursiveCall && get(loadingAtom)) return;
+
   // Set the global loading state immediately.
-  set(loadingAtom, true);
+  if (!recursiveCall) {
+    set(loadingAtom, true);
+  }
 
   // Find the concrete handler based on the action source.
   const handlers = get(registeredActionHandlersAtom);
   const handler = handlers.find(h => h.component === action.source);
   if (!handler) {
     console.warn(`Handler for component ${action.source} not found`);
-    set(loadingAtom, false);
+    if (!recursiveCall) {
+      set(loadingAtom, false);
+    }
     return;
   }
 
@@ -508,47 +515,49 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
       break;
     case 'SET_ACTIVE_MESSAGE':
       const setActiveMessageModifier = actionOptions?.current as SetActiveMessageActionModifier;
-      set(setActiveMessageAtom, {setActiveMessageModifier: setActiveMessageModifier});
+      set(setActiveMessageAtom, { setActiveMessageModifier: setActiveMessageModifier });
       break;
     case 'CLEAR_MESSAGES':
       const clearMessagesModifier = actionOptions?.current as ClearMessagesActionModifier;
-      set(clearMessagesAtom, {clearMessagesModifier: clearMessagesModifier});
+      set(clearMessagesAtom, { clearMessagesModifier: clearMessagesModifier });
       break;
     case 'SEARCH_SOURCES':
       const searchSourcesModifier = actionOptions?.current as SearchSourcesActionModifier;
-      set(searchSourcesAtom, {sources, searchSourcesModifier: searchSourcesModifier});
+      set(searchSourcesAtom, { sources, searchSourcesModifier: searchSourcesModifier });
       break;
     case 'CLEAR_SOURCES':
       const clearSourcesModifier = actionOptions?.current as ClearSourcesActionModifier;
-      set(clearSourcesAtom, {clearSourcesModifier: clearSourcesModifier});
+      set(clearSourcesAtom, { clearSourcesModifier: clearSourcesModifier });
       break;
     case 'SET_ACTIVE_SOURCES':
       const setActiveSourcesModifier = actionOptions?.current as SetActiveSourcesActionModifier;
-      set(setActiveSourcesAtom, {setActiveSourcesModifier: setActiveSourcesModifier});
+      set(setActiveSourcesAtom, { setActiveSourcesModifier: setActiveSourcesModifier });
       break;
     case 'SET_SELECTED_SOURCE':
       const setSelectedSourceModifier = actionOptions?.current as SetSelectedSourceActionModifier;
-      set(setSelectedSourceAtom, {setSelectedSourceModifier: setSelectedSourceModifier});
+      set(setSelectedSourceAtom, { setSelectedSourceModifier: setSelectedSourceModifier });
       break;
     case 'SET_FILTER_SOURCES':
       const setFilterSourcesModifier = actionOptions?.current as SetFilterSourcesActionModifier;
-      set(setFilterSourcesAtom, {setFilterSourcesModifier: setFilterSourcesModifier});
+      set(setFilterSourcesAtom, { setFilterSourcesModifier: setFilterSourcesModifier });
       break;
     case 'RESET_FILTER_SOURCES':
       const resetFilterSourcesModifier = actionOptions?.current as ResetFilterSourcesActionModifier;
-      set(resetFilterSourcesAtom, {resetFilterSourcesModifier: resetFilterSourcesModifier});
+      set(resetFilterSourcesAtom, { resetFilterSourcesModifier: resetFilterSourcesModifier });
       break;
 
-  
+
 
     // Other action types can be added here.
   }
 
   // Handle any follow-up actions.
   if (actionOptions?.followUp) {
-    set(dispatchAtom, actionOptions.followUp);
+    set(dispatchAtom, actionOptions.followUp, true);
   }
 
   // Clear the global loading state.
-  set(loadingAtom, false);
+  if (!recursiveCall) {
+    set(loadingAtom, false);
+  }
 });
