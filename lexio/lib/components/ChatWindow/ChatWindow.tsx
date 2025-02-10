@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { ThemeContext } from '../../theme/ThemeContext';
-import { useRAGMessages } from '../RAGProvider/hooks';
+import { useRAGData } from '../RAGProvider/hooks2';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 
 // Define a type for the shape of the overrides
@@ -62,7 +62,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   userLabel = 'User: ',
   assistantLabel = 'Assistant: ',
 }) => {
-  const { messages, currentStream } = useRAGMessages();
+  const { messages, currentStream } = useRAGData();
   // Add ref for scrolling
   const chatEndRef = React.useRef<HTMLDivElement>(null);
 

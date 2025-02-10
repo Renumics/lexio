@@ -1,10 +1,8 @@
 import { atom } from 'jotai'
-import { RetrievalResult } from "../types.ts";
-import { toast } from 'react-toastify';
 
 
 // ZENTRAL -> MESSAGE HISTORY
-type Component =
+export type Component =
   | 'Input'
   | 'Viewer'
   | 'ChatWindow'
@@ -12,7 +10,7 @@ type Component =
   | 'RAGProvider2'
 
 type UserAction =
-  | { type: 'ADD_USER_MESSAGE', source: Component } // User message
+  | { type: 'ADD_USER_MESSAGE', message: string, source: Component } // User message
   | { type: 'SET_ACTIVE_MESSAGE', messageId: string, source: Component } // Set active message -> can be used to rollback to a previous message
   | { type: 'CLEAR_MESSAGES', source: Component } // Clear all messages in the chat
   | { type: 'SEARCH_SOURCES', source: Component } // Search sources, retrieve function - triggered by SourceDisplay
