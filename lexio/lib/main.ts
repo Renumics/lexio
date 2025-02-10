@@ -14,6 +14,7 @@ import { useSSEGenerateSource } from './connectors/useSSEGenerateSource'
 import { useRESTGenerateSource } from './connectors/useRestGenerateSource'
 import { useRESTRetrieveAndGenerateSource } from './connectors/useRestRetrieveAndGenerateSource'
 import { useRestContentSource } from './connectors/useRestContentSource'
+import { RAGProvider2 } from './components/RAGProvider'
 
 import { defaultTheme, createTheme } from './theme/index.ts'
 
@@ -21,7 +22,7 @@ export { QueryField, AdvancedQueryField, ChatWindow,
     PdfViewer, RAGProvider, useRAGMessages, useRAGSources, useRAGStatus,
     SourcesDisplay, ErrorDisplay, ContentDisplay, useSSERetrieveAndGenerateSource,
     useSSEGenerateSource, useRESTGenerateSource, useRESTRetrieveAndGenerateSource,
-    useRestContentSource, createTheme, defaultTheme }
+    useRestContentSource, createTheme, defaultTheme, RAGProvider2 }
 export * from './types'
 export * from './theme/types'
 

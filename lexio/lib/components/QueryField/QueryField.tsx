@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import useResizeObserver from '@react-hook/resize-observer';
-import type { WorkflowMode } from '../../types';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import { ActionHandler} from '../../state/rag-state-v2';
@@ -40,9 +39,6 @@ interface QueryFieldProps {
    */
   
   onAddUserMessage?: ActionHandler['handler'];
-
-
-
   
   /**
    * Custom placeholder text for the input field
@@ -78,8 +74,8 @@ const QueryField: React.FC<QueryFieldProps> = ({
   disabled = false,
   styleOverrides = {},
 }) => {
-
-  const { addUserMessage } = useAPI2('QueryField', onAddUserMessage);
+  console.log('onAddUserMessage', onAddUserMessage);
+  const { addUserMessage } = useAPI2('QueryField', onAddUserMessage);   
 
   // Access theme from context
   const theme = useContext(ThemeContext);

@@ -3,13 +3,13 @@ import { atom } from 'jotai'
 
 // ZENTRAL -> MESSAGE HISTORY
 export type Component =
-  | 'Input'
+  | 'QueryField'
   | 'Viewer'
   | 'ChatWindow'
   | 'SourceDisplay'
   | 'RAGProvider2'
 
-type UserAction =
+export type UserAction =
   | { type: 'ADD_USER_MESSAGE', message: string, source: Component } // User message
   | { type: 'SET_ACTIVE_MESSAGE', messageId: string, source: Component } // Set active message -> can be used to rollback to a previous message
   | { type: 'CLEAR_MESSAGES', source: Component } // Clear all messages in the chat
@@ -21,7 +21,7 @@ type UserAction =
   | { type: 'RESET_FILTER_SOURCES', source: Component }
 
 interface AddUserMessageActionModifier {
-
+  setUserMessage?: string
 }
 interface SetActiveMessageActionModifier {
   messageId: string
@@ -149,7 +149,7 @@ type UserActionModifier = AddUserMessageActionModifier | SetActiveMessageActionM
 export type ActionHandler = {
   component: Component;
   handler: (action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => ({
-    message: Promise<Message> | AsyncIterable<{ content: string, done?: boolean }>
+    response?: Promise<Message> | AsyncIterable<{ content: string, done?: boolean }>
     messages?: Promise<Message[]> | any,
     sources?: Promise<Source[]>,
     actionOptions?: {
@@ -201,11 +201,13 @@ const addUserMessageAtom = atom(
     set,
     {
       message,
+      response,
       messages,
       sources,
       addMessageModifier,
     }: {
-      message?: Promise<Message> | AsyncIterable<{ content: string; done?: boolean }>;
+      message: string;
+      response?: Promise<Message> | AsyncIterable<{ content: string; done?: boolean }>;
       messages?: Promise<Message[]>;
       sources?: Promise<Source[]>;
       addMessageModifier?: AddUserMessageActionModifier;
@@ -218,6 +220,22 @@ const addUserMessageAtom = atom(
     // Read configuration and create a common AbortController.
     const config = get(configAtom);
     const abortController = new AbortController();
+
+    // handle user message modification
+    if (addMessageModifier?.setUserMessage) {
+      set(completedMessagesAtom, [...get(completedMessagesAtom), {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: addMessageModifier.setUserMessage
+      }]);
+    }
+    else {
+      set(completedMessagesAtom, [...get(completedMessagesAtom), {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: message
+      }]);
+    }
 
     // Process sources independently.
     const processSources = async () => {
@@ -237,12 +255,12 @@ const addUserMessageAtom = atom(
 
     // Process the user message or streaming response independently.
     const processMessage = async () => {
-      if (message) {
+      if (response) {
         let accumulatedContent = '';
-        if (Symbol.asyncIterator in message) {
+        if (Symbol.asyncIterator in response) {
           // Streaming response: process each chunk with its own per-chunk timeout.
           const streamTimeout = new StreamTimeout(config.timeouts?.stream);
-          for await (const chunk of message as AsyncIterable<{ content: string; done?: boolean }>) {
+          for await (const chunk of response as AsyncIterable<{ content: string; done?: boolean }>) {
             if (abortController.signal.aborted) break;
             streamTimeout.check();
             accumulatedContent += chunk.content;
@@ -267,12 +285,18 @@ const addUserMessageAtom = atom(
         } else {
           // Non-streaming (single promise) response.
           const messageData = await addTimeout(
-            message as Promise<Message>,
+            response as Promise<Message>,
             config.timeouts?.request,
             'Response timeout exceeded',
             abortController.signal
           );
-          set(completedMessagesAtom, [...get(completedMessagesAtom), messageData]);
+          set(completedMessagesAtom, [...get(completedMessagesAtom),
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: messageData.content
+            }
+          ]);
           return messageData;
         }
       }
@@ -504,13 +528,13 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction, recursiveC
     );
   }
 
-  const { message, messages, sources, actionOptions } = payload;
+  const { response, messages, sources, actionOptions } = payload;
 
   // Delegate to the concrete functionality.
   switch (action.type) {
     case 'ADD_USER_MESSAGE':
       const addMessageModifier = actionOptions?.current as AddUserMessageActionModifier;
-      set(addUserMessageAtom, { message, messages, sources, addMessageModifier: addMessageModifier });
+      set(addUserMessageAtom, { message: action.message, response, messages, sources, addMessageModifier: addMessageModifier });
       break;
     case 'SET_ACTIVE_MESSAGE':
       const setActiveMessageModifier = actionOptions?.current as SetActiveMessageActionModifier;

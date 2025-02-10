@@ -9,7 +9,7 @@ import { Theme } from '../../theme/types';
 
 interface RAGProvider2Props {
     children: React.ReactNode;
-    flowFunction: ActionHandler['handler'];
+    flowFunction?: ActionHandler['handler'];
     theme?: Theme;
 }
 

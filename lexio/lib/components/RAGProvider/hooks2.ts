@@ -10,55 +10,52 @@ export const useRAGData= () => {
     return {messages: completedMessages, currentStream};
 }
     
-export const useAPI2 = (component: Component, actionHandler: ActionHandler['handler']) => {
+export const useAPI2 = (component: Component, actionHandler?: ActionHandler['handler']) => {
+    const register = useSetAtom(registerActionHandler);  // todo inconsistent naming
+    const dispatch = useSetAtom(dispatchAtom);
+    
     useEffect(() => {
-        const register = useSetAtom(registerActionHandler);  // todo inconsistent naming
-        register({component: component, handler: actionHandler});
+        console.log('actionHandler', actionHandler);
+        if (actionHandler) {
+            register({component: component, handler: actionHandler});
+        }
     }, [actionHandler, component]); 
 
     // User action utility functions
     const addUserMessage = (message: string) => {
-        const dispatch = useSetAtom(dispatchAtom);
+
         dispatch({type: 'ADD_USER_MESSAGE', message, source: component});
     };
 
     const setActiveMessage = (messageId: string) => {
-        const dispatch = useSetAtom(dispatchAtom);
         dispatch({type: 'SET_ACTIVE_MESSAGE', messageId, source: component});
     };
 
     const clearMessages = () => {
-        const dispatch = useSetAtom(dispatchAtom);
         dispatch({type: 'CLEAR_MESSAGES', source: component});
     };
 
     const searchSources = () => {
-        const dispatch = useSetAtom(dispatchAtom);
         dispatch({type: 'SEARCH_SOURCES', source: component});
     };
 
     const clearSources = () => {
-        const dispatch = useSetAtom(dispatchAtom);
         dispatch({type: 'CLEAR_SOURCES', source: component});
     };
 
     const setActiveSources = (sourceIds: string[]) => {
-        const dispatch = useSetAtom(dispatchAtom);
         dispatch({type: 'SET_ACTIVE_SOURCES', sourceIds, source: component});
     };
 
     const setSelectedSource = (sourceId: string) => {
-        const dispatch = useSetAtom(dispatchAtom);
         dispatch({type: 'SET_SELECTED_SOURCE', sourceId, source: component});
     };
 
     const setFilterSources = (filter: any) => {
-        const dispatch = useSetAtom(dispatchAtom);
         dispatch({type: 'SET_FILTER_SOURCES', filter, source: component});
     };
 
     const resetFilterSources = () => {
-        const dispatch = useSetAtom(dispatchAtom);
         dispatch({type: 'RESET_FILTER_SOURCES', source: component});
     };
 
