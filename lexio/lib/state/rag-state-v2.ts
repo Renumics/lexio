@@ -51,8 +51,14 @@ interface ResetFilterSourcesActionModifier {
 
 const allowedPayloadKeys: Record<UserAction['type'], string[]> = {
   ADD_USER_MESSAGE: ['message', 'messages', 'sources', 'actionOptions'],
-  SET_ACTIVE_MESSAGE: ['actionOptions']
-  // Add additional mappings for other actions as needed.
+  SET_ACTIVE_MESSAGE: ['actionOptions'],
+  CLEAR_MESSAGES: ['actionOptions'],
+  SEARCH_SOURCES: ['sources', 'actionOptions'],
+  CLEAR_SOURCES: ['actionOptions'],
+  SET_ACTIVE_SOURCES: ['actionOptions'],
+  SET_SELECTED_SOURCE: ['actionOptions'],
+  SET_FILTER_SOURCES: ['actionOptions'],
+  RESET_FILTER_SOURCES: ['actionOptions']
 };
 
 
@@ -502,7 +508,7 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction) => {
       break;
     case 'SET_ACTIVE_MESSAGE':
       const setActiveMessageModifier = actionOptions?.current as SetActiveMessageActionModifier;
-      set(setActiveMessageAtom, {messageId: action.messageId, setActiveMessageModifier: setActiveMessageModifier});
+      set(setActiveMessageAtom, {setActiveMessageModifier: setActiveMessageModifier});
       break;
     case 'CLEAR_MESSAGES':
       const clearMessagesModifier = actionOptions?.current as ClearMessagesActionModifier;
