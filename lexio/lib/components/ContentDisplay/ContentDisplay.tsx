@@ -2,8 +2,7 @@ import React, { useContext } from 'react';
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { MarkdownViewer } from "../Viewers/MarkdownViewer";
-import { useRAGSources } from "../RAGProvider/hooks";
-import { isPDFContent, isHTMLContent, isMarkdownContent } from "../../types";
+import { useRAGSources } from "../RAGProvider/hooks2";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
@@ -14,11 +13,15 @@ export interface ContentDisplayStyles extends React.CSSProperties {
 }
 
 interface ContentDisplayProps {
+  /**
+   * Unique key for the component
+   */
+  key?: string;
   styleOverrides?: ContentDisplayStyles;
 }
 
 const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) => {
-  const { currentSourceContent } = useRAGSources();
+  const { selectedSource } = useRAGSources();
   
   // use theme
   const theme = useContext(ThemeContext);
@@ -36,27 +39,34 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
     ...removeUndefined(styleOverrides),
   };
 
-  if (!currentSourceContent) {
+  if (!selectedSource) {
     return null;
   }
 
   const renderContent = () => {
-    if (isPDFContent(currentSourceContent)) {
+    if (selectedSource.type === 'pdf' && selectedSource.data && selectedSource.data instanceof Uint8Array) {
+      // Prefer 'page' over '_page' if both are defined
+      const page = selectedSource.metadata?.page ?? selectedSource.metadata?._page;
+      
       return (
         <PdfViewer 
-          data={currentSourceContent.content}
-          page={currentSourceContent?.page}
-          highlights={currentSourceContent.highlights}
+          data={selectedSource.data}
+          page={page}
+          highlights={selectedSource.highlights}
         />
       );
     }
 
-    if (isHTMLContent(currentSourceContent)) {
-      return <HtmlViewer htmlContent={currentSourceContent.content} />;
+    if (selectedSource.type === 'html' && selectedSource.data && typeof selectedSource.data === 'string') {
+      return <HtmlViewer htmlContent={selectedSource.data} />;
     }
 
-    if (isMarkdownContent(currentSourceContent)) {
-      return <MarkdownViewer markdownContent={currentSourceContent.content} />;
+    if (selectedSource.type === 'markdown' && selectedSource.data && typeof selectedSource.data === 'string') {
+      return <MarkdownViewer markdownContent={selectedSource.data} />;
+    }
+
+    if (selectedSource.type === 'text' && selectedSource.data && typeof selectedSource.data === 'string') {
+      return <MarkdownViewer markdownContent={selectedSource.data} />;
     }
 
     return <div>Unsupported content type</div>;

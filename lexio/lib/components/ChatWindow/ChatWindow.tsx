@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { ThemeContext } from '../../theme/ThemeContext';
-import { useRAGData } from '../RAGProvider/hooks2';
+import { useRAGMessages} from '../RAGProvider/hooks2';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 
 // Define a type for the shape of the overrides
@@ -18,6 +18,11 @@ export interface ChatWindowStyles extends React.CSSProperties {
  * @see {@link ChatWindow}
  */
 export interface ChatWindowProps {
+  /**
+   * Unique key for the component which can be used to identify the source of UserAction's if multiple ChatWindow components are used.
+   * The default is 'ChatWindow', if key is provided it will be appended to the default key as following 'ChatWindow-${key}'.
+   */
+  key?: string;
   /**
    * Style overrides for the component
    */
@@ -57,12 +62,13 @@ export interface ChatWindowProps {
  * ```
  */
 const ChatWindow: React.FC<ChatWindowProps> = ({
+  key,
   styleOverrides = {},
   showRoleLabels = true,
   userLabel = 'User: ',
   assistantLabel = 'Assistant: ',
 }) => {
-  const { messages, currentStream } = useRAGData();
+  const { messages, currentStream } = useRAGMessages();
   // Add ref for scrolling
   const chatEndRef = React.useRef<HTMLDivElement>(null);
 

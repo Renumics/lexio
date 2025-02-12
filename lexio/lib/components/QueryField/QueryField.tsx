@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useContext } from 'react';
 import useResizeObserver from '@react-hook/resize-observer';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
-import { ActionHandler} from '../../state/rag-state-v2';
-import { useAPI2 } from '../RAGProvider/hooks2';
+import { useLexio } from '../RAGProvider/hooks2';
+import { Component } from '../../state/rag-state-v2';
 
 /**
  * Styles interface for the QueryField component
@@ -34,12 +34,10 @@ export interface QueryFieldStyles extends React.CSSProperties {
  */
 interface QueryFieldProps {
   /**
-   * Callback function triggered when a message is submitted
-   * @param message The message text that was submitted
+   * Unique key for the component which can be used to identify the source of UserAction's if multiple QueryField components are used.
+   * The default is 'QueryField', if key is provided it will be appended to the default key as following 'QueryField-${key}'.
    */
-  
-  onAddUserMessage?: ActionHandler['handler'];
-  
+  key?: string;
   /**
    * Custom placeholder text for the input field
    * @default "Type a message..."
@@ -69,13 +67,12 @@ interface QueryFieldProps {
  * - Responsive design
  */
 const QueryField: React.FC<QueryFieldProps> = ({
-  onAddUserMessage,
+  key,
   placeholder = 'Type a message...',
   disabled = false,
   styleOverrides = {},
 }) => {
-  console.log('onAddUserMessage', onAddUserMessage);
-  const { addUserMessage } = useAPI2('QueryField', onAddUserMessage);   
+  const { addUserMessage } = useLexio((key ? `QueryField-${key}` : 'QueryField') as Component);
 
   // Access theme from context
   const theme = useContext(ThemeContext);

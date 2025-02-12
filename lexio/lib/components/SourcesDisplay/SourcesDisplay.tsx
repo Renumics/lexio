@@ -1,8 +1,9 @@
 import { useState, useContext } from "react";
-import { RetrievalResult, SourceReference } from "../../types";
-import { useRAGSources } from "../RAGProvider/hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
+import { useRAGSources, useLexio} from "../RAGProvider";
+import { Component } from "../../state/rag-state-v2";
+
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
   color?: string;
@@ -34,6 +35,11 @@ export interface SourcesDisplayStyles extends React.CSSProperties {
  * @see {@link SourcesDisplay}
  */
 export interface SourcesDisplayProps {
+  /**
+   * Unique key for the component which can be used to identify the source of UserAction's if multiple SourcesDisplay components are used.
+   * The default is 'SourcesDisplay', if key is provided it will be appended to the default key as following 'SourcesDisplay-${key}'.
+   */
+  key?: string;
   /**
    * The title displayed above the sources list
    * @default "Retrieved Sources"
@@ -86,6 +92,7 @@ export interface SourcesDisplayProps {
  * ```
  */
 const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
+  key,
   title = "Retrieved Sources",
   searchPlaceholder = "Search sources...",
   showSearch = true,
@@ -93,7 +100,8 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   showMetadata = true,
   styleOverrides = {},
 }) => {
-  const { sources, currentSources, activeSourceIndex, setActiveSourceIndex, retrieveSources } = useRAGSources();
+  const { sources, activeSources, selectedSourceId, activeSourceIndex } = useRAGSources();
+  const { setSelectedSource, searchSources } = useLexio((key ? `SourcesDisplay-${key}` : 'SourcesDisplay') as Component ); // todo: make use of new API
   const [searchQuery, setSearchQuery] = useState("");
 
   // use theme
@@ -137,13 +145,9 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
     ...removeUndefined(styleOverrides),
   };
 
-  const isSourceReference = (source: RetrievalResult): source is SourceReference => {
-    return 'sourceReference' in source;
-  };
-
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      retrieveSources(searchQuery);
+      searchSources(searchQuery);
     }
   };
 
@@ -210,39 +214,39 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
               key={index}
               className="p-4 shadow-sm border transition-all cursor-pointer"
               style={{
-                backgroundColor: index === activeSourceIndex
-                  ? style.activeSourceBackground
-                  : currentSources.includes(source)
-                    ? style.selectedSourceBackground
-                    : currentSources.length > 0
+                backgroundColor: source.id === selectedSourceId
+                  ? style.selectedSourceBackground
+                  : activeSources.includes(source)
+                    ? style.activeSourceBackground
+                    : activeSources.length > 0
                       ? style.inactiveSourceBackground
                       : style.inactiveSourceBackground,
-                borderColor: index === activeSourceIndex
-                  ? style.activeSourceBorderColor
-                  : currentSources.includes(source)
+                borderColor: source.id === selectedSourceId
+                  ? style.selectedSourceBorderColor
+                  : activeSources.includes(source)
                     ? style.selectedSourceBorderColor
                     : style.inactiveSourceBorderColor,
-                opacity: currentSources.length > 0 && !currentSources.includes(source) ? 0.6 : 1,
+                opacity: activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
                 borderRadius: style.borderRadius,
                 fontSize: style.fontSize,
               }}
-              onClick={() => setActiveSourceIndex(index)}
+              onClick={() => setSelectedSource(source.id)}
             >
               <div className="flex items-start justify-between">
                 <div className="overflow-hidden">
                   <p className="font-medium truncate" style={{ color: style.color }}>
-                    {source.sourceName || (isSourceReference(source) ? source.sourceReference : source.text.slice(0, 50))}
+                    {source.title}
                   </p>
-                  {isSourceReference(source) && source.type && (
+                  {source.type && (
                     <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
                       backgroundColor: style.sourceTypeBackground,
                       color: style.sourceTypeColor,
-                      fontSize: `calc(${style.fontSize} * 0.75)`
+                      fontSize: `calc(${style.fontSize} * 0.75)`  // todo: replace with utils func
                     }}>
                       {source.type}
                     </span>
                   )}
-                  {showRelevanceScore && source.relevanceScore !== undefined && (
+                  {showRelevanceScore && source.relevance !== undefined && (
                     <div className="mt-2 flex items-center">
                       <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
                       <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
@@ -250,7 +254,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                           className="h-2 rounded-full"
                           style={{
                             backgroundColor: style.relevanceScoreColor,
-                            width: `${Math.round(source.relevanceScore * 100)}%`
+                            width: `${Math.round(source.relevance * 100)}%`
                           }}
                         />
                       </div>

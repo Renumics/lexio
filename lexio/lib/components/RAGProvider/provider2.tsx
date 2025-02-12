@@ -9,7 +9,8 @@ import { Theme } from '../../theme/types';
 
 interface RAGProvider2Props {
     children: React.ReactNode;
-    flowFunction?: ActionHandler['handler'];
+    onAddMessage?: ActionHandler['handler'];  // todo: revisit
+    onAction?: ActionHandler['handler'];
     theme?: Theme;
 }
 
@@ -35,7 +36,8 @@ interface RAGProvider2Props {
  */
 const RAGProvider2 = ({
   children,
-  flowFunction,
+  onAddMessage,
+  onAction,
   theme
 }: RAGProvider2Props) => {
   
@@ -45,10 +47,10 @@ const RAGProvider2 = ({
 
   // Whenever these change, update the store's relevant atoms
   useEffect(() => {
-    store.set(registeredActionHandlersAtom, [{component: 'RAGProvider2', handler: flowFunction}]);
+    store.set(registeredActionHandlersAtom, [{component: 'RAGProvider2', handler: onAction}]);
   }, [
     store,
-    flowFunction
+    onAction
   ]);
 
   return (

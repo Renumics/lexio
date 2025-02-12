@@ -1,62 +1,85 @@
-import { ActionHandler, completedMessagesAtom, currentStreamAtom } from "../../state/rag-state-v2";
-import { useEffect } from "react";
-import { dispatchAtom, registerActionHandler, Component } from "../../state/rag-state-v2";
-import { useAtomValue, useSetAtom } from "jotai";
+import {useAtomValue, useSetAtom} from "jotai";
+import {useAtom} from "jotai/index";
+import {
+    Component,
+    dispatchAtom,
+    loadingAtom,
+    completedMessagesAtom,
+    currentStreamAtom,
+    activeSourcesAtom,
+    activeSourcesIdsAtom,
+    selectedSourceAtom,
+    selectedSourceIdAtom,
+    retrievedSourcesAtom, errorAtom, UUID
+} from "../../state/rag-state-v2";
 
-export const useRAGData= () => {
+// only data for now
+export const useRAGSources = () => {
+    const [sources] = useAtom(retrievedSourcesAtom);
+    const [activeSources] = useAtom(activeSourcesAtom);
+    const [activeSourcesIds] = useAtom(activeSourcesIdsAtom);
+    const [selectedSource] = useAtom(selectedSourceAtom);
+    const [selectedSourceId] = useAtom(selectedSourceIdAtom);
+
+    return {
+        sources,
+        activeSources,
+        activeSourcesIds,
+        selectedSource,
+        selectedSourceId,
+    };
+};
+
+// only data for now
+export const useRAGMessages = () => {
     const completedMessages = useAtomValue(completedMessagesAtom);
     const currentStream = useAtomValue(currentStreamAtom);
 
     return {messages: completedMessages, currentStream};
 }
-    
-export const useAPI2 = (component: Component, actionHandler?: ActionHandler['handler']) => {
-    const register = useSetAtom(registerActionHandler);  // todo inconsistent naming
+
+// all actions
+export const useLexio = (component: Component) => {
     const dispatch = useSetAtom(dispatchAtom);
-    
-    useEffect(() => {
-        console.log('actionHandler', actionHandler);
-        if (actionHandler) {
-            register({component: component, handler: actionHandler});
-        }
-    }, [actionHandler, component]); 
 
-    // User action utility functions
     const addUserMessage = (message: string) => {
-
-        dispatch({type: 'ADD_USER_MESSAGE', message, source: component});
+        dispatch({type: 'ADD_USER_MESSAGE', message, source: component}, false);
     };
 
-    const setActiveMessage = (messageId: string) => {
-        dispatch({type: 'SET_ACTIVE_MESSAGE', messageId, source: component});
+    /**
+     * Set the active message in the chat window
+     * @param messageId
+     */
+    const setActiveMessage = (messageId: string | UUID) => {
+        dispatch({type: 'SET_ACTIVE_MESSAGE', messageId, source: component}, false);
     };
 
     const clearMessages = () => {
-        dispatch({type: 'CLEAR_MESSAGES', source: component});
+        dispatch({type: 'CLEAR_MESSAGES', source: component}, false);
     };
 
-    const searchSources = () => {
-        dispatch({type: 'SEARCH_SOURCES', source: component});
+    const searchSources = (query: string) => {
+        dispatch({type: 'SEARCH_SOURCES', query: query, source: component}, false);
     };
 
     const clearSources = () => {
-        dispatch({type: 'CLEAR_SOURCES', source: component});
+        dispatch({type: 'CLEAR_SOURCES', source: component}, false);
     };
 
-    const setActiveSources = (sourceIds: string[]) => {
-        dispatch({type: 'SET_ACTIVE_SOURCES', sourceIds, source: component});
+    const setActiveSources = (sourceIds: string[] | UUID[]) => {
+        dispatch({type: 'SET_ACTIVE_SOURCES', sourceIds, source: component}, false);
     };
 
-    const setSelectedSource = (sourceId: string) => {
-        dispatch({type: 'SET_SELECTED_SOURCE', sourceId, source: component});
+    const setSelectedSource = (sourceId: string | UUID) => {
+        dispatch({type: 'SET_SELECTED_SOURCE', sourceId, source: component}, false);
     };
 
     const setFilterSources = (filter: any) => {
-        dispatch({type: 'SET_FILTER_SOURCES', filter, source: component});
+        dispatch({type: 'SET_FILTER_SOURCES', filter, source: component}, false);
     };
 
     const resetFilterSources = () => {
-        dispatch({type: 'RESET_FILTER_SOURCES', source: component});
+        dispatch({type: 'RESET_FILTER_SOURCES', source: component}, false);
     };
 
     return {
@@ -71,3 +94,13 @@ export const useAPI2 = (component: Component, actionHandler?: ActionHandler['han
         resetFilterSources,
     };
 };
+
+export const useLexioStatus = () => {
+    const loading = useAtomValue(loadingAtom);
+    const error = useAtomValue(errorAtom)
+
+    return {
+        loading,
+        error,
+    };
+}

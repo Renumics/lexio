@@ -19,12 +19,11 @@ import useResizeObserver from '@react-hook/resize-observer';
 
 import {
   useRAGSources,
-  useRAGMessages,
-  useRAGStatus
-} from '../RAGProvider/hooks';
-import { RetrievalResult, SourceReference, WorkflowMode } from '../../types';
+  useLexio,
+} from '../RAGProvider/hooks2';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
+import {Component, Source, UUID} from "../../state/rag-state-v2.ts";
 
 /**
  * Styles interface for the AdvancedQueryField component
@@ -104,7 +103,7 @@ interface Mention {
   /** Display name of the mentioned source */
   name: string;
   /** The full source object being referenced */
-  source: RetrievalResult;
+  source: Source;
 }
 
 /**
@@ -123,6 +122,11 @@ interface CursorPosition {
  */
 interface AdvancedQueryFieldProps {
   /**
+   * Unique key for the component which can be used to identify the source of UserAction's if multiple AdvancedQueryField components are used.
+   * The default is 'AdvancedQueryField', if key is provided it will be appended to the default key as following 'AdvancedQueryField-${key}'.
+   */
+  key?: string;
+  /**
    * Callback triggered when a message is submitted
    * @param message The message text that was submitted
    * @param mentions Array of source mentions included in the message
@@ -134,14 +138,14 @@ interface AdvancedQueryFieldProps {
    * @param source The source that was added
    * @param allIndices Updated array of all currently referenced source indices
    */
-  onSourceAdded?: (source: RetrievalResult, allIndices: number[]) => void;
+  onSourceAdded?: (source: Source, allIndices: number[]) => void;
   
   /**
    * Called after a source mention is removed from the editor
    * @param source The source that was removed
    * @param allIndices Updated array of all currently referenced source indices
    */
-  onSourceDeleted?: (source: RetrievalResult, allIndices: number[]) => void;
+  onSourceDeleted?: (source: Source, allIndices: number[]) => void;
   
   /**
    * Callback for when the editor content changes
@@ -192,6 +196,7 @@ interface AdvancedQueryFieldProps {
  * ```
  */
 const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
+  key,
   onSubmit,
   onSourceAdded,
   onSourceDeleted,
@@ -234,13 +239,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     ...removeUndefined(styleOverrides),
   };
 
-  // Instead of tailwind color classes for workflow status,
-  // we'll use the style property from our theme merges:
-  const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
-    init: { label: 'New Conversation', color: style.modeInitColor ?? '#3b82f6' },
-    'follow-up': { label: 'Follow-up', color: style.modeFollowUpColor ?? '#22c55e' },
-    reretrieve: { label: 'New Search', color: style.modeReRetrieveColor ?? '#9333ea' }
-  };
 
   // -- Local State --
   const [isOpen, setIsOpen] = useState(false);
@@ -256,10 +254,9 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   const formRef = useRef<HTMLFormElement>(null);
   const filterInputRef = useRef<HTMLInputElement>(null);
 
-  // RAG Hooks
-  const { sources, setCurrentSourceIndices } = useRAGSources();
-  const { addMessage } = useRAGMessages();
-  const { workflowMode } = useRAGStatus();
+  // Lexio Hooks
+  const { addUserMessage, setActiveSources } = useLexio((key ? `AdvancedQueryField-${key}` : 'AdvancedQueryField') as Component);
+  const { sources } = useRAGSources();
 
   // Floating UI
   const { refs, context } = useFloating({
@@ -271,44 +268,30 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   const { getFloatingProps } = useInteractions([dismiss, role]);
 
   // Helpers
-  const isSourceReference = (s: RetrievalResult): s is SourceReference => 'source' in s;
-  const getSourceId = (source: RetrievalResult, index?: number) => {
+  const getSourceId = (source: Source, index?: number) => {
     if (!source) throw new Error('Invalid source: source is undefined');
-    
-    let baseId: string;
-    if (isSourceReference(source)) {
-      // For SourceReference type
-      baseId = JSON.stringify({
-        type: source.type,
-        ref: source.sourceReference,
-        name: source.sourceName,
-        metadata: source.metadata
-      });
-    } else {
-      // For TextContent type
-      baseId = JSON.stringify({
-        text: source.text,
-        name: source.sourceName,
-        metadata: source.metadata
-      });
-    }
+    const baseId = source.id
 
+    // todo: do we need this?
     return index !== undefined ? `${baseId}#${index}` : baseId;
   };
-  const getDisplayName = (source: RetrievalResult): string => {
-    if (source.sourceName) return source.sourceName;
-    if (isSourceReference(source)) {
-      const metadataStr = source.metadata
-        ? Object.entries(source.metadata)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(', ')
-        : '';
-      return metadataStr
-        ? `${source.sourceReference} (${metadataStr})`
-        : source.sourceReference;
-    }
-    // For text-based results
-    return source.text.slice(0, 20) + '...';
+
+  const getDisplayName = (source: Source): string => {
+    return source.title;
+    // todo: maybe enable this again?
+    // if (source.sourceName) return source.sourceName;
+    // if (isSourceReference(source)) {
+    //   const metadataStr = source.metadata
+    //     ? Object.entries(source.metadata)
+    //         .map(([k, v]) => `${k}: ${v}`)
+    //         .join(', ')
+    //     : '';
+    //   return metadataStr
+    //     ? `${source.sourceReference} (${metadataStr})`
+    //     : source.sourceReference;
+    // }
+    // // For text-based results
+    // return source.text.slice(0, 20) + '...';
   };
 
   // Adjust editor height
@@ -328,26 +311,26 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   useResizeObserver(formRef, adjustEditorHeight);
 
   // Gather numeric source indices from mention chips
-  const getCurrentSourceIndices = (): number[] => {
+  const getCurrentSourceIndices = (): string[] => {
     if (!editorRef.current) return [];
     const chips = Array.from(editorRef.current.querySelectorAll('span[data-source-index]'));
     return Array.from(new Set(chips
       .map(chip => chip.getAttribute('data-source-index'))
       .filter(Boolean)
-      .map(Number)
+      .map(String)
     ));
   };
 
   const updateIndicesInContext = useCallback(() => {
     const newIndices = getCurrentSourceIndices();
     ReactDOM.flushSync(() => {
-      setCurrentSourceIndices(newIndices);
+      setActiveSources(newIndices as UUID[]);
     });
     return newIndices;
-  }, [setCurrentSourceIndices]);
+  }, [setActiveSources]);
 
   // Reset if the sources array changes
-  const previousSourcesRef = useRef<RetrievalResult[] | null>(null);
+  const previousSourcesRef = useRef<Source[] | null>(null);
   useEffect(() => {
     if (previousSourcesRef.current !== sources) {
       if (editorRef.current) editorRef.current.textContent = '';
@@ -355,26 +338,28 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       setEditorContent('');
       onChange?.('', []);
       adjustEditorHeight();
-      setCurrentSourceIndices([]);
+      // todo: think about default behaviour in our workflow -> currently if sources are retrieved this is triggered and overwrites the active sources
+      setActiveSources([]);
       previousSourcesRef.current = sources;
     }
-  }, [sources, onChange, adjustEditorHeight, setCurrentSourceIndices]);
+  }, [sources, onChange, adjustEditorHeight, setActiveSources]);
 
   // Filtered sources
   const filteredSources = (sources ?? []).filter(source => {
     if (!source) return false;
-    let textVal: string;
-    if (isSourceReference(source)) {
-      textVal = source.sourceName ?? source.sourceReference ?? '';
-    } else {
-      textVal = source.sourceName ?? source.text ?? '';
-    }
+    const textVal = source.title;
+    // let textVal: string;
+    // if (isSourceReference(source)) {
+    //   textVal = source.sourceName ?? source.sourceReference ?? '';
+    // } else {
+    //   textVal = source.sourceName ?? source.text ?? '';
+    // }
     return textVal.toLowerCase().includes(filterValue.toLowerCase());
   });
 
   // ----- Mention Add -----
   const handleAddMention = useCallback(
-    (source: RetrievalResult) => {
+    (source: Source) => {
       if (!editorRef.current || !cursorPosition) return;
       const sourceIndex = sources.findIndex(
         s => getSourceId(s) === getSourceId(source)
@@ -387,7 +372,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       const newMention: Mention = {
         id: mentionId,
         name: mentionName,
-        source
+        source // todo: potentially omit .data from source
       };
 
       // Create the chip DOM
@@ -405,7 +390,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       }
 
       chip.setAttribute('data-mention-id', mentionId);
-      chip.setAttribute('data-source-index', sourceIndex.toString());
+      chip.setAttribute('data-source-index', source.id);
       chip.textContent = `@${mentionName}`;
 
       // Insert into the DOM
@@ -579,7 +564,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     if (!text.trim()) return;
 
     onSubmit?.(text, mentions);
-    addMessage({ role: 'user', content: text });
+    addUserMessage(text);
 
     editor.textContent = '';
     setMentions([]);
@@ -832,9 +817,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                 <div className="px-4 py-2 text-gray-500">No matches found</div>
               ) : (
                 filteredSources.map((source, idx) => {
-                  const displayText = isSourceReference(source)
-                    ? source.sourceName || source.sourceReference
-                    : source.sourceName || source.text;
+                  const displayText = source.title
 
                   return (
                     <div
@@ -857,7 +840,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                           {displayText}
                         </span>
                         <div className="flex items-center gap-2 mt-1">
-                          {isSourceReference(source) && source.type && (
+                          {source.type && (
                             <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded whitespace-nowrap"
                                   style={{
                                     fontSize: `calc(${style.fontSize} * 0.8)`
@@ -866,13 +849,13 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                               {source.type}
                             </span>
                           )}
-                          {source.relevanceScore !== undefined && (
+                          {source.relevance && (
                             <span className="text-gray-500 whitespace-nowrap"
                                   style={{
                                     fontSize: `calc(${style.fontSize} * 0.8)`
                                   }}
                             >
-                              Score: {Math.round(source.relevanceScore * 100)}%
+                              Score: {Math.round(source.relevance * 100)}%
                             </span>
                           )}
                         </div>
@@ -889,17 +872,17 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       {/* Footer */}
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-2">
-          {/* Instead of tailwind classes for color, use inline style from our merged theme */}
-          <div
-            className="h-2.5 w-2.5 rounded-full animate-pulse"
-            style={{ backgroundColor: workflowStatus[workflowMode].color }}
-          />
-          <span className="font-medium" style={{
-              fontFamily: style.fontFamily,
-              fontSize: `calc(${style.fontSize} * 0.85)`
-          }}>
-            {workflowStatus[workflowMode].label}
-          </span>
+          {/*/!* Instead of tailwind classes for color, use inline style from our merged theme *!/*/}
+          {/*<div*/}
+          {/*  className="h-2.5 w-2.5 rounded-full animate-pulse"*/}
+          {/*  style={{ backgroundColor: workflowStatus[workflowMode].color }}*/}
+          {/*/>*/}
+          {/*<span className="font-medium" style={{*/}
+          {/*    fontFamily: style.fontFamily,*/}
+          {/*    fontSize: `calc(${style.fontSize} * 0.85)`*/}
+          {/*}}>*/}
+          {/*  {workflowStatus[workflowMode].label}*/}
+          {/*</span>*/}
         </div>
         <button
           type="submit"

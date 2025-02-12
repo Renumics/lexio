@@ -1,6 +1,6 @@
 import { RAGProvider } from './provider';
+import { useRAGStatus } from './hooks';
 import { RAGProvider2 } from './provider2';
-import { useRAGMessages, useRAGSources, useRAGStatus } from './hooks';
-import { useAPI2 } from './hooks2';
+import { useLexio, useRAGMessages, useRAGSources } from './hooks2';
 
-export { RAGProvider, RAGProvider2, useRAGMessages, useRAGSources, useRAGStatus, useAPI2 };
+export { RAGProvider, RAGProvider2, useRAGSources, useRAGStatus, useLexio, useRAGMessages };
