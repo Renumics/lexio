@@ -338,8 +338,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       setEditorContent('');
       onChange?.('', []);
       adjustEditorHeight();
-      // todo: think about default behaviour in our workflow -> currently if sources are retrieved this is triggered and overwrites the active sources
-      setActiveSources([]);
       previousSourcesRef.current = sources;
     }
   }, [sources, onChange, adjustEditorHeight, setActiveSources]);
