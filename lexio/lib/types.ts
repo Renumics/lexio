@@ -65,6 +65,23 @@ export interface PDFHighlight {
   };
 }
 
+/**
+ * Represents ranges to highlight on a sheet in a spreadsheet document.
+ *
+ * @interface SpreadsheetHighlight
+ * @property {string} sheetName - The name of the sheet where the highlight appears.
+ * @property {string[]} ranges - The ranges to highlight. E.g "A1:B5", "B100:F200"
+ */
+export interface SpreadsheetHighlight {
+  /**
+   * The name of the sheet where the highlight appears.
+   */
+  sheetName: string;
+  /**
+   * The ranges to highlight. E.g "A1:B5", "B100:F200"
+   */
+  ranges: string[];
+}
 
 /**
  * Base interface for all retrieval results, providing common properties.
@@ -73,7 +90,7 @@ export interface PDFHighlight {
  * @property {string} [sourceName] - Optional name of the source document
  * @property {number} [relevanceScore] - Optional score indicating relevance to the query
  * @property {Record<string, any>} [metadata] - Optional metadata associated with the result
- * @property {PDFHighlight[]} [highlights] - Optional array of PDF highlights
+ * @property {PDFHighlight[] | SpreadsheetHighlight[]} [highlights] - Optional array of PDF or spreadsheet highlights
  */
 export interface BaseRetrievalResult {
   /**
@@ -95,9 +112,11 @@ export interface BaseRetrievalResult {
    */
   metadata?: Record<string, any>;
   /**
-   * Optional array of PDF highlights. Only used for PDF source references.
+   * Optional array of PDF or spreadsheet highlights. Only used for PDF or spreadsheet source references.
    */
   highlights?: PDFHighlight[];
+
+  rangesHighlights?: SpreadsheetHighlight[];
 }
 
 /**
@@ -125,7 +144,7 @@ export interface SourceReference extends Omit<BaseRetrievalResult, 'metadata'> {
   /**
    * The type of the source document. Can be either "pdf", "html", or "markdown".
    */
-  type?: 'pdf' | 'html' | 'markdown';
+  type?: 'pdf' | 'html' | 'markdown' | 'xlsx' | 'csv';
   /**
    * Reference identifier for the source. This can be everything from a URL, over a unique identifier to a database key and must be handled by the user in the getDataSource function.
    * @remarks In the getDataSource function, the sourceReference is given as an argument to the function and the function should return the actual content of the source document.
@@ -257,13 +276,37 @@ export interface PDFSourceContent extends BaseSourceContent {
 }
 
 /**
+ * Represents Spreadsheet source content.
+ *
+ * @interface SpreadsheetSourceContent
+ * @extends {BaseSourceContent}
+ * @property {Uint8Array} content - The binary Spreadsheet content.
+ * @property {'xlsx' | 'csv'} type - Indicates this is a Spreadsheet content.
+ * @property {SpreadsheetHighlight[]} [highlights] - Optional array of ranges to highlight in the spreadsheet document.
+ */
+export interface SpreadsheetSourceContent extends BaseSourceContent {
+  /**
+   * The binary Spreadsheet content.
+   */
+  content: Uint8Array;
+  /**
+   * Indicates this is a Spreadsheet content.
+   */
+  type: 'xlsx' | 'csv';
+  /**
+   * Optional array of ranges to highlight in the spreadsheet document.
+   */
+  rangesHighlights?: SpreadsheetHighlight[];
+}
+
+/**
  * Union type of all possible source content types.
  * 
- * @typedef {HTMLSourceContent | PDFSourceContent | MarkdownSourceContent} SourceContent
+ * @typedef {HTMLSourceContent | PDFSourceContent | MarkdownSourceContent | SpreadsheetSourceContent} SourceContent
  *
  * @remarks This type is used in the ComponentDisplay component. The type of the content is determined by the type property of the object.
  */
-export type SourceContent = HTMLSourceContent | PDFSourceContent | MarkdownSourceContent;
+export type SourceContent = HTMLSourceContent | PDFSourceContent | MarkdownSourceContent | SpreadsheetSourceContent;
 
 export const isPDFContent = (content: SourceContent): content is PDFSourceContent => {
   return content.type === 'pdf';
@@ -275,6 +318,10 @@ export const isHTMLContent = (content: SourceContent): content is HTMLSourceCont
 
 export const isMarkdownContent = (content: SourceContent): content is MarkdownSourceContent => {
   return content.type === 'markdown';
+};
+
+export const isSpreadsheetContent = (content: SourceContent): content is SpreadsheetSourceContent => {
+  return content.type === 'xlsx' || content.type === 'csv';
 };
 
 export const isTextContent = (content: RetrievalResult): content is TextContent => {

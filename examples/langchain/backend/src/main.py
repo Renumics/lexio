@@ -133,13 +133,39 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
             page = metadata.get("page", 0) + 1
             highlights = convert_bboxes_to_highlights(page, metadata.get("text_bboxes", []))
 
-            result = SourceReference(
-                sourceReference=source.replace("data/", ""),
-                type="pdf",
-                metadata={"page": page + 1},
-                relevanceScore=score,
-                highlights=[h.model_dump() for h in highlights]
-            )
+            result = {}
+            if str(source).endswith(".pdf"):
+                result = SourceReference(
+                    sourceReference=source.replace("data/", ""),
+                    type="pdf",
+                    metadata={"page": page + 1},
+                    relevanceScore=score,
+                    highlights=[h.model_dump() for h in highlights]
+                )
+            if str(source).endswith(".xlsx"):
+                result = SourceReference(
+                    sourceReference=source.replace("data/", ""),
+                    type="xlsx",
+                    relevanceScore=score,
+                    rangesHighlights=[
+                        {
+                            "sheetName": "Equipment List",
+                            "ranges": ["A1:B8", "B9:C15", "C18:E20", "D5:F15", "F9:H15", "B42:E50"]
+                        }
+                    ]
+                )
+            if str(source).endswith(".csv"):
+                result = SourceReference(
+                    sourceReference=source.replace("data/", ""),
+                    type="csv",
+                    relevanceScore=score,
+                    rangesHighlights=[
+                        {
+                            "sheetName": "Equipment List",
+                            "ranges": ["A1:B8", "B9:C15", "C18:E20", "D5:F15", "F9:H15", "B42:E50"]
+                        }
+                    ]
+                )
             retrieval_results.append(result)
             retrieval_docs.append(doc)
 
@@ -242,6 +268,12 @@ async def get_source(filename: str):
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             return HTMLResponse(content=content)
+        elif content_type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv"]:
+            return FileResponse(
+                file_path,
+                media_type=content_type,
+                filename=filename
+            )
         else:
             raise HTTPException(
                 status_code=400,

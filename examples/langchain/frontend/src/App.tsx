@@ -217,11 +217,11 @@ function App() {
                                 <QueryField onSubmit={() => {
                                 }}/>
                             </div>
-                            <div className="h-full"> {/* Chat window */}
+                            <div className="h-[80%]"> {/* Chat window */}
                                 <ChatWindow/>
                             </div>
                         </div>
-                        <div className="w-1/2 h-full overflow-hidden flex flex-col"> {/* Sources panel */}
+                        <div className="w-1/2 h-full overflow-hidden"> {/* Sources panel */}
                             <ContentDisplay/>
                         </div>
                         <div className="w-1/4 h-full"> {/* Sources panel */}

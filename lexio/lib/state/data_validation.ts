@@ -11,7 +11,7 @@ function hasOnlyAllowedKeys<T>(obj: Record<string, any>, allowedKeys: (keyof T)[
 function isSourceReference(result: unknown): result is SourceReference {
     if (!isRecord(result)) return false;
 
-    const allowedKeys: (keyof SourceReference)[] = ['sourceReference', 'sourceName', 'type', 'relevanceScore', 'metadata', 'highlights'];
+    const allowedKeys: (keyof SourceReference)[] = ['sourceReference', 'sourceName', 'type', 'relevanceScore', 'metadata', 'highlights', 'rangesHighlights'];
     if (!hasOnlyAllowedKeys<SourceReference>(result, allowedKeys)) {
         return false;
     }
@@ -19,7 +19,7 @@ function isSourceReference(result: unknown): result is SourceReference {
     return (
         typeof result.sourceReference === 'string' &&
         (result.sourceName === undefined || typeof result.sourceName === 'string') &&
-        (result.type === undefined || result.type === 'pdf' || result.type === 'html' || result.type === 'markdown') &&
+        (result.type === undefined || result.type === 'pdf' || result.type === 'html' || result.type === 'markdown' || result.type === 'xlsx' || result.type === 'csv') &&
         (result.relevanceScore === undefined || typeof result.relevanceScore === 'number') &&
         (result.metadata === undefined || isRecord(result.metadata))
     );
@@ -78,7 +78,7 @@ export function validateRetrievalResults(results: unknown): RetrievalResult[] {
             throw new Error(
                 `Invalid retrieval result format: ${JSON.stringify(result)}\n` +
                 'Expected format is either:\n' +
-                '- SourceReference: { sourceReference: string, sourceName?: string, type?: "pdf" | "html", relevanceScore?: number, metadata?: object }\n' +
+                '- SourceReference: { sourceReference: string, sourceName?: string, type?: "pdf" | "html" | "xlsx" | "csv", relevanceScore?: number, metadata?: object }\n' +
                 '- TextContent: { text: string, sourceName?: string, relevanceScore?: number, metadata?: object }'
             );
         }

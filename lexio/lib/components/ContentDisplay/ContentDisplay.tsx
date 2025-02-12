@@ -3,8 +3,15 @@ import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { MarkdownViewer } from "../Viewers/MarkdownViewer";
 import { useRAGSources } from "../RAGProvider/hooks";
-import { isPDFContent, isHTMLContent, isMarkdownContent } from "../../types";
+import {
+  isPDFContent,
+  isHTMLContent,
+  isMarkdownContent,
+  isSpreadsheetContent,
+  SpreadsheetSourceContent
+} from "../../types";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
+import {SpreadsheetViewer} from "../Viewers/SpreadsheetViewer";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
@@ -57,6 +64,19 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
 
     if (isMarkdownContent(currentSourceContent)) {
       return <MarkdownViewer markdownContent={currentSourceContent.content} />;
+    }
+
+    if (isSpreadsheetContent(currentSourceContent)) {
+      const {content, rangesHighlights} = currentSourceContent as SpreadsheetSourceContent;
+      const ranges = rangesHighlights?.map((h) => h.ranges).flat();
+      const defaultSheetName = rangesHighlights ? rangesHighlights[0].sheetName : undefined;
+      return (
+          <SpreadsheetViewer
+              fileBufferArray={content}
+              rangesToHighlight={ranges}
+              defaultSelectedSheet={defaultSheetName}
+          />
+      )
     }
 
     return <div>Unsupported content type</div>;

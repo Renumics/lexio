@@ -1,5 +1,6 @@
 import os
 import json
+from fileinput import filename
 from pathlib import Path
 from typing import Optional
 
@@ -7,6 +8,8 @@ import fitz
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders.excel import UnstructuredExcelLoader
+from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
@@ -91,23 +94,46 @@ class DocumentIndexer:
         pages = loader.load()
         return self.text_splitter.split_documents(pages)
 
+    def load_and_split_xlsx(self, spreadsheet_path: Path, mode="single") -> list:
+        """Load a xlsx file and split it into chunks."""
+        loader = UnstructuredExcelLoader(file_path=str(spreadsheet_path), mode=mode)
+        sheets = loader.load()
+        return self.text_splitter.split_documents(sheets)
+
+    def load_and_split_csv(self, csv_path: Path) -> list:
+        """Load a csv file and split it into chunks."""
+        loader = CSVLoader(file_path=str(csv_path))
+        csv_data = loader.load()
+        return self.text_splitter.split_documents(csv_data)
+
     def index_directory(self, collection_name: Optional[str] = None) -> Chroma:
         """Index all PDFs in the data directory."""
         if not collection_name:
             collection_name = "langchain_demo"
 
         documents = []
-        for pdf_path in self.data_dir.glob("*.pdf"):
+        chunks = []
+        #current_file_path = ""
+        for file_path in self.data_dir.iterdir():
+            #print(f"file_path: {file_path}")
             try:
-                chunks = self.load_and_split_pdf(pdf_path)
+                if str(file_path).endswith("xlsx"):
+                    chunks = self.load_and_split_xlsx(file_path)
+
+                if str(file_path).endswith("csv"):
+                    chunks = self.load_and_split_csv(file_path)
+
+                if str(file_path).endswith("pdf"):
+                    chunks = self.load_and_split_pdf(file_path)
                 documents.extend(chunks)
             except Exception as e:
-                print(f"Error processing {pdf_path}: {e}")
+                print(f"Error processing {file_path}: {e}")
 
         if not documents:
             raise ValueError(f"No documents found in {self.data_dir}")
 
-        documents = list(map(get_bbox_of_text, documents))
+        # if str(file_path).endswith("pdf"):
+        #documents = list(map(get_bbox_of_text, documents))
 
         db = Chroma.from_documents(
             documents=documents,

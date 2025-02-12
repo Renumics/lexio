@@ -1,0 +1,15 @@
+.bordered-table {
+    border-collapse: collapse;
+    width: 100%;
+    /*table-layout: fixed;*/
+    border-spacing: 0;
+}
+.bordered-table th,
+.bordered-table td {
+    border: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+}
+.selected-cell {
+    border: 3px solid rgb(59 130 246 / var(--tw-bg-opacity, 1)) !important;
+}

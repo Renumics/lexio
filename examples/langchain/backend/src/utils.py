@@ -15,7 +15,6 @@ class Rect(BaseModel):
 class Highlight(BaseModel):
     page: int = Field(ge=0)
     rect: Rect
-    comment: str = None
 
 
 class PositionalMetadata(BaseModel):

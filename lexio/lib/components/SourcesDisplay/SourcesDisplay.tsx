@@ -1,8 +1,10 @@
-import { useState, useContext } from "react";
-import { RetrievalResult, SourceReference } from "../../types";
+import React, {useState, useContext, useEffect, FC} from "react";
+import {RetrievalResult, SourceReference, TextContent} from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
+import { Search as SearchIcon, File as FileIcon } from "lucide-react";
+
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
   color?: string;
@@ -96,6 +98,14 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   const { sources, currentSources, activeSourceIndex, setActiveSourceIndex, retrieveSources } = useRAGSources();
   const [searchQuery, setSearchQuery] = useState("");
 
+  useEffect(() => {
+    console.log("sources: ", sources);
+  }, [sources]);
+
+  useEffect(() => {
+    console.log("currentSources: ", currentSources);
+  }, [currentSources]);
+
   // use theme
   const theme = useContext(ThemeContext);
   if (!theme) {
@@ -107,7 +117,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   const style: SourcesDisplayStyles = {
     backgroundColor: colors.background,
     color: colors.text,
-    padding: componentDefaults.padding,
+    // padding: componentDefaults.padding,
     borderRadius: componentDefaults.borderRadius,
     fontSize: typography.fontSizeBase,
 
@@ -155,7 +165,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
 
   return (
     <ResetWrapper>
-    <div className="w-full h-full overflow-y-auto" style={{
+    <div className="grid auto-cols-fr gap-3 overflow-hidden min-w-[300px] w-full" style={{
       backgroundColor: style.backgroundColor,
       color: style.color,
       padding: style.padding,
@@ -163,128 +173,172 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
       fontFamily: style.fontFamily,
       fontSize: style.fontSize,
     }}>
-      <h2 className="font-semibold mb-4" style={{ color: style.color, fontSize: `calc(${style.fontSize} * 1.15)` }}>{title}</h2>
-      {/* Search field and button */}
-      {showSearch && (
-        <div className="w-full flex gap-2 mb-4">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={searchPlaceholder}
-            className="w-full flex-1 transition-colors focus:ring-2 focus:ring-gray-300 focus:outline-none"
-            style={{
-              color: style.color,
-              padding: '0.5rem 0.75rem',
-              outline: 'none',
-              border: '1px solid',
-              borderRadius: style.buttonBorderRadius,
-              borderColor: style.inputBorderColor,
-              backgroundColor: style.inputBackgroundColor,
-              fontSize: `calc(${style.fontSize} * 0.95)`
-            }}
-          />
-          <button
-            onClick={handleSearch}
-            className="whitespace-nowrap transition-colors hover:opacity-80"
-            style={{
-              backgroundColor: style.buttonBackground,
-              color: style.buttonTextColor,
-              borderRadius: style.borderRadius,
-              padding: '0.5rem 1rem',
-              fontSize: `calc(${style.fontSize} * 0.95)`
-            }}
-          >
-            Search
-          </button>
+      <div className={"grid auto-cols-fr gap-1.5 sticky top-0 z-[11]"}>
+        <div>
+          <h2 className="font-light"
+              style={{color: style.color, fontSize: `calc(${style.fontSize} * 1.15)`}}>{title}</h2>
         </div>
-      )}
-
-      {sources.length === 0 ? (
-        <p style={{ color: style.color, fontStyle: 'italic', fontSize: style.fontSize }}>No sources available</p>
-      ) : (
-        <ul className="space-y-3">
-          {sources.map((source, index) => (
-            <li
-              key={index}
-              className="p-4 shadow-sm border transition-all cursor-pointer"
-              style={{
-                backgroundColor: index === activeSourceIndex
-                  ? style.activeSourceBackground
-                  : currentSources.includes(source)
-                    ? style.selectedSourceBackground
-                    : currentSources.length > 0
-                      ? style.inactiveSourceBackground
-                      : style.inactiveSourceBackground,
-                borderColor: index === activeSourceIndex
-                  ? style.activeSourceBorderColor
-                  : currentSources.includes(source)
-                    ? style.selectedSourceBorderColor
-                    : style.inactiveSourceBorderColor,
-                opacity: currentSources.length > 0 && !currentSources.includes(source) ? 0.6 : 1,
-                borderRadius: style.borderRadius,
-                fontSize: style.fontSize,
-              }}
-              onClick={() => setActiveSourceIndex(index)}
-            >
-              <div className="flex items-start justify-between">
-                <div className="overflow-hidden">
-                  <p className="font-medium truncate" style={{ color: style.color }}>
-                    {source.sourceName || (isSourceReference(source) ? source.sourceReference : source.text.slice(0, 50))}
-                  </p>
-                  {isSourceReference(source) && source.type && (
-                    <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
-                      backgroundColor: style.sourceTypeBackground,
-                      color: style.sourceTypeColor,
-                      fontSize: `calc(${style.fontSize} * 0.75)`
-                    }}>
-                      {source.type}
-                    </span>
-                  )}
-                  {showRelevanceScore && source.relevanceScore !== undefined && (
-                    <div className="mt-2 flex items-center">
-                      <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
-                      <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
-                        <div
-                          className="h-2 rounded-full"
-                          style={{
-                            backgroundColor: style.relevanceScoreColor,
-                            width: `${Math.round(source.relevanceScore * 100)}%`
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
-                <div className="mt-2 pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(source.metadata).map(([key, value]) => (
-                      <span
-                        key={key}
-                        className="inline-flex items-center px-2 py-1 rounded-md"
-                        style={{
-                          backgroundColor: style.metadataTagBackground,
-                          color: style.metadataTagColor,
-                          fontSize: `calc(${style.fontSize} * 0.75)`,
-                          lineHeight: '1.2',
-                        }}
-                      >
-                        {key}: {value}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+        {/* Search field and button */}
+        {showSearch && (
+            <div
+                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-md p-2 overflow-y-auto">
+              <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={searchPlaceholder}
+                  className="w-full flex-1 transition-colors focus:outline-none"
+                  style={{
+                    color: style.color,
+                    // padding: '0.5rem 0.75rem',
+                    outline: 'none',
+                    // border: '1px solid',
+                    borderRadius: style.buttonBorderRadius,
+                    // borderColor: style.inputBorderColor,
+                    backgroundColor: style.inputBackgroundColor,
+                    fontSize: `calc(${style.fontSize} * 0.95)`
+                  }}
+              />
+              <button
+                  onClick={handleSearch}
+                  className="whitespace-nowrap transition-colors hover:opacity-80"
+                  style={{
+                    // backgroundColor: style.buttonBackground,
+                    // color: style.buttonTextColor,
+                    borderRadius: style.borderRadius,
+                    // padding: '0.5rem 1rem',
+                    fontSize: `calc(${style.fontSize} * 0.95)`
+                  }}
+              >
+                <SearchIcon size={"20px"} color={style.buttonBackground}/>
+              </button>
+            </div>
+        )}
+      </div>
+        {sources.length === 0 ? (
+            <p style={{ color: style.color, fontStyle: 'italic', fontSize: style.fontSize }}>No sources available</p>
+        ) : (
+            <div className="grid grid-cols-1 gap-2 mt-2">
+              {sources.map((source, index) =>
+                <SourceItem
+                  key={index}
+                  isSelected={index === activeSourceIndex}
+                  style={style}
+                  currentSources={currentSources}
+                  source={source}
+                  setActiveSourceIndex={() => setActiveSourceIndex(index)}
+                  showRelevanceScore={showRelevanceScore}
+                  isSourceReference={isSourceReference}
+                  showMetadata={showMetadata}
+                />
               )}
-            </li>
-          ))}
-        </ul>
-      )}
+            </div>
+        )}
     </div>
     </ResetWrapper>
   );
 };
 
-export { SourcesDisplay }
+type SourceItemProps = {
+  isSelected: boolean;
+  style: SourcesDisplayStyles;
+  currentSources: RetrievalResult[];
+  source: RetrievalResult;
+  setActiveSourceIndex: () => void;
+  showRelevanceScore: boolean;
+  isSourceReference: (source: RetrievalResult) => boolean;
+  showMetadata: boolean;
+}
+const SourceItem: FC<SourceItemProps> = (props) => {
+  const {
+    isSelected,
+    style,
+    currentSources,
+    source,
+    setActiveSourceIndex,
+    showRelevanceScore,
+    isSourceReference,
+    showMetadata,
+  } = props;
+
+  return (
+      <div
+          className="p-2 transition-all cursor-pointer"
+          style={{
+            backgroundColor: "#efefef",
+            // backgroundColor: index === activeSourceIndex
+            //     ? style.activeSourceBackground
+            //     : currentSources.includes(source)
+            //         ? style.selectedSourceBackground
+            //         : currentSources.length > 0
+            //             ? style.inactiveSourceBackground
+            //             : style.inactiveSourceBackground,
+            borderColor: isSelected
+                ? style.activeSourceBorderColor
+                : currentSources.includes(source)
+                    ? style.selectedSourceBorderColor
+                    : style.inactiveSourceBorderColor,
+            opacity: currentSources.length > 0 && !currentSources.includes(source) ? 0.6 : 1,
+            borderRadius: style.borderRadius,
+            fontSize: style.fontSize,
+            border: isSelected? `2px solid #2563eb` : "2px solid transparent"
+          }}
+          onClick={() => setActiveSourceIndex()}
+      >
+        <div className={"grid grid-cols-[max-content_1fr] gap-2 items-start content-start"}>
+          <FileIcon size={"35px"} style={{color: "gray"}} strokeWidth={1.1}/>
+          <div>
+            <p className="font-medium text-sm truncate" style={{color: style.color}}>
+              {source.sourceName || (isSourceReference(source) ? (source as SourceReference).sourceReference : (source as TextContent).text.slice(0, 50))}
+            </p>
+            <div className={"grid gap-2 grid-cols-[max-content_1fr_1fr] items-center content-center"}>
+              <div>
+                {isSourceReference(source) && (source as SourceReference).type && (
+                    <span className="inline-block py-0.5 px-2 font-medium text-xs rounded-md" style={{
+                      backgroundColor: style.sourceTypeBackground,
+                      color: style.sourceTypeColor,
+                      fontSize: `calc(${style.fontSize} * 0.75)`
+                    }}>
+                        {(source as SourceReference).type}
+                      </span>
+                )}
+              </div>
+              {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
+                  <div className="border-t" style={{borderColor: style.inactiveSourceBorderColor}}>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(source.metadata).map(([key, value]) => (
+                          <span
+                              key={key}
+                              className="inline-flex items-center px-2 py-1 rounded-md text-xs"
+                              style={{
+                                backgroundColor: style.metadataTagBackground,
+                                color: style.metadataTagColor,
+                                fontSize: `calc(${style.fontSize} * 0.75)`,
+                                lineHeight: '1.2',
+                              }}
+                          >
+                                              {key}: {value}
+                                          </span>
+                      ))}
+                    </div>
+                  </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className={"grid justify-end"}>
+          <div>
+            {showRelevanceScore && source.relevanceScore !== undefined && (
+                <p className="flex items-center text-xs">
+                  {(source.relevanceScore * 100).toFixed()}% Relevance
+                </p>
+            )}
+          </div>
+        </div>
+      </div>
+  )
+};
+SourceItem.displayName = "SourceItem";
+
+export {SourcesDisplay}

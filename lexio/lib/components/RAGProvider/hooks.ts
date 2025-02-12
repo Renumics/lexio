@@ -16,6 +16,7 @@ import {
 } from '../../state/rag-state';
 import { useAtom, useSetAtom } from 'jotai';
 import { Message } from '../../types';
+import {useState} from "react";
 
 export const useRAGMessages = () => {
   const addMessage = useSetAtom(addMessageAtom);
@@ -38,7 +39,9 @@ export const useRAGSources = () => {
   const setActiveSourceIndex = useSetAtom(setActiveSourceIndexAtom);
   const setCurrentSourceIndices = useSetAtom(setCurrentSourceIndicesAtom);
   const retrieveSources = useSetAtom(retrieveSourcesAtom);
-  
+  const [isRetrievedSourcesComponentOpen, setIsRetrievedSourcesComponentOpen] = useState<boolean>(false);
+  const [isFileViewerComponentOpen, setIsFileViewerComponentOpen] = useState<boolean>(false);
+
   return {
     sources,
     currentSources,
@@ -48,6 +51,10 @@ export const useRAGSources = () => {
     setActiveSourceIndex: (index: number) => setActiveSourceIndex(index),
     setCurrentSourceIndices: (indices: number[]) => setCurrentSourceIndices(indices),
     retrieveSources: (query: string, metadata?: Record<string, any>) => retrieveSources(query, metadata),
+    isRetrievedSourcesComponentOpen,
+    setIsRetrievedSourcesComponentOpen: () => setIsRetrievedSourcesComponentOpen((prevState) => !prevState),
+    isFileViewerComponentOpen,
+    setIsFileViewerComponentOpen: () => setIsFileViewerComponentOpen((prevState) => !prevState),
   };
 };
 

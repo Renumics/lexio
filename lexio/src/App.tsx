@@ -1,29 +1,34 @@
 import './App.css'
 import {
-    ChatWindow,
-    RAGProvider,
-    SourcesDisplay,
-    ContentDisplay,
-    QueryField,
+    createTheme,
     ErrorDisplay,
-    Message,
-    AdvancedQueryField,
-    RetrievalResult,
-    SourceReference,
-    SourceContent,
-    HTMLSourceContent,
-    PDFSourceContent,
     GenerateStreamChunk,
-    TextContent,
-    MarkdownSourceContent,
-    createTheme
+    Message,
+    PDFSourceContent,
+    RAGProvider,
+    RetrievalResult,
+    SourceContent,
+    SourceReference,
+    SpreadsheetSourceContent,
+    TextContent
 } from '../lib/main'
+import {ApplicationLayout} from "../lib/components/ApplicationLayout/ApplicationLayout.tsx";
+import ApplicationMainContent from "../lib/components/ApplicationMainContent.tsx";
 
-const customTheme = createTheme({
+// we create a custom theme for the demo which overrides the default theme values
+const demoTheme = createTheme({
     colors: {
-        primary: '#1E88E5',
-        secondary: '#64B5F6'
-    }
+        primary: '#1D3D3C',
+        contrast: '#FFFFFF',
+        secondary: '#4172b6',
+        background: 'white',
+        toolbarBackground: '#366563',
+        secondaryBackground: '#bbd5d3',
+    },
+    typography: {
+        // fontFamily: 'Arial',
+        fontSizeBase: '1.0rem',
+    },
 });
 
 function App() {
@@ -50,14 +55,7 @@ function App() {
                                 metadata: source.metadata || {}
                             } as TextContent;
                         } else {
-                            return {
-                                sourceReference: source.sourceReference,
-                                type: source.type,
-                                sourceName: source.sourceName,
-                                relevanceScore: source.relevanceScore,
-                                metadata: source.metadata || {},
-                                highlights: source.highlights || []
-                            } as SourceReference;
+                            return source as SourceReference; // Direct pass-through of SourceReference objects
                         }
                     });
                     resolve(transformedSources);
@@ -86,6 +84,7 @@ function App() {
                 content: data.content || '',
                 done: !!data.done
             };
+            // console.log('Generated chunk:', chunk);
             messageQueue.push(chunk);
             resolveNext?.();
         };
@@ -129,49 +128,15 @@ function App() {
         const responseData = await response.json();
         //console.log('Response Content:', responseData);
 
-        const messageQueue: GenerateStreamChunk[] = [];
-        let resolveNext: (() => void) | null = null;
-
-        const handleMessage = (event: MessageEvent) => {
-            const data = JSON.parse(event.data);
-            // Only use content and done fields, ignore role
-            const chunk: GenerateStreamChunk = {
-                content: data.content || '',
-                done: !!data.done
-            };
-            messageQueue.push(chunk);
-            resolveNext?.();
-        };
-  
-        eventSource.addEventListener('message', handleMessage);
-
-        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-            try {
-                while (true) {
-                    if (messageQueue.length === 0) {
-                        await new Promise(resolve => {
-                            resolveNext = resolve;
-                        });
-                    }
-
-                    const chunk = messageQueue.shift()!;
-                    yield chunk;
-                    if (chunk.done) {
-                        break;
-                    }
-                }
-            } finally {
-                eventSource.removeEventListener('message', handleMessage);
-                eventSource.close();
-            }
-        }
-
-        return streamChunks();
+        return responseData;
     };
 
     const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
         // We allow only PDF files in this demo
-        if (source.type !== "pdf") {
+        if (source.type !== "pdf" &&
+            source.type !== "xlsx" &&
+            source.type !== "csv"
+        ) {
             throw new Error("Invalid source type");
         }
 
@@ -183,87 +148,60 @@ function App() {
         }
 
         const arrayBuffer = await response.arrayBuffer();
-        const pdfContent: PDFSourceContent = {
-            type: 'pdf',
-            content: new Uint8Array(arrayBuffer),
-            metadata: source.metadata || {},
-            highlights: source.highlights || []
-        };
-        return pdfContent;
+        switch (source.type) {
+            case "pdf": return {
+                type: 'pdf',
+                content: new Uint8Array(arrayBuffer),
+                metadata: source.metadata || {},
+                highlights: source.highlights || [],
+            } as PDFSourceContent;
+            case "xlsx": return {
+                type: 'xlsx',
+                content: arrayBuffer,
+                rangesHighlights: source.rangesHighlights || [],
+                metadata: undefined
+            } as SpreadsheetSourceContent;
+            case "csv": return {
+                type: 'csv',
+                content: arrayBuffer,
+                rangesHighlights: source.rangesHighlights || [],
+                metadata: undefined
+            } as SpreadsheetSourceContent;
+            default: throw new Error("Unsupported source type");
+        }
+        // const pdfContent: PDFSourceContent = {
+        //     type: 'pdf',
+        //     content: new Uint8Array(arrayBuffer),
+        //     metadata: source.metadata || {},
+        //     highlights: source.highlights || []
+        // };
+        // return pdfContent;
     };
 
     return (
-        <div style={{ width: '100%', height: '100vh', padding: '20px' }}>
-            <RAGProvider
-                retrieveAndGenerate={retrieveAndGenerate}
-                generate={generate}
-                getDataSource={getDataSource}
-                config={{
-                    timeouts: {
-                        stream: 10000,
-                        request: 60000
-                    }
-                }}
-            >
-                <div style={{ 
-                    display: 'grid',
-                    height: '100%',
-                    gridTemplateColumns: '3fr 1fr',
-                    gridTemplateRows: '1fr auto 300px',
-                    gap: '20px',
-                    gridTemplateAreas: `
-                        "chat sources"
-                        "input sources"
-                        "viewer viewer"
-                    `
-                }}>
-                    <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
-                        <ChatWindow />
-                    </div>
-                </div>
-
-            {/* Main Content */}
-            <div className="flex-1 p-4">
-                <RAGProvider
-                    retrieve={retrieve}
-                    retrieveAndGenerate={retrieveAndGenerate}
-                    getDataSource={getDataSource}
-                    config={{
-                        timeouts: {
-                            stream: 10000,
-                            request: 60000
-                        }
-                    }}
-                    onAddMessage={() => {
-                        return {
-                            type: 'reretrieve',
-                            preserveHistory: false
-                        }
-                    }}
-                    theme={customTheme}
-                >
-                    <div className="w-full h-full max-h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
-                        {/* Left side: Chat and Query */}
-                        <div className="h-3/4 gap-4 w-1/4 flex flex-col">
-                            <div className="shrink-0"> {/* Query field */}
-                                <QueryField onSubmit={() => {
-                                }}/>
-                            </div>
-                            <div className="h-full"> {/* Chat window */}
-                                <ChatWindow/>
-                            </div>
-                        </div>
-                        <div className="w-1/6 h-full"> {/* Sources panel */}
-                            <SourcesDisplay/>
-                        </div>
-                        <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
-                            <ContentDisplay/>
-                        </div>
-                        <ErrorDisplay/>
-                    </div>
-                </RAGProvider>
-            </div>
-        </div>
+        <RAGProvider
+            retrieve={retrieve}
+            retrieveAndGenerate={retrieveAndGenerate}
+            getDataSource={getDataSource}
+            config={{
+                timeouts: {
+                    stream: 10000,
+                    request: 60000
+                }
+            }}
+            onAddMessage={() => {
+                return {
+                    type: 'reretrieve',
+                    preserveHistory: false
+                }
+            }}
+            theme={demoTheme}
+        >
+            <ApplicationLayout>
+                <ApplicationMainContent />
+                <ErrorDisplay/>
+            </ApplicationLayout>
+        </RAGProvider>
     )
 }
 

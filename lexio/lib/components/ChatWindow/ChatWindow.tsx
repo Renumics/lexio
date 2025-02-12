@@ -1,7 +1,8 @@
-import React, { useContext } from 'react';
-import { ThemeContext } from '../../theme/ThemeContext';
-import { useRAGMessages } from '../RAGProvider/hooks';
-import { ResetWrapper } from '../../utils/ResetWrapper';
+import React, {useContext, useEffect} from 'react';
+import {ThemeContext} from '../../theme/ThemeContext';
+import {useRAGMessages} from '../RAGProvider/hooks';
+import {ResetWrapper} from '../../utils/ResetWrapper';
+import {MessageBubbleComponent} from "../ui/MessageBubbleComponent.tsx";
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -56,11 +57,11 @@ export interface ChatWindowProps {
  * />
  * ```
  */
-const ChatWindow: React.FC<ChatWindowProps> = ({ 
+const ChatWindow: React.FC<ChatWindowProps> = ({
   styleOverrides = {},
   showRoleLabels = true,
-  userLabel = 'User: ',
-  assistantLabel = 'Assistant: ',
+  userLabel = "User",
+  assistantLabel = "Assistant",
 }) => {
   const { messages, currentStream } = useRAGMessages();
   // Add ref for scrolling
@@ -82,35 +83,47 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const style: ChatWindowStyles = {
     backgroundColor: colors.background,
     color: colors.text,
-    padding: componentDefaults.padding,
+    // padding: componentDefaults.padding,
     fontFamily: typography.fontFamily,
     fontSize: typography.fontSizeBase,
     borderRadius: componentDefaults.borderRadius,
     ...styleOverrides, // ensure these override theme defaults
   };
 
+  useEffect(() => {
+    console.log("messages: ", messages);
+  }, [messages]);
+
   return (
     <ResetWrapper>
     <div
-      className="w-full h-full overflow-y-auto"
+      className="grid grid-cols-1 gap-2.5 content-start items-start overflow-y-auto"
       style={style}
     >
       {messages.map((msg, index) => (
-        <div key={index} className={`mb-2 ${msg.role}`}>
-          {showRoleLabels && (
-            <strong className="inline-block mr-2">{msg.role === 'user' ? userLabel : assistantLabel}</strong>
-          )}
-          <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+        <div key={index} className={`${msg.role}`}>
+          {showRoleLabels &&
+              <MessageBubbleComponent
+                  text={<p>{msg.content}</p>}
+                  name={<p className={"text-xs font-thin"}>{msg.role === "user" ? userLabel : assistantLabel}</p>}
+                  isFromUser={msg.role === "user"}
+              />
+          }
         </div>
       ))}
-      {currentStream && (
-        <div className="mb-2 assistant streaming">
-          {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
-          <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{currentStream.content}</div>
-        </div>
-      )}
-        <div ref={chatEndRef} />
-      </div>
+      {currentStream &&
+          <div className="assistant streaming">
+            {showRoleLabels &&
+                <MessageBubbleComponent
+                    text={<p>{currentStream.content}</p>}
+                    name={<p className={"text-xs font-thin"}>{assistantLabel}</p>}
+                    isFromUser={false}
+                />
+            }
+          </div>
+      }
+      <div ref={chatEndRef}/>
+    </div>
     </ResetWrapper>
   );
 };
