@@ -43,6 +43,7 @@ export const extractComponentDescriptionHelper = (component: any, { notes }: { n
                 !line.startsWith('@component') &&
                 !line.startsWith('@remarks') &&
                 !line.startsWith('@todo') &&
+                !line.startsWith('@see') &&
                 !line.startsWith('@returns')
             )
             .join('\n'); // Rejoin the lines
