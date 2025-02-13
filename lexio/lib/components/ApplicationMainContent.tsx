@@ -10,9 +10,9 @@ const ApplicationMainContent: FunctionComponent = () => {
         sources,
         currentSourceContent,
         isRetrievedSourcesComponentOpen,
-        setIsRetrievedSourcesComponentOpen,
+        toggleIsRetrievedSourcesComponentOpen,
         isFileViewerComponentOpen,
-        setIsFileViewerComponentOpen,
+        toggleIsFileViewerComponentOpen,
     } = useRAGSources()
 
     const areSourcesAvailable = sources !== undefined && sources !== null && sources.length > 0;
@@ -21,7 +21,12 @@ const ApplicationMainContent: FunctionComponent = () => {
 
     const onQuerySubmission = () => {
         if (isRetrievedSourcesComponentOpen) return
-        setIsRetrievedSourcesComponentOpen()
+        toggleIsRetrievedSourcesComponentOpen()
+    }
+
+    const onSourceSelection = () => {
+        if (isFileViewerComponentOpen) return
+        toggleIsFileViewerComponentOpen()
     }
 
     let gridColumns = "grid-cols-[1fr]";
@@ -54,29 +59,29 @@ const ApplicationMainContent: FunctionComponent = () => {
                 <div className={"self-end sticky bottom-0"}>
                     <QueryField
                         onSubmit={(msg: string) => onQuerySubmission()}
-                        toggleRetrievedSourcesComponent={setIsRetrievedSourcesComponentOpen}
-                        toggleFileViewerComponent={setIsFileViewerComponentOpen}
+                        toggleRetrievedSourcesComponent={toggleIsRetrievedSourcesComponentOpen}
+                        toggleFileViewerComponent={toggleIsFileViewerComponentOpen}
                     />
                 </div>
             </CardContainer>
             {areSourcesAvailable && isRetrievedSourcesComponentOpen ?
                 <CardContainer className={"mb-10 p-3 drop-shadow-md overflow-hidden"}>
                     <div className={"overflow-auto"}>
-                        <SourcesDisplay />
+                        <SourcesDisplay onSourceSelection={onSourceSelection} />
                     </div>
                 </CardContainer> : null
             }
             {isCurrentSourceContentAvailable && isFileViewerComponentOpen ?
-                <CardContainer className={"mb-10 drop-shadow-md"}>
-                    <div className={"overflow-x-auto overflow-y-auto"}>
+                <CardContainer className={"mb-10 drop-shadow-md overflow-hidden"}>
+                    <div className={"overflow-auto"}>
                         <ContentDisplay />
-                        {/*<FileViewerContainer*/}
-                        {/*    fileName={"dummy.pdf"}*/}
-                        {/*    optionsLeft={[]}*/}
-                        {/*    optionsCenter={[]}*/}
-                        {/*    optionsRight={[<CloseIcon size={"20px"} />]}*/}
-                        {/*/>*/}
                     </div>
+                    {/*<FileViewerContainer*/}
+                    {/*    fileName={"dummy.pdf"}*/}
+                    {/*    optionsLeft={[]}*/}
+                    {/*    optionsCenter={[]}*/}
+                    {/*    optionsRight={[<CloseIcon size={"20px"} />]}*/}
+                    {/*/>*/}
                 </CardContainer> : null
             }
         </div>

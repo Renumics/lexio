@@ -52,9 +52,9 @@ export const useRAGSources = () => {
     setCurrentSourceIndices: (indices: number[]) => setCurrentSourceIndices(indices),
     retrieveSources: (query: string, metadata?: Record<string, any>) => retrieveSources(query, metadata),
     isRetrievedSourcesComponentOpen,
-    setIsRetrievedSourcesComponentOpen: () => setIsRetrievedSourcesComponentOpen((prevState) => !prevState),
+    toggleIsRetrievedSourcesComponentOpen: () => setIsRetrievedSourcesComponentOpen((prevState) => !prevState),
     isFileViewerComponentOpen,
-    setIsFileViewerComponentOpen: () => setIsFileViewerComponentOpen((prevState) => !prevState),
+    toggleIsFileViewerComponentOpen: () => setIsFileViewerComponentOpen((prevState) => !prevState),
   };
 };
 

@@ -8,7 +8,7 @@ import {
   isHTMLContent,
   isMarkdownContent,
   isSpreadsheetContent,
-  SpreadsheetSourceContent
+  SpreadsheetSourceContent, SourceReference
 } from "../../types";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import {SpreadsheetViewer} from "../Viewers/SpreadsheetViewer";
@@ -25,7 +25,7 @@ interface ContentDisplayProps {
 }
 
 const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) => {
-  const { currentSourceContent } = useRAGSources();
+  const { currentSourceContent, sources, activeSourceIndex } = useRAGSources();
   
   // use theme
   const theme = useContext(ThemeContext);
@@ -47,13 +47,17 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
     return null;
   }
 
+  const source = activeSourceIndex ? sources[activeSourceIndex] : undefined;
+  const filename = (source as SourceReference)?.sourceReference;
+
   const renderContent = () => {
     if (isPDFContent(currentSourceContent)) {
       return (
-        <PdfViewer 
+        <PdfViewer
           data={currentSourceContent.content}
           page={currentSourceContent?.page}
           highlights={currentSourceContent.highlights}
+          fileName={filename}
         />
       );
     }

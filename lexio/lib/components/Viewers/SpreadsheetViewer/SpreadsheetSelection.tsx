@@ -1,4 +1,3 @@
-"use client"
 // import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import * as React from "react";
 import useGlobalStore from "./useSpreadsheetStore";

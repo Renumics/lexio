@@ -1,15 +1,16 @@
-import {useCallback, useEffect, useRef, useState, useContext} from "react";
+import {useCallback, useEffect, useRef, useState, useContext, FC, KeyboardEvent} from "react";
 import {Highlight} from "./Highlight.tsx"
 import {pdfjs, Document, Page} from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { ViewerToolbarStyles } from "../ViewerToolbar";
-import { PdfViewerToolbar } from "./PdfViewerToolbar";
 import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
 import {useHotkeys, Options} from 'react-hotkeys-hook';
 import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
 import { PDFHighlight } from "../../../types";
+import {FileViewerContainer} from "../../ui/FileViewerContainer.tsx";
+import {FitPdfContentToParentContainer, PageSwitcher, RotatePdf, ZoomInAndOut} from "./PdfViewerToolbar.tsx";
 
 // Configure PDF.js worker - we explicitly use the pdfjs worker from the react-pdf package to avoid conflicts with the worker versions.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -59,6 +60,7 @@ interface PdfViewerProps {
     highlights?: PDFHighlight[];
     page?: number;
     styleOverrides?: PdfViewerStyles;
+    fileName?: string | undefined;
 }
 
 /**
@@ -107,7 +109,7 @@ interface PdfViewerProps {
  * />
  * ```
  */
-const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
+const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfViewerProps) => {
     const [pdfData, setPdfData] = useState<{data: object} | undefined>();
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
@@ -397,96 +399,117 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
     };
 
     return (
-        <div 
-            className="h-full w-full flex flex-col focus:outline-none"
-            // tabIndex enables the div to receive focus, -1 keeps it out of tab order
-            tabIndex={-1}
-            ref={(element: HTMLDivElement | null) => {
-                if (element) {
-                    containerRef.current = element;
-                    combineRefs(element);
-                }
-            }}
-            style={{
-                color: style.color,
-                fontFamily: style.fontFamily,
-                backgroundColor: style.contentBackground,
-            }}
+        <FileViewerContainer
+            fileName={fileName ?? ""}
+            optionsLeft={[
+                <PageSwitcher
+                    style={style}
+                    pageNumber={pageNumber}
+                    numPages={numPages}
+                    previousPage={wrappedActions.previousPage}
+                    nextPage={wrappedActions.nextPage}
+                    changePageTo={changePageTo}
+                />
+            ]}
+            optionsRight={[
+                <RotatePdf
+                    rotatePage={wrappedActions.rotatePage}
+                    isDisabled={numPages === null}
+                    style={style}
+                />,
+                <ZoomInAndOut
+                    zoomIn={wrappedActions.zoomIn}
+                    zoomOut={wrappedActions.zoomOut}
+                    scale={scale}
+                    style={style}
+                    isLoaded={numPages !== null}
+                />,
+                <FitPdfContentToParentContainer
+                    style={style}
+                    fitParent={wrappedActions.fitParent}
+                    isLoaded={numPages !== null}
+                />,
+            ]}
         >
-            <PdfViewerToolbar
-                numPages={numPages}
-                pageNumber={pageNumber}
-                scale={scale}
-                canvasDimensions={canvasDimensions}
-                rotate={rotate}
-                documentContainerRef={documentContainerRef}
-                wrappedActions={wrappedActions}
-                style={style}
-                changePageTo={changePageTo}
-            />
-            <div 
-                className="flex justify-center items-start flex-grow overflow-auto relative w-full"
-                style={{
-                    textAlign: 'center',
-                    padding: style.contentPadding,
-                    backgroundColor: style.contentBackground,
-                    borderBottomRightRadius: style.borderRadius,
-                    borderBottomLeftRadius: style.borderRadius
+            <div
+                className="h-full w-full flex flex-col focus:outline-none"
+                // tabIndex enables the div to receive focus, -1 keeps it out of tab order
+                tabIndex={-1}
+                ref={(element: HTMLDivElement | null) => {
+                    if (element) {
+                        containerRef.current = element;
+                        combineRefs(element);
+                    }
                 }}
-                ref={documentContainerRef}
+                style={{
+                    color: style.color,
+                    fontFamily: style.fontFamily,
+                    backgroundColor: style.contentBackground,
+                }}
             >
-                <Document
-                    // @ts-ignore: TS2352
-                    file={pdfData as File}
-                    onLoadSuccess={onDocumentLoadSuccess}
-                    onLoadError={onDocumentLoadError}
-                    className="w-full h-full"
-                    noData={<div>No data</div>}
+                <div
+                    className="flex justify-center items-start flex-grow overflow-auto relative w-full"
+                    style={{
+                        textAlign: 'center',
+                        padding: style.contentPadding,
+                        backgroundColor: style.contentBackground,
+                        borderBottomRightRadius: style.borderRadius,
+                        borderBottomLeftRadius: style.borderRadius
+                    }}
+                    ref={documentContainerRef}
                 >
-                    <div
-                        style={{
-                            position: 'relative',
-                            display: 'inline-block',
-                        }}
+                    <Document
+                        // @ts-ignore: TS2352
+                        file={pdfData as File}
+                        onLoadSuccess={onDocumentLoadSuccess}
+                        onLoadError={onDocumentLoadError}
+                        className="w-full h-full"
+                        noData={<div>No data</div>}
                     >
-                        {renderedPageNumber !== pageNumber ? (
-                            //* Render the previous page to avoid flickering when changing pages, see https://github.com/wojtekmaj/react-pdf/issues/418 */
+                        <div
+                            style={{
+                                position: 'relative',
+                                display: 'inline-block',
+                            }}
+                        >
+                            {renderedPageNumber !== pageNumber ? (
+                                //* Render the previous page to avoid flickering when changing pages, see https://github.com/wojtekmaj/react-pdf/issues/418 */
+                                <Page
+                                    key={renderedPageNumber}
+                                    pageNumber={renderedPageNumber}
+                                    scale={scale}
+                                    className="max-w-full max-h-full block shadow-lg"
+                                    renderMode="canvas"
+                                    rotate={rotate}
+                                    onLoadSuccess={onPageLoadSuccess}
+                                />
+                            ) : null}
                             <Page
-                                key={renderedPageNumber}
-                                pageNumber={renderedPageNumber}
+                                key={pageNumber}
+                                pageNumber={pageNumber}
                                 scale={scale}
-                                className="max-w-full max-h-full block shadow-lg"
+                                className={`${renderedPageNumber !== pageNumber ? 'hidden' : ''} max-w-full max-h-full block shadow-lg`}
                                 renderMode="canvas"
                                 rotate={rotate}
                                 onLoadSuccess={onPageLoadSuccess}
+                                onRenderSuccess={() => {
+                                    setRenderedPageNumber(pageNumber);
+                                }}
                             />
-                        ): null}
-                        <Page
-                            key={pageNumber}
-                            pageNumber={pageNumber}
-                            scale={scale}
-                            className={`${renderedPageNumber !== pageNumber ? 'hidden' : ''} max-w-full max-h-full block shadow-lg`}
-                            renderMode="canvas"
-                            rotate={rotate}
-                            onLoadSuccess={onPageLoadSuccess}
-                            onRenderSuccess={() => {
-                                setRenderedPageNumber(pageNumber);
-                            }}
-                        />
-                        {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
-                            <Highlight
-                                key={index}
-                                rect={highlight.rect}
-                                scale={scale}
-                                rotate={rotate}
-                                canvasDimensions={canvasDimensions}
-                            />
-                        ))}
-                    </div>
-                </Document>
+                            {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
+                                <Highlight
+                                    key={index}
+                                    rect={highlight.rect}
+                                    scale={scale}
+                                    rotate={rotate}
+                                    canvasDimensions={canvasDimensions}
+                                />
+                            ))}
+                        </div>
+                    </Document>
+                </div>
             </div>
-        </div>
+        </FileViewerContainer>
     );
 }
-
 export {PdfViewer};

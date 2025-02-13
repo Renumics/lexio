@@ -33,8 +33,8 @@ export const MessageBubbleComponent: FC<Props> = (props: Props) => {
                         <div>{text}</div>
                     </div>
                     <div className={"flex gap-4 px-3"}>
-                        <ThumbsUp style={{color: "gray"}} size={"20px"} />
-                        <ThumbsDown style={{color: "gray"}} size={"20px"} />
+                        {/*<ThumbsUp style={{color: "gray"}} size={"20px"} />*/}
+                        {/*<ThumbsDown style={{color: "gray"}} size={"20px"} />*/}
                         <Copy style={{color: "gray"}} size={"20px"} />
                     </div>
                 </div>

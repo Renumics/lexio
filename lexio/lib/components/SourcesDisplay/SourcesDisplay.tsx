@@ -65,6 +65,10 @@ export interface SourcesDisplayProps {
    * Style customization options
    */
   styleOverrides?: SourcesDisplayStyles;
+  /**
+   * Callback called after a source has been selected
+   */
+  onSourceSelection?: (() => void) | undefined;
 }
 
 /**
@@ -94,17 +98,10 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   showRelevanceScore = true,
   showMetadata = true,
   styleOverrides = {},
+  onSourceSelection,
 }) => {
   const { sources, currentSources, activeSourceIndex, setActiveSourceIndex, retrieveSources } = useRAGSources();
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    console.log("sources: ", sources);
-  }, [sources]);
-
-  useEffect(() => {
-    console.log("currentSources: ", currentSources);
-  }, [currentSources]);
 
   // use theme
   const theme = useContext(ThemeContext);
@@ -163,6 +160,12 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
     }
   };
 
+  const setIndexOfActiveSource = (index: number) => {
+    setActiveSourceIndex(index)
+    if (!onSourceSelection) return
+    onSourceSelection();
+  }
+
   return (
     <ResetWrapper>
     <div className="grid auto-cols-fr gap-3 overflow-hidden min-w-[300px] w-full" style={{
@@ -181,7 +184,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
         {/* Search field and button */}
         {showSearch && (
             <div
-                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-md p-2 overflow-y-auto">
+                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-3xl py-2 px-4 overflow-y-auto">
               <input
                   type="text"
                   value={searchQuery}
@@ -227,7 +230,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   style={style}
                   currentSources={currentSources}
                   source={source}
-                  setActiveSourceIndex={() => setActiveSourceIndex(index)}
+                  setActiveSourceIndex={() => setIndexOfActiveSource(index)}
                   showRelevanceScore={showRelevanceScore}
                   isSourceReference={isSourceReference}
                   showMetadata={showMetadata}
@@ -282,7 +285,7 @@ const SourceItem: FC<SourceItemProps> = (props) => {
             opacity: currentSources.length > 0 && !currentSources.includes(source) ? 0.6 : 1,
             borderRadius: style.borderRadius,
             fontSize: style.fontSize,
-            border: isSelected? `2px solid #2563eb` : "2px solid transparent"
+            border: isSelected? `2px solid #2563ebc9` : "2px solid transparent"
           }}
           onClick={() => setActiveSourceIndex()}
       >
