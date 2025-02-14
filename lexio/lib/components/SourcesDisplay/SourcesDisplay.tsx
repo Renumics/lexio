@@ -1,8 +1,9 @@
 import { useState, useContext } from "react";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
-import { useRAGSources, useLexio} from "../RAGProvider";
+import { useRAGSources, useLexio } from "../RAGProvider/hooks2";
 import { Component } from "../../state/rag-state-v2";
+import { TrashIcon } from '@heroicons/react/24/outline';
 
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
@@ -101,7 +102,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   styleOverrides = {},
 }) => {
   const { sources, activeSources, selectedSourceId, activeSourceIndex } = useRAGSources();
-  const { setSelectedSource, searchSources } = useLexio((key ? `SourcesDisplay-${key}` : 'SourcesDisplay') as Component ); // todo: make use of new API
+  const { setSelectedSource, searchSources, clearSources } = useLexio((key ? `SourcesDisplay-${key}` : 'SourcesDisplay') as Component); // todo: make use of new API
   const [searchQuery, setSearchQuery] = useState("");
 
   // use theme
@@ -159,134 +160,153 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
 
   return (
     <ResetWrapper>
-    <div className="w-full h-full overflow-y-auto" style={{
-      backgroundColor: style.backgroundColor,
-      color: style.color,
-      padding: style.padding,
-      borderRadius: style.borderRadius,
-      fontFamily: style.fontFamily,
-      fontSize: style.fontSize,
-    }}>
-      <h2 className="font-semibold mb-4" style={{ color: style.color, fontSize: `calc(${style.fontSize} * 1.15)` }}>{title}</h2>
-      {/* Search field and button */}
-      {showSearch && (
-        <div className="w-full flex gap-2 mb-4">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={searchPlaceholder}
-            className="w-full flex-1 transition-colors focus:ring-2 focus:ring-gray-300 focus:outline-none"
+      <div className="w-full h-full overflow-y-auto" style={{
+        backgroundColor: style.backgroundColor,
+        color: style.color,
+        padding: style.padding,
+        borderRadius: style.borderRadius,
+        fontFamily: style.fontFamily,
+        fontSize: style.fontSize,
+      }}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-semibold" style={{ color: style.color, fontSize: `calc(${style.fontSize} * 1.15)` }}>
+            {title}
+          </h2>
+          <button
+            onClick={clearSources}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
             style={{
               color: style.color,
-              padding: '0.5rem 0.75rem',
-              outline: 'none',
-              border: '1px solid',
-              borderRadius: style.buttonBorderRadius,
-              borderColor: style.inputBorderColor,
-              backgroundColor: style.inputBackgroundColor,
-              fontSize: `calc(${style.fontSize} * 0.95)`
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: sources.length > 0 ? 'pointer' : 'not-allowed',
             }}
-          />
-          <button
-            onClick={handleSearch}
-            className="whitespace-nowrap transition-colors hover:opacity-80"
-            style={{
-              backgroundColor: style.buttonBackground,
-              color: style.buttonTextColor,
-              borderRadius: style.borderRadius,
-              padding: '0.5rem 1rem',
-              fontSize: `calc(${style.fontSize} * 0.95)`
-            }}
+            disabled={sources.length === 0}
+            title={sources.length > 0 ? "Clear all sources" : "No sources to clear"}
+            aria-label={sources.length > 0 ? "Clear all sources" : "No sources to clear"}
           >
-            Search
+            <TrashIcon className="size-5" />
           </button>
         </div>
-      )}
-
-      {sources.length === 0 ? (
-        <p style={{ color: style.color, fontStyle: 'italic', fontSize: style.fontSize }}>No sources available</p>
-      ) : (
-        <ul className="space-y-3">
-          {sources.map((source, index) => (
-            <li
-              key={index}
-              className="p-4 shadow-sm border transition-all cursor-pointer"
+        {/* Search field and button */}
+        {showSearch && (
+          <div className="w-full flex gap-2 mb-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={searchPlaceholder}
+              className="w-full flex-1 transition-colors focus:ring-2 focus:ring-gray-300 focus:outline-none"
               style={{
-                backgroundColor: source.id === selectedSourceId
-                  ? style.selectedSourceBackground
-                  : activeSources.includes(source)
-                    ? style.activeSourceBackground
-                    : activeSources.length > 0
-                      ? style.inactiveSourceBackground
-                      : style.inactiveSourceBackground,
-                borderColor: source.id === selectedSourceId
-                  ? style.selectedSourceBorderColor
-                  : activeSources.includes(source)
-                    ? style.selectedSourceBorderColor
-                    : style.inactiveSourceBorderColor,
-                opacity: activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
-                borderRadius: style.borderRadius,
-                fontSize: style.fontSize,
+                color: style.color,
+                padding: '0.5rem 0.75rem',
+                outline: 'none',
+                border: '1px solid',
+                borderRadius: style.buttonBorderRadius,
+                borderColor: style.inputBorderColor,
+                backgroundColor: style.inputBackgroundColor,
+                fontSize: `calc(${style.fontSize} * 0.95)`
               }}
-              onClick={() => setSelectedSource(source.id)}
+            />
+            <button
+              onClick={handleSearch}
+              className="whitespace-nowrap transition-colors hover:opacity-80"
+              style={{
+                backgroundColor: style.buttonBackground,
+                color: style.buttonTextColor,
+                borderRadius: style.borderRadius,
+                padding: '0.5rem 1rem',
+                fontSize: `calc(${style.fontSize} * 0.95)`
+              }}
             >
-              <div className="flex items-start justify-between">
-                <div className="overflow-hidden">
-                  <p className="font-medium truncate" style={{ color: style.color }}>
-                    {source.title}
-                  </p>
-                  {source.type && (
-                    <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
-                      backgroundColor: style.sourceTypeBackground,
-                      color: style.sourceTypeColor,
-                      fontSize: `calc(${style.fontSize} * 0.75)`  // todo: replace with utils func
-                    }}>
-                      {source.type}
-                    </span>
-                  )}
-                  {showRelevanceScore && source.relevance !== undefined && (
-                    <div className="mt-2 flex items-center">
-                      <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
-                      <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
-                        <div
-                          className="h-2 rounded-full"
-                          style={{
-                            backgroundColor: style.relevanceScoreColor,
-                            width: `${Math.round(source.relevance * 100)}%`
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
-                <div className="mt-2 pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(source.metadata).map(([key, value]) => (
-                      <span
-                        key={key}
-                        className="inline-flex items-center px-2 py-1 rounded-md"
-                        style={{
-                          backgroundColor: style.metadataTagBackground,
-                          color: style.metadataTagColor,
-                          fontSize: `calc(${style.fontSize} * 0.75)`,
-                          lineHeight: '1.2',
-                        }}
-                      >
-                        {key}: {value}
+              Search
+            </button>
+          </div>
+        )}
+
+        {sources.length === 0 ? (
+          <p style={{ color: style.color, fontStyle: 'italic', fontSize: style.fontSize }}>No sources available</p>
+        ) : (
+          <ul className="space-y-3">
+            {sources.map((source, index) => (
+              <li
+                key={index}
+                className="p-4 shadow-sm border transition-all cursor-pointer"
+                style={{
+                  backgroundColor: source.id === selectedSourceId
+                    ? style.selectedSourceBackground
+                    : activeSources.includes(source)
+                      ? style.activeSourceBackground
+                      : activeSources.length > 0
+                        ? style.inactiveSourceBackground
+                        : style.inactiveSourceBackground,
+                  borderColor: source.id === selectedSourceId
+                    ? style.selectedSourceBorderColor
+                    : activeSources.includes(source)
+                      ? style.selectedSourceBorderColor
+                      : style.inactiveSourceBorderColor,
+                  opacity: activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
+                  borderRadius: style.borderRadius,
+                  fontSize: style.fontSize,
+                }}
+                onClick={() => setSelectedSource(source.id)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="overflow-hidden">
+                    <p className="font-medium truncate" style={{ color: style.color }}>
+                      {source.title}
+                    </p>
+                    {source.type && (
+                      <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
+                        backgroundColor: style.sourceTypeBackground,
+                        color: style.sourceTypeColor,
+                        fontSize: `calc(${style.fontSize} * 0.75)`  // todo: replace with utils func
+                      }}>
+                        {source.type}
                       </span>
-                    ))}
+                    )}
+                    {showRelevanceScore && source.relevance !== undefined && (
+                      <div className="mt-2 flex items-center">
+                        <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
+                        <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
+                          <div
+                            className="h-2 rounded-full"
+                            style={{
+                              backgroundColor: style.relevanceScoreColor,
+                              width: `${Math.round(source.relevance * 100)}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+                {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
+                  <div className="mt-2 pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(source.metadata).map(([key, value]) => (
+                        <span
+                          key={key}
+                          className="inline-flex items-center px-2 py-1 rounded-md"
+                          style={{
+                            backgroundColor: style.metadataTagBackground,
+                            color: style.metadataTagColor,
+                            fontSize: `calc(${style.fontSize} * 0.75)`,
+                            lineHeight: '1.2',
+                          }}
+                        >
+                          {key}: {value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </ResetWrapper>
   );
 };
