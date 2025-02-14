@@ -1,7 +1,8 @@
 import React, { useContext } from 'react';
 import { ThemeContext } from '../../theme/ThemeContext';
-import { useRAGMessages} from '../RAGProvider/hooks2';
+import { useLexio, useRAGMessages } from '../RAGProvider/hooks2';
 import { ResetWrapper } from '../../utils/ResetWrapper';
+import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -69,6 +70,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   assistantLabel = 'Assistant: ',
 }) => {
   const { messages, currentStream } = useRAGMessages();
+  const { clearMessages } = useLexio('ChatWindow');
+
+
   // Add ref for scrolling
   const chatEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -80,7 +84,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   // --- use theme ---
   const theme = useContext(ThemeContext);
   if (!theme) {
-      throw new Error('ThemeContext is undefined');
+    throw new Error('ThemeContext is undefined');
   }
   const { colors, typography, componentDefaults } = theme.theme;
 
@@ -97,24 +101,40 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
   return (
     <ResetWrapper>
-    <div
-      className="w-full h-full overflow-y-auto"
-      style={style}
-    >
-      {messages.map((msg, index) => (
-        <div key={index} className={`mb-2 ${msg.role}`}>
-          {showRoleLabels && (
-            <strong className="inline-block mr-2">{msg.role === 'user' ? userLabel : assistantLabel}</strong>
-          )}
-          <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
-        </div>
-      ))}
-      {currentStream && (
-        <div className="mb-2 assistant streaming">
-          {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
-          <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{currentStream.content}</div>
-        </div>
-      )}
+      <div
+        className="w-full h-full overflow-y-auto relative"
+        style={style}
+      >
+
+        <button
+          onClick={clearMessages}
+          className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100 transition-colors"
+          style={{
+            color: colors.text,
+            backgroundColor: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+          title="New conversation"
+          aria-label="New conversation"
+        >
+          <DocumentPlusIcon className="size-5" />
+        </button>
+
+        {messages.map((msg, index) => (
+          <div key={index} className={`mb-2 ${msg.role}`}>
+            {showRoleLabels && (
+              <strong className="inline-block mr-2">{msg.role === 'user' ? userLabel : assistantLabel}</strong>
+            )}
+            <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+          </div>
+        ))}
+        {currentStream && (
+          <div className="mb-2 assistant streaming">
+            {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
+            <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{currentStream.content}</div>
+          </div>
+        )}
         <div ref={chatEndRef} />
       </div>
     </ResetWrapper>
