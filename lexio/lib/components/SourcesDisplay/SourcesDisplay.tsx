@@ -4,6 +4,7 @@ import { ResetWrapper } from "../../utils/ResetWrapper";
 import { useRAGSources, useLexio } from "../RAGProvider/hooks2";
 import { Component } from "../../state/rag-state-v2";
 import { TrashIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
@@ -160,15 +161,15 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
 
   return (
     <ResetWrapper>
-      <div className="w-full h-full overflow-y-auto" style={{
+      <div className="w-full h-full flex flex-col" style={{
         backgroundColor: style.backgroundColor,
         color: style.color,
-        padding: style.padding,
         borderRadius: style.borderRadius,
         fontFamily: style.fontFamily,
         fontSize: style.fontSize,
       }}>
-        <div className="flex justify-between items-center mb-4">
+        {/* Header */}
+        <div className="flex justify-between items-center p-4">
           <h2 className="font-semibold" style={{ color: style.color, fontSize: `calc(${style.fontSize} * 1.15)` }}>
             {title}
           </h2>
@@ -188,124 +189,145 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
             <TrashIcon className="size-5" />
           </button>
         </div>
-        {/* Search field and button */}
+
+        {/* Scrollable Sources List */}
+        <div className="flex-1 overflow-y-auto px-4">
+          {sources.length === 0 ? (
+            <p style={{ color: style.color, fontStyle: 'italic', fontSize: style.fontSize }}>No sources available</p>
+          ) : (
+            <ul className="space-y-3 mb-4">
+              {sources.map((source, index) => (
+                <li
+                  key={index}
+                  className="p-4 shadow-sm border transition-all cursor-pointer"
+                  style={{
+                    backgroundColor: source.id === selectedSourceId
+                      ? style.selectedSourceBackground
+                      : activeSources.includes(source)
+                        ? style.activeSourceBackground
+                        : activeSources.length > 0
+                          ? style.inactiveSourceBackground
+                          : style.inactiveSourceBackground,
+                    borderColor: source.id === selectedSourceId
+                      ? style.selectedSourceBorderColor
+                      : activeSources.includes(source)
+                        ? style.selectedSourceBorderColor
+                        : style.inactiveSourceBorderColor,
+                    opacity: activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
+                    borderRadius: style.borderRadius,
+                    fontSize: style.fontSize,
+                  }}
+                  onClick={() => setSelectedSource(source.id)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="overflow-hidden">
+                      <p className="font-medium truncate" style={{ color: style.color }}>
+                        {source.title}
+                      </p>
+                      {source.type && (
+                        <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
+                          backgroundColor: style.sourceTypeBackground,
+                          color: style.sourceTypeColor,
+                          fontSize: `calc(${style.fontSize} * 0.75)`  // todo: replace with utils func
+                        }}>
+                          {source.type}
+                        </span>
+                      )}
+                      {showRelevanceScore && source.relevance !== undefined && (
+                        <div className="mt-2 flex items-center">
+                          <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
+                          <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
+                            <div
+                              className="h-2 rounded-full"
+                              style={{
+                                backgroundColor: style.relevanceScoreColor,
+                                width: `${Math.round(source.relevance * 100)}%`
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
+                    <div className="mt-2 pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(source.metadata).map(([key, value]) => (
+                          <span
+                            key={key}
+                            className="inline-flex items-center px-2 py-1 rounded-md"
+                            style={{
+                              backgroundColor: style.metadataTagBackground,
+                              color: style.metadataTagColor,
+                              fontSize: `calc(${style.fontSize} * 0.75)`,
+                              lineHeight: '1.2',
+                            }}
+                          >
+                            {key}: {value}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Search Section with proper focus behavior */}
         {showSearch && (
-          <div className="w-full flex gap-2 mb-4">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={searchPlaceholder}
-              className="w-full flex-1 transition-colors focus:ring-2 focus:ring-gray-300 focus:outline-none"
-              style={{
-                color: style.color,
-                padding: '0.5rem 0.75rem',
-                outline: 'none',
-                border: '1px solid',
-                borderRadius: style.buttonBorderRadius,
-                borderColor: style.inputBorderColor,
-                backgroundColor: style.inputBackgroundColor,
-                fontSize: `calc(${style.fontSize} * 0.95)`
-              }}
-            />
-            <button
-              onClick={handleSearch}
-              className="whitespace-nowrap transition-colors hover:opacity-80"
-              style={{
-                backgroundColor: style.buttonBackground,
-                color: style.buttonTextColor,
-                borderRadius: style.borderRadius,
-                padding: '0.5rem 1rem',
-                fontSize: `calc(${style.fontSize} * 0.95)`
-              }}
-            >
-              Search
-            </button>
+          <div className="border-t px-4 py-3" style={{ 
+            borderColor: style.inputBorderColor + '20',
+            backgroundColor: style.backgroundColor
+          }}>
+            <div className="flex items-center gap-3">
+              <div 
+                className="flex-1 flex items-center gap-2 group 
+                           bg-white border shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]
+                           focus-within:ring-1 focus-within:ring-opacity-20 transition-all"
+                style={{
+                  borderColor: `${style.inputBorderColor}30`,
+                  borderRadius: style.borderRadius,
+                }}
+              >
+                <MagnifyingGlassIcon 
+                  className="ml-3 size-4 transition-colors group-focus-within:text-primary-600" 
+                  style={{ 
+                    color: style.buttonBackground + '60',
+                  }} 
+                />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Search knowledge base..."
+                  className="w-full py-2 pr-3 border-0 focus:ring-0 focus:outline-none"
+                  style={{
+                    color: style.color,
+                    backgroundColor: 'transparent',
+                    fontSize: style.fontSize,
+                  }}
+                />
+              </div>
+              <button
+                onClick={handleSearch}
+                className="rounded-md px-4 py-2 transition-all hover:opacity-90 active:transform active:scale-[0.98]"
+                style={{
+                  backgroundColor: style.buttonBackground,
+                  color: style.buttonTextColor,
+                  fontSize: style.fontSize,
+                  fontWeight: '500',
+                  borderRadius: style.buttonBorderRadius,
+                }}
+              >
+                Search
+              </button>
+            </div>
           </div>
         )}
 
-        {sources.length === 0 ? (
-          <p style={{ color: style.color, fontStyle: 'italic', fontSize: style.fontSize }}>No sources available</p>
-        ) : (
-          <ul className="space-y-3">
-            {sources.map((source, index) => (
-              <li
-                key={index}
-                className="p-4 shadow-sm border transition-all cursor-pointer"
-                style={{
-                  backgroundColor: source.id === selectedSourceId
-                    ? style.selectedSourceBackground
-                    : activeSources.includes(source)
-                      ? style.activeSourceBackground
-                      : activeSources.length > 0
-                        ? style.inactiveSourceBackground
-                        : style.inactiveSourceBackground,
-                  borderColor: source.id === selectedSourceId
-                    ? style.selectedSourceBorderColor
-                    : activeSources.includes(source)
-                      ? style.selectedSourceBorderColor
-                      : style.inactiveSourceBorderColor,
-                  opacity: activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
-                  borderRadius: style.borderRadius,
-                  fontSize: style.fontSize,
-                }}
-                onClick={() => setSelectedSource(source.id)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="overflow-hidden">
-                    <p className="font-medium truncate" style={{ color: style.color }}>
-                      {source.title}
-                    </p>
-                    {source.type && (
-                      <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
-                        backgroundColor: style.sourceTypeBackground,
-                        color: style.sourceTypeColor,
-                        fontSize: `calc(${style.fontSize} * 0.75)`  // todo: replace with utils func
-                      }}>
-                        {source.type}
-                      </span>
-                    )}
-                    {showRelevanceScore && source.relevance !== undefined && (
-                      <div className="mt-2 flex items-center">
-                        <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
-                        <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
-                          <div
-                            className="h-2 rounded-full"
-                            style={{
-                              backgroundColor: style.relevanceScoreColor,
-                              width: `${Math.round(source.relevance * 100)}%`
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
-                  <div className="mt-2 pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(source.metadata).map(([key, value]) => (
-                        <span
-                          key={key}
-                          className="inline-flex items-center px-2 py-1 rounded-md"
-                          style={{
-                            backgroundColor: style.metadataTagBackground,
-                            color: style.metadataTagColor,
-                            fontSize: `calc(${style.fontSize} * 0.75)`,
-                            lineHeight: '1.2',
-                          }}
-                        >
-                          {key}: {value}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </ResetWrapper>
   );
