@@ -1,12 +1,4 @@
 import {atom} from 'jotai'
-import {
-    HTMLSourceContent,
-    MarkdownSourceContent,
-    PDFSourceContent,
-    RetrievalResult,
-    SourceContent,
-    TextContent
-} from "../types.ts";
 
 // ---- central state management types -----
 export type Component =
@@ -239,14 +231,6 @@ type UserActionModifier =
     | SetFilterSourcesActionModifier
     | ResetFilterSourcesActionModifier
 
-export type ActionHandlerProps = {
-    action: UserAction,
-    messages: Message[],
-    sources: Source[],
-    activeSources: Source[],
-    selectedSource: Source | null
-}
-
 export type ActionHandlerResponse = {
     response?: Promise<string> | AsyncIterable<{ content: string, done?: boolean }>
     messages?: Promise<Message[]> | any,
@@ -259,7 +243,7 @@ export type ActionHandlerResponse = {
 
 export type ActionHandler = {
     component: Component;
-    handler: (actionHandlerFunction: ActionHandlerProps, messages: Message[], sources: Source[], sources1: Source[], p: Source | null) => ActionHandlerResponse
+    handler: (actionHandlerFunction: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => ActionHandlerResponse
 }
 
 // ---- handler registry -----
@@ -613,12 +597,10 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction, recursiveC
         get(selectedSourceAtom)
     );
 
-    // Check for any extra keys in the payload that we do not use.
-    const allowed = allowedPayloadKeys[action.type] || [];
-
-    // If there is a payload, check for any extra keys that we do not allow, warn if any are found - maybe raise error?
+    // Validate payload keys
+    const allowedKeys = allowedPayloadKeys[action.type] || [];
     if (payload) {
-        const extraKeys = Object.keys(payload).filter(key => !allowed.includes(key));
+        const extraKeys = Object.keys(payload).filter(key => !allowedKeys.includes(key));
         if (extraKeys.length > 0) {
             console.warn(
                 `Handler for action "${action.type}" returned unused properties: ${extraKeys.join(', ')}`
@@ -626,8 +608,22 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction, recursiveC
         }
     }
 
+    // Validate modifiers
+    const { actionOptions } = payload ?? {};
+    if (actionOptions?.current) {
+        const allowedModifierKeys = Object.keys(allowedModifiers[action.type] || {});
+        const currentModifierKeys = Object.keys(actionOptions.current);
+        const extraModifierKeys = currentModifierKeys.filter(key => !allowedModifierKeys.includes(key));
+        
+        if (extraModifierKeys.length > 0) {
+            console.warn(
+                `Handler for action "${action.type}" used invalid modifiers: ${extraModifierKeys.join(', ')}`
+            );
+        }
+    }
+
     // Destructure with default to empty object if payload is undefined
-    const { response, messages, sources, actionOptions } = payload ?? {};
+    const { response, messages, sources } = payload ?? {};
 
     // Delegate to the concrete functionality.
     switch (action.type) {
