@@ -27,6 +27,8 @@ type PropsFileViewerContainer = PropsWithChildren & {
     showFullScreenToggleButton?: ReactNode | undefined;
 }
 
+const TOOLBAR_BREAK_POINT = 550 as const;
+
 export const FileViewerContainer: FC<PropsFileViewerContainer> = (props) => {
     const {
         fileName,
@@ -175,11 +177,11 @@ export const FileViewerContainer: FC<PropsFileViewerContainer> = (props) => {
                             </button>
                         </div>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 bg-white z-[1000]">
+                    <DropdownMenuContent className="w-[300px] bg-white z-[1000]">
                         <DropdownMenuGroup>
                             {optionsLeft?.map((option, index) =>
                                 <DropdownMenuItem className={"hover:bg-gray-200 hover:cursor-pointer rounded-lg"} key={index} onClick={(e) => handleClickDropdownItemOnMobile(e, option.onClick)}>
-                                    <DropdownMenuShortcut className={"flex-1 text-left"}>{option.label}</DropdownMenuShortcut>
+                                    <DropdownMenuShortcut className={"flex-1 text-left tracking-tight"}>{option.label}</DropdownMenuShortcut>
                                     <div className={"hover:cursor-pointer hover:bg-gray-300 rounded-md"}>
                                         {option.icon}
                                     </div>
@@ -190,13 +192,12 @@ export const FileViewerContainer: FC<PropsFileViewerContainer> = (props) => {
 
                         <DropdownMenuGroup>
                             {optionRightOnMobile?.map((option, index) =>
-                                <DropdownMenuItem className={"hover:bg-gray-200 hover:cursor-pointer rounded-lg"} key={index} onClick={(e) => handleClickDropdownItemOnMobile(e, option.onClick)}>
-                                    <DropdownMenuShortcut className={"flex-1 text-left"}>{option.label}</DropdownMenuShortcut>
+                                <DropdownMenuItem className={"hover:bg-gray-200 hover:cursor-pointer rounded-lg px-3"} key={index} onClick={(e) => handleClickDropdownItemOnMobile(e, option.onClick)}>
+                                    <DropdownMenuShortcut className={"flex-1 text-left tracking-tight"}>{option.label}</DropdownMenuShortcut>
                                     {option.icon}
                                 </DropdownMenuItem>
                             )}
                         </DropdownMenuGroup>
-                        <DropdownMenuSeparator />
                     </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -224,7 +225,7 @@ export const FileViewerContainer: FC<PropsFileViewerContainer> = (props) => {
 
     const contentToShow = (
         <ParentSizeObserver className={"grid h-full grid-rows-[max-content_1fr] overflow-hidden"}>
-            {(parentSize) => parentSize.width >= 550 ? desktopView : mobileView}
+            {(parentSize) => parentSize.width >= TOOLBAR_BREAK_POINT ? desktopView : mobileView}
         </ParentSizeObserver>
     );
 

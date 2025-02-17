@@ -65,8 +65,8 @@ const ApplicationMainContent: FunctionComponent = () => {
                 </div>
             </CardContainer>
             {areSourcesAvailable && isRetrievedSourcesComponentOpen ?
-                <CardContainer className={"mb-10 p-3 drop-shadow-sm overflow-hidden border-gray-300"}>
-                    <div className={"overflow-auto"}>
+                <CardContainer className={"mb-10 drop-shadow-sm overflow-hidden border-gray-300"}>
+                    <div className={"overflow-hidden"}>
                         <SourcesDisplay onSourceSelection={onSourceSelection} />
                     </div>
                 </CardContainer> : null

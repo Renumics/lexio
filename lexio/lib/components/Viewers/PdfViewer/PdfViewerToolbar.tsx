@@ -272,7 +272,7 @@ export const PageSwitcher: FC<PropsPageNumberSwitcher> = (props) => {
                                     value={pageNumberInput}
                                     onChange={(e) => setPageNumberInput(e.target.value)}
                                     onKeyDown={setPageNumberFromInput}
-                                    className="text-right px-0.1 text-md w-full rounded-tl-md rounded-bl-md focus:outline-none focus:underline border-[2px] border-transparent focus:border-blue-600 text-gray-700"
+                                    className="text-right px-0.1 text-md w-full rounded-tl-md rounded-bl-md focus:outline-none focus:underline border-[2px] border-transparent focus:border-blue-600 text-gray-700 tracking-tight"
                                     style={{
                                         backgroundColor: style.toolbarChipInputBackground,
                                     }}
@@ -368,7 +368,7 @@ export const ZoomInAndOut: FC<PropsZoomInAndOut> = (props) => {
                 disabled={!isLoaded}>
                 <ZoomOut className="size-4 text-gray-800"/>
             </button>
-            <div className="font-normal m-auto px-2 py-0.5 text-center font-default w-[62px] rounded-md text-gray-700"
+            <div className="font-normal m-auto px-2 py-0.5 text-center font-default w-[62px] rounded-md text-gray-700 tracking-tight"
                  style={{
                      // color: style.toolbarTextColor,
                      backgroundColor: style.toolbarChipBackground,

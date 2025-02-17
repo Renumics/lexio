@@ -168,7 +168,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
 
   return (
     <ResetWrapper>
-    <div className="grid auto-cols-fr gap-3 items-start content-start overflow-hidden max-w-[300px] w-full h-full" style={{
+    <div className="grid auto-cols-fr items-start content-start overflow-hidden max-w-[300px] w-full h-full" style={{
       // backgroundColor: style.backgroundColor,
       color: style.color,
       padding: style.padding,
@@ -176,10 +176,10 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
       fontFamily: style.fontFamily,
       fontSize: style.fontSize,
     }}>
-      <div className={"grid auto-cols-fr gap-1.5 sticky top-0 z-[11]"}>
+      <div className={"grid auto-cols-fr gap-1.5 sticky top-0 z-[11] p-3 border-b border-gray-300 bg-gray-200 drop-shadow-md"}>
         <div>
           <h2
-              className="font-normal text-md"
+              className="font-normal text-md text-gray-700 px-1"
               style={{
                 // color: style.color,
                 // fontSize: `calc(${style.fontSize} * 1.15)`
@@ -191,7 +191,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
         {/* Search field and button */}
         {showSearch && (
             <div
-                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-3xl py-2 px-4 overflow-y-auto bg-white">
+                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-2xl py-2 px-4 overflow-y-auto bg-white">
               <input
                   type="text"
                   value={searchQuery}
@@ -204,7 +204,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                     // padding: '0.5rem 0.75rem',
                     outline: 'none',
                     // border: '1px solid',
-                    borderRadius: style.buttonBorderRadius,
+                    // borderRadius: style.buttonBorderRadius,
                     // borderColor: style.inputBorderColor,
                     //backgroundColor: style.inputBackgroundColor,
                     fontSize: `calc(${style.fontSize} * 0.95)`
@@ -221,7 +221,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                     fontSize: `calc(${style.fontSize} * 0.95)`
                   }}
               >
-                <SearchIcon size={"20px"} color={style.buttonBackground}/>
+                <SearchIcon size={"20px"} style={{ color: "gray" }}/>
               </button>
             </div>
         )}
@@ -229,19 +229,23 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
         {sources.length === 0 ? (
             <p style={{ color: style.color, fontStyle: 'italic', fontSize: style.fontSize }}>No sources available</p>
         ) : (
-            <div className="grid grid-cols-1 gap-2 mt-2">
-              {sources.map((source, index) =>
-                <SourceItem
-                  key={index}
-                  isSelected={index === activeSourceIndex}
-                  style={style}
-                  currentSources={currentSources}
-                  source={source}
-                  setActiveSourceIndex={() => setIndexOfActiveSource(index)}
-                  showRelevanceScore={showRelevanceScore}
-                  isSourceReference={isSourceReference}
-                  showMetadata={showMetadata}
-                />
+            <div className="grid grid-cols-1 h-full overflow-auto">
+              {[...sources, ...sources, ...sources].map((source, index, array) =>
+                  <div
+                      key={index}
+                      className={`${index !== array.length - 1 ? "border-b-[1px]" : "border-b-none"} border-gray-300`}
+                  >
+                    <SourceItem
+                        isSelected={index === activeSourceIndex}
+                        style={style}
+                        currentSources={currentSources}
+                        source={source}
+                        setActiveSourceIndex={() => setIndexOfActiveSource(index)}
+                        showRelevanceScore={showRelevanceScore}
+                        isSourceReference={isSourceReference}
+                        showMetadata={showMetadata}
+                    />
+                  </div>
               )}
             </div>
         )}
@@ -274,7 +278,7 @@ const SourceItem: FC<SourceItemProps> = (props) => {
 
   return (
       <div
-          className="p-2 transition-all cursor-pointer bg-gray-100"
+          className="p-2 m-1 transition-all cursor-pointer"
           style={{
             //backgroundColor: "#efefef",
             // backgroundColor: index === activeSourceIndex
@@ -297,7 +301,7 @@ const SourceItem: FC<SourceItemProps> = (props) => {
           onClick={() => setActiveSourceIndex()}
       >
         <div className={"grid grid-cols-[max-content_1fr] gap-2 items-start content-start"}>
-          <FileIcon size={"35px"} style={{color: "gray"}} strokeWidth={1.1}/>
+          <FileIcon size={"35px"} style={{color: "gray"}} strokeWidth={1.3}/>
           <div className={"min-w-0"}>
             <p
                 className="font-normal text-xs truncate text-gray-700"
@@ -325,9 +329,9 @@ const SourceItem: FC<SourceItemProps> = (props) => {
                       {Object.entries(source.metadata).map(([key, value]) => (
                           <span
                               key={key}
-                              className="inline-flex items-center px-2 py-1 rounded-md text-xs"
+                              className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-200"
                               style={{
-                                backgroundColor: style.metadataTagBackground,
+                                // backgroundColor: style.metadataTagBackground,
                                 color: style.metadataTagColor,
                                 fontSize: `calc(${style.fontSize} * 0.75)`,
                                 lineHeight: '1.2',
@@ -345,7 +349,7 @@ const SourceItem: FC<SourceItemProps> = (props) => {
         <div className={"grid justify-end"}>
           <div>
             {showRelevanceScore && source.relevanceScore !== undefined && (
-                <p className="flex items-center text-xs">
+                <p className="flex items-center text-xs font-medium text-gray-500">
                   {(source.relevanceScore * 100).toFixed()}% Relevance
                 </p>
             )}
