@@ -102,40 +102,55 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <ResetWrapper>
       <div
-        className="w-full h-full overflow-y-auto relative"
+        className="w-full h-full flex flex-col"
         style={style}
       >
+        {/* Fixed header */}
+        <div className="flex justify-end p-2 h-14 flex-none">
+          <button
+            onClick={clearMessages}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            style={{
+              color: colors.text,
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+            title="New conversation"
+            aria-label="New conversation"
+          >
+            <DocumentPlusIcon className="size-5" />
+          </button>
+        </div>
 
-        <button
-          onClick={clearMessages}
-          className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100 transition-colors"
-          style={{
-            color: colors.text,
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-          title="New conversation"
-          aria-label="New conversation"
-        >
-          <DocumentPlusIcon className="size-5" />
-        </button>
-
-        {messages.map((msg, index) => (
-          <div key={index} className={`mb-2 ${msg.role}`}>
-            {showRoleLabels && (
-              <strong className="inline-block mr-2">{msg.role === 'user' ? userLabel : assistantLabel}</strong>
+        {/* Messages container */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="px-4">
+            {messages.map((msg, index) => (
+              <div key={index} className={`mb-2 ${msg.role}`}>
+                {showRoleLabels && (
+                  <strong className="inline-block mr-2">
+                    {msg.role === 'user' ? userLabel : assistantLabel}
+                  </strong>
+                )}
+                <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {currentStream && (
+              <div className="mb-2 assistant streaming">
+                {showRoleLabels && (
+                  <strong className="inline-block mr-2">{assistantLabel}</strong>
+                )}
+                <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>
+                  {currentStream.content}
+                </div>
+              </div>
             )}
-            <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+            <div ref={chatEndRef} />
           </div>
-        ))}
-        {currentStream && (
-          <div className="mb-2 assistant streaming">
-            {showRoleLabels && <strong className="inline-block mr-2">{assistantLabel}</strong>}
-            <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>{currentStream.content}</div>
-          </div>
-        )}
-        <div ref={chatEndRef} />
+        </div>
       </div>
     </ResetWrapper>
   );

@@ -57,12 +57,11 @@ function App() {
                     theme={customTheme}
                 >
                     {/* Left side: Chat and Query */}
-                    <div className="h-full gap-4 w-1/3 flex flex-col">
-                        <div className="shrink-0"> {/* Query field */}
-                            {/*<QueryField />*/}
+                    <div className="flex flex-col h-full w-1/3">
+                        <div className="flex-none"> {/* Changed from shrink-0 */}
                             <AdvancedQueryField />
                         </div>
-                        <div className="h-full"> {/* Chat window */}
+                        <div className="flex-1 min-h-0"> {/* Added min-h-0 and flex-1 */}
                             <ChatWindow />
                         </div>
                     </div>
