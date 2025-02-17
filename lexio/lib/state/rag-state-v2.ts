@@ -82,9 +82,6 @@ const allowedPayloadKeys: Record<UserAction['type'], string[]> = {
     RESET_FILTER_SOURCES: ['actionOptions']
 };
 
-// ---- central data types -----
-export type UUID = string & { __uuidBrand: 'UUID' };
-
 /**
  * Represents a highlight annotation in a PDF document.
  *
@@ -123,6 +120,8 @@ export interface PDFHighlight {
     height: number;
   };
 }
+
+type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
 export interface Message {
     readonly id: UUID;  // todo: make sure this is unique -> validate changes
@@ -272,7 +271,8 @@ export const unregisterActionHandler = atom(null, (get, set, handler: ActionHand
 
 // ---- some dummy for crazy agent message manipulation -----
 // todo: implement for agents later on
-class CrazyAgentMessageManipulator {
+// @ts-ignore
+class CrazyAgentMessageManipulator { 
     private readonly messages: Message[] = [];
 
     public addMessage(message: Message): void {
@@ -318,7 +318,7 @@ const addUserMessageAtom = atom(
             }]);
         } else {
             set(completedMessagesAtom, [...get(completedMessagesAtom), {
-                id: crypto.randomUUID() as UUID,
+                id: crypto.randomUUID(),
                 role: 'user',
                 content: message
             }]);
@@ -522,13 +522,14 @@ const searchSourcesAtom = atom(
 const clearSourcesAtom = atom(null, (_get, set, {clearSourcesModifier}: {
     clearSourcesModifier?: ClearSourcesActionModifier
 }) => {
+    console.log('clearSourcesAtom', clearSourcesModifier);
     set(retrievedSourcesAtom, []);
     set(activeSourcesIdsAtom, []);
     set(selectedSourceIdAtom, null);
 });
 
 // set active sources
-const setActiveSourcesAtom = atom(null, (get, set, {sourceIds, setActiveSourcesModifier}: {
+const setActiveSourcesAtom = atom(null, (_get, set, {sourceIds, setActiveSourcesModifier}: {
     sourceIds?: UUID[],
     setActiveSourcesModifier?: SetActiveSourcesActionModifier
 }) => {
@@ -539,7 +540,7 @@ const setActiveSourcesAtom = atom(null, (get, set, {sourceIds, setActiveSourcesM
 });
 
 // set selected source
-const setSelectedSourceAtom = atom(null, (get, set, {sourceId, setSelectedSourceModifier}: {
+const setSelectedSourceAtom = atom(null, (_get, set, {sourceId, setSelectedSourceModifier}: {
     sourceId?: UUID,
     setSelectedSourceModifier?: SetSelectedSourceActionModifier
 }) => {
