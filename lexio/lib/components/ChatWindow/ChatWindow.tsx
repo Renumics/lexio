@@ -3,6 +3,8 @@ import {ThemeContext} from '../../theme/ThemeContext';
 import {useRAGMessages} from '../RAGProvider/hooks';
 import {ResetWrapper} from '../../utils/ResetWrapper';
 import {MessageBubbleComponent} from "../ui/MessageBubbleComponent.tsx";
+import {CardContainer} from "../ui/card.tsx";
+import PromptExample from "../ui/promptExample.tsx";
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -63,7 +65,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   userLabel = "User",
   assistantLabel = "Assistant",
 }) => {
-  const { messages, currentStream } = useRAGMessages();
+  const { messages, currentStream, addMessage } = useRAGMessages();
   // Add ref for scrolling
   const chatEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -93,19 +95,22 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <ResetWrapper>
     <div
-      className="grid grid-cols-1 gap-2.5 content-start items-start overflow-y-auto"
+      className="grid grid-cols-1 gap-2.5 overflow-y-auto"
       style={style}
     >
+      {messages.length === 0 ?
+          <PromptExample onItemSelection={(text) => addMessage({ role: "user", content: text })} /> : null
+      }
       {messages.map((msg, index) => (
-        <div key={index} className={`${msg.role}`}>
-          {showRoleLabels &&
-              <MessageBubbleComponent
-                  text={msg.content}
-                  name={<p className={"text-xs font-thin"}>{msg.role === "user" ? userLabel : assistantLabel}</p>}
-                  isFromUser={msg.role === "user"}
-              />
-          }
-        </div>
+          <div key={index} className={`${msg.role}`}>
+            {showRoleLabels &&
+                <MessageBubbleComponent
+                    text={msg.content}
+                    name={<p className={"text-xs font-thin"}>{msg.role === "user" ? userLabel : assistantLabel}</p>}
+                    isFromUser={msg.role === "user"}
+                />
+            }
+          </div>
       ))}
       {currentStream &&
           <div className="assistant streaming">
@@ -124,4 +129,4 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   );
 };
 
-export { ChatWindow }
+export {ChatWindow}
