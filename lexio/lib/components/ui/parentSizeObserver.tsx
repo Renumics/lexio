@@ -43,10 +43,6 @@ const ParentSizeObserver: FC<Props> = (props) => {
         }
     }, []);
 
-    useEffect(() => {
-        console.log("parentSize: ", parentSize);
-    }, [parentSize, parentRef]);
-
     return (
         <div ref={parentRef} className={props.className}>
             {props.children ? props.children(parentSize) : null}

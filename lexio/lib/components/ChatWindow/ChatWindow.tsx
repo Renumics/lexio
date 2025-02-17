@@ -90,10 +90,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     ...styleOverrides, // ensure these override theme defaults
   };
 
-  useEffect(() => {
-    console.log("messages: ", messages);
-  }, [messages]);
-
   return (
     <ResetWrapper>
     <div
@@ -104,7 +100,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         <div key={index} className={`${msg.role}`}>
           {showRoleLabels &&
               <MessageBubbleComponent
-                  text={<p>{msg.content}</p>}
+                  text={msg.content}
                   name={<p className={"text-xs font-thin"}>{msg.role === "user" ? userLabel : assistantLabel}</p>}
                   isFromUser={msg.role === "user"}
               />
@@ -115,7 +111,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           <div className="assistant streaming">
             {showRoleLabels &&
                 <MessageBubbleComponent
-                    text={<p>{currentStream.content}</p>}
+                    text={currentStream.content}
                     name={<p className={"text-xs font-thin"}>{assistantLabel}</p>}
                     isFromUser={false}
                 />

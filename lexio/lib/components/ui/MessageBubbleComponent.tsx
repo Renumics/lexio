@@ -1,16 +1,23 @@
 import {FC, ReactNode} from "react";
 import {cn} from "../utils";
-import { Bot } from "lucide-react";
-import { Copy, ThumbsUp, ThumbsDown } from "lucide-react";
+import {Bot, Copy} from "lucide-react";
 
 type Props = {
-    text: ReactNode;
+    text: string;
     name: ReactNode;
     isFromUser: boolean;
     className?: string | undefined;
+    onResponseCopy?: ((text: string) => void) | undefined;
 }
 export const MessageBubbleComponent: FC<Props> = (props: Props) => {
     const { text, isFromUser, name, className } = props;
+
+    const handleResponseCopy = async () => {
+        await navigator.clipboard.writeText(text);
+        if (!props.onResponseCopy) return;
+        props.onResponseCopy(text);
+    };
+
     const userMessageBubble = (
         <div className={"grid auto-cols-fr justify-items-end justify-end"}>
             <div className={`grid grid-cols-1 items-start content-start max-w-[80%]`}>
@@ -35,7 +42,12 @@ export const MessageBubbleComponent: FC<Props> = (props: Props) => {
                     <div className={"flex gap-4 px-3"}>
                         {/*<ThumbsUp style={{color: "gray"}} size={"20px"} />*/}
                         {/*<ThumbsDown style={{color: "gray"}} size={"20px"} />*/}
-                        <Copy style={{color: "gray"}} size={"20px"} />
+                        <Copy
+                            style={{color: "gray"}}
+                            size={"20px"}
+                            className={"hover:cursor-pointer"}
+                            onClick={handleResponseCopy}
+                        />
                     </div>
                 </div>
             </div>
