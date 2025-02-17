@@ -259,7 +259,7 @@ export type ActionHandlerResponse = {
 
 export type ActionHandler = {
     component: Component;
-    handler: (ActionHandlerProps, messages: Message[], sources: Source[], sources1: Source[], p: Source | null) => ActionHandlerResponse
+    handler: (actionHandlerFunction: ActionHandlerProps, messages: Message[], sources: Source[], sources1: Source[], p: Source | null) => ActionHandlerResponse
 }
 
 // ---- handler registry -----
@@ -455,13 +455,14 @@ const addUserMessageAtom = atom(
 const setActiveMessageAtom = atom(null, (_get, set, {setActiveMessageModifier}: {
     setActiveMessageModifier?: SetActiveMessageActionModifier
 }) => {
-    set(activeMessageIdAtom, setActiveMessageModifier?.messageId);
+    set(activeMessageIdAtom, setActiveMessageModifier?.messageId ?? null);
 });
 
 // clear messages
 const clearMessagesAtom = atom(null, (_get, set, {clearMessagesModifier}: {
     clearMessagesModifier?: ClearMessagesActionModifier
 }) => {
+    console.log('clearMessagesAtom', clearMessagesModifier);
     set(completedMessagesAtom, []);
 });
 
@@ -565,16 +566,18 @@ const setSelectedSourceAtom = atom(null, (get, set, {sourceId, setSelectedSource
 });
 
 // set filter sources
-const setFilterSourcesAtom = atom(null, (_get, set, {setFilterSourcesModifier}: {
+const setFilterSourcesAtom = atom(null, (_get, _set, {setFilterSourcesModifier}: {
     setFilterSourcesModifier?: SetFilterSourcesActionModifier
 }) => {
+    console.log('setFilterSourcesAtom', setFilterSourcesModifier);
     throw new Error('Not implemented yet');
 });
 
 // reset filter sources
-const resetFilterSourcesAtom = atom(null, (_get, set, {resetFilterSourcesModifier}: {
+const resetFilterSourcesAtom = atom(null, (_get, _set, {resetFilterSourcesModifier}: {
     resetFilterSourcesModifier?: ResetFilterSourcesActionModifier
 }) => {
+    console.log('resetFilterSourcesAtom', resetFilterSourcesModifier);
     throw new Error('Not implemented yet');
 });
 
