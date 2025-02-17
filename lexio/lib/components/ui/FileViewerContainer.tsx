@@ -140,7 +140,7 @@ export const FileViewerContainer: FC<PropsFileViewerContainer> = (props) => {
                 }
             </div>
             {footer ?
-                <div className={"sticky bottom-0 z-[11] border-t p-1 bg-gray-50 overflow-y-hidden overflow-x-auto"}>
+                <div className={"sticky bottom-0 z-[11] border-t p-1 bg-white overflow-y-hidden overflow-x-auto"}>
                     {footer}
                 </div> : null
             }
@@ -178,7 +178,7 @@ export const FileViewerContainer: FC<PropsFileViewerContainer> = (props) => {
                     <DropdownMenuContent className="w-56 bg-white z-[1000]">
                         <DropdownMenuGroup>
                             {optionsLeft?.map((option, index) =>
-                                <DropdownMenuItem key={index} onClick={(e) => handleClickDropdownItemOnMobile(e, option.onClick)}>
+                                <DropdownMenuItem className={"hover:bg-gray-200 hover:cursor-pointer rounded-lg"} key={index} onClick={(e) => handleClickDropdownItemOnMobile(e, option.onClick)}>
                                     <DropdownMenuShortcut className={"flex-1 text-left"}>{option.label}</DropdownMenuShortcut>
                                     <div className={"hover:cursor-pointer hover:bg-gray-300 rounded-md"}>
                                         {option.icon}
@@ -190,7 +190,7 @@ export const FileViewerContainer: FC<PropsFileViewerContainer> = (props) => {
 
                         <DropdownMenuGroup>
                             {optionRightOnMobile?.map((option, index) =>
-                                <DropdownMenuItem key={index} onClick={(e) => handleClickDropdownItemOnMobile(e, option.onClick)}>
+                                <DropdownMenuItem className={"hover:bg-gray-200 hover:cursor-pointer rounded-lg"} key={index} onClick={(e) => handleClickDropdownItemOnMobile(e, option.onClick)}>
                                     <DropdownMenuShortcut className={"flex-1 text-left"}>{option.label}</DropdownMenuShortcut>
                                     {option.icon}
                                 </DropdownMenuItem>

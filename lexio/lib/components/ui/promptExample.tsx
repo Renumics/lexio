@@ -45,7 +45,7 @@ const PromptExample: FC<Props> = (props) => {
                 {itemsToShow.map((item, index) =>
                     <CardContainer
                         key={index}
-                        className={"grid items-center content-center border-[1px] border-gray-300 p-8 cursor-pointer"}
+                        className={"grid items-center content-center border-[1px] border-gray-300 p-8 cursor-pointer rounded-lg"}
                         onClick={() => handleItemClick(item)}
                     >
                         <div>

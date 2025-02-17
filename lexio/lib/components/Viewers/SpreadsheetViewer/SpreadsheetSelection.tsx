@@ -1,4 +1,4 @@
-// import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {Tabs, TabsList, TabsTrigger} from "../../ui/tabs";
 import * as React from "react";
 import useGlobalStore from "./useSpreadsheetStore";
 
@@ -19,8 +19,8 @@ const SpreadsheetSelection: React.FC = () => {
     if (!selectedSpreadsheet) return <div>Loading...</div>;
 
     return (
-        <div value={selectedSpreadsheet} defaultValue={selectedSpreadsheet} className="w-full">
-            <div
+        <Tabs value={selectedSpreadsheet} defaultValue={selectedSpreadsheet} className="w-full bg-gray-100 rounded-md">
+            <TabsList
                 className={"w-full"}
                 style={{
                     display: "grid",
@@ -28,16 +28,17 @@ const SpreadsheetSelection: React.FC = () => {
                 }}
             >
                 {tabs.map((tab) =>
-                    <div
+                    <TabsTrigger
                         key={tab.value}
                         value={tab.value}
                         onClick={tab.onClick}
+                        className={`${selectedSpreadsheet === tab.value ? "bg-white" : "bg-transparent"}`}
                     >
                         {tab.value}
-                    </div>
+                    </TabsTrigger>
                 )}
-            </div>
-        </div>
+            </TabsList>
+        </Tabs>
 
     );
 };

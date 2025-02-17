@@ -76,6 +76,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
       const defaultSheetName = rangesHighlights ? rangesHighlights[0].sheetName : undefined;
       return (
           <SpreadsheetViewer
+              fileName={filename}
               fileBufferArray={content}
               rangesToHighlight={ranges}
               defaultSelectedSheet={defaultSheetName}

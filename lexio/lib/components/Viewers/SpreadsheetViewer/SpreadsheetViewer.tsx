@@ -17,6 +17,7 @@ import {SpreadsheetSelection} from "./SpreadsheetSelection";
 import {FileViewerContainer} from "../../ui/FileViewerContainer.tsx";
 
 type Props = {
+    fileName?: string | undefined;
     fileBufferArray: ArrayBuffer;
     defaultSelectedSheet?: string | undefined;
     rangesToHighlight?: string[] | undefined;
@@ -199,7 +200,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
 
     return (
         <FileViewerContainer
-            fileName={"excel-sample.xlsx"}
+            fileName={props.fileName ?? ""}
             footer={
                 <div className="whitespace-nowrap rounded-lg mt-0.5 p-1">
                     <SpreadsheetSelection/>
@@ -207,7 +208,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
             }
             showFullScreenToggleButton
         >
-            <div className="whitespace-nowrap rounded-lg border bg-muted/50 h-full">
+            <div className="whitespace-nowrap bg-muted/50 h-full">
                 <div ref={tableContainerRef as Ref<HTMLDivElement>} className="grid gap-2">
                     <SpreadsheetTable
                         columns={columns}
