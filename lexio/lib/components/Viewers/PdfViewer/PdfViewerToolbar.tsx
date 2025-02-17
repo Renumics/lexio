@@ -265,14 +265,14 @@ export const PageSwitcher: FC<PropsPageNumberSwitcher> = (props) => {
                 <div className={"grid grid-cols-[max-content_max-content] items-center content-center"}>
                     {numPages !== null ? (
                         <>
-                            <div className={"w-[50px] min-w-0 p-0 h-full"}>
+                            <div className={"w-[30px] min-w-0 p-0 h-full"}>
                                 <input
                                     type="text"
                                     pattern="[0-9]*"
                                     value={pageNumberInput}
                                     onChange={(e) => setPageNumberInput(e.target.value)}
                                     onKeyDown={setPageNumberFromInput}
-                                    className="text-right px-0.5 text-md w-full rounded-tl-md rounded-bl-md focus:outline-none focus:underline border-[2px] border-transparent focus:border-blue-600 text-gray-700"
+                                    className="text-right px-0.1 text-md w-full rounded-tl-md rounded-bl-md focus:outline-none focus:underline border-[2px] border-transparent focus:border-blue-600 text-gray-700"
                                     style={{
                                         backgroundColor: style.toolbarChipInputBackground,
                                     }}

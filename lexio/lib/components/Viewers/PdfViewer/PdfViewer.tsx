@@ -8,7 +8,7 @@ import {
     PropsWithChildren,
     useMemo,
     forwardRef,
-    useImperativeHandle, ElementRef
+    ElementRef
 } from "react";
 import {Highlight} from "./Highlight.tsx"
 import {pdfjs, Document, Page} from 'react-pdf';
@@ -428,65 +428,93 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
         <FileViewerContainer
             fileName={fileName ?? ""}
             optionsLeft={[
-                <PageSwitcher
-                    style={style}
-                    pageNumber={pageNumber}
-                    numPages={numPages}
-                    previousPage={wrappedActions.previousPage}
-                    nextPage={wrappedActions.nextPage}
-                    changePageTo={changePageTo}
-                />
+                {
+                    label: "Page selection",
+                    icon: <PageSwitcher
+                        style={style}
+                        pageNumber={pageNumber}
+                        numPages={numPages}
+                        previousPage={wrappedActions.previousPage}
+                        nextPage={wrappedActions.nextPage}
+                        changePageTo={changePageTo}
+                    />,
+                }
             ]}
             optionsRight={[
-                <RotatePdf
-                    rotatePage={wrappedActions.rotatePage}
-                    isDisabled={numPages === null}
-                    style={style}
-                />,
-                <ZoomInAndOut
-                    zoomIn={wrappedActions.zoomIn}
-                    zoomOut={wrappedActions.zoomOut}
-                    scale={scale}
-                    style={style}
-                    isLoaded={numPages !== null}
-                />,
-                <FitPdfContentToParentContainer
-                    style={style}
-                    fitParent={wrappedActions.fitParent}
-                    isLoaded={numPages !== null}
-                />,
+                {
+                    label: "Rotate Page",
+                    icon: <RotatePdf
+                        rotatePage={wrappedActions.rotatePage}
+                        isDisabled={numPages === null}
+                        style={style}
+                    />,
+                    onClick: wrappedActions.rotatePage,
+                },
+                {
+                    label: "Zoom",
+                    icon: <ZoomInAndOut
+                        zoomIn={wrappedActions.zoomIn}
+                        zoomOut={wrappedActions.zoomOut}
+                        scale={scale}
+                        style={style}
+                        isLoaded={numPages !== null}
+                    />,
+                },
+                {
+                    label: "Fit document to parent",
+                    icon: <FitPdfContentToParentContainer
+                        style={style}
+                        fitParent={wrappedActions.fitParent}
+                        isLoaded={numPages !== null}
+                    />,
+                    onClick: wrappedActions.fitParent,
+                },
             ]}
             contentToShowOnFullScreen={
                 <FileViewerContainer
                     fileName={fileName ?? ""}
                     optionsLeft={[
-                        <PageSwitcher
-                            style={style}
-                            pageNumber={pageNumber}
-                            numPages={numPages}
-                            previousPage={wrappedActions.previousPage}
-                            nextPage={wrappedActions.nextPage}
-                            changePageTo={changePageTo}
-                        />
+                        {
+                            label: "Page selection",
+                            icon: <PageSwitcher
+                                style={style}
+                                pageNumber={pageNumber}
+                                numPages={numPages}
+                                previousPage={wrappedActions.previousPage}
+                                nextPage={wrappedActions.nextPage}
+                                changePageTo={changePageTo}
+                            />,
+                        }
                     ]}
                     optionsRight={[
-                        <RotatePdf
-                            rotatePage={wrappedActions.rotatePage}
-                            isDisabled={numPages === null}
-                            style={style}
-                        />,
-                        <ZoomInAndOut
-                            zoomIn={wrappedActions.zoomIn}
-                            zoomOut={wrappedActions.zoomOut}
-                            scale={scale}
-                            style={style}
-                            isLoaded={numPages !== null}
-                        />,
-                        <FitPdfContentToParentContainer
-                            style={style}
-                            fitParent={wrappedActions.fitParent}
-                            isLoaded={numPages !== null}
-                        />,
+                        {
+                            label: "Rotate Page",
+                            icon: <RotatePdf
+                                rotatePage={wrappedActions.rotatePage}
+                                isDisabled={numPages === null}
+                                style={style}
+                            />,
+                            onClick: wrappedActions.rotatePage,
+                        },
+                        {
+                            label: "Zoom",
+                            icon: <ZoomInAndOut
+                                zoomIn={wrappedActions.zoomIn}
+                                zoomOut={wrappedActions.zoomOut}
+                                scale={scale}
+                                style={style}
+                                isLoaded={numPages !== null}
+                            />,
+                        },
+                        {
+                            label: "Fit document to parent",
+                            icon: <FitPdfContentToParentContainer
+                                style={style}
+                                fitParent={wrappedActions.fitParent}
+                                isLoaded={numPages !== null}
+                            />,
+                            onClick: wrappedActions.fitParent,
+                        },
                     ]}
                 >
                     <div

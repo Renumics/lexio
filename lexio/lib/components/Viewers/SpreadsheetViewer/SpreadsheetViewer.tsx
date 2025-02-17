@@ -199,39 +199,38 @@ const SpreadsheetViewer: FC<Props> = (props) => {
 
     return (
         <FileViewerContainer
-            // fileName={"excel-sample.xlsx"}
-            fileName={"progression-2023-tables.xlsx"}
-            // footer={
-            //     <div className="whitespace-nowrap rounded-lg mt-0.5 p-1">
-            //         <SpreadsheetSelection/>
-            //     </div>
-            // }
+            fileName={"excel-sample.xlsx"}
+            footer={
+                <div className="whitespace-nowrap rounded-lg mt-0.5 p-1">
+                    <SpreadsheetSelection/>
+                </div>
+            }
             showFullScreenToggleButton
         >
-            {/*<div className="whitespace-nowrap rounded-lg border bg-muted/50 h-full">*/}
-            {/*    <div ref={tableContainerRef as Ref<HTMLDivElement>} className="grid gap-2">*/}
-            {/*        <SpreadsheetTable*/}
-            {/*            columns={columns}*/}
-            {/*            data={rowData.filter(r => r)}*/}
-            {/*            cellsStyles={cellStyles}*/}
-            {/*            rowStyles={rowStyles}*/}
-            {/*            headerStyles={headerStyles}*/}
-            {/*            selectedCell={selectedCell}*/}
-            {/*            setSelectedCell={setSelectedCell}*/}
-            {/*            rangesToSelect={rangeToSelect}*/}
-            {/*            handleCellClick={handleCellClick}*/}
-            {/*        />*/}
-            {/*    </div>*/}
-            {/*</div>*/}
-            <iframe
-                src="https://view.officeapps.live.com/op/view.aspx?src=https://www.sqa.org.uk/sqa/files_ccc/progression-2023-tables.xlsx"
-                width="100%"
-                height="100%"
-                frameBorder="0"
-            >
-                This is an embedded <a target="_blank" href="https://office.com">Microsoft Office</a> document, powered
-                by <a target="_blank" href="https://office.com/webapps">Office</a>.
-            </iframe>
+            <div className="whitespace-nowrap rounded-lg border bg-muted/50 h-full">
+                <div ref={tableContainerRef as Ref<HTMLDivElement>} className="grid gap-2">
+                    <SpreadsheetTable
+                        columns={columns}
+                        data={rowData.filter(r => r)}
+                        cellsStyles={cellStyles}
+                        rowStyles={rowStyles}
+                        headerStyles={headerStyles}
+                        selectedCell={selectedCell}
+                        setSelectedCell={setSelectedCell}
+                        rangesToSelect={rangeToSelect}
+                        handleCellClick={handleCellClick}
+                    />
+                </div>
+            </div>
+            {/*<iframe*/}
+            {/*    src="https://view.officeapps.live.com/op/view.aspx?src=https://www.sqa.org.uk/sqa/files_ccc/progression-2023-tables.xlsx"*/}
+            {/*    width="100%"*/}
+            {/*    height="100%"*/}
+            {/*    frameBorder="0"*/}
+            {/*>*/}
+            {/*    This is an embedded <a target="_blank" href="https://office.com">Microsoft Office</a> document, powered*/}
+            {/*    by <a target="_blank" href="https://office.com/webapps">Office</a>.*/}
+            {/*</iframe>*/}
         </FileViewerContainer>
     )
 };
