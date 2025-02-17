@@ -1,4 +1,15 @@
-import {useCallback, useEffect, useRef, useState, useContext, FC, KeyboardEvent} from "react";
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+    useContext,
+    FC,
+    PropsWithChildren,
+    useMemo,
+    forwardRef,
+    useImperativeHandle, ElementRef
+} from "react";
 import {Highlight} from "./Highlight.tsx"
 import {pdfjs, Document, Page} from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
@@ -11,6 +22,7 @@ import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
 import { PDFHighlight } from "../../../types";
 import {FileViewerContainer} from "../../ui/FileViewerContainer.tsx";
 import {FitPdfContentToParentContainer, PageSwitcher, RotatePdf, ZoomInAndOut} from "./PdfViewerToolbar.tsx";
+import {File} from "react-pdf/src/shared/types.ts";
 
 // Configure PDF.js worker - we explicitly use the pdfjs worker from the react-pdf package to avoid conflicts with the worker versions.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -21,7 +33,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 /**
  * Constants for the PdfViewer component's zoom functionality.
- * 
+ *
  * @internal
  */
 const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
@@ -29,7 +41,7 @@ const { ZOOM_STEP, MIN_SCALE, MAX_SCALE } = ZOOM_CONSTANTS;
 /**
  * Style configuration interface for the PdfViewer component.
  * Extends ViewerToolbarStyles to include additional styling options specific to PDF display.
- * 
+ *
  * @interface PdfViewerStyles
  * @extends {ViewerToolbarStyles}
  * @property {string} [color] - Text color for the viewer
@@ -48,7 +60,7 @@ export interface PdfViewerStyles extends ViewerToolbarStyles {
 
 /**
  * Props for the PdfViewer component.
- * 
+ *
  * @interface PdfViewerProps
  * @property {Uint8Array} data - The binary PDF data to display
  * @property {PDFHighlight[]} [highlights] - Optional array of highlight annotations to display on the PDF
@@ -68,11 +80,11 @@ interface PdfViewerProps {
  * Used in the ContentDisplay component to display PDF source content with highlight support.
  *
  * If no `page` number is provided, the component will automatically select the most frequently highlighted page.
- * 
+ *
  * @component
  * @param {PdfViewerProps} props - The props for the PdfViewer
  * @returns {JSX.Element} A themed PDF viewer with navigation and zoom controls
- * 
+ *
  * @remarks
  * **Features:**
  * - Page navigation with keyboard shortcuts (Left/Right arrows, Space, Backspace)
@@ -92,7 +104,7 @@ interface PdfViewerProps {
  * - Zoom Out: Ctrl/Cmd + Down
  * - Fit to View: Ctrl/Cmd + 0
  * - Rotate Page: .
- * 
+ *
  * @example
  *
  * ```tsx
@@ -110,7 +122,9 @@ interface PdfViewerProps {
  * ```
  */
 const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfViewerProps) => {
-    const [pdfData, setPdfData] = useState<{data: object} | undefined>();
+    const pdfData = useMemo<{ data: Uint8Array }>(() => {
+        return { data: new Uint8Array(data) };
+    }, [data]);
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [renderedPageNumber, setRenderedPageNumber] = useState<number>(1);
@@ -119,8 +133,9 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
     // state variables for scale of the PDF page
     const [scale, setScale] = useState<number>(1); // Scale of the PDF page
     const [canvasDimensions, setCanvasDimensions] = useState<CanvasDimensions>({width: 600, height: 800}); // Store page size
-    const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
-    
+   const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
+   const documentContainerRefFullScreen = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
+
     // --- use theme ---
     const theme = useContext(ThemeContext);
     if (!theme) {
@@ -133,7 +148,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
         color: colors.text,
         fontFamily: typography.fontFamily,
         fontSize: typography.fontSizeBase,
-        contentBackground: colors.secondaryBackground,
+        contentBackground: "#d1d5dc",
         contentPadding: 'none',
         borderRadius: componentDefaults.borderRadius,
 
@@ -154,10 +169,10 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
         setNumPages(numPages);
     };
 
-    useEffect(() => {
-        // parse data object to file object which can be consumed by react-pdf. we run it only once when data is set
-        setPdfData({data: new Uint8Array(data)});
-    }, []);
+    // useEffect(() => {
+    //     // parse data object to file object which can be consumed by react-pdf. we run it only once when data is set
+    //     setPdfData({data: new Uint8Array(data)});
+    // }, [data]);
 
     // Function to calculate the target page based on the highlights
     useEffect(() => {
@@ -176,11 +191,11 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
                     acc[highlightPage] = (acc[highlightPage] || 0) + 1;
                     return acc;
                 }, {});
-                
+
                 // Find the most frequent page
                 const mostFrequentPage = Object.entries(pageCount)
                     .reduce((a, b) => (b[1] > a[1] ? b : a))[0];
-                
+
                 targetPage = parseInt(mostFrequentPage) || page || 1;
             }
 
@@ -273,78 +288,78 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
     };
 
     // Use the ref returned by useHotkeys
-    const zoomInRef = useHotkeys('ctrl+up, cmd+up', 
+    const zoomInRef = useHotkeys('ctrl+up, cmd+up',
         (event) => {
             event.preventDefault();
             zoomIn();
-        }, 
+        },
         hotkeyOptions,
         [zoomIn]
     );
 
-    const zoomOutRef = useHotkeys('ctrl+down, cmd+down', 
+    const zoomOutRef = useHotkeys('ctrl+down, cmd+down',
         (event) => {
             event.preventDefault();
             zoomOut();
-        }, 
+        },
         hotkeyOptions,
         [zoomOut]
     );
 
-    const fitRef = useHotkeys('ctrl+0, cmd+0', 
+    const fitRef = useHotkeys('ctrl+0, cmd+0',
         (event) => {
             event.preventDefault();
             fitParent();
-        }, 
+        },
         hotkeyOptions,
         [fitParent]
     );
 
-    const nextRef = useHotkeys('right, space', 
+    const nextRef = useHotkeys('right, space',
         (event) => {
             if (pageNumber < numPages!) {
                 event.preventDefault();
                 nextPage();
             }
-        }, 
+        },
         hotkeyOptions,
         [nextPage, pageNumber, numPages]
     );
 
-    const prevRef = useHotkeys('left, backspace', 
+    const prevRef = useHotkeys('left, backspace',
         (event) => {
             if (pageNumber > 1) {
                 event.preventDefault();
                 previousPage();
             }
-        }, 
+        },
         hotkeyOptions,
         [previousPage, pageNumber]
     );
 
-    const homeRef = useHotkeys('home', 
+    const homeRef = useHotkeys('home',
         (event) => {
             event.preventDefault();
             setPageNumber(1);
-        }, 
+        },
         hotkeyOptions,
         []
     );
 
-    const endRef = useHotkeys('end', 
+    const endRef = useHotkeys('end',
         (event) => {
             event.preventDefault();
             setPageNumber(numPages!);
-        }, 
+        },
         hotkeyOptions,
         [numPages]
     );
 
-    const rotateRef = useHotkeys('.', 
+    const rotateRef = useHotkeys('.',
         (event) => {
             event.preventDefault();
             rotatePage();
-        }, 
+        },
         hotkeyOptions,
         [rotatePage]
     );
@@ -352,6 +367,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
     // Each useHotkeys() call returns a function ref that activates its hotkey when the element receives focus
     // See: https://react-hotkeys-hook.vercel.app/docs/documentation/useHotkeys/scoping-hotkeys
     const containerRef = useRef<HTMLDivElement | null>(null);
+    const containerRefFullScreen = useRef<HTMLDivElement | null>(null);
 
     // Combines multiple hotkey refs into a single ref callback
     // This is necessary because each useHotkeys() returns its own ref,
@@ -368,6 +384,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
     // Helper function to focus the container
     const focusContainer = () => {
         containerRef.current?.focus();
+        containerRefFullScreen.current?.focus();
     };
 
     // Wrap the existing actions with focus
@@ -398,7 +415,16 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
         }
     };
 
-    return (
+    // Function to create a copy of the Uint8Array
+    const duplicateUint8Array = (original: Uint8Array) => {
+        const copy = new Uint8Array(original.length);
+        copy.set(original);
+        return copy;
+    };
+
+    const pdfDataCopy = duplicateUint8Array(data);
+
+    const content = (
         <FileViewerContainer
             fileName={fileName ?? ""}
             optionsLeft={[
@@ -430,6 +456,83 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
                     isLoaded={numPages !== null}
                 />,
             ]}
+            contentToShowOnFullScreen={
+                <FileViewerContainer
+                    fileName={fileName ?? ""}
+                    optionsLeft={[
+                        <PageSwitcher
+                            style={style}
+                            pageNumber={pageNumber}
+                            numPages={numPages}
+                            previousPage={wrappedActions.previousPage}
+                            nextPage={wrappedActions.nextPage}
+                            changePageTo={changePageTo}
+                        />
+                    ]}
+                    optionsRight={[
+                        <RotatePdf
+                            rotatePage={wrappedActions.rotatePage}
+                            isDisabled={numPages === null}
+                            style={style}
+                        />,
+                        <ZoomInAndOut
+                            zoomIn={wrappedActions.zoomIn}
+                            zoomOut={wrappedActions.zoomOut}
+                            scale={scale}
+                            style={style}
+                            isLoaded={numPages !== null}
+                        />,
+                        <FitPdfContentToParentContainer
+                            style={style}
+                            fitParent={wrappedActions.fitParent}
+                            isLoaded={numPages !== null}
+                        />,
+                    ]}
+                >
+                    <div
+                        className="h-full w-full flex flex-col focus:outline-none"
+                        // tabIndex enables the div to receive focus, -1 keeps it out of tab order
+                        tabIndex={-1}
+                        ref={(element: HTMLDivElement | null) => {
+                            if (element) {
+                                containerRefFullScreen.current = element;
+                                combineRefs(element);
+                            }
+                        }}
+                        style={{
+                            color: style.color,
+                            fontFamily: style.fontFamily,
+                            backgroundColor: style.contentBackground,
+                        }}
+                    >
+                        <div
+                            className="flex justify-center items-start flex-grow overflow-auto relative w-full"
+                            style={{
+                                textAlign: 'center',
+                                padding: style.contentPadding,
+                                backgroundColor: style.contentBackground,
+                                borderBottomRightRadius: style.borderRadius,
+                                borderBottomLeftRadius: style.borderRadius
+                            }}
+                            ref={documentContainerRefFullScreen}
+                        >
+                            <PdfDocument
+                                data={{data: pdfDataCopy}}
+                                renderedPageNumber={renderedPageNumber}
+                                pageNumber={pageNumber}
+                                scale={scale}
+                                rotate={rotate}
+                                highlights={highlights}
+                                canvasDimensions={canvasDimensions}
+                                onDocumentLoadSuccess={onDocumentLoadSuccess}
+                                onDocumentLoadError={onDocumentLoadError}
+                                onPageLoadSuccess={onPageLoadSuccess}
+                                setRenderedPageNumber={setRenderedPageNumber}
+                            />
+                        </div>
+                    </div>
+                </FileViewerContainer>
+            }
         >
             <div
                 className="h-full w-full flex flex-col focus:outline-none"
@@ -449,67 +552,166 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}, fileName}: PdfV
             >
                 <div
                     className="flex justify-center items-start flex-grow overflow-auto relative w-full"
+                    // className="grid auto-cols-auto items-center content-center justify-items-center justify-content-center overflow-auto w-full"
                     style={{
                         textAlign: 'center',
-                        padding: style.contentPadding,
+                        // padding: style.contentPadding,
                         backgroundColor: style.contentBackground,
                         borderBottomRightRadius: style.borderRadius,
                         borderBottomLeftRadius: style.borderRadius
                     }}
                     ref={documentContainerRef}
                 >
-                    <Document
-                        // @ts-ignore: TS2352
-                        file={pdfData as File}
-                        onLoadSuccess={onDocumentLoadSuccess}
-                        onLoadError={onDocumentLoadError}
-                        className="w-full h-full"
-                        noData={<div>No data</div>}
-                    >
-                        <div
-                            style={{
-                                position: 'relative',
-                                display: 'inline-block',
-                            }}
-                        >
-                            {renderedPageNumber !== pageNumber ? (
-                                //* Render the previous page to avoid flickering when changing pages, see https://github.com/wojtekmaj/react-pdf/issues/418 */
-                                <Page
-                                    key={renderedPageNumber}
-                                    pageNumber={renderedPageNumber}
-                                    scale={scale}
-                                    className="max-w-full max-h-full block shadow-lg"
-                                    renderMode="canvas"
-                                    rotate={rotate}
-                                    onLoadSuccess={onPageLoadSuccess}
-                                />
-                            ) : null}
-                            <Page
-                                key={pageNumber}
-                                pageNumber={pageNumber}
-                                scale={scale}
-                                className={`${renderedPageNumber !== pageNumber ? 'hidden' : ''} max-w-full max-h-full block shadow-lg`}
-                                renderMode="canvas"
-                                rotate={rotate}
-                                onLoadSuccess={onPageLoadSuccess}
-                                onRenderSuccess={() => {
-                                    setRenderedPageNumber(pageNumber);
-                                }}
-                            />
-                            {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
-                                <Highlight
-                                    key={index}
-                                    rect={highlight.rect}
-                                    scale={scale}
-                                    rotate={rotate}
-                                    canvasDimensions={canvasDimensions}
-                                />
-                            ))}
-                        </div>
-                    </Document>
+                    <PdfDocument
+                        data={pdfData}
+                        renderedPageNumber={renderedPageNumber}
+                        pageNumber={pageNumber}
+                        scale={scale}
+                        rotate={rotate}
+                        highlights={highlights}
+                        canvasDimensions={canvasDimensions}
+                        onDocumentLoadSuccess={onDocumentLoadSuccess}
+                        onDocumentLoadError={onDocumentLoadError}
+                        onPageLoadSuccess={onPageLoadSuccess}
+                        setRenderedPageNumber={setRenderedPageNumber}
+                    />
                 </div>
             </div>
         </FileViewerContainer>
     );
+
+    return (
+        content
+    );
 }
+
+type PropsPdfDocument = {
+    data: { data: File } | undefined;
+    renderedPageNumber: number;
+    pageNumber: number;
+    scale: number;
+    rotate: number;
+    highlights?: PDFHighlight[];
+    canvasDimensions: CanvasDimensions;
+    onDocumentLoadSuccess: ({numPages}: { numPages: number }) => void;
+    onDocumentLoadError: () => void;
+    onPageLoadSuccess: (page: PDFPageProxy) => void,
+    setRenderedPageNumber: (pageNUmber: number) => void;
+}
+const PdfDocument: FC<PropsPdfDocument> = (props) => {
+    const {
+        data,
+        renderedPageNumber,
+        pageNumber,
+        scale,
+        rotate,
+        canvasDimensions,
+        onDocumentLoadSuccess,
+        onDocumentLoadError,
+        onPageLoadSuccess,
+        setRenderedPageNumber,
+    } = props;
+
+    return (
+        <Document
+            file={data as File}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            className="w-full h-full"
+            noData={<div>No data</div>}
+        >
+            <div
+                className={"relative inline-block"}
+            >
+                {renderedPageNumber !== pageNumber ? (
+                    //* Render the previous page to avoid flickering when changing pages, see https://github.com/wojtekmaj/react-pdf/issues/418 */
+                    <Page
+                        key={renderedPageNumber}
+                        pageNumber={renderedPageNumber}
+                        scale={scale}
+                        className="max-w-full max-h-full block shadow-lg"
+                        renderMode="canvas"
+                        rotate={rotate}
+                        onLoadSuccess={onPageLoadSuccess}
+                    />
+                ) : null}
+                <Page
+                    key={pageNumber}
+                    pageNumber={pageNumber}
+                    scale={scale}
+                    className={`${renderedPageNumber !== pageNumber ? 'hidden' : ''} max-w-full max-h-full block shadow-lg`}
+                    renderMode="canvas"
+                    rotate={rotate}
+                    onLoadSuccess={onPageLoadSuccess}
+                    onRenderSuccess={() => {
+                        setRenderedPageNumber(pageNumber);
+                    }}
+                />
+                {props.highlights && props.highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
+                    <Highlight
+                        key={index}
+                        rect={highlight.rect}
+                        scale={scale}
+                        rotate={rotate}
+                        canvasDimensions={canvasDimensions}
+                    />
+                ))}
+            </div>
+        </Document>
+    );
+}
+PdfDocument.displayName = "PdfDocument";
+
+type PropsDocumentContainer = PropsWithChildren & {
+    style: PdfViewerStyles;
+    combineRefs: (element: HTMLDivElement) => void;
+}
+const DocumentContainer = forwardRef<ElementRef<"div">, PropsDocumentContainer>((props, ref) => {
+    const {
+        style,
+        combineRefs,
+        children,
+    } = props;
+
+    // Each useHotkeys() call returns a function ref that activates its hotkey when the element receives focus
+    // See: https://react-hotkeys-hook.vercel.app/docs/documentation/useHotkeys/scoping-hotkeys
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
+    // const documentContainerRef = useRef<HTMLDivElement | null>(null); // Ref to the container to calculate the size dynamically
+
+    return (
+        <div
+            className="h-full w-full flex flex-col focus:outline-none"
+            // tabIndex enables the div to receive focus, -1 keeps it out of tab order
+            tabIndex={-1}
+            ref={(element: HTMLDivElement | null) => {
+                if (element) {
+                    containerRef.current = element;
+                    combineRefs(element);
+                }
+            }}
+            style={{
+                color: style.color,
+                fontFamily: style.fontFamily,
+                backgroundColor: style.contentBackground,
+            }}
+        >
+            <div
+                className="flex justify-center items-start flex-grow overflow-auto relative w-full"
+                style={{
+                    textAlign: 'center',
+                    padding: style.contentPadding,
+                    backgroundColor: style.contentBackground,
+                    borderBottomRightRadius: style.borderRadius,
+                    borderBottomLeftRadius: style.borderRadius
+                }}
+                ref={ref}
+            >
+                {children}
+            </div>
+        </div>
+    );
+})
+DocumentContainer.displayName = "DocumentContainer";
+
 export {PdfViewer};

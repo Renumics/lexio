@@ -7,7 +7,12 @@ type Props = PropsWithChildren
 const ApplicationLayout: FC<Props> = (props: Props) => {
     const { children } = props;
     return (
-        <div className={`grid grid-cols-[${SIDEBAR_WIDTH}_1fr] overflow-hidden w-full h-full`}>
+        <div
+            className={`grid overflow-hidden w-full h-full`}
+            style={{
+                gridTemplateColumns: `${SIDEBAR_WIDTH} 1fr`,
+            }}
+        >
             <Sidebar
                 style={{ backgroundColor: "#fafafa00" }}
             />

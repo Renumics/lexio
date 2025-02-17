@@ -78,7 +78,7 @@ const SpreadsheetTable = (props: Props<object, object>) => {
 
                     cellContainerToStyle.className = cn(cellContainerToStyle.className, {
                         "!opacity-[70%]": isCellInRange(row.index + 1, cell.column.id, range),
-                        "dark:!bg-blue-500 dark:!hover:bg-blue-500 !bg-blue-200 hover:!bg-blue-200": isCellInRange(row.index + 1, cell.column.id, range),
+                        "!bg-blue-200 hover:!bg-blue-200": isCellInRange(row.index + 1, cell.column.id, range),
                     });
                 });
             });
@@ -153,9 +153,9 @@ const SpreadsheetTable = (props: Props<object, object>) => {
 
     return (
         <Table className="bordered-table">
-            <TableHeader className="sticky top-0 left-0 z-[10] dark:bg-neutral-700 bg-neutral-200">
+            <TableHeader className="sticky top-0 left-0 z-[10] bg-neutral-200">
                 {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
+                    <TableRow key={headerGroup.id} className={"bg-neutral-200"}>
                         {headerGroup.headers.map((header, index) => {
                             return (
                                 <TableHead
@@ -207,7 +207,7 @@ const SpreadsheetTable = (props: Props<object, object>) => {
                                     className={cn(`${cell.column.id}${cell.row.index + 1}`, {
                                         "text-center": index === 0,
                                         "sticky left-0 z-[9]": index === 0,
-                                        "dark:bg-neutral-700 bg-neutral-200": index === 0,
+                                        "bg-neutral-200": index === 0,
                                         "font-bold": props.selectedCell?.row === cell.row.index + 1 && index === 0,
                                         "text-white": props.selectedCell?.row === cell.row.index + 1 && index === 0,
                                         "bg-blue-500": props.selectedCell?.row === cell.row.index + 1 && index === 0,

@@ -4,7 +4,7 @@ import {cn} from "../utils"
 type PropsCardContainer = PropsWithChildren & {
     className?: string | undefined;
 };
-const baseStyles = "relative grid gap-2 grid-cols-1 border-[0.5px] border-solid border-gray-300 bg-white rounded-md justify-between leading-normal overflow-x-auto";
+const baseStyles = "grid gap-2 grid-cols-1 border-[0.5px] border-solid border-gray-300 bg-white rounded-md justify-between leading-normal overflow-x-auto";
 
 export const CardContainer: FC<PropsCardContainer> = (props) => {
     const { children, className } = props;

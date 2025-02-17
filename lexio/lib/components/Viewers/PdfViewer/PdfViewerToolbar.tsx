@@ -241,50 +241,58 @@ export const PageSwitcher: FC<PropsPageNumberSwitcher> = (props) => {
     };
 
     return (
-        <div className="flex flex-row justify-between gap-x-1 text-md bg-gray-300 rounded-md">
+        <div className="flex flex-row justify-between text-md bg-gray-300 rounded-md">
             <button
-                className="p-1.5 transition-transform transition-shadow duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 disabled:hover:bg-transparent"
+                className="p-2.5 transition-transform transition-shadow duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 disabled:hover:bg-transparent"
                 style={{
                     // color: style.toolbarButtonColor,
                     // backgroundColor: style.toolbarButtonBackground,
+                    //borderRight: "1px solid gray",
                     borderRadius: style.toolbarButtonBorderRadius,
                 }}
                 disabled={pageNumber <= 1 || numPages === null}
                 onClick={previousPage}
                 title="Previous Page (Left Arrow, Backspace)">
-                <ChevronLeft className="size-4" />
+                <ChevronLeft className="size-4 text-gray-800" />
             </button>
-            <div className="m-auto px-1"
+            <div className="grid items-center content-center bg-white my-1 px-2 pl-0 rounded-md"
                  style={{
                      color: style.toolbarTextColor,
-                     backgroundColor: style.toolbarChipBackground,
-                     borderRadius: style.toolbarChipBorderRadius,
+                     //backgroundColor: style.toolbarChipBackground,
+                     // borderRadius: style.toolbarChipBorderRadius,
                  }}
             >
-                {numPages !== null ? (
+                <div className={"grid grid-cols-[max-content_max-content] items-center content-center"}>
+                    {numPages !== null ? (
+                        <>
+                            <div className={"w-[50px] min-w-0 p-0 h-full"}>
+                                <input
+                                    type="text"
+                                    pattern="[0-9]*"
+                                    value={pageNumberInput}
+                                    onChange={(e) => setPageNumberInput(e.target.value)}
+                                    onKeyDown={setPageNumberFromInput}
+                                    className="text-right px-0.5 text-md w-full rounded-tl-md rounded-bl-md focus:outline-none focus:underline border-[2px] border-transparent focus:border-blue-600 text-gray-700"
+                                    style={{
+                                        backgroundColor: style.toolbarChipInputBackground,
+                                    }}
+                                    // defaultValue={pageNumber || (numPages ? 1 : '--')}
+                                    placeholder="Page"
+                                    aria-label="Enter page number"
+                                    aria-live="polite"
+                                />
+                            </div>
+                            <div className={"rounded-tr-md rounded-br-md border-transparent text-gray-400"}>/{numPages || '--'}</div>
+                        </>
+                    ) :
                     <>
-                        <input
-                            type="text"
-                            pattern="[0-9]*"
-                            value={pageNumberInput}
-                            onChange={(e) => setPageNumberInput(e.target.value)}
-                            onKeyDown={setPageNumberFromInput}
-                            className="text-right mx-1 w-8 focus:outline-none focus:underline"
-                            style={{
-                                backgroundColor: style.toolbarChipInputBackground,
-                            }}
-                            defaultValue={pageNumber || (numPages ? 1 : '--')}
-                            placeholder="Page"
-                            aria-label="Enter page number"
-                            aria-live="polite"
-                        /> /
-                        <span className="text-gray-600 mx-1">{numPages || '--'}</span>
-                    </>
-                ) : '--'
-                }
+                        <div>-</div>
+                        <div>-</div>
+                    </>}
+                </div>
             </div>
             <button
-                className="p-1.5 duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 disabled:hover:bg-transparent"
+                className="p-2.5 duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 disabled:hover:bg-transparent"
                 style={{
                     // color: style.toolbarButtonColor,
                     // backgroundColor: style.toolbarButtonBackground,
@@ -293,7 +301,7 @@ export const PageSwitcher: FC<PropsPageNumberSwitcher> = (props) => {
                 disabled={numPages === null || pageNumber >= numPages}
                 onClick={nextPage}
                 title="Next Page (Right Arrow, Space)">
-                <ChevronRight className="size-4"/>
+                <ChevronRight className="size-4 text-gray-800"/>
             </button>
         </div>
     );
@@ -314,7 +322,7 @@ export const RotatePdf: FC<PropsRotatePdf> = (props) => {
 
     return (
         <button
-            className="p-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
                 // color: style.toolbarButtonColor,
                 // backgroundColor: style.toolbarButtonBackground,
@@ -324,7 +332,7 @@ export const RotatePdf: FC<PropsRotatePdf> = (props) => {
             disabled={isDisabled}
             title="Rotate Page (.)"
         >
-            <RotateCcw className="size-4"/>
+            <RotateCcw className="size-4 text-gray-800"/>
         </button>
     );
 }
@@ -347,20 +355,20 @@ export const ZoomInAndOut: FC<PropsZoomInAndOut> = (props) => {
     } = props;
 
     return (
-        <div className={"flex gap-1 bg-gray-300 rounded-md"}>
+        <div className={"flex bg-gray-300 rounded-md"}>
             <button
-                className="p-1.5 transition-transform transition-shadow duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2.5 transition-transform transition-shadow duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                     // color: style.toolbarButtonColor,
                     // backgroundColor: style.toolbarButtonBackground,
                     borderRadius: style.toolbarButtonBorderRadius,
                 }}
-                onClick={zoomIn}
-                title="Zoom In (Ctrl+Up, Cmd+Up)"
+                onClick={zoomOut}
+                title="Zoom Out (Ctrl+Down, Cmd+Down)"
                 disabled={!isLoaded}>
-                <ZoomIn className="size-4"/>
+                <ZoomOut className="size-4 text-gray-800"/>
             </button>
-            <div className="font-normal m-auto px-2 text-center font-default min-w-10 rounded-md"
+            <div className="font-normal m-auto px-2 py-0.5 text-center font-default w-[62px] rounded-md text-gray-700"
                  style={{
                      // color: style.toolbarTextColor,
                      backgroundColor: style.toolbarChipBackground,
@@ -370,16 +378,16 @@ export const ZoomInAndOut: FC<PropsZoomInAndOut> = (props) => {
                 {isLoaded ? Math.round(scale * 100) + '%' : '--'}
             </div>
             <button
-                className="p-1.5 transition-transform transition-shadow duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2.5 transition-transform transition-shadow duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                     // color: style.toolbarButtonColor,
                     // backgroundColor: style.toolbarButtonBackground,
                     borderRadius: style.toolbarButtonBorderRadius,
                 }}
-                onClick={zoomOut}
-                title="Zoom Out (Ctrl+Down, Cmd+Down)"
+                onClick={zoomIn}
+                title="Zoom In (Ctrl+Up, Cmd+Up)"
                 disabled={!isLoaded}>
-                <ZoomOut className="size-4"/>
+                <ZoomIn className="size-4 text-gray-800"/>
             </button>
         </div>
     );
@@ -400,7 +408,7 @@ export const FitPdfContentToParentContainer: FC<FitPdfContentToParentContainer> 
 
     return (
         <button
-            className="p-1.5 transition-transform transition-shadow duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2.5 transition-transform transition-shadow duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
                 // color: style.toolbarButtonColor,
                 // backgroundColor: style.toolbarButtonBackground,
@@ -409,7 +417,7 @@ export const FitPdfContentToParentContainer: FC<FitPdfContentToParentContainer> 
             onClick={fitParent}
             title="Fit to Parent (Ctrl+0, Cmd+0)"
             disabled={!isLoaded}>
-            <Expand className="size-4" />
+            <Expand className="size-4 text-gray-800" />
         </button>
     )
 }

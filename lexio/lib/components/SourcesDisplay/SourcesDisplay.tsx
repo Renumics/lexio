@@ -168,23 +168,30 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
 
   return (
     <ResetWrapper>
-    <div className="grid auto-cols-fr gap-3 overflow-hidden min-w-[300px] w-full" style={{
-      backgroundColor: style.backgroundColor,
+    <div className="grid auto-cols-fr gap-3 items-start content-start overflow-hidden max-w-[300px] w-full h-full" style={{
+      // backgroundColor: style.backgroundColor,
       color: style.color,
       padding: style.padding,
-      borderRadius: style.borderRadius,
+      // borderRadius: style.borderRadius,
       fontFamily: style.fontFamily,
       fontSize: style.fontSize,
     }}>
       <div className={"grid auto-cols-fr gap-1.5 sticky top-0 z-[11]"}>
         <div>
-          <h2 className="font-light"
-              style={{color: style.color, fontSize: `calc(${style.fontSize} * 1.15)`}}>{title}</h2>
+          <h2
+              className="font-normal text-md"
+              style={{
+                // color: style.color,
+                // fontSize: `calc(${style.fontSize} * 1.15)`
+              }}
+          >
+            {title}
+          </h2>
         </div>
         {/* Search field and button */}
         {showSearch && (
             <div
-                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-3xl py-2 px-4 overflow-y-auto">
+                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-3xl py-2 px-4 overflow-y-auto bg-white">
               <input
                   type="text"
                   value={searchQuery}
@@ -199,7 +206,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                     // border: '1px solid',
                     borderRadius: style.buttonBorderRadius,
                     // borderColor: style.inputBorderColor,
-                    backgroundColor: style.inputBackgroundColor,
+                    //backgroundColor: style.inputBackgroundColor,
                     fontSize: `calc(${style.fontSize} * 0.95)`
                   }}
               />
@@ -267,9 +274,9 @@ const SourceItem: FC<SourceItemProps> = (props) => {
 
   return (
       <div
-          className="p-2 transition-all cursor-pointer"
+          className="p-2 transition-all cursor-pointer bg-gray-100"
           style={{
-            backgroundColor: "#efefef",
+            //backgroundColor: "#efefef",
             // backgroundColor: index === activeSourceIndex
             //     ? style.activeSourceBackground
             //     : currentSources.includes(source)
@@ -291,8 +298,13 @@ const SourceItem: FC<SourceItemProps> = (props) => {
       >
         <div className={"grid grid-cols-[max-content_1fr] gap-2 items-start content-start"}>
           <FileIcon size={"35px"} style={{color: "gray"}} strokeWidth={1.1}/>
-          <div>
-            <p className="font-medium text-sm truncate" style={{color: style.color}}>
+          <div className={"min-w-0"}>
+            <p
+                className="font-normal text-xs truncate text-gray-700"
+                style={{
+                  // color: style.color
+                }}
+            >
               {source.sourceName || (isSourceReference(source) ? (source as SourceReference).sourceReference : (source as TextContent).text.slice(0, 50))}
             </p>
             <div className={"grid gap-2 grid-cols-[max-content_1fr_1fr] items-center content-center"}>
