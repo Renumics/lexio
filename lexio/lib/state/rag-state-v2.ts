@@ -172,8 +172,8 @@ export interface ProviderConfig {
 
 export const configAtom = atom<ProviderConfig>({
     timeouts: {
-        stream: 10000,  // 10 seconds default
-        request: 30000  // 30 seconds default
+        stream: 2000,  // 2 seconds default
+        request: 5000  // 5 seconds default
     }
 });
 
@@ -217,6 +217,14 @@ export const loadingAtom = atom(false);
 
 // error state of system -> can be used to block other actions
 export const errorAtom = atom<string | null>(null);
+
+// centralized error setter
+export const setErrorAtom = atom(
+    null, // read value not needed
+    (_get, set, message: string) => {
+        set(errorAtom, `${new Date().toISOString()}: ${message}`);
+    }
+);
 
 
 // ---- ActionHandler Function types -----
@@ -426,7 +434,7 @@ const addUserMessageAtom = atom(
                 }
             } catch (error) {
                 // Notify about the error and propagate it.
-                set(errorAtom, `Failed to process user message: ${error instanceof Error ? error.message : error}`);
+                set(setErrorAtom, `Failed to process user message: ${error instanceof Error ? error.message : error}`);
                 throw error;
             } finally {
                 set(loadingAtom, false);
