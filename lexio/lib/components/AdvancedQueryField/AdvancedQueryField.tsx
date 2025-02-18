@@ -138,14 +138,14 @@ interface AdvancedQueryFieldProps {
    * @param source The source that was added
    * @param allIndices Updated array of all currently referenced source indices
    */
-  onSourceAdded?: (source: Source, allIndices: number[]) => void;
-  
+  onSourceAdded?: (source: Source, allIndices: string[]) => void;
+
   /**
    * Called after a source mention is removed from the editor
    * @param source The source that was removed
    * @param allIndices Updated array of all currently referenced source indices
    */
-  onSourceDeleted?: (source: Source, allIndices: number[]) => void;
+  onSourceDeleted?: (source: Source, allIndices: string[]) => void;
   
   /**
    * Callback for when the editor content changes
