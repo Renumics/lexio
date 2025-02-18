@@ -23,7 +23,7 @@ export interface ChatWindowProps {
    * Unique key for the component which can be used to identify the source of UserAction's if multiple ChatWindow components are used.
    * The default is 'ChatWindow', if key is provided it will be appended to the default key as following 'ChatWindow-${key}'.
    */
-  key?: string;
+  componentKey?: string;
   /**
    * Style overrides for the component
    */
@@ -63,14 +63,14 @@ export interface ChatWindowProps {
  * ```
  */
 const ChatWindow: React.FC<ChatWindowProps> = ({
-  key,
+  componentKey,
   styleOverrides = {},
   showRoleLabels = true,
   userLabel = 'User: ',
   assistantLabel = 'Assistant: ',
 }) => {
   const { messages, currentStream } = useRAGMessages();
-  const { clearMessages } = useLexio('ChatWindow');
+  const { clearMessages } = useLexio(componentKey ? `ChatWindow-${componentKey}` : 'ChatWindow');
 
 
   // Add ref for scrolling

@@ -3,7 +3,6 @@ import useResizeObserver from '@react-hook/resize-observer';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import { useLexio } from '../RAGProvider/hooks2';
-import { Component } from '../../state/rag-state-v2';
 
 /**
  * Styles interface for the QueryField component
@@ -72,7 +71,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
   disabled = false,
   styleOverrides = {},
 }) => {
-  const { addUserMessage } = useLexio((key ? `QueryField-${key}` : 'QueryField') as Component);
+  const { addUserMessage } = useLexio(key ? `QueryField-${key}` : 'QueryField');
 
   // Access theme from context
   const theme = useContext(ThemeContext);

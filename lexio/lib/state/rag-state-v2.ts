@@ -6,9 +6,11 @@ export type Component =
     | 'QueryField'
     | 'ChatWindow'
     | 'SourcesDisplay'
+    | 'AdvancedQueryField'
     | `QueryField-${string}`
     | `ChatWindow-${string}`
     | `SourcesDisplay-${string}`
+    | `AdvancedQueryField-${string}`
 
 // Flow: action in component -> triggers wrapped user function with state props -> triggers dispatch -> manipulates state
 export type UserAction =
@@ -121,7 +123,7 @@ export interface PDFHighlight {
   };
 }
 
-type UUID = `${string}-${string}-${string}-${string}-${string}`;
+export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
 export interface Message {
     readonly id: UUID;  // todo: make sure this is unique -> validate changes
@@ -462,7 +464,8 @@ const searchSourcesAtom = atom(
             searchSourcesModifier?: SearchSourcesActionModifier
         }
     ) => {
-        // todo: make use of query
+        // todo: make use of query and searchSourcesModifier
+        console.log('searchSourcesAtom', query, searchSourcesModifier);
         // Save previous state for rollback.
         const previousSources = get(retrievedSourcesAtom);
 

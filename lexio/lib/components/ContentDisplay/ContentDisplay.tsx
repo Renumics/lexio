@@ -13,10 +13,6 @@ export interface ContentDisplayStyles extends React.CSSProperties {
 }
 
 interface ContentDisplayProps {
-  /**
-   * Unique key for the component
-   */
-  key?: string;
   styleOverrides?: ContentDisplayStyles;
 }
 

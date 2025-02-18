@@ -9,7 +9,6 @@ import { Theme } from '../../theme/types';
 
 interface RAGProvider2Props {
     children: React.ReactNode;
-    onAddMessage?: ActionHandler['handler'];  // todo: revisit
     onAction?: ActionHandler['handler'];
     theme?: Theme;
 }
@@ -36,7 +35,6 @@ interface RAGProvider2Props {
  */
 const RAGProvider2 = ({
   children,
-  onAddMessage,
   onAction,
   theme
 }: RAGProvider2Props) => {

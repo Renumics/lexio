@@ -2,7 +2,6 @@ import { useState, useContext } from "react";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
 import { useRAGSources, useLexio } from "../RAGProvider/hooks2";
-import { Component } from "../../state/rag-state-v2";
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
@@ -41,7 +40,7 @@ export interface SourcesDisplayProps {
    * Unique key for the component which can be used to identify the source of UserAction's if multiple SourcesDisplay components are used.
    * The default is 'SourcesDisplay', if key is provided it will be appended to the default key as following 'SourcesDisplay-${key}'.
    */
-  key?: string;
+  componentKey?: string;
   /**
    * The title displayed above the sources list
    * @default "Retrieved Sources"
@@ -94,16 +93,16 @@ export interface SourcesDisplayProps {
  * ```
  */
 const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
-  key,
+  componentKey,
   title = "Retrieved Sources",
-  searchPlaceholder = "Search sources...",
+  searchPlaceholder = "Search knowledge base...",
   showSearch = true,
   showRelevanceScore = true,
   showMetadata = true,
   styleOverrides = {},
 }) => {
-  const { sources, activeSources, selectedSourceId, activeSourceIndex } = useRAGSources();
-  const { setSelectedSource, searchSources, clearSources } = useLexio((key ? `SourcesDisplay-${key}` : 'SourcesDisplay') as Component); // todo: make use of new API
+  const { sources, activeSources, selectedSourceId } = useRAGSources();
+  const { setSelectedSource, searchSources, clearSources } = useLexio(componentKey ? `SourcesDisplay-${componentKey}` : 'SourcesDisplay'); // todo: make use of new API
   const [searchQuery, setSearchQuery] = useState("");
 
   // use theme
@@ -302,7 +301,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Search knowledge base..."
+                  placeholder={searchPlaceholder}
                   className="w-full py-2 pr-3 border-0 focus:ring-0 focus:outline-none"
                   style={{
                     color: style.color,

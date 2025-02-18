@@ -23,7 +23,7 @@ import {
 } from '../RAGProvider/hooks2';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
-import {Component, Source, UUID} from "../../state/rag-state-v2.ts";
+import { Source, UUID } from "../../state/rag-state-v2.ts";
 
 /**
  * Styles interface for the AdvancedQueryField component
@@ -125,7 +125,7 @@ interface AdvancedQueryFieldProps {
    * Unique key for the component which can be used to identify the source of UserAction's if multiple AdvancedQueryField components are used.
    * The default is 'AdvancedQueryField', if key is provided it will be appended to the default key as following 'AdvancedQueryField-${key}'.
    */
-  key?: string;
+  componentKey?: string;
   /**
    * Callback triggered when a message is submitted
    * @param message The message text that was submitted
@@ -196,7 +196,7 @@ interface AdvancedQueryFieldProps {
  * ```
  */
 const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
-  key,
+  componentKey,
   onSubmit,
   onSourceAdded,
   onSourceDeleted,
@@ -255,7 +255,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   const filterInputRef = useRef<HTMLInputElement>(null);
 
   // Lexio Hooks
-  const { addUserMessage, setActiveSources } = useLexio((key ? `AdvancedQueryField-${key}` : 'AdvancedQueryField') as Component);
+  const { addUserMessage, setActiveSources } = useLexio(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
   const { sources } = useRAGSources();
 
   // Floating UI
