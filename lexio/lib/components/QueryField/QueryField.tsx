@@ -222,7 +222,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
             rows={1}
             // Keep some tailwind classes for layout, plus inline theming
             className={`w-full resize-none min-h-[2.5rem] transition-colors rounded-4xl ${shouldShowScrollbar ? 'overflow-y-auto' : 'overflow-y-hidden'}
-          appearance-none block w-full bg-gray-200 text-gray-700 border-none border-0 rounded p-3 ml-1 leading-tight focus:outline-none
+          appearance-none block w-full bg-gray-200 text-gray-700 border-none border-0 rounded p-3 ml-1 leading-tight tracking-tight focus:outline-none
         `}
             style={{
               backgroundColor: style.inputBackgroundColor,
@@ -267,7 +267,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
                   }}
               />
               <span
-                  className="font-medium"
+                  className="font-medium tracking-tight"
                   style={{
                     color: style.statusTextColor,
                     fontFamily: style.fontFamily,

@@ -221,7 +221,7 @@ export const Sidebar = forwardRef<HTMLDivElement, ComponentProps<"div"> & Props>
             </div>
             <div>
                 <p
-                    className={"text-sm px-2 font-bold pb-2 sticky top-[60px] bg-white"}
+                    className={"text-sm px-2 font-bold pb-2 sticky top-[60px] bg-white tracking-tight"}
                     style={{ color: "#b7b7b7" }}
                 >
                     Chat history
@@ -244,14 +244,14 @@ export const NavbarItem: FC<PropsNavbarItem> = (props: PropsNavbarItem) => {
     return (
         <div
             onClick={navigateTo}
-            className={cn("rounded-md hover:bg-amber-300 hover:cursor-pointer px-2 py-1", className)}
+            className={cn("rounded-md hover:bg-amber-300 hover:cursor-pointer px-2 py-1.5", className)}
             style={{
                 backgroundColor: isActive ? "#dbdbdb" : "unset",
             }}
         >
             <div className={`grid grid-cols-[max-content_1fr] items-center content-center gap-3 ${isActive ? "font-bold" : "font-normal"} p-0.5`}>
-                <props.icon style={{ color: "gray" }} size={"15px"} />
-                <p className={"font-normal truncate"}>
+                <props.icon style={{ color: "gray" }} size={"15px"} strokeWidth={3} />
+                <p className={"font-normal truncate tracking-tight"}>
                     {title}
                 </p>
             </div>

@@ -23,7 +23,7 @@ export const MessageBubbleComponent: FC<Props> = (props: Props) => {
             <div className={`grid grid-cols-1 items-start content-start max-w-[80%]`}>
                 <div className={cn("bg-blue-600 text-white py-3 px-4 rounded-3xl w-full whitespace-pre-wrap", className)}>
                     {/*<div>{name}</div>*/}
-                    <div>{text}</div>
+                    <div className={"tracking-tight"}>{text}</div>
                 </div>
             </div>
         </div>
@@ -36,8 +36,8 @@ export const MessageBubbleComponent: FC<Props> = (props: Props) => {
                 </div>
                 <div className={"grid auto-cols-fr gap-2"}>
                     <div className={cn("bg-gray-300 py-3 px-4 rounded-3xl w-full whitespace-pre-wrap", className)}>
-                        <div>{name}</div>
-                        <div>{text}</div>
+                        <div className={"tracking-tight"}>{name}</div>
+                        <div className={"tracking-tight"}>{text}</div>
                     </div>
                     <div className={"flex gap-4 px-3"}>
                         {/*<ThumbsUp style={{color: "gray"}} size={"20px"} />*/}

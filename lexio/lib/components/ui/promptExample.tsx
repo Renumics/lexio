@@ -37,7 +37,7 @@ const PromptExample: FC<Props> = (props) => {
                 </div>
                 <div className={"px-1"}>
                     <p className={"text-gray-500"}>
-                        Ready to use UI components to build your RAG UI rapidly.
+                        The fastest way to build your RAG UI using ready to use UI components.
                     </p>
                 </div>
             </div>

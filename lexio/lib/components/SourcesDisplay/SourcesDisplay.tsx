@@ -168,7 +168,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
 
   return (
     <ResetWrapper>
-    <div className="grid auto-cols-fr items-start content-start overflow-hidden max-w-[300px] w-full h-full" style={{
+    <div className="grid auto-cols-fr grid-rows-[max-content_1fr_max-content] items-start content-start overflow-hidden max-w-[300px] w-full h-full" style={{
       // backgroundColor: style.backgroundColor,
       color: style.color,
       padding: style.padding,
@@ -179,7 +179,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
       <div className={"grid auto-cols-fr gap-1.5 sticky top-0 z-[11] p-3 border-b border-gray-300 bg-gray-200 drop-shadow-md"}>
         <div>
           <h2
-              className="font-normal text-md text-gray-700 px-1"
+              className="font-medium text-md text-gray-800 px-1 tracking-tight"
               style={{
                 // color: style.color,
                 // fontSize: `calc(${style.fontSize} * 1.15)`
@@ -191,14 +191,14 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
         {/* Search field and button */}
         {showSearch && (
             <div
-                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-2xl py-2 px-4 overflow-y-auto bg-white">
+                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-xl py-1 px-3 overflow-y-auto bg-white">
               <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={searchPlaceholder}
-                  className="w-full flex-1 transition-colors focus:outline-none"
+                  className="w-full flex-1 transition-colors focus:outline-none tracking-tight"
                   style={{
                     color: style.color,
                     // padding: '0.5rem 0.75rem',
@@ -227,10 +227,10 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
         )}
       </div>
         {sources.length === 0 ? (
-            <p style={{ color: style.color, fontStyle: 'italic', fontSize: style.fontSize }}>No sources available</p>
+            <p className={"tracking-tight"} style={{ color: style.color, fontStyle: 'italic', fontSize: style.fontSize }}>No sources available</p>
         ) : (
-            <div className="grid grid-cols-1 h-full overflow-auto">
-              {[...sources, ...sources, ...sources].map((source, index, array) =>
+            <div className="h-full overflow-auto" style={{ alignSelf: "start" }}>
+              {sources.map((source, index, array) =>
                   <div
                       key={index}
                       className={`${index !== array.length - 1 ? "border-b-[1px]" : "border-b-none"} border-gray-300`}
@@ -249,6 +249,11 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
               )}
             </div>
         )}
+      <div className={"sticky bottom-0 self-end border-t px-3 py-2"}>
+        <div>
+          <p className={"tracking-tight text-sm text-gray-600 text-center"}>{sources.length} sources retrieved</p>
+        </div>
+      </div>
     </div>
     </ResetWrapper>
   );
@@ -278,9 +283,9 @@ const SourceItem: FC<SourceItemProps> = (props) => {
 
   return (
       <div
-          className="p-2 m-1 transition-all cursor-pointer"
+          className="p-3 m-0 transition-all cursor-pointer"
           style={{
-            //backgroundColor: "#efefef",
+            backgroundColor: isSelected ? "#2563ebc9" : "transparent",
             // backgroundColor: index === activeSourceIndex
             //     ? style.activeSourceBackground
             //     : currentSources.includes(source)
@@ -288,23 +293,23 @@ const SourceItem: FC<SourceItemProps> = (props) => {
             //         : currentSources.length > 0
             //             ? style.inactiveSourceBackground
             //             : style.inactiveSourceBackground,
-            borderColor: isSelected
-                ? style.activeSourceBorderColor
-                : currentSources.includes(source)
-                    ? style.selectedSourceBorderColor
-                    : style.inactiveSourceBorderColor,
+            // borderColor: isSelected
+            //     ? style.activeSourceBorderColor
+            //     : currentSources.includes(source)
+            //         ? style.selectedSourceBorderColor
+            //         : style.inactiveSourceBorderColor,
             opacity: currentSources.length > 0 && !currentSources.includes(source) ? 0.6 : 1,
-            borderRadius: style.borderRadius,
+            // borderRadius: style.borderRadius,
             fontSize: style.fontSize,
-            border: isSelected? `2px solid #2563ebc9` : "2px solid transparent"
+            // border: isSelected? `2px solid transparent` : "2px solid transparent"
           }}
           onClick={() => setActiveSourceIndex()}
       >
         <div className={"grid grid-cols-[max-content_1fr] gap-2 items-start content-start"}>
-          <FileIcon size={"35px"} style={{color: "gray"}} strokeWidth={1.3}/>
+          <FileIcon size={"35px"} style={{color: isSelected ? "white" : "gray"}} strokeWidth={1.7}/>
           <div className={"min-w-0"}>
             <p
-                className="font-normal text-xs truncate text-gray-700"
+                className={`font-medium text-sm truncate ${isSelected ? "text-white font-semibold" : "text-gray-700"} tracking-tight`}
                 style={{
                   // color: style.color
                 }}
@@ -314,8 +319,8 @@ const SourceItem: FC<SourceItemProps> = (props) => {
             <div className={"grid gap-2 grid-cols-[max-content_1fr_1fr] items-center content-center"}>
               <div>
                 {isSourceReference(source) && (source as SourceReference).type && (
-                    <span className="inline-block py-0.5 px-2 font-medium text-xs rounded-md" style={{
-                      backgroundColor: style.sourceTypeBackground,
+                    <span className={`inline-block py-0.5 px-2 font-medium text-xs rounded-md tracking-tight ${isSelected ? "bg-white" : "bg-blue-100"}`} style={{
+                      // backgroundColor: style.sourceTypeBackground,
                       color: style.sourceTypeColor,
                       fontSize: `calc(${style.fontSize} * 0.75)`
                     }}>
@@ -329,7 +334,7 @@ const SourceItem: FC<SourceItemProps> = (props) => {
                       {Object.entries(source.metadata).map(([key, value]) => (
                           <span
                               key={key}
-                              className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-200"
+                              className={`inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-200 tracking-tight ${isSelected ? "bg-white" : "bg-blue-100"}`}
                               style={{
                                 // backgroundColor: style.metadataTagBackground,
                                 color: style.metadataTagColor,
@@ -349,7 +354,7 @@ const SourceItem: FC<SourceItemProps> = (props) => {
         <div className={"grid justify-end"}>
           <div>
             {showRelevanceScore && source.relevanceScore !== undefined && (
-                <p className="flex items-center text-xs font-medium text-gray-500">
+                <p className={`flex items-center text-xs tracking-tight font-semibold  ${isSelected ? "text-white" : "text-gray-500 "}`}>
                   {(source.relevanceScore * 100).toFixed()}% Relevance
                 </p>
             )}
