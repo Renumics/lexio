@@ -45,7 +45,9 @@ const RAGProvider2 = ({
 
   // Whenever these change, update the store's relevant atoms
   useEffect(() => {
-    store.set(registeredActionHandlersAtom, [{component: 'RAGProvider2', handler: onAction}]);
+    if (onAction) {
+      store.set(registeredActionHandlersAtom, [{component: 'RAGProvider2', handler: onAction}]);
+    }
   }, [
     store,
     onAction
