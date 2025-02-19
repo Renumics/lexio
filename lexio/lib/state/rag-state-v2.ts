@@ -292,9 +292,9 @@ class CrazyAgentMessageManipulator {
 
 // ---- Action Atoms -----
 // handling of user messages
-const addUserMessageAtom = atom(
+export const addUserMessageAtom = atom(
     null,
-    (
+    async (
         get,
         set,
         {
@@ -319,24 +319,30 @@ const addUserMessageAtom = atom(
         const config = get(configAtom);
         const abortController = new AbortController();
 
-        // handle user message modification
+        // Handle user message modification.
         if (addMessageModifier?.setUserMessage) {
-            set(completedMessagesAtom, [...get(completedMessagesAtom), {
-                id: crypto.randomUUID() as UUID,
-                role: 'user',
-                content: addMessageModifier.setUserMessage
-            }]);
+            set(completedMessagesAtom, [
+                ...get(completedMessagesAtom),
+                {
+                    id: crypto.randomUUID() as UUID,
+                    role: 'user',
+                    content: addMessageModifier.setUserMessage,
+                },
+            ]);
         } else {
-            set(completedMessagesAtom, [...get(completedMessagesAtom), {
-                id: crypto.randomUUID(),
-                role: 'user',
-                content: message
-            }]);
+            set(completedMessagesAtom, [
+                ...get(completedMessagesAtom),
+                {
+                    id: crypto.randomUUID(),
+                    role: 'user',
+                    content: message,
+                },
+            ]);
         }
 
         // Process sources independently.
         const processSources = async () => {
-            if (!sources) return; // if no sources are provided in action response, skip this step  
+            if (!sources) return; // Skip if no sources provided.
             const sourcesData: Source[] = await addTimeout(
                 sources.then(srcs => srcs),
                 config.timeouts?.request,
@@ -344,7 +350,7 @@ const addUserMessageAtom = atom(
                 abortController.signal
             );
 
-            // Add a UUID to each source if it's missing (or always assign a new UUID)
+            // Add a UUID to each source if it's missing.
             const sourcesDataWithIds = sourcesData.map(source => ({
                 ...source,
                 id: source.id || (crypto.randomUUID() as UUID),
@@ -362,7 +368,7 @@ const addUserMessageAtom = atom(
             if (response) {
                 let accumulatedContent = '';
                 if (Symbol.asyncIterator in response) {
-                    // Streaming response: process each chunk with its own per-chunk timeout.
+                    // Streaming response: process each chunk.
                     const streamTimeout = new StreamTimeout(config.timeouts?.stream);
                     for await (const chunk of response as AsyncIterable<{ content: string; done?: boolean }>) {
                         if (abortController.signal.aborted) break;
@@ -372,17 +378,17 @@ const addUserMessageAtom = atom(
                         set(currentStreamAtom, {
                             id: crypto.randomUUID(),
                             role: 'assistant',
-                            content: accumulatedContent
+                            content: accumulatedContent,
                         });
                     }
-                    // Finalize streaming: update the completed messages.
+                    // Finalize streaming.
                     set(completedMessagesAtom, [
                         ...get(completedMessagesAtom),
                         {
                             id: crypto.randomUUID() as UUID,
                             role: 'assistant',
-                            content: accumulatedContent
-                        }
+                            content: accumulatedContent,
+                        },
                     ]);
                     set(currentStreamAtom, null);
                     return accumulatedContent;
@@ -394,12 +400,13 @@ const addUserMessageAtom = atom(
                         'Response timeout exceeded',
                         abortController.signal
                     );
-                    set(completedMessagesAtom, [...get(completedMessagesAtom),
-                    {
-                        id: crypto.randomUUID() as UUID,
-                        role: 'assistant',
-                        content: messageData
-                    } as Message
+                    set(completedMessagesAtom, [
+                        ...get(completedMessagesAtom),
+                        {
+                            id: crypto.randomUUID() as UUID,
+                            role: 'assistant',
+                            content: messageData,
+                        } as Message,
                     ]);
                     return messageData;
                 }
@@ -409,41 +416,35 @@ const addUserMessageAtom = atom(
             }
         };
 
-        // Execute sources and message processing concurrently.
-        (async () => {
-            // The concrete function manages its own loading state.
-            set(loadingAtom, true);
-            try {
-                const results = await Promise.allSettled([processSources(), processMessage()]);
-                const errors = results.filter(result => result.status === 'rejected');
+        // --- The key elegant change: since this function is async, it automatically returns a promise.
+        try {
+            const results = await Promise.allSettled([processSources(), processMessage()]);
+            const errors = results.filter(result => result.status === 'rejected');
 
-                if (errors.length > 0) {
-                    // Abort any remaining work and restore the previous state.
-                    abortController.abort();
-                    set(completedMessagesAtom, previousMessages);
-                    set(retrievedSourcesAtom, previousSources);
-                    set(currentStreamAtom, null);
+            if (errors.length > 0) {
+                // Abort remaining work and restore previous state.
+                abortController.abort();
+                set(completedMessagesAtom, previousMessages);
+                set(retrievedSourcesAtom, previousSources);
+                set(currentStreamAtom, null);
 
-                    // Aggregate error messages.
-                    const errorMessages = errors
-                        .map((e: PromiseRejectedResult) =>
-                            e.reason instanceof Error ? e.reason.message : String(e.reason)
-                        )
-                        .join('; ');
-                    throw new Error(errorMessages);
-                }
-            } catch (error) {
-                // Notify about the error and propagate it.
-                set(setErrorAtom, `Failed to process user message: ${error instanceof Error ? error.message : error}`);
-                throw error;
-            } finally {
-                set(loadingAtom, false);
+                // Aggregate error messages.
+                const errorMessages = errors
+                    .map((e: PromiseRejectedResult) =>
+                        e.reason instanceof Error ? e.reason.message : String(e.reason)
+                    )
+                    .join('; ');
+                throw new Error(errorMessages);
             }
-        })().catch(err => {
-            console.error('addUserMessageAtom error:', err);
-        });
+            return results;
+        } catch (error) {
+            // Notify about the error and propagate it.
+            set(setErrorAtom, `Failed to process user message: ${error instanceof Error ? error.message : error}`);
+            throw error;
+        }
     }
 );
+
 
 // set active message
 const setActiveMessageAtom = atom(null, (_get, set, { setActiveMessageModifier }: {
@@ -482,8 +483,6 @@ const searchSourcesAtom = atom(
         const abortController = new AbortController();
 
         // Set the loading state to block concurrent operations.
-        set(loadingAtom, true);
-
         try {
             // If no sources promise is provided, skip updating and return early.
             if (!sources) {
@@ -522,9 +521,6 @@ const searchSourcesAtom = atom(
 
             // Propagate the error for any higher-level handling.
             throw error;
-        } finally {
-            // Clear loading state irrespective of outcome.
-            set(loadingAtom, false);
         }
     }
 );
@@ -583,10 +579,14 @@ export const dispatchAtom = atom(
     null,
     async (get, set, action: UserAction, recursiveCall: boolean = false) => {
         // Exit if not a recursive call and we're already loading.
-        if (!recursiveCall && get(loadingAtom)) return;
+        if (!recursiveCall && get(loadingAtom)) {
+            set(setErrorAtom, "RAG Operation already in progress");
+            return;
+        }
 
         // Set the global loading state and clear error (only for top-level calls)
         if (!recursiveCall) {
+            console.log("set loadingAtom to true");
             set(loadingAtom, true);
             set(errorAtom, null);
         }
@@ -736,6 +736,7 @@ export const dispatchAtom = atom(
             console.error("Error in dispatch async writes:", error);
         } finally {
             if (!recursiveCall) {
+                console.log("set loadingAtom to false");
                 set(loadingAtom, false);
             }
         }
