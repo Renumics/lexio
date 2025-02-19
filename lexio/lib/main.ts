@@ -4,7 +4,8 @@ import { QueryField } from './components/QueryField'
 import { AdvancedQueryField } from './components/AdvancedQueryField'
 import { ChatWindow } from './components/ChatWindow'
 import { PdfViewer } from './components/Viewers/PdfViewer'
-import { RAGProvider, useRAGMessages, useRAGSources, useRAGStatus } from './components/RAGProvider'
+import { RAGProvider } from './components/RAGProvider'
+import { useRAGMessages, useRAGSources, useRAGStatus, useLexio } from './hooks'
 import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
@@ -17,11 +18,34 @@ import { useRestContentSource } from './connectors/useRestContentSource'
 
 import { defaultTheme, createTheme } from './theme/index.ts'
 
-export { QueryField, AdvancedQueryField, ChatWindow,
-    PdfViewer, useRAGMessages, useRAGSources, useRAGStatus,
-    SourcesDisplay, ErrorDisplay, ContentDisplay, useSSERetrieveAndGenerateSource,
-    useSSEGenerateSource, useRESTGenerateSource, useRESTRetrieveAndGenerateSource,
-    useRestContentSource, createTheme, defaultTheme, RAGProvider }
+export {
+    // Components
+    AdvancedQueryField,
+    ChatWindow,
+    ContentDisplay,
+    ErrorDisplay,
+    PdfViewer,
+    QueryField,
+    RAGProvider,
+    SourcesDisplay,
+
+    // Hooks
+    useRAGMessages,
+    useRAGSources,
+    useRAGStatus,
+    useLexio,
+
+    // Connectors
+    useRESTGenerateSource,
+    useRESTRetrieveAndGenerateSource,
+    useRestContentSource,
+    useSSEGenerateSource,
+    useSSERetrieveAndGenerateSource,
+
+    // Theme
+    createTheme,
+    defaultTheme,
+}
 export * from './types'
 export * from './theme/types'
 
