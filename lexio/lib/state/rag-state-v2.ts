@@ -1,4 +1,4 @@
-import {atom} from 'jotai'
+import { atom } from 'jotai'
 
 // ---- central state management types -----
 export type Component =
@@ -61,13 +61,13 @@ interface ResetFilterSourcesActionModifier {
 }
 
 const allowedModifiers: Record<UserAction['type'], object> = {
-    ADD_USER_MESSAGE: {setUserMessage: ''},
-    SET_ACTIVE_MESSAGE: {messageId: ''},
+    ADD_USER_MESSAGE: { setUserMessage: '' },
+    SET_ACTIVE_MESSAGE: { messageId: '' },
     CLEAR_MESSAGES: {},
     SEARCH_SOURCES: {},
     CLEAR_SOURCES: {},
-    SET_ACTIVE_SOURCES: {activeSourceIds: []},
-    SET_SELECTED_SOURCE: {selectedSourceId: ''},
+    SET_ACTIVE_SOURCES: { activeSourceIds: [] },
+    SET_SELECTED_SOURCE: { selectedSourceId: '' },
     SET_FILTER_SOURCES: {},
     RESET_FILTER_SOURCES: {}
 };
@@ -96,31 +96,31 @@ const allowedPayloadKeys: Record<UserAction['type'], string[]> = {
  * @property {number} rect.height - Height of the highlight (relative to the page height)
  */
 export interface PDFHighlight {
-  /**
-   * The page number where the highlight appears. Page numbers are 1-based.
-   */
-  page: number;
-  /**
-   * The rectangle coordinates of the highlight
-   */
-  rect: {
     /**
-     * Top position of the highlight (relative to the page)
+     * The page number where the highlight appears. Page numbers are 1-based.
      */
-    top: number;
+    page: number;
     /**
-     * Left position of the highlight (relative to the page)
+     * The rectangle coordinates of the highlight
      */
-    left: number;
-    /**
-     * Width of the highlight (relative to the page width)
-     */
-    width: number;
-    /**
-     * Height of the highlight (relative to the page height)
-     */
-    height: number;
-  };
+    rect: {
+        /**
+         * Top position of the highlight (relative to the page)
+         */
+        top: number;
+        /**
+         * Left position of the highlight (relative to the page)
+         */
+        left: number;
+        /**
+         * Width of the highlight (relative to the page width)
+         */
+        width: number;
+        /**
+         * Height of the highlight (relative to the page height)
+         */
+        height: number;
+    };
 }
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
@@ -282,7 +282,7 @@ export const unregisterActionHandler = atom(null, (get, set, handler: ActionHand
 // ---- some dummy for crazy agent message manipulation -----
 // todo: implement for agents later on
 // @ts-ignore
-class CrazyAgentMessageManipulator { 
+class CrazyAgentMessageManipulator {
     private readonly messages: Message[] = [];
 
     public addMessage(message: Message): void {
@@ -343,7 +343,7 @@ const addUserMessageAtom = atom(
                 'Sources request timeout exceeded',
                 abortController.signal
             );
-            
+
             // Add a UUID to each source if it's missing (or always assign a new UUID)
             const sourcesDataWithIds = sourcesData.map(source => ({
                 ...source,
@@ -395,11 +395,11 @@ const addUserMessageAtom = atom(
                         abortController.signal
                     );
                     set(completedMessagesAtom, [...get(completedMessagesAtom),
-                        {
-                            id: crypto.randomUUID() as UUID,
-                            role: 'assistant',
-                            content: messageData
-                        } as Message
+                    {
+                        id: crypto.randomUUID() as UUID,
+                        role: 'assistant',
+                        content: messageData
+                    } as Message
                     ]);
                     return messageData;
                 }
@@ -446,14 +446,14 @@ const addUserMessageAtom = atom(
 );
 
 // set active message
-const setActiveMessageAtom = atom(null, (_get, set, {setActiveMessageModifier}: {
+const setActiveMessageAtom = atom(null, (_get, set, { setActiveMessageModifier }: {
     setActiveMessageModifier?: SetActiveMessageActionModifier
 }) => {
     set(activeMessageIdAtom, setActiveMessageModifier?.messageId ?? null);
 });
 
 // clear messages
-const clearMessagesAtom = atom(null, (_get, set, {clearMessagesModifier}: {
+const clearMessagesAtom = atom(null, (_get, set, { clearMessagesModifier }: {
     clearMessagesModifier?: ClearMessagesActionModifier
 }) => {
     console.log('clearMessagesAtom', clearMessagesModifier);
@@ -466,7 +466,7 @@ const searchSourcesAtom = atom(
     async (
         get,
         set,
-        {query, sources, searchSourcesModifier}: {
+        { query, sources, searchSourcesModifier }: {
             query: string,
             sources?: Promise<Source[]>;
             searchSourcesModifier?: SearchSourcesActionModifier
@@ -530,7 +530,7 @@ const searchSourcesAtom = atom(
 );
 
 // clear sources
-const clearSourcesAtom = atom(null, (_get, set, {clearSourcesModifier}: {
+const clearSourcesAtom = atom(null, (_get, set, { clearSourcesModifier }: {
     clearSourcesModifier?: ClearSourcesActionModifier
 }) => {
     console.log('clearSourcesAtom', clearSourcesModifier);
@@ -540,7 +540,7 @@ const clearSourcesAtom = atom(null, (_get, set, {clearSourcesModifier}: {
 });
 
 // set active sources
-const setActiveSourcesAtom = atom(null, (_get, set, {sourceIds, setActiveSourcesModifier}: {
+const setActiveSourcesAtom = atom(null, (_get, set, { sourceIds, setActiveSourcesModifier }: {
     sourceIds?: UUID[],
     setActiveSourcesModifier?: SetActiveSourcesActionModifier
 }) => {
@@ -551,7 +551,7 @@ const setActiveSourcesAtom = atom(null, (_get, set, {sourceIds, setActiveSources
 });
 
 // set selected source
-const setSelectedSourceAtom = atom(null, (_get, set, {sourceId, setSelectedSourceModifier}: {
+const setSelectedSourceAtom = atom(null, (_get, set, { sourceId, setSelectedSourceModifier }: {
     sourceId?: UUID,
     setSelectedSourceModifier?: SetSelectedSourceActionModifier
 }) => {
@@ -562,7 +562,7 @@ const setSelectedSourceAtom = atom(null, (_get, set, {sourceId, setSelectedSourc
 });
 
 // set filter sources
-const setFilterSourcesAtom = atom(null, (_get, _set, {setFilterSourcesModifier}: {
+const setFilterSourcesAtom = atom(null, (_get, _set, { setFilterSourcesModifier }: {
     setFilterSourcesModifier?: SetFilterSourcesActionModifier
 }) => {
     console.log('setFilterSourcesAtom', setFilterSourcesModifier);
@@ -570,7 +570,7 @@ const setFilterSourcesAtom = atom(null, (_get, _set, {setFilterSourcesModifier}:
 });
 
 // reset filter sources
-const resetFilterSourcesAtom = atom(null, (_get, _set, {resetFilterSourcesModifier}: {
+const resetFilterSourcesAtom = atom(null, (_get, _set, { resetFilterSourcesModifier }: {
     resetFilterSourcesModifier?: ResetFilterSourcesActionModifier
 }) => {
     console.log('resetFilterSourcesAtom', resetFilterSourcesModifier);
@@ -579,125 +579,170 @@ const resetFilterSourcesAtom = atom(null, (_get, _set, {resetFilterSourcesModifi
 
 
 // ----- MAIN: central dispatch atom / function -----
-export const dispatchAtom = atom(null, (get, set, action: UserAction, recursiveCall: boolean = false) => {
-    // Exit if loading is already true
-    if (!recursiveCall && get(loadingAtom)) return;
+export const dispatchAtom = atom(
+    null,
+    async (get, set, action: UserAction, recursiveCall: boolean = false) => {
+        // Exit if not a recursive call and we're already loading.
+        if (!recursiveCall && get(loadingAtom)) return;
 
-    // Set the global loading state immediately.
-    if (!recursiveCall) {
-        set(loadingAtom, true);
-        set(errorAtom, null);
-    }
-
-    // Find the concrete handler based on the action source.  TODO -> remove this and only take main handler
-    const handlers = get(registeredActionHandlersAtom);
-    // const handler = handlers.find(h => h.component === action.source);
-    const handler = handlers.find(h => h.component === 'RAGProvider');
-    if (!handler) {
-        console.warn(`Handler for component ${action.source} not found`);
+        // Set the global loading state and clear error (only for top-level calls)
         if (!recursiveCall) {
-            set(loadingAtom, false);
+            set(loadingAtom, true);
+            set(errorAtom, null);
         }
-        return;
-    }
 
-    // Let the handler construct the concrete async tasks.
-    const payload = handler.handler(
-        action,
-        get(completedMessagesAtom),
-        get(retrievedSourcesAtom),
-        get(activeSourcesAtom),
-        get(selectedSourceAtom)
-    );
+        // Find the handler.
+        const handlers = get(registeredActionHandlersAtom);
+        // (For now we assume the RAGProvider is used; you might later use action.source.)
+        const handler = handlers.find(h => h.component === 'RAGProvider');
+        if (!handler) {
+            console.warn(`Handler for component ${action.source} not found`);
+            if (!recursiveCall) {
+                set(loadingAtom, false);
+            }
+            return;
+        }
 
-    // Validate payload keys
-    const allowedKeys = allowedPayloadKeys[action.type] || [];
-    if (payload) {
-        const extraKeys = Object.keys(payload).filter(key => !allowedKeys.includes(key));
-        if (extraKeys.length > 0) {
-            console.warn(
-                `Handler for action "${action.type}" returned unused properties: ${extraKeys.join(', ')}`
-            );
+        // Call the handler and wrap its return value so that it always returns a promise.
+        // This handles both synchronous and asynchronous handlers.
+        const payload = await Promise.resolve(
+            handler.handler(
+                action,
+                get(completedMessagesAtom),
+                get(retrievedSourcesAtom),
+                get(activeSourcesAtom),
+                get(selectedSourceAtom)
+            )
+        );
+
+        // Validate payload keys.
+        const allowedKeys = allowedPayloadKeys[action.type] || [];
+        if (payload) {
+            const extraKeys = Object.keys(payload).filter(key => !allowedKeys.includes(key));
+            if (extraKeys.length > 0) {
+                console.warn(
+                    `Handler for action "${action.type}" returned unused properties: ${extraKeys.join(', ')}`
+                );
+            }
+        }
+
+        // Validate modifiers.
+        const { actionOptions } = payload ?? {};
+        if (actionOptions?.current) {
+            const allowedModifierKeys = Object.keys(allowedModifiers[action.type] || {});
+            const currentModifierKeys = Object.keys(actionOptions.current);
+            const extraModifierKeys = currentModifierKeys.filter(key => !allowedModifierKeys.includes(key));
+            if (extraModifierKeys.length > 0) {
+                console.warn(
+                    `Handler for action "${action.type}" used invalid modifiers: ${extraModifierKeys.join(', ')}`
+                );
+            }
+        }
+
+        // Destructure payload values.
+        const { response, messages, sources } = payload ?? {};
+
+        // Collect all write-atom calls in an array of promises.
+        // Each call is wrapped with Promise.resolve() so that synchronous and asynchronous atoms
+        // are handled uniformly.
+        const promises: Promise<any>[] = [];
+
+        switch (action.type) {
+            case 'ADD_USER_MESSAGE': {
+                const result = set(addUserMessageAtom, {
+                    message: action.message,
+                    response,
+                    messages,
+                    sources,
+                    addMessageModifier: actionOptions?.current as AddUserMessageActionModifier,
+                });
+                promises.push(Promise.resolve(result));
+                break;
+            }
+            case 'SET_ACTIVE_MESSAGE': {
+                const result = set(setActiveMessageAtom, {
+                    setActiveMessageModifier: actionOptions?.current as SetActiveMessageActionModifier,
+                });
+                promises.push(Promise.resolve(result));
+                break;
+            }
+            case 'CLEAR_MESSAGES': {
+                const result = set(clearMessagesAtom, {
+                    clearMessagesModifier: actionOptions?.current as ClearMessagesActionModifier,
+                });
+                promises.push(Promise.resolve(result));
+                break;
+            }
+            case 'SEARCH_SOURCES': {
+                const result = set(searchSourcesAtom, {
+                    query: action.query,
+                    sources,
+                    searchSourcesModifier: actionOptions?.current as SearchSourcesActionModifier,
+                });
+                promises.push(Promise.resolve(result));
+                break;
+            }
+            case 'CLEAR_SOURCES': {
+                const result = set(clearSourcesAtom, {
+                    clearSourcesModifier: actionOptions?.current as ClearSourcesActionModifier,
+                });
+                promises.push(Promise.resolve(result));
+                break;
+            }
+            case 'SET_ACTIVE_SOURCES': {
+                const result = set(setActiveSourcesAtom, {
+                    sourceIds: action.sourceIds as UUID[],
+                    setActiveSourcesModifier: actionOptions?.current as SetActiveSourcesActionModifier,
+                });
+                promises.push(Promise.resolve(result));
+                break;
+            }
+            case 'SET_SELECTED_SOURCE': {
+                const result = set(setSelectedSourceAtom, {
+                    sourceId: action.sourceId as UUID,
+                    setSelectedSourceModifier: actionOptions?.current as SetSelectedSourceActionModifier,
+                });
+                promises.push(Promise.resolve(result));
+                break;
+            }
+            case 'SET_FILTER_SOURCES': {
+                const result = set(setFilterSourcesAtom, {
+                    setFilterSourcesModifier: actionOptions?.current as SetFilterSourcesActionModifier,
+                });
+                promises.push(Promise.resolve(result));
+                break;
+            }
+            case 'RESET_FILTER_SOURCES': {
+                const result = set(resetFilterSourcesAtom, {
+                    resetFilterSourcesModifier: actionOptions?.current as ResetFilterSourcesActionModifier,
+                });
+                promises.push(Promise.resolve(result));
+                break;
+            }
+            default:
+                console.warn(`Unhandled action type: ${(action as any).type}`);
+        }
+
+        // Handle any follow-up actions recursively.
+        if (actionOptions?.followUp) {
+            const followUpResult = set(dispatchAtom, actionOptions.followUp, true);
+            promises.push(Promise.resolve(followUpResult));
+        }
+
+        // Wait for all write operations to finish.
+        try {
+            await Promise.all(promises);
+        } catch (error) {
+            console.error("Error in dispatch async writes:", error);
+        } finally {
+            if (!recursiveCall) {
+                set(loadingAtom, false);
+            }
         }
     }
-
-    // Validate modifiers
-    const { actionOptions } = payload ?? {};
-    if (actionOptions?.current) {
-        const allowedModifierKeys = Object.keys(allowedModifiers[action.type] || {});
-        const currentModifierKeys = Object.keys(actionOptions.current);
-        const extraModifierKeys = currentModifierKeys.filter(key => !allowedModifierKeys.includes(key));
-        
-        if (extraModifierKeys.length > 0) {
-            console.warn(
-                `Handler for action "${action.type}" used invalid modifiers: ${extraModifierKeys.join(', ')}`
-            );
-        }
-    }
-
-    // Destructure with default to empty object if payload is undefined
-    const { response, messages, sources } = payload ?? {};
-
-    // Delegate to the concrete functionality.
-    switch (action.type) {
-        case 'ADD_USER_MESSAGE':
-            const addMessageModifier = actionOptions?.current as AddUserMessageActionModifier;
-            set(addUserMessageAtom, {
-                message: action.message,
-                response,
-                messages,
-                sources,
-                addMessageModifier: addMessageModifier
-            });
-            break;
-        case 'SET_ACTIVE_MESSAGE':
-            const setActiveMessageModifier = actionOptions?.current as SetActiveMessageActionModifier;
-            set(setActiveMessageAtom, {setActiveMessageModifier: setActiveMessageModifier});
-            break;
-        case 'CLEAR_MESSAGES':
-            const clearMessagesModifier = actionOptions?.current as ClearMessagesActionModifier;
-            set(clearMessagesAtom, {clearMessagesModifier: clearMessagesModifier});
-            break;
-        case 'SEARCH_SOURCES':
-            const searchSourcesModifier = actionOptions?.current as SearchSourcesActionModifier;
-            set(searchSourcesAtom, {query: action.query, sources, searchSourcesModifier: searchSourcesModifier});
-            break;
-        case 'CLEAR_SOURCES':
-            const clearSourcesModifier = actionOptions?.current as ClearSourcesActionModifier;
-            set(clearSourcesAtom, {clearSourcesModifier: clearSourcesModifier});
-            break;
-        case 'SET_ACTIVE_SOURCES':
-            const setActiveSourcesModifier = actionOptions?.current as SetActiveSourcesActionModifier;
-            set(setActiveSourcesAtom, {sourceIds: action.sourceIds as UUID[], setActiveSourcesModifier: setActiveSourcesModifier});
-            break;
-        case 'SET_SELECTED_SOURCE':
-            const setSelectedSourceModifier = actionOptions?.current as SetSelectedSourceActionModifier;
-            set(setSelectedSourceAtom, {sourceId: action.sourceId as UUID, setSelectedSourceModifier: setSelectedSourceModifier});
-            break;
-        case 'SET_FILTER_SOURCES':
-            const setFilterSourcesModifier = actionOptions?.current as SetFilterSourcesActionModifier;
-            set(setFilterSourcesAtom, {setFilterSourcesModifier: setFilterSourcesModifier});
-            break;
-        case 'RESET_FILTER_SOURCES':
-            const resetFilterSourcesModifier = actionOptions?.current as ResetFilterSourcesActionModifier;
-            set(resetFilterSourcesAtom, {resetFilterSourcesModifier: resetFilterSourcesModifier});
-            break;
+);
 
 
-
-        // Other action types can be added here.
-    }
-
-    // Handle any follow-up actions.
-    if (actionOptions?.followUp) {
-        set(dispatchAtom, actionOptions.followUp, true);
-    }
-
-    // Clear the global loading state.
-    if (!recursiveCall) {
-        set(loadingAtom, false);
-    }
-});
 
 
 // ---- helpers for handling stream timeout and stream abortion ----
