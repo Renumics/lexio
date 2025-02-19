@@ -1,4 +1,4 @@
-import React, {useState, useContext, useEffect, FC} from "react";
+import React, {useState, useContext, FC} from "react";
 import {RetrievalResult, SourceReference, TextContent} from "../../types";
 import { useRAGSources } from "../RAGProvider/hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";

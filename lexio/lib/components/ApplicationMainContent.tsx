@@ -4,6 +4,7 @@ import {ChatWindow} from "./ChatWindow";
 import {QueryField} from "./QueryField";
 import {useRAGSources} from "./RAGProvider";
 import {ContentDisplay, SourcesDisplay} from "../main.ts";
+// import {FileViewerContainer} from "./ui/FileViewerContainer.tsx";
 
 const ApplicationMainContent: FunctionComponent = () => {
     const  {
@@ -80,7 +81,7 @@ const ApplicationMainContent: FunctionComponent = () => {
                     {/*    fileName={"dummy.pdf"}*/}
                     {/*    optionsLeft={[]}*/}
                     {/*    optionsCenter={[]}*/}
-                    {/*    optionsRight={[<CloseIcon size={"20px"} />]}*/}
+                    {/*    showFullScreenToggleButton*/}
                     {/*/>*/}
                 </CardContainer> : null
             }
