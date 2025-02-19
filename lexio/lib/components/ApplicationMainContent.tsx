@@ -65,14 +65,14 @@ const ApplicationMainContent: FunctionComponent = () => {
                 </div>
             </CardContainer>
             {areSourcesAvailable && isRetrievedSourcesComponentOpen ?
-                <CardContainer className={"mb-10 drop-shadow-sm overflow-hidden border-gray-300"}>
+                <CardContainer className={"mb-10 overflow-hidden border-gray-300"}>
                     <div className={"overflow-hidden"}>
                         <SourcesDisplay onSourceSelection={onSourceSelection} />
                     </div>
                 </CardContainer> : null
             }
             {isCurrentSourceContentAvailable && isFileViewerComponentOpen ?
-                <CardContainer className={"mb-10 drop-shadow-md overflow-hidden"}>
+                <CardContainer className={"mb-10 overflow-hidden"}>
                     <div className={"overflow-auto"}>
                         <ContentDisplay />
                     </div>

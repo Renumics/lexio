@@ -191,7 +191,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
         {/* Search field and button */}
         {showSearch && (
             <div
-                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-xl py-1 px-3 overflow-y-auto bg-white">
+                className="grid gap-1 grid-cols-[1fr_max-content] content-center items-center border border-solid border-gray-300 rounded-lg py-1 px-3 overflow-y-auto bg-white">
               <input
                   type="text"
                   value={searchQuery}
@@ -283,9 +283,9 @@ const SourceItem: FC<SourceItemProps> = (props) => {
 
   return (
       <div
-          className="p-3 m-0 transition-all cursor-pointer"
+          className={`p-3 m-0 transition-all cursor-pointer ${isSelected ? "bg-blue-500" : " bg-transparent hover:!bg-gray-100"}`}
           style={{
-            backgroundColor: isSelected ? "#2563ebc9" : "transparent",
+            // backgroundColor: isSelected ? "#2563ebc9" : "transparent",
             // backgroundColor: index === activeSourceIndex
             //     ? style.activeSourceBackground
             //     : currentSources.includes(source)
@@ -306,7 +306,7 @@ const SourceItem: FC<SourceItemProps> = (props) => {
           onClick={() => setActiveSourceIndex()}
       >
         <div className={"grid grid-cols-[max-content_1fr] gap-2 items-start content-start"}>
-          <FileIcon size={"35px"} style={{color: isSelected ? "white" : "gray"}} strokeWidth={1.7}/>
+          <FileIcon size={"35px"} style={{color: isSelected ? "white" : "gray"}} strokeWidth={1.2}/>
           <div className={"min-w-0"}>
             <p
                 className={`font-medium text-sm truncate ${isSelected ? "text-white font-semibold" : "text-gray-700"} tracking-tight`}

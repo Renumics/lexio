@@ -216,7 +216,7 @@ export const FileViewerContainer: FC<PropsFileViewerContainer> = (props) => {
                 }
             </div>
             {footer ?
-                <div className={"sticky bottom-0 z-[11] border-t p-1 bg-gray-50 overflow-y-hidden overflow-x-auto"}>
+                <div className={"sticky bottom-0 z-[11] border border-t p-1 bg-gray-50 overflow-y-hidden overflow-x-auto"}>
                     {footer}
                 </div> : null
             }
@@ -234,7 +234,7 @@ export const FileViewerContainer: FC<PropsFileViewerContainer> = (props) => {
             {contentToShow}
             {isFullScreen ?
                 <Dialog defaultOpen onOpenChange={() => setIsFullScreen(false)}>
-                    <DialogContent className="grid grid-rows-[1fr] max-w-[80dvw] w-[100%] h-[100%] max-h-[92dvh] p-0 bg-white z-[1000]">
+                    <DialogContent className="grid grid-rows-[1fr] max-w-[80dvw] w-[100%] h-[100%] max-h-[92dvh] p-0 bg-white z-[1000] rounded-md">
                         <div className={"grid rounded-md h-full overflow-hidden"}>
                             {props.contentToShowOnFullScreen ?? contentToShow}
                         </div>
