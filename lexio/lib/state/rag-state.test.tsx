@@ -18,14 +18,14 @@ import {
   unregisterActionHandler,
   dispatchAtom,
   // other atoms if needed...
-} from '../state/rag-state-v2';
+} from './rag-state';
 
 import type {
   Message,
   Source,
   UUID,
   // and any other types you need…
-} from '../state/rag-state-v2';
+} from './rag-state';
 
 // -------------------------------------------------------------------------
 // A helper component to register a fake action handler for tests.

@@ -11,7 +11,7 @@ import {
     selectedSourceAtom,
     selectedSourceIdAtom,
     retrievedSourcesAtom, errorAtom, UUID
-} from "../state/rag-state-v2";
+} from "../state/rag-state";
 
 // loading and error states
 export const useRAGStatus = () => {

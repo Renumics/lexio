@@ -24,7 +24,7 @@ import {
 
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
-import { Source, UUID } from "../../state/rag-state-v2.ts";
+import { Source, UUID } from "../../state/rag-state.ts";
 
 /**
  * Styles interface for the AdvancedQueryField component
