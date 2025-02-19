@@ -1,7 +1,7 @@
 import './App.css'
 import {
     ChatWindow,
-    RAGProvider2,
+    RAGProvider,
     createTheme,
     SourcesDisplay, ContentDisplay, AdvancedQueryField,
     ErrorDisplay,
@@ -166,7 +166,7 @@ function App() {
         <div style={{width: '100%', height: '100vh'}}>
             {/* Main Content */}
             <div className="w-full h-full max-w-7xl mx-auto flex flex-row gap-4 p-5">
-                <RAGProvider2
+                <RAGProvider
                     onAction={handleAction}
                     theme={customTheme}
                 >
@@ -187,7 +187,7 @@ function App() {
                         <ContentDisplay />
                     </div>
                     <ErrorDisplay />
-                </RAGProvider2>
+                </RAGProvider>
             </div>
         </div>
     )

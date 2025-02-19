@@ -586,6 +586,7 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction, recursiveC
     // Set the global loading state immediately.
     if (!recursiveCall) {
         set(loadingAtom, true);
+        set(errorAtom, null);
     }
 
     // Find the concrete handler based on the action source.  TODO -> remove this and only take main handler
