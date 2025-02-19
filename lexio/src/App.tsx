@@ -1,7 +1,7 @@
 import './App.css'
 import {
     ChatWindow,
-    RAGProvider2,
+    RAGProvider,
     createTheme,
     SourcesDisplay, ContentDisplay, AdvancedQueryField,
     ErrorDisplay,
@@ -156,9 +156,11 @@ function App() {
 
         // Handle search sources action
         if (action.type === 'SEARCH_SOURCES') {
-            return {
-                sources: Promise.resolve(mockSources),
-            } as ActionHandlerResponse
+            return new Promise(resolve => {
+                setTimeout(() => resolve({
+                    sources: Promise.resolve(mockSources),
+                } as ActionHandlerResponse), 1000);
+            });
         }
     }, [interactionCount]);
 
@@ -166,7 +168,7 @@ function App() {
         <div style={{width: '100%', height: '100vh'}}>
             {/* Main Content */}
             <div className="w-full h-full max-w-7xl mx-auto flex flex-row gap-4 p-5">
-                <RAGProvider2
+                <RAGProvider
                     onAction={handleAction}
                     theme={customTheme}
                 >
@@ -187,7 +189,7 @@ function App() {
                         <ContentDisplay />
                     </div>
                     <ErrorDisplay />
-                </RAGProvider2>
+                </RAGProvider>
             </div>
         </div>
     )
