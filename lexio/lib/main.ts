@@ -5,7 +5,7 @@ import { AdvancedQueryField } from './components/AdvancedQueryField'
 import { ChatWindow } from './components/ChatWindow'
 import { PdfViewer } from './components/Viewers/PdfViewer'
 import { RAGProvider } from './components/RAGProvider'
-import { useRAGMessages, useRAGSources, useRAGStatus, useLexio } from './hooks'
+import { useRAGMessages, useRAGSources, useLexioStatus, useLexio } from './hooks'
 import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
@@ -32,7 +32,7 @@ export {
     // Hooks
     useRAGMessages,
     useRAGSources,
-    useRAGStatus,
+    useLexioStatus,
     useLexio,
 
     // Connectors
