@@ -54,7 +54,7 @@ const ApplicationMainContent: FunctionComponent = () => {
         <div className={`grid gap-4 ${gridColumns} h-full max-w-[1700px]`}>
             <CardContainer className={"p-1 border-none overflow-hidden gap-0"}>
                 <div className={"overflow-auto pt-4"}>
-                    <ChatWindow />
+                    <ChatWindow onExampleSelection={onQuerySubmission} />
                 </div>
                 <div className={"self-end sticky bottom-0"}>
                     <QueryField

@@ -40,6 +40,8 @@ export interface ChatWindowProps {
    * @default "Assistant: "
    */
   assistantLabel?: string;
+
+  onExampleSelection?: (() => void) | undefined;
 }
 
 /**
@@ -64,6 +66,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   showRoleLabels = true,
   userLabel = "User",
   assistantLabel = "Assistant",
+  onExampleSelection,
 }) => {
   const { messages, currentStream, addMessage } = useRAGMessages();
   // Add ref for scrolling
@@ -92,6 +95,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     ...styleOverrides, // ensure these override theme defaults
   };
 
+  const handleExampleSelection = (text: string) => {
+    addMessage({ role: "user", content: text });
+    if (!onExampleSelection) return;
+    onExampleSelection();
+  }
+
   return (
     <ResetWrapper>
     <div
@@ -99,7 +108,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       style={style}
     >
       {messages.length === 0 ?
-          <PromptExample onItemSelection={(text) => addMessage({ role: "user", content: text })} /> : null
+          <PromptExample onItemSelection={handleExampleSelection} /> : null
       }
       {messages.map((msg, index) => (
           <div key={index} className={`${msg.role}`}>
