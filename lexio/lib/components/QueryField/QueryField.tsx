@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useContext } from 'react';
 import useResizeObserver from '@react-hook/resize-observer';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
-import { useLexio } from '../RAGProvider/hooks2';
+import { useLexio } from '../RAGProvider/hooks';
 
 /**
  * Styles interface for the QueryField component

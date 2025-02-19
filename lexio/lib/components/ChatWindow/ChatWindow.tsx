@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { ThemeContext } from '../../theme/ThemeContext';
-import { useLexio, useRAGMessages } from '../RAGProvider/hooks2';
+import { useLexio, useRAGMessages } from '../RAGProvider/hooks';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
 

@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { MarkdownViewer } from "../Viewers/MarkdownViewer";
-import { useRAGSources } from "../RAGProvider/hooks2";
+import { useRAGSources } from "../RAGProvider/hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 
 export interface ContentDisplayStyles extends React.CSSProperties {

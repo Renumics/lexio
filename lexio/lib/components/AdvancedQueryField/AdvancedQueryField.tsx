@@ -20,7 +20,7 @@ import useResizeObserver from '@react-hook/resize-observer';
 import {
   useRAGSources,
   useLexio,
-} from '../RAGProvider/hooks2';
+} from '../RAGProvider/hooks.ts';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import { Source, UUID } from "../../state/rag-state-v2.ts";

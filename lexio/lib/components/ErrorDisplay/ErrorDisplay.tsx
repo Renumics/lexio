@@ -2,7 +2,7 @@ import { useEffect, useContext } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
-import { useLexioStatus } from "../RAGProvider/hooks2.ts";
+import { useLexioStatus } from "../RAGProvider/hooks.ts";
 
 export interface ErrorDisplayStyles {
   fontFamily?: string;

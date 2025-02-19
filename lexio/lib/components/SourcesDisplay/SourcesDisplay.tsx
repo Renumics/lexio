@@ -1,7 +1,7 @@
 import { useState, useContext } from "react";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
-import { useRAGSources, useLexio } from "../RAGProvider/hooks2";
+import { useRAGSources, useLexio } from "../RAGProvider/hooks";
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
