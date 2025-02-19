@@ -13,6 +13,14 @@ import {
     retrievedSourcesAtom, errorAtom, UUID
 } from "../../state/rag-state-v2";
 
+// loading and error states
+export const useRAGStatus = () => {
+    const loading = useAtomValue(loadingAtom);
+    const error = useAtomValue(errorAtom);
+
+    return {loading, error};
+}
+
 // only data for now
 export const useRAGSources = () => {
     const [sources] = useAtom(retrievedSourcesAtom);
