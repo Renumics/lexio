@@ -29,7 +29,7 @@ import type {
 
 // -------------------------------------------------------------------------
 // A helper component to register a fake action handler for tests.
-// The handler is registered for component 'RAGProvider2' and will be used
+// The handler is registered for component 'RAGProvider' and will be used
 // by dispatchAtom to process user actions.
 const TestActionHandler: React.FC<{ handler: any }> = ({ handler, children }) => {
   const setRegister = useSetAtom(registerActionHandler);
@@ -58,7 +58,7 @@ function renderRAGTestHooks(handler: any) {
     messages: useRAGMessages(),
     sources: useRAGSources(),
     status: useLexioStatus(),
-    lexio: useLexio('RAGProvider2'),
+    lexio: useLexio('RAGProvider'),
   }), { wrapper });
 }
 
@@ -79,7 +79,7 @@ describe('RAG Workflow Tests (Jotai version)', () => {
     it('should handle initial query with text sources', async () => {
       // Create a fake handler that mimics a response with text source.
       const mockHandler = {
-        component: 'RAGProvider2',
+        component: 'RAGProvider',
         handler: (_action: any, _messages: Message[], _sources: Source[]) => {
           // For an ADD_USER_MESSAGE action we return both a response and sources.
           return {
@@ -137,7 +137,7 @@ describe('RAG Workflow Tests (Jotai version)', () => {
     it('should handle initial query with reference sources (e.g. PDF)', async () => {
       // Fake handler returns a source that is a reference (for example, PDF).
       const mockHandler = {
-        component: 'RAGProvider2',
+        component: 'RAGProvider',
         handler: (_action: any, _messages: Message[], _sources: Source[]) => {
           return {
             sources: Promise.resolve([
@@ -187,7 +187,7 @@ describe('RAG Workflow Tests (Jotai version)', () => {
         },
       ];
       const mockHandler = {
-        component: 'RAGProvider2',
+        component: 'RAGProvider',
         handler: (action: any, messages: Message[], _sources: Source[]) => {
           if (action.type === 'ADD_USER_MESSAGE') {
             // If this is the very first query, return initial response.
@@ -252,7 +252,7 @@ describe('RAG Workflow Tests (Jotai version)', () => {
     it('should handle streaming responses with partial updates', async () => {
       // For streaming responses, the fake handler returns an async generator.
       const mockHandler = {
-        component: 'RAGProvider2',
+        component: 'RAGProvider',
         handler: (_action: any, _messages: Message[], _sources: Source[]) => {
           return {
             sources: Promise.resolve([
@@ -307,7 +307,7 @@ describe('RAG Workflow Tests (Jotai version)', () => {
 
     it('should handle request timeout', async () => {
       const mockHandler = {
-        component: 'RAGProvider2',
+        component: 'RAGProvider',
         handler: () => {
           return {
             sources: new Promise<Source[]>((resolve) => {
@@ -353,7 +353,7 @@ describe('RAG Workflow Tests (Jotai version)', () => {
     it('should handle stream timeout', async () => {
       // In this test the fake streaming response has a gap longer than the stream timeout.
       const mockHandler = {
-        component: 'RAGProvider2',
+        component: 'RAGProvider',
         handler: () => {
           return {
             sources: Promise.resolve([
@@ -396,7 +396,7 @@ describe('RAG Workflow Tests (Jotai version)', () => {
     it('should perform rollback on generation error', async () => {
       // Here we simulate an error in the generation (assistant) response.
       const mockHandler = {
-        component: 'RAGProvider2',
+        component: 'RAGProvider',
         handler: () => {
           return {
             sources: Promise.resolve([]),
@@ -424,7 +424,7 @@ describe('RAG Workflow Tests (Jotai version)', () => {
     it('should perform rollback on retrieval error', async () => {
       // Here we simulate an error in the sources retrieval.
       const mockHandler = {
-        component: 'RAGProvider2',
+        component: 'RAGProvider',
         handler: () => {
           return {
             sources: Promise.reject(new Error('Retrieval error')),

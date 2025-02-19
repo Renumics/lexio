@@ -2,7 +2,7 @@ import {atom} from 'jotai'
 
 // ---- central state management types -----
 export type Component =
-    | 'RAGProvider2'
+    | 'RAGProvider'
     | 'QueryField'
     | 'ChatWindow'
     | 'SourcesDisplay'
@@ -591,7 +591,7 @@ export const dispatchAtom = atom(null, (get, set, action: UserAction, recursiveC
     // Find the concrete handler based on the action source.  TODO -> remove this and only take main handler
     const handlers = get(registeredActionHandlersAtom);
     // const handler = handlers.find(h => h.component === action.source);
-    const handler = handlers.find(h => h.component === 'RAGProvider2');
+    const handler = handlers.find(h => h.component === 'RAGProvider');
     if (!handler) {
         console.warn(`Handler for component ${action.source} not found`);
         if (!recursiveCall) {
