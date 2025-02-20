@@ -1,22 +1,22 @@
-import { SourceReference, SourceContent, HTMLSourceContent, MarkdownSourceContent, PDFSourceContent } from "../types";
+import { Source } from "../types";
 import { useCallback } from "react";
 /**
  * --- Type Definitions for Default Functions ---
  */
-export type BuildFetchRequestFn = (source: SourceReference) => {
+export type BuildFetchRequestFn = (source: Source) => {
   url: string;
   init?: RequestInit;
 };
 
 export type ParsePDFFn = (
   arrayBuffer: ArrayBuffer,
-  source: SourceReference
-) => PDFSourceContent;
+  source: Source
+) => Source;
 
 export type ParseTextFn = (
   text: string,
-  source: SourceReference
-) => HTMLSourceContent | MarkdownSourceContent;
+  source: Source
+) => Source;
 
 /**
  * --- Connector Options ---
@@ -59,27 +59,28 @@ const defaultBuildFetchRequest: BuildFetchRequestFn = (source) => {
 // 2) Default parsePDF
 const defaultParsePDF: ParsePDFFn = (arrayBuffer, source) => {
   return {
+    ...source,
     type: 'pdf',
-    content: new Uint8Array(arrayBuffer),
+    data: new Uint8Array(arrayBuffer),
     metadata: source.metadata || {},
-    highlights: source.highlights || [],
   };
 };
 
 // 3) Default parseText (handles "html" vs. "markdown" or anything else)
 const defaultParseText: ParseTextFn = (text, source) => {
   return {
+    ...source,
     type: source.type || 'markdown',
-    content: text,
+    data: text,
     metadata: source.metadata || {},
-  } as HTMLSourceContent | MarkdownSourceContent;
+  };
 };
 
 /**
  * --- The Hook ---
  * Returns a function that RAGProvider can use as getDataSource={...}.
  */
-export function useRestContentSource(
+export function createRESTContentSource(
   options: PromiseSourceContentConnectorOptions = {}
 ) {
   const {
@@ -89,9 +90,9 @@ export function useRestContentSource(
   } = options;
 
   /**
-   * The function for retrieving the actual content from a SourceReference.
+   * The function for retrieving the actual content from a Source.
    */
-  const getDataSource = useCallback(async (source: SourceReference): Promise<SourceContent> => {
+  const getDataSource = useCallback(async (source: Source): Promise<Source> => {
     // 1) Figure out where/what to fetch
     const result = buildFetchRequest(source);
 

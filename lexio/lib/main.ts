@@ -10,12 +10,6 @@ import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
 
-import { useSSERetrieveAndGenerateSource } from './connectors/useSSERetrieveAndGenerateSource'
-import { useSSEGenerateSource } from './connectors/useSSEGenerateSource'
-import { useRESTGenerateSource } from './connectors/useRestGenerateSource'
-import { useRESTRetrieveAndGenerateSource } from './connectors/useRestRetrieveAndGenerateSource'
-import { useRestContentSource } from './connectors/useRestContentSource'
-
 import { defaultTheme, createTheme } from './theme/index.ts'
 
 export {
@@ -34,13 +28,6 @@ export {
     useRAGSources,
     useLexioStatus,
     useLexio,
-
-    // Connectors
-    useRESTGenerateSource,
-    useRESTRetrieveAndGenerateSource,
-    useRestContentSource,
-    useSSEGenerateSource,
-    useSSERetrieveAndGenerateSource,
 
     // Theme
     createTheme,

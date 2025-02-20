@@ -1,18 +1,10 @@
 import React, { useEffect } from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest'; // Removed beforeEach, afterEach
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { Provider, useSetAtom } from 'jotai';
 
-import {
-  registerActionHandler,
-  unregisterActionHandler,
-} from './rag-state';
-
-import type {
-  Message,
-  Source,
-  UUID,
-} from './rag-state';
+import { registerActionHandler } from './rag-state'; // Removed unregisterActionHandler
+import type { Message, Source, UUID } from '../types'; // Import from ../types (or wherever these types actually live)
 
 // --- NEW HOOKS (adjust import path as needed) ---
 import {
@@ -20,21 +12,27 @@ import {
   useRAGSources,
   useLexio,
   useLexioStatus,
-} from '../hooks'; // <- Replace with the path to your new hooks file
+} from '../hooks'; // <- Replace with your correct hooks path
 
 // -------------------------------------------------------------------------
 // A helper component to register a fake action handler for tests.
-// The handler is registered for component='RAGProvider' and used
-// by the internal dispatch logic.
-const TestActionHandler: React.FC<{ handler: any }> = ({ handler, children }) => {
+interface TestActionHandlerProps {
+  handler: any;
+  children?: React.ReactNode;
+}
+
+const TestActionHandler: React.FC<TestActionHandlerProps> = ({
+  handler,
+  children,
+}) => {
   const setRegister = useSetAtom(registerActionHandler);
 
   useEffect(() => {
     // Register our handler when mounted
     setRegister(handler);
+    // Optionally unregister when unmounting
     return () => {
-      // Optionally unregister when unmounting
-      // If you register multiple handlers, be sure to call unregisterActionHandler here.
+      // ...
     };
   }, [handler, setRegister]);
 
@@ -49,7 +47,6 @@ function renderRAGTestHooks(handler: any) {
     </Provider>
   );
 
-  // We return a set of hooks in one object to access them in the test
   return renderHook(
     () => {
       const ragMessages = useRAGMessages();
@@ -61,22 +58,6 @@ function renderRAGTestHooks(handler: any) {
     { wrapper }
   );
 }
-
-// Helper to advance fake timers and resolve all microtasks
-const advanceTime = async (ms: number, increment = 100) => {
-    const iterations = Math.ceil(ms / increment);
-    
-    await act(async () => {
-      // Advance time in smaller increments to catch intermediate updates
-      for (let i = 0; i < iterations; i++) {
-        vi.advanceTimersByTime(Math.min(increment, ms - (i * increment)));
-        // Allow any pending promises to resolve
-        await Promise.resolve();
-      }
-      // Finally, run any remaining timers
-      await vi.runAllTimersAsync();
-    });
-  };
 
 // -------------------------------------------------------------------------
 // TEST SUITE
@@ -181,7 +162,6 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
 
   describe('Follow-up Questions Workflow', () => {
     it('should handle a two-step conversation with follow-up questions', async () => {
-
       const mockHandler = {
         component: 'RAGProvider',
         handler: (action: any, messages: Message[]) => {
@@ -211,8 +191,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
         expect(result.current.ragMessages.messages).toHaveLength(2);
       });
 
-
-      // 3) Follow-up question
+      // 2) Follow-up question
       act(() => {
         result.current.lexio.addUserMessage('follow-up question');
       });
@@ -224,7 +203,9 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
 
       // The last message should be assistant's "Follow-up response"
       expect(
-        result.current.ragMessages.messages[result.current.ragMessages.messages.length - 1]
+        result.current.ragMessages.messages[
+          result.current.ragMessages.messages.length - 1
+        ]
       ).toEqual(
         expect.objectContaining({
           role: 'assistant',
@@ -259,7 +240,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
 
       // After rollback, confirm messages or sources are left in a consistent state
       // (e.g., no new assistant message was appended)
-      expect(result.current.ragMessages.messages).toHaveLength(0); // user's message only
+      expect(result.current.ragMessages.messages).toHaveLength(0);
       expect(result.current.ragSources.sources).toHaveLength(0);
     });
 
@@ -291,7 +272,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
       expect(result.current.ragSources.sources).toHaveLength(0);
 
       // The user message might still show up, but the assistant's response is rolled back
-      expect(result.current.ragMessages.messages).toHaveLength(0); // only the user's message
+      expect(result.current.ragMessages.messages).toHaveLength(0);
     });
   });
 });

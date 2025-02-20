@@ -178,3 +178,4 @@ export type ActionHandler = {
     ) => ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined | Promise<undefined>;
 };
 
+export type StreamChunk = { content?: string; sources?: Source[]; done?: boolean; };
