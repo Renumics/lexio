@@ -1,21 +1,21 @@
+import { fetchEventSource } from '@microsoft/fetch-event-source';
 import {
     ChatWindow,
     RAGProvider,
     SourcesDisplay,
     ContentDisplay,
     Message,
-    GenerateStreamChunk,
+    Source,
     QueryField,
     ErrorDisplay,
-    RetrievalResult,
-    SourceReference,
-    SourceContent,
-    PDFSourceContent,
-    TextContent,
     createTheme,
 } from 'lexio';
 import LexioLogo from './assets/lexio.svg';
 import LexioIcon from './assets/icon.svg';
+import {ActionHandlerResponse, UserAction} from "lexio/lib/types.ts";
+
+// define the API base URL
+const API_BASE_URL = __API_BASE_URL__;
 
 // we create a custom theme for the demo which overrides the default theme values
 const demoTheme = createTheme({
@@ -28,134 +28,109 @@ const demoTheme = createTheme({
         secondaryBackground: '#bbd5d3',
     },
     typography: {
-        // fontFamily: 'Arial',
         fontSizeBase: '1.0rem',
     },
 });
 
-function App() {
-    const retrieveAndGenerate = (messages: Message[]) => {
-        // Convert input messages array to URL-safe format
-        const query = encodeURIComponent(JSON.stringify({messages: messages}));
-        const eventSource = new EventSource(
-            `http://localhost:8000/retrieve-and-generate?messages=${query}`
-        );
+const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null): ActionHandlerResponse => {
+    console.log("myOnActionFn", action, messages, sources, activeSources, selectedSource)
 
-        // Retrieve sources from the server
-        const sourcesPromise = new Promise<RetrievalResult[]>((resolve, reject) => {
-            const handleSources = (event: MessageEvent) => {
-                const data = JSON.parse(event.data);
-                if (data.sources) {
-                    // Transform sources to match the expected format
-                    const transformedSources = data.sources.map((source: any) => {
-
-                        if ('text' in source) {
-                            return {
-                                text: source.text,
-                                sourceName: source.sourceName,
-                                relevanceScore: source.relevanceScore,
-                                metadata: source.metadata || {}
-                            } as TextContent;
-                        } else {
-                            return source as SourceReference; // Direct pass-through of SourceReference objects
-                        }
-                    });
-                    resolve(transformedSources);
-                    eventSource.removeEventListener('message', handleSources);
-                }
-            };
-
-            eventSource.addEventListener('message', handleSources);
-            eventSource.onerror = (error) => {
-                console.error("EventSource failed:", error);
-                eventSource.close();
-                reject(new Error('Failed to retrieve sources'));
-            };
+    if (action.type === 'ADD_USER_MESSAGE') {
+        let sourcesResolve: (sources: Source[]) => void;
+        const sourcesPromise = new Promise<Source[]>(resolve => {
+            sourcesResolve = resolve;
         });
 
-        const messageQueue: GenerateStreamChunk[] = [];
-        let resolveNext: (() => void) | null = null;
-
-        const handleContent = (event: MessageEvent) => {
-            const data = JSON.parse(event.data);
-            // Skip source-only messages
-            if (!data.content && !data.done) return;
-
-            // Only use content and done fields, ignore role
-            const chunk: GenerateStreamChunk = {
-                content: data.content || '',
-                done: !!data.done
-            };
-            // console.log('Generated chunk:', chunk);
-            messageQueue.push(chunk);
-            resolveNext?.();
-        };
-
-        eventSource.addEventListener('message', handleContent);
-
-        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-            try {
-                while (true) {
-                    if (messageQueue.length === 0) {
-                        await new Promise<void>(resolve => {
-                            resolveNext = resolve;
-                        });
-                    }
-
-                    const chunk = messageQueue.shift()!;
-                    yield chunk;
-                    if (chunk.done) {
-                        break;
-                    }
-                }
-            } finally {
-                eventSource.removeEventListener('message', handleContent);
-                eventSource.close();
-            }
-        }
-
         return {
-            sources: sourcesPromise,
-            response: streamChunks()
+            response: (async function* () {
+                const controller = new AbortController();
+                const queue = [];
+                let resolver: ((value: unknown) => void) | null = null;
+                
+                const TIMEOUT_MS = 3000; // 3 seconds timeout
+                const waitForData = () => Promise.race([
+                    new Promise(resolve => resolver = resolve),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Timeout waiting for response')), TIMEOUT_MS)
+                    )
+                ]);
+
+                try {
+                    fetchEventSource(API_BASE_URL + '/on-message', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: action.message,
+                            messages: messages,
+                            sources: sources,
+                        }),
+                        signal: controller.signal,
+                        onmessage(ev) {
+                            const data = JSON.parse(ev.data);
+                            if (data.sources) {
+                                sourcesResolve(data.sources);
+                            }
+                            if (data.content !== undefined) {
+                                queue.push({ content: data.content, done: data.done });
+                                if (resolver) resolver();
+                            }
+                        },
+                    });
+
+                    while (true) {
+                        if (queue.length === 0) await waitForData();
+                        const next = queue.shift();
+                        if (next) {
+                            yield next;
+                            if (next.done) break;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Streaming timeout:', error);
+                    yield { content: '\n\nConnection timed out.', done: true };
+                }
+            })(),
+            sources: sourcesPromise
         };
-    };
+    }
 
-    /*
-      * This is a simple retrieval function that sends a query to the server and returns a list of sources.
-     */
-    const retrieve = async (query: string): Promise<RetrievalResult[]> => {
-        const response = await fetch(`http://localhost:8000/retrieve?query=${encodeURIComponent(query)}`);
+    // Handle search sources action
+    if (action.type === 'SEARCH_SOURCES') {
+        return {
+            sources: Promise.resolve([])
+        } as ActionHandlerResponse
+    }
 
-        // Read and log the response content
-        const responseData = await response.json();
-        //console.log('Response Content:', responseData);
+    // Load the data from the API
+    // if (action.type === 'SET_SELECTED_SOURCE') {
+    //     const selected = sources.filter(source => source.id === action.sourceId)[0];
+    //     if (!selected) return {};
+    //
+    //     // todo: test this
+    //     return {
+    //         sources: (async () => {
+    //             try {
+    //                 const response = await fetch(`${API_BASE_URL}/sources/${selected.id}`);
+    //                 const data = await response.json();
+    //
+    //                 // Update the selected source with new data
+    //                 return sources.map(source =>
+    //                     source.id === selected.id
+    //                         ? { ...source, data: data.content }
+    //                         : source
+    //                 );
+    //             } catch (error) {
+    //                 console.error('Failed to load source:', error);
+    //                 return sources;
+    //             }
+    //         })()
+    //     };
+    // }
+}
 
-        return responseData;
-    };
-
-    const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
-        // We allow only PDF files in this demo
-        if (source.type !== "pdf") {
-            throw new Error("Invalid source type");
-        }
-
-        const url = `http://localhost:8000/sources/${encodeURIComponent(source.sourceReference)}`;
-
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        const pdfContent: PDFSourceContent = {
-            type: 'pdf',
-            content: new Uint8Array(arrayBuffer),
-            metadata: source.metadata || {},
-            highlights: source.highlights || []
-        };
-        return pdfContent;
-    };
-
+function App() {
     return (
         <div className="w-full h-screen flex flex-col">
             {/* Modern Navbar */}
@@ -167,7 +142,7 @@ function App() {
                     </h2>
                     <div className="flex items-center gap-4">
                         <a
-                            href="https://renumics.com/open-source/docs/lexio"
+                            href="https://renumics.com/lexio"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-4 py-2 text-gray-600 hover:text-gray-900"
@@ -194,21 +169,7 @@ function App() {
             {/* Main Content */}
             <div className="flex-1 p-4">
                 <RAGProvider
-                    retrieve={retrieve}
-                    retrieveAndGenerate={retrieveAndGenerate}
-                    getDataSource={getDataSource}
-                    config={{
-                        timeouts: {
-                            stream: 10000,
-                            request: 60000
-                        }
-                    }}
-                    onAddMessage={() => {
-                        return {
-                            type: 'reretrieve',
-                            preserveHistory: false
-                        }
-                    }}
+                    onAction={myOnActionFn}
                     theme={demoTheme}
                 >
                     <div className="w-full h-full max-h-full max-w-full mx-auto flex flex-row gap-6 p-4">
