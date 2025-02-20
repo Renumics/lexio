@@ -252,7 +252,13 @@ export type ActionHandlerResponse = {
 
 export type ActionHandler = {
     component: Component;
-    handler: (actionHandlerFunction: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => ActionHandlerResponse
+    handler: (
+        actionHandlerFunction: UserAction, 
+        messages: Message[], 
+        sources: Source[], 
+        activeSources: Source[], 
+        selectedSource: Source | null
+    ) => ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined | Promise<undefined>
 }
 
 // ---- handler registry -----

@@ -20,7 +20,7 @@ export const myOnActionFn = (action: UserAction, messages: Message[], sources: S
     console.log("myOnActionFn", action, messages, sources, activeSources, selectedSource)
 
     // Mock sources data
-    const mockSources = [
+    const mockSources: Source[] = [
         {
             title: "Source 1",
             type: "text",
@@ -91,13 +91,19 @@ export const myOnActionFn = (action: UserAction, messages: Message[], sources: S
 function App() {
     const [interactionCount, setInteractionCount] = React.useState(0);
 
-    const handleAction = React.useCallback((action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => {
+    const handleAction = React.useCallback((
+        action: UserAction, 
+        _messages: Message[], 
+        _sources: Source[], 
+        _activeSources: Source[], 
+        _selectedSource: Source | null
+    ): ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined => {
         if (action.type === 'ADD_USER_MESSAGE') {
             setInteractionCount(prev => prev + 1);
         }
         
         // Mock sources data
-        const mockSources = [
+        const mockSources: Source[] = [
             {
                 title: "Source 1",
                 type: "text",
@@ -118,29 +124,29 @@ function App() {
         if (action.type === 'ADD_USER_MESSAGE') {
             if (interactionCount === 0) {  // First interaction
                 return {
-                    response: (async function* () {
+                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
                         yield { content: "Let me think about that... " };
                         await new Promise(resolve => setTimeout(resolve, 500));
                         yield { content: "Based on the available information, " };
                         await new Promise(resolve => setTimeout(resolve, 500));
                         yield { content: "I can tell you that this is the first message response!", done: true };
                     })(),
-                    sources: Promise.resolve(mockSources),
-                }
+                    sources: Promise.resolve<Source[]>(mockSources),
+                } satisfies ActionHandlerResponse;
             } else if (interactionCount === 1) {  // Second interaction
                 return {
-                    response: (async function* () {
+                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
                         yield { content: "Processing your second question... " };
                         await new Promise(resolve => setTimeout(resolve, 3000));
                         yield { content: "After careful consideration, " };
                         await new Promise(resolve => setTimeout(resolve, 3000));
                         yield { content: "I can provide you with a detailed answer!", done: true };
                     })(),
-                    sources: Promise.resolve(mockSources),
-                }
+                    sources: Promise.resolve<Source[]>(mockSources),
+                } satisfies ActionHandlerResponse;
             } else {  // Third interaction and beyond
                 return {
-                    response: (async function* () {
+                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
                         yield { content: "Working on your question... " };
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         yield { content: "While I gather the relevant sources, " };
@@ -150,18 +156,16 @@ function App() {
                     sources: new Promise(resolve => 
                         setTimeout(() => resolve(mockSources), 6000)
                     ),
-                }
+                } satisfies ActionHandlerResponse;
             }
         }
 
         // Handle search sources action
         if (action.type === 'SEARCH_SOURCES') {
-            return new Promise(resolve => {
-                setTimeout(() => resolve({
-                    sources: Promise.resolve(mockSources),
-                } as ActionHandlerResponse), 1000);
-            });
+            return { sources: Promise.resolve<Source[]>(mockSources) }
         }
+
+        return undefined;
     }, [interactionCount]);
 
     return (
