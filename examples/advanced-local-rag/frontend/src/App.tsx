@@ -9,6 +9,8 @@ import {
     createSSEConnector,
     createRESTContentSource,
     UserAction,
+    Message,
+    Source,
 } from 'lexio'
 import './App.css';
 
