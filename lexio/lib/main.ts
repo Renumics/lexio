@@ -12,6 +12,10 @@ import { ContentDisplay } from './components/ContentDisplay'
 
 import { defaultTheme, createTheme } from './theme/index.ts'
 
+import { createRESTContentSource } from './connectors/createRESTContentSource'
+import { createSSEConnector } from './connectors/createSSEConnector'
+import { createRESTConnector } from './connectors/createRESTConnector'
+
 export {
     // Components
     AdvancedQueryField,
@@ -22,6 +26,11 @@ export {
     QueryField,
     RAGProvider,
     SourcesDisplay,
+
+    // Connectors
+    createRESTContentSource,
+    createSSEConnector,
+    createRESTConnector,
 
     // Hooks
     useRAGMessages,

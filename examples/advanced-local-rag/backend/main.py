@@ -28,9 +28,9 @@ app.add_middleware(
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 # Load model & tokenizer
-model_name = "Qwen/Qwen2.5-7B-Instruct"
+model_name = "Qwen/Qwen2.5-7B-Instruct" if device == "cuda" else "HuggingFaceTB/SmolLM2-360M-Instruct"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", load_in_4bit=True).to(device)
+model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", load_in_4bit=True if device == "cuda" else False).to(device)
 
 class Message(BaseModel):
     role: str
