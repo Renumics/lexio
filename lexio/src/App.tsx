@@ -6,7 +6,9 @@ import {
     SourcesDisplay, ContentDisplay, AdvancedQueryField,
     ErrorDisplay,
 } from '../lib/main'
-import {UserAction, Message, Source, ActionHandlerResponse} from '../lib/state/rag-state'
+import { ActionHandlerResponse } from '../lib/types';
+import { Message, Source } from '../lib/types';
+import { UserAction } from "../lib/types";
 import React from 'react'
 
 const customTheme = createTheme({

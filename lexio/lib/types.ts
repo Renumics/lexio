@@ -1,34 +1,106 @@
-import {Theme} from './theme/types'
-
-// todo: some docstrings are missing
-export type WorkflowMode =
-  | 'init'           // Initial state, no conversation yet
-  | 'follow-up'      // Using existing context and sources
-  | 'reretrieve';    // Getting new sources while preserving history
-
-
-/**
- * Represents a single message in a conversation between a user and an assistant.
- * 
- * @interface Message
- * @property {("user" | "assistant")} role - The role of the message sender.
- * @property {string} content - The actual text content of the message.
- */
+export interface RAGConfig {
+  timeouts?: {
+    stream?: number;  // Timeout between stream chunks in ms
+    request?: number; // Overall request timeout in ms
+  },
+}
 export interface Message {
-  /**
-   * The role of the message sender.
-   * Can be either "user" for user messages or "assistant" for AI responses.
-   */
-  role: "user" | "assistant";
-  /**
-   * The actual text content of the message.
-   */
-  content: string;
+    readonly id: UUID; // todo: make sure this is unique -> validate changes
+    role: "user" | "assistant";
+    content: string;
 }
 
+export interface Source {
+    readonly id: UUID; // todo: make sure this is unique -> validate changes
+    title: string;
+    type: "text" | "pdf" | "markdown" | "html";
+    relevance?: number;
+    data?: string | Uint8Array | null;
+    /**
+     * key convention to hide from display _key
+     *
+     * If type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the ContentDisplay component.
+     */
+    metadata?: Record<string, any> & {
+        /**
+       * The page number to display for PDF documents. Page numbers are 1-based.
+       * @TJS-type integer
+       * @minimum 1
+       */
+        page?: number;
+        /**
+       * Hidden from display. The page number to display for PDF documents. Page numbers are 1-based.
+       * @TJS-type integer
+       * @minimum 1
+       */
+        _page?: number;
+    };
+    /**
+     * Highlight annotations in the PDF document. Only applicable for PDF sources.
+     */
+    highlights?: PDFHighlight[];
+}// ---- central state management types -----
+export type Component = 'RAGProvider' |
+    'QueryField' |
+    'ChatWindow' |
+    'SourcesDisplay' |
+    'AdvancedQueryField' |
+    `QueryField-${string}` |
+    `ChatWindow-${string}` |
+    `SourcesDisplay-${string}` |
+    `AdvancedQueryField-${string}`; // Flow: action in component -> triggers wrapped user function with state props -> triggers dispatch -> manipulates state
+
+export type UserAction = { type: 'ADD_USER_MESSAGE'; message: string; source: Component; } // User message
+    |
+
+{ type: 'SET_ACTIVE_MESSAGE'; messageId: string; source: Component; } // Set active message -> can be used to rollback to a previous message
+    |
+
+{ type: 'CLEAR_MESSAGES'; source: Component; } // Clear all messages in the chat
+    |
+
+{ type: 'SEARCH_SOURCES'; query: string; source: Component; } // Search sources, retrieve function - triggered by SourceDisplay
+    |
+
+{ type: 'CLEAR_SOURCES'; source: Component; } // Clear all sources
+    |
+
+{ type: 'SET_ACTIVE_SOURCES'; sourceIds: string[]; source: Component; } // Sets active sources
+    |
+
+{ type: 'SET_SELECTED_SOURCE'; sourceId: string; source: Component; } // Sets selected source -> viewers
+    |
+
+{ type: 'SET_FILTER_SOURCES'; filter: any; source: Component; } // todo: define filter object
+    |
+
+{ type: 'RESET_FILTER_SOURCES'; source: Component; };
+export interface AddUserMessageActionModifier {
+    setUserMessage?: string;
+}
+export interface SetActiveMessageActionModifier {
+    messageId: string;
+}
+export interface ClearMessagesActionModifier {
+}
+export interface SearchSourcesActionModifier {
+}
+export interface ClearSourcesActionModifier {
+}
+export interface SetActiveSourcesActionModifier {
+    activeSourceIds: string[];
+}
+export interface SetSelectedSourceActionModifier {
+    selectedSourceId: string | null;
+}
+export interface SetFilterSourcesActionModifier {
+}
+export interface ResetFilterSourcesActionModifier {
+}
+export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 /**
  * Represents a highlight annotation in a PDF document.
- * 
+ *
  * @interface PDFHighlight
  * @property {number} page - The page number where the highlight appears. Page numbers are 1-based.
  * @property {object} rect - The rectangle coordinates of the highlight
@@ -38,333 +110,71 @@ export interface Message {
  * @property {number} rect.height - Height of the highlight (relative to the page height)
  */
 export interface PDFHighlight {
-  /**
-   * The page number where the highlight appears. Page numbers are 1-based.
-   */
-  page: number;
-  /**
-   * The rectangle coordinates of the highlight
-   */
-  rect: {
     /**
-     * Top position of the highlight (relative to the page)
+     * The page number where the highlight appears. Page numbers are 1-based.
      */
-    top: number;
+    page: number;
     /**
-     * Left position of the highlight (relative to the page)
+     * The rectangle coordinates of the highlight
      */
-    left: number;
-    /**
-     * Width of the highlight (relative to the page width)
-     */
-    width: number;
-    /**
-     * Height of the highlight (relative to the page height)
-     */
-    height: number;
-  };
+    rect: {
+        /**
+         * Top position of the highlight (relative to the page)
+         */
+        top: number;
+        /**
+         * Left position of the highlight (relative to the page)
+         */
+        left: number;
+        /**
+         * Width of the highlight (relative to the page width)
+         */
+        width: number;
+        /**
+         * Height of the highlight (relative to the page height)
+         */
+        height: number;
+    };
 }
+// ---- central data atoms -----
 
-
-/**
- * Base interface for all retrieval results, providing common properties.
- * 
- * @interface BaseRetrievalResult
- * @property {string} [sourceName] - Optional name of the source document
- * @property {number} [relevanceScore] - Optional score indicating relevance to the query
- * @property {Record<string, any>} [metadata] - Optional metadata associated with the result
- * @property {PDFHighlight[]} [highlights] - Optional array of PDF highlights
- */
-export interface BaseRetrievalResult {
-  /**
-   * Optional name of the source document. If not provided, the source reference will be used.
-   */
-  sourceName?: string;
-  /**
-   * Optional score indicating relevance to the query. Scores must be in the range [0, 1].
-   *
-   * @minimum 0
-   * @maximum 1
-   */
-  relevanceScore?: number;
-  /**
-   * Optional metadata associated with the result. Can be used to store additional information.
-   * @remarks Metadata is not used by the RAG provider. It is shown as-is in the SourcesDisplay component.
-   * @TJS-type object
-   * @TJS-additionalProperties {{ type: "any" }}
-   */
-  metadata?: Record<string, any>;
-  /**
-   * Optional array of PDF highlights. Only used for PDF source references.
-   */
-  highlights?: PDFHighlight[];
+export interface ProviderConfig {
+    timeouts?: {
+        stream?: number; // Timeout between stream chunks in ms
+        request?: number; // Overall request timeout in ms
+    };
 }
+// ---- ActionHandler Function types -----
+// todo: replace with allowedModifiers
+type UserActionModifier =
+    AddUserMessageActionModifier |
+    SetActiveMessageActionModifier |
+    ClearMessagesActionModifier |
+    SearchSourcesActionModifier |
+    ClearSourcesActionModifier |
+    SetActiveSourcesActionModifier |
+    SetSelectedSourceActionModifier |
+    SetFilterSourcesActionModifier |
+    ResetFilterSourcesActionModifier;
 
-/**
- * Metadata type for source references with explicit page property hint
- */
-export type SourceReferenceMetadata = {
-  /**
-   * The page number to display for PDF documents. Page numbers are 1-based.
-   * @TJS-type integer
-   * @minimum 1
-   */
-  page?: number;
-} & Record<string, any>;
-
-/**
- * Represents a reference to a source document.
- * 
- * @interface SourceReference
- * @extends {BaseRetrievalResult}
- * @property {('pdf' | 'html' | 'markdown')} [type] - The type of the source document
- * @property {string} sourceReference - Reference identifier for the source
- * @property {SourceReferenceMetadata} [metadata] - Optional metadata associated with the result. For PDF documents, you can provide a `page` property (number) to make the PdfViewer display that specific page. Page numbers are 1-based.
- */
-export interface SourceReference extends Omit<BaseRetrievalResult, 'metadata'> {
-  /**
-   * The type of the source document. Can be either "pdf", "html", or "markdown".
-   */
-  type?: 'pdf' | 'html' | 'markdown';
-  /**
-   * Reference identifier for the source. This can be everything from a URL, over a unique identifier to a database key and must be handled by the user in the getDataSource function.
-   * @remarks In the getDataSource function, the sourceReference is given as an argument to the function and the function should return the actual content of the source document.
-   * @example
-   * const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
-   *     const url = `http://localhost:8000/getDaa/${encodeURIComponent(source.sourceReference)}`;
-   *     const response = await fetch(url);
-   *     if (!response.ok) {
-   *         throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
-   *     }
-   *     ... your code here ...
-   *
-   *     return pdfContent;
-   * };
-   */
-  sourceReference: string;
-  /**
-   * Optional metadata associated with the result. Can be used to store additional information.
-   * For PDF documents, you can provide a `page` property to make the PdfViewer display that specific page.
-   * Page numbers are 1-based.
-   * @remarks Metadata is not used by the RAG provider. It is shown as-is in the SourcesDisplay component.
-   * @TJS-type object
-   * @TJS-additionalProperties {{ type: "any" }}
-   */
-  metadata?: SourceReferenceMetadata;
-}
-
-/**
- * Represents extracted text content from a source.
- * 
- * @interface TextContent
- * @extends {BaseRetrievalResult}
- * @property {string} text - The content of the RetrievalResult. If you are using the ComponentDisplay component, the text will be displayed with the **MarkdownViewer** component.
- */
-export interface TextContent extends BaseRetrievalResult {
-  /**
-   * The content of the RetrievalResult. If you are using the ComponentDisplay component, the text will be displayed with the **MarkdownViewer** component.
-   */
-  text: string;
-}
-
-/**
- * Base interface for all source content types.
- * 
- * @interface BaseSourceContent
- * @property {Record<string, any>} [metadata] - Optional metadata associated with the content. Can be used to store additional information.
- */
-interface BaseSourceContent {
-  /**
-   * Optional metadata associated with the content. Can be used to store additional information.
-   * @remarks Metadata is not used by the RAG provider. It is also not shown in the UI. For metadata to be displayed, it must be included in the SourceReference object.
-   */
-  metadata?: Record<string, any>;
-}
-
-/**
- * Represents Markdown source content.
- * 
- * @interface MarkdownSourceContent
- * @extends {BaseSourceContent}
- * @property {string} content - The Markdown content as a string
- * @property {'markdown'} type - Must be "markdown". Indicates this is Markdown content
- */
-export interface MarkdownSourceContent extends BaseSourceContent {
-  /**
-   * The Markdown content as a string.
-   */
-  content: string;
-  /**
-   * Must be "markdown". Indicates this is Markdown content.
-   *
-   * @default "markdown"
-   */
-  type: 'markdown';
-}
-
-/**
- * Represents HTML source content.
- * 
- * @interface HTMLSourceContent
- * @extends {BaseSourceContent}
- * @property {string} content - The HTML content as a string
- * @property {'html'} type - Must be "html". Indicates this is HTML content
- */
-export interface HTMLSourceContent extends BaseSourceContent {
-  /**
-   * The HTML content as a string.
-   */
-  content: string;
-  /**
-   * Must be "html". Indicates this is HTML content.
-   *
-   * @default "html"
-   */
-  type: 'html';
-}
-
-/**
- * Represents PDF source content.
- *
- * @remarks The PDFSourceContent value for page is automatically set if the associated SourceReference has a page property in its metadata.
- * 
- * @interface PDFSourceContent
- * @extends {BaseSourceContent}
- * @property {Uint8Array} content - The binary PDF content
- * @property {'pdf'} type - Must be "pdf". Indicates this is PDF content.
- * @property {PDFHighlight[]} [highlights] - Optional array of highlights in the PDF
- * @property {number} [page] - The page number to display when rendering the PDF. Page numbers are 1-based. If not provided, the PdfViewer will set the default page number based on the highlights (if no highlights are provided, the first page will be displayed).
- */
-export interface PDFSourceContent extends BaseSourceContent {
-  /**
-   * The binary PDF content.
-   */
-  content: Uint8Array;
-  /**
-   * Must be "pdf". Indicates this is PDF content.
-   *
-   * @default "pdf"
-   */
-  type: 'pdf';
-  /**
-   * Optional array of highlights in the PDF.
-   */
-  highlights?: PDFHighlight[];
-  /**
-   * The page number to display when rendering the PDF. Page numbers are 1-based. If not provided, the PdfViewer will set the default page number based on the highlights (if no highlights are provided, the first page will be displayed).
-   */
-  page?: number;
-}
-
-/**
- * Union type of all possible source content types.
- * 
- * @typedef {HTMLSourceContent | PDFSourceContent | MarkdownSourceContent} SourceContent
- *
- * @remarks This type is used in the ComponentDisplay component. The type of the content is determined by the type property of the object.
- */
-export type SourceContent = HTMLSourceContent | PDFSourceContent | MarkdownSourceContent;
-
-export const isPDFContent = (content: SourceContent): content is PDFSourceContent => {
-  return content.type === 'pdf';
+export type ActionHandlerResponse = {
+    response?: Promise<string> | AsyncIterable<{ content: string; done?: boolean; }>;
+    messages?: Promise<Message[]> | any;
+    sources?: Promise<Source[]>;
+    actionOptions?: {
+        current?: UserActionModifier;
+        followUp?: UserAction;
+    };
 };
 
-export const isHTMLContent = (content: SourceContent): content is HTMLSourceContent => {
-  return content.type === 'html';
+export type ActionHandler = {
+    component: Component;
+    handler: (
+        actionHandlerFunction: UserAction,
+        messages: Message[],
+        sources: Source[],
+        activeSources: Source[],
+        selectedSource: Source | null
+    ) => ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined | Promise<undefined>;
 };
 
-export const isMarkdownContent = (content: SourceContent): content is MarkdownSourceContent => {
-  return content.type === 'markdown';
-};
-
-export const isTextContent = (content: RetrievalResult): content is TextContent => {
-  return 'text' in content;
-};
-
-export type GetDataSourceResponse = Promise<SourceContent>;
-
-export interface GenerateStreamChunk {
-  content: string;
-  done?: boolean;
-}
-
-/**
- * Union type representing either a source reference or text content.
- * 
- * @typedef {SourceReference | TextContent} RetrievalResult
- *
- * @remarks This is the type of objects returned by the retrieve function.
- */
-export type RetrievalResult = SourceReference | TextContent;
-
-/**
- * Type representing the response from a retrieve operation.
- * 
- * @typedef {Promise<RetrievalResult[]>} RetrieveResponse
- *
- * @remarks The response is an array of RetrievalResult objects. These can be either SourceReference or TextContent objects.
- */
-export type RetrieveResponse = Promise<RetrievalResult[]>;
-
-/**
- * Represents the response from a retrieve and generate operation.
- *
- * @interface RetrieveAndGenerateResponse
- * @property {Promise<RetrievalResult[]>} [sources] - Optional promise resolving to an array of retrieval results.
- * @property {Promise<string> | AsyncIterable<GenerateStreamChunk>} response - The response, which can be either a promise resolving to a string or an async iterable of generate stream chunks.
- */
-export interface RetrieveAndGenerateResponse {
-  sources?: Promise<RetrievalResult[]>;
-  response: Promise<string> | AsyncIterable<GenerateStreamChunk>;
-}
-
-// ----- Types for the generate function -----
-/**
- * Type representing the input for generation, consisting of an array of messages.
- * 
- * @typedef {Message[]} GenerateInput
- */
-export type GenerateInput = Message[];
-
-/**
- * Type representing the response from a generate operation.
- * Can be either a Promise of a string or an AsyncIterable of chunks.
- * 
- * @typedef {Promise<string> | AsyncIterable<GenerateStreamChunk>} GenerateResponse
- */
-export type GenerateResponse = Promise<string> | AsyncIterable<GenerateStreamChunk>;
-export type GenerateSimple = (messages: Message[]) => GenerateResponse;
-export type GenerateWithSources = (messages: Message[], sources: RetrievalResult[]) => GenerateResponse;
-
-// Type guard to check if the supplied generate function accepts sources
-export const acceptsSources = (
-  fn: GenerateSimple | GenerateWithSources
-): fn is GenerateWithSources => fn.length === 2;
-
-// ----- Workflow Action Types -----
-export type RAGWorkflowActionOnAddMessage = 
-  | { type: 'follow-up' }
-  | { type: 'reretrieve', preserveHistory: boolean }
-
-
-// ----- RAG Provider Types -----
-export interface RAGProviderProps {
-  children: React.ReactNode;
-  retrieve?: (query: string, metadata?: Record<string, any>) => RetrieveResponse;
-  retrieveAndGenerate?: (
-    query: GenerateInput,
-    metadata?: Record<string, any>
-  ) => RetrieveAndGenerateResponse;
-  generate?: GenerateSimple | GenerateWithSources;
-  getDataSource?: (source: SourceReference) => GetDataSourceResponse;
-  config?: RAGConfig;
-  onAddMessage?: (message: Message, previousMessages: Message[]) => RAGWorkflowActionOnAddMessage;
-  theme?: Theme;
-}
-
-export interface RAGConfig {
-  timeouts?: {
-    stream?: number;  // Timeout between stream chunks in ms
-    request?: number; // Overall request timeout in ms
-  },
-}

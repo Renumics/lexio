@@ -1,7 +1,6 @@
 import {useAtomValue, useSetAtom} from "jotai";
 import {useAtom} from "jotai/index";
 import {
-    Component,
     dispatchAtom,
     loadingAtom,
     completedMessagesAtom,
@@ -10,8 +9,9 @@ import {
     activeSourcesIdsAtom,
     selectedSourceAtom,
     selectedSourceIdAtom,
-    retrievedSourcesAtom, errorAtom, UUID
-} from "../state/rag-state";
+    retrievedSourcesAtom, errorAtom} from "../state/rag-state";
+import { UUID } from "../types";
+import { Component } from "../types";
 
 // only data for now
 export const useRAGSources = () => {

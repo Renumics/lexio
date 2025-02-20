@@ -11,12 +11,12 @@ import {
   createTheme,
 } from '../../lib/main';
 
+import type { ActionHandlerResponse } from '../../lib/types';
 import type {
-  UserAction,
-  Message,
-  Source,
-  ActionHandlerResponse,
-} from '../../lib/state/rag-state';
+    Message,
+    Source
+} from '../../lib/types';
+import type { UserAction } from "../../lib/types";
 
 //
 // 1. Create a custom theme (optional)

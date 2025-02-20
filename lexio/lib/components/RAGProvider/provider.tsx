@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Provider, createStore } from 'jotai';
-import { ActionHandler, registeredActionHandlersAtom } from '../../state/rag-state';
+import { registeredActionHandlersAtom } from '../../state/rag-state';
+import { ActionHandler } from '../../types';
 
 
 import { ThemeProvider } from '../../theme/ThemeContext';
