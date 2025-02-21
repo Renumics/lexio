@@ -93,11 +93,11 @@ function App() {
     const handleAction = React.useCallback((
         action: UserAction, 
         _messages: Message[], 
-        _sources: Source[], 
+        sources: Source[], 
         _activeSources: Source[], 
         _selectedSource: Source | null
     ): ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined => {
-        if (action.type === 'ADD_USER_MESSAGE' && false) {
+        if (action.type === 'ADD_USER_MESSAGE') {
             setInteractionCount(prev => prev + 1);
             
         
@@ -122,6 +122,7 @@ function App() {
         
                 const sources: Source[] = data.source_nodes.map((doc: any) => ({
                     type: 'pdf', // or derive from doc if available
+                    title: doc.node.extra_info.file_name,
                     relevanceScore: doc.score,
                     Source: doc.node.extra_info.file_name,
                     highlights: [{
@@ -154,90 +155,50 @@ function App() {
             // log results of promises
             console.log('sourcesPromise', sourcesPromise)
             console.log('responsePromise', responsePromise)
-            const mockSources: Source[] = [
-                {
-                    title: "Source 1",
-                    type: "text",
-                    data: 'Hello from myOnActionFn',
-                } as Source,
-                {
-                    title: "Source 2",
-                    type: "text",
-                    data: 'Hello from myOnActionFn 2',
-                } as Source,
-                {
-                    title: "Source 3",
-                    type: "text",
-                    data: 'Hello from myOnActionFn 3',
-                } as Source,
-            ];
+
 
             return {
                 response: responsePromise,
-                sources: Promise.resolve<Source[]>(mockSources)
+                sources: sourcesPromise
             } satisfies ActionHandlerResponse;
         }    
 
-        //////
+        if (action.type === 'SET_SELECTED_SOURCE') {
+            const source = sources.find(source => source.id === action.sourceId)
+            if (source) {
+                console.log('loading source', source)
+                let url: string;
+                url = `http://localhost:8000/getDataSource?source_reference=${source.title}`;
         
-        // Mock sources data
-        const mockSources: Source[] = [
-            {
-                title: "Source 1",
-                type: "text",
-                data: 'Hello from myOnActionFn',
-            } as Source,
-            {
-                title: "Source 2",
-                type: "text",
-                data: 'Hello from myOnActionFn 2',
-            } as Source,
-            {
-                title: "Source 3",
-                type: "text",
-                data: 'Hello from myOnActionFn 3',
-            } as Source,
-        ];
+                const apiPromise = new Promise<{ sources: Source[] }>(
+                    async (resolve, reject) => {
+                        try {
+                            const response = await fetch(url);
+                            if (!response.ok) {
+                                throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
+                            }
+                            const data = await response.arrayBuffer()
+                            source.data = new Uint8Array(data)
+                            console.log('data', data)
+                            resolve({
+                                sources: [source],
+                            })  
+                        } catch (error) {
+                            reject(error)
+                        }
+                    }
+                )
 
-
-        if (action.type === 'ADD_USER_MESSAGE') {
-            if (interactionCount === 0) {  // First interaction
-                return {
-                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
-                        yield { content: "Let me think about that... " };
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        yield { content: "Based on the available information, " };
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        yield { content: "I can tell you that this is the first message response!", done: true };
-                    })(),
-                    sources: Promise.resolve<Source[]>(mockSources),
-                } satisfies ActionHandlerResponse;
-            } else if (interactionCount === 1) {  // Second interaction
-                return {
-                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
-                        yield { content: "Processing your second question... " };
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-                        yield { content: "After careful consideration, " };
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-                        yield { content: "I can provide you with a detailed answer!", done: true };
-                    })(),
-                    sources: Promise.resolve<Source[]>(mockSources),
-                } satisfies ActionHandlerResponse;
-            } else {  // Third interaction and beyond
-                return {
-                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
-                        yield { content: "Working on your question... " };
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        yield { content: "While I gather the relevant sources, " };
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        yield { content: "here's what I can tell you about your query!", done: true };
-                    })(),
-                    sources: new Promise(resolve => 
-                        setTimeout(() => resolve(mockSources), 6000)
-                    ),
-                } satisfies ActionHandlerResponse;
+                const sourcesPromise = apiPromise.then((result) => result.sources)
+                // ensure promise is resolved
+                sourcesPromise.then(() => {
+                    console.log('source loaded', source)
+                })
+                return
             }
         }
+
+
 
         // Handle search sources action
         if (action.type === 'SEARCH_SOURCES') {

@@ -110,7 +110,7 @@ pdf_path = str(Path(DATA_FOLDER).glob("*.pdf").__next__())
 index = create_index_from_pdf(pdf_path)
 
 # Query the Index
-query_engine = index.as_query_engine()
+query_engine = index.as_query_engine(similarity_top_k=10)
 
 app = FastAPI()
 
