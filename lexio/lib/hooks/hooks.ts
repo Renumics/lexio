@@ -20,9 +20,6 @@ export const useRAGSources = () => {
     const selectedSource = useAtomValue(selectedSourceAtom);
     const selectedSourceId = useAtomValue(selectedSourceIdAtom);
 
-
-    console.log(`sources in hook: ${sources}`);
-
     return {
         sources,
         activeSources,
