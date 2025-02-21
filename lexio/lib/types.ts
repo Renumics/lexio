@@ -68,7 +68,7 @@ export type UserAction = { type: 'ADD_USER_MESSAGE'; message: string; source: Co
 { type: 'SET_ACTIVE_SOURCES'; sourceIds: string[]; source: Component; } // Sets active sources
     |
 
-{ type: 'SET_SELECTED_SOURCE'; sourceId: string; source: Component; } // Sets selected source -> viewers
+{ type: 'SET_SELECTED_SOURCE'; sourceId: string; sourceObject?: Source; source: Component; } // Sets selected source -> viewers
     |
 
 { type: 'SET_FILTER_SOURCES'; filter: any; source: Component; } // todo: define filter object

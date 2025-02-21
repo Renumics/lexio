@@ -9,105 +9,163 @@ import {
     UserAction,
     Message,
     Source,
-    createRESTContentSource,
+    createRESTContentSource, 
     createSSEConnector,
-} from 'lexio'
+} from 'lexio';
 import './App.css';
 
-
-
-
 function App() {
-
-    const connectorOptions = useMemo(() => ({
+    // Move connector creation outside of useMemo
+    const sseConnector = createSSEConnector({
         endpoint: 'http://localhost:8000/api/retrieve-and-generate',
         defaultMode: 'both' as const,
         method: 'POST' as const,
-        buildRequestBody: (messages: Message[], _sources: Source[], metadata?: Record<string, any>) => ({
-            query: messages[messages.length - 1].content,
-            metadata
+        buildRequestBody: (messages: Message[], sources: Source[], metadata?: Record<string, any>) => ({
+            query: messages[messages.length - 1].content
         }),
         parseEvent: (data: any) => {
             if (Array.isArray(data.sources)) {
                 const sources = data.sources.map((item: any) => ({
-                    type: item.doc_path.endsWith('.pdf') ? 'pdf' :
-                        item.doc_path.endsWith('.html') ? 'html' : 'markdown',
-                    sourceReference: item.doc_path,
-                    sourceName: item.doc_path.split('/').pop(),
-                    relevanceScore: item.score,
-                    highlights: item.highlights?.map((highlight: any) => ({
-                        page: highlight.page,
-                        rect: {
-                            left: highlight.bbox.l,
-                            top: highlight.bbox.t,
-                            width: highlight.bbox.r - highlight.bbox.l,
-                            height: highlight.bbox.b - highlight.bbox.t
-                        }
-                    })),
+                    title: item.doc_path.split('/').pop() || '',
+                    type: item.doc_path.endsWith('.pdf') ? 'pdf'
+                        : item.doc_path.endsWith('.html') ? 'html'
+                            : item.doc_path.endsWith('.md') ? 'markdown'
+                                : 'text',
+                    relevance: item.score || 0,
                     metadata: {
-                        id: item.id,
-                        page: item.page
-                    }
+                        page: item.page || undefined,
+                        id: item.id || undefined,
+                    },
+                    content: item.text,
+                    highlights: item.highlights
+                        ? item.highlights.map((highlight: any) => ({
+                            page: highlight.page,
+                            rect: highlight.bbox
+                                ? {
+                                    top: highlight.bbox.t,
+                                    left: highlight.bbox.l,
+                                    width: highlight.bbox.r - highlight.bbox.l,
+                                    height: highlight.bbox.b - highlight.bbox.t,
+                                }
+                                : undefined,
+                        }))
+                        : undefined,
                 }));
                 return { sources, done: false };
             }
             return {
                 content: data.content,
-                done: !!data.done
+                done: !!data.done,
             };
-        }
+        },
+    });
+
+    // Move follow-up connector creation outside of useMemo
+    const followUpConnector = createSSEConnector({
+        endpoint: 'http://localhost:8000/api/generate',
+        defaultMode: 'text' as const,
+        method: 'POST' as const,
+        buildRequestBody: (messages: Message[], sources: Source[]) => ({
+            messages: messages.map(m => ({
+                role: m.role,
+                content: m.content
+            })),
+            source_ids: sources.map(s => s.metadata?.id).filter(Boolean)
+        }),
+        parseEvent: (data: any) => ({
+            content: data.content,
+            done: !!data.done,
+        }),
+    });
+
+    const contentSourceOptions = useMemo(() => ({
+        buildFetchRequest: (source: Source) => {
+            const id = source.metadata?.id;
+            if (!id) {
+                throw new Error('No ID in source metadata');
+            }
+            return {
+                url: `http://localhost:8000/pdfs/${encodeURIComponent(id)}`
+            };
+        },
     }), []);
 
-    const sseConnector = createSSEConnector(connectorOptions);
+    const contentSource = createRESTContentSource(contentSourceOptions);
 
+    // 3) Action handler uses the SSE connector for "ADD_USER_MESSAGE"
     const onAction = useCallback((action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => {
         if (action.type === 'ADD_USER_MESSAGE') {
-            const newMessages = [...messages, { content: action.message, role: 'user', id: "dummyid" as string}];
+            const newMessages = [...messages, { content: action.message, role: 'user' as const }];
             
-            // Now we can use the new request object syntax
-            return sseConnector({
+            // Use followUpConnector for follow-up questions if we have active sources
+            if (activeSources.length > 0) {
+                const response = followUpConnector({
+                    messages: newMessages,
+                    sources: activeSources,
+                    mode: 'text',
+                });
+                return { response };
+            }
+            
+            // Use main connector for new queries
+            const { response, sources: newSources } = sseConnector({
                 messages: newMessages,
-                sources,
-                mode: action.metadata?.mode, // Will fall back to defaultMode if not specified
-                metadata: action.metadata
+                sources: [],
+                mode: 'both',
             });
+            return { response, sources: newSources };
+        } else if (action.type === 'SET_SELECTED_SOURCE') {
+            if (!selectedSource?.metadata?.id) {
+                return undefined;
+            }
+
+            // Use the content source connector to fetch the data
+            return contentSource(selectedSource).then(sourceWithData => ({
+                sourceData: sourceWithData.data
+            }));
         }
         return undefined;
-    }, []);
+    }, [sseConnector, followUpConnector]);
 
+    // 4) Provide the SSE connector and the REST content source to the RAGProvider
     return (
         <div className="app-container">
             <RAGProvider
                 onAction={onAction}
                 config={{
                     timeouts: {
-                        stream: 10000
-                    }
+                        stream: 10000,
+                    },
                 }}
+            // This is the key: your RAGProvider can now fetch Source data (like PDFs) via REST
             >
-                <div style={{
-                    display: 'grid',
-                    height: '100vh',
-                    width: '100%',
-                    gridTemplateColumns: '1fr 2fr',
-                    gridTemplateRows: '1fr 100px',
-                    gap: '20px',
-                    gridTemplateAreas: `
-            "chat viewer"
-            "input viewer"
-          `,
-                    maxHeight: '100vh',
-                    overflow: 'hidden',
-                    padding: '20px',
-                    boxSizing: 'border-box'
-                }}>
+                <div
+                    style={{
+                        display: 'grid',
+                        height: '100vh',
+                        width: '100%',
+                        gridTemplateColumns: '1fr 2fr',
+                        gridTemplateRows: '1fr 100px',
+                        gap: '20px',
+                        gridTemplateAreas: `
+                            "chat viewer"
+                            "input viewer"
+                        `,
+                        maxHeight: '100vh',
+                        overflow: 'hidden',
+                        padding: '20px',
+                        boxSizing: 'border-box',
+                    }}
+                >
                     {/* Main chat UI */}
-                    <div style={{
-                        gridArea: 'chat',
-                        overflow: 'auto',
-                        minWidth: 0,
-                        maxWidth: '100%'
-                    }}>
+                    <div
+                        style={{
+                            gridArea: 'chat',
+                            overflow: 'auto',
+                            minWidth: 0,
+                            maxWidth: '100%',
+                        }}
+                    >
                         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                             <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
                                 <SourcesDisplay />
@@ -119,22 +177,26 @@ function App() {
                     </div>
 
                     {/* Advanced query input */}
-                    <div style={{
-                        gridArea: 'input',
-                        height: '100px',
-                        minWidth: 0,
-                        maxWidth: '100%'
-                    }}>
+                    <div
+                        style={{
+                            gridArea: 'input',
+                            height: '100px',
+                            minWidth: 0,
+                            maxWidth: '100%',
+                        }}
+                    >
                         <AdvancedQueryField />
                     </div>
 
                     {/* Content viewer */}
-                    <div style={{
-                        gridArea: 'viewer',
-                        overflow: "hidden",
-                        width: '100%',
-                        height: '100%'
-                    }}>
+                    <div
+                        style={{
+                            gridArea: 'viewer',
+                            overflow: 'hidden',
+                            width: '100%',
+                            height: '100%',
+                        }}
+                    >
                         <ContentDisplay />
                     </div>
                 </div>

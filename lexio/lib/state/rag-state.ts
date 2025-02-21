@@ -5,25 +5,25 @@ import { Message, Source } from '../types';
 
 const allowedModifiers: Record<UserAction['type'], object> = {
     ADD_USER_MESSAGE: { setUserMessage: '' },
-    SET_ACTIVE_MESSAGE: { messageId: '' },
+    SET_ACTIVE_MESSAGE: {},
     CLEAR_MESSAGES: {},
     SEARCH_SOURCES: {},
     CLEAR_SOURCES: {},
-    SET_ACTIVE_SOURCES: { activeSourceIds: [] },
-    SET_SELECTED_SOURCE: { selectedSourceId: '' },
+    SET_ACTIVE_SOURCES: {},
+    SET_SELECTED_SOURCE: {},
     SET_FILTER_SOURCES: {},
     RESET_FILTER_SOURCES: {}
 };
 
 const allowedPayloadKeys: Record<UserAction['type'], string[]> = {
     ADD_USER_MESSAGE: ['response', 'message', 'messages', 'sources', 'actionOptions'],
-    SET_ACTIVE_MESSAGE: ['messageId', 'actionOptions'],
+    SET_ACTIVE_MESSAGE: ['actionOptions'],
     CLEAR_MESSAGES: ['actionOptions'],
     SEARCH_SOURCES: ['sources', 'actionOptions'],
     CLEAR_SOURCES: ['actionOptions'],
-    SET_ACTIVE_SOURCES: ['sourceIds', 'actionOptions'],
-    SET_SELECTED_SOURCE: ['sourceId', 'actionOptions'],
-    SET_FILTER_SOURCES: ['filter', 'actionOptions'],
+    SET_ACTIVE_SOURCES: ['actionOptions'],
+    SET_SELECTED_SOURCE: ['sourceData', 'actionOptions'],
+    SET_FILTER_SOURCES: ['actionOptions'],
     RESET_FILTER_SOURCES: ['actionOptions']
 };
 
@@ -375,32 +375,31 @@ const setActiveSourcesAtom = atom(null, (_get, set, { sourceIds, setActiveSource
 });
 
 // set selected source
-const setSelectedSourceAtom = atom(null, (get, set, { sourceId, setSelectedSourceModifier }: {
-    sourceId?: UUID,
-    setSelectedSourceModifier?: SetSelectedSourceActionModifier
+const setSelectedSourceAtom = atom(null, (get, set, { sourceId, sourceData }: {
+    sourceId: UUID,
+    sourceData?: string | Uint8Array
 }) => {
-    const selectedSourceId = setSelectedSourceModifier?.selectedSourceId ?? sourceId;
-    if (!selectedSourceId) return;
-
     const currentSources = get(retrievedSourcesAtom);
-    const targetSource = currentSources.find(source => source.id === selectedSourceId);
-
-    // Check if source exists and has data
+    const targetSource = currentSources.find(source => source.id === sourceId);
+    
     if (!targetSource) {
-        console.warn(`Source with id ${selectedSourceId} not found`);
+        console.warn(`Source with id ${sourceId} not found`);
         return;
     }
 
-    if (!targetSource.data && !setSelectedSourceModifier?.sourceData) {
-        console.warn(`Selecting source ${selectedSourceId} without data. Make sure to provide sourceData for sources that haven't been loaded yet.`);
-    }
+    // Always set the selected source ID
+    set(selectedSourceIdAtom, sourceId);
 
-    set(selectedSourceIdAtom, selectedSourceId);
+    // Only validate and update data if sourceData is provided
+    if (sourceData) {
+        // Warn if trying to update a source that already has data
+        if (targetSource.data) {
+            console.warn(`Source ${sourceId} already has data but new data was provided`);
+            return;
+        }
 
-    if (setSelectedSourceModifier?.sourceData) {
-        const sourceData = setSelectedSourceModifier.sourceData;
         const updatedSources = currentSources.map(source => 
-            source.id === selectedSourceId 
+            source.id === sourceId 
                 ? { ...source, data: sourceData }
                 : source
         );
@@ -476,7 +475,15 @@ const isBlockingAction = (action: UserAction): boolean => {
           }
           return;
         }
-  
+        // ---- Fetch additional data for certain actions ---
+        if (action.type === 'SET_SELECTED_SOURCE') {
+            const source = get(retrievedSourcesAtom).find(source => source.id === action.sourceId);
+            if (source) {
+                action.sourceObject = source;
+            }
+        }
+
+
         // ---- Call the handler
         const payload = await Promise.resolve(
           handler.handler(
@@ -513,7 +520,7 @@ const isBlockingAction = (action: UserAction): boolean => {
         }
   
         // ---- Destructure the useful pieces from payload
-        const { response, messages, sources } = payload ?? {};
+        const { response, messages, sources, sourceData } = payload ?? {};
   
         // ---- Collect all atom write operations
         const promises: Promise<any>[] = [];
@@ -571,7 +578,7 @@ const isBlockingAction = (action: UserAction): boolean => {
           case 'SET_SELECTED_SOURCE': {
             const result = set(setSelectedSourceAtom, {
               sourceId: action.sourceId as UUID,
-              setSelectedSourceModifier: actionOptions?.current as SetSelectedSourceActionModifier,
+              sourceData: sourceData,
             });
             promises.push(Promise.resolve(result));
             break;
