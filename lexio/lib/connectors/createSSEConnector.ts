@@ -129,14 +129,10 @@ export function createSSEConnector(options: SSEConnectorOptions) {
 
                 // b) Sources (if mode includes it)
                 if ((mode === 'sources' || mode === 'both') && Array.isArray(newSources)) {
-                  const normalized = newSources.map(s => ({
-                    ...s,
-                    id: s.id ?? crypto.randomUUID(),
-                  }));
-                  allSources.push(...normalized);
+                  // Directly push any new sources (no ID generation)
+                  allSources.push(...newSources);
 
                   // If not yet resolved and we have at least one source, resolve now
-                  // (i.e. do NOT wait for `done` or end of stream)
                   if (!sourcesResolved && allSources.length > 0) {
                     sourcesResolved = true;
                     resolveSources([...allSources]);
@@ -147,8 +143,7 @@ export function createSSEConnector(options: SSEConnectorOptions) {
                 if (done) {
                   finished = true;
                   textNotify?.();
-                  // We no longer resolveSources here, because
-                  // we already did it immediately upon receiving sources
+                  // We do not resolveSources here, we already do so above
                 }
               } catch (err) {
                 console.warn('Failed to parse SSE event:', ev.data, err);
@@ -176,7 +171,7 @@ export function createSSEConnector(options: SSEConnectorOptions) {
           throw err;
         } finally {
           // SSE has ended for any reason
-          // If sources have never arrived, we still resolve with whatever we have (empty or partial)
+          // If sources have never arrived, we still resolve with what we have (could be empty).
           if (!sourcesResolved) {
             sourcesResolved = true;
             resolveSources([...allSources]);

@@ -1,5 +1,5 @@
 import { atom } from 'jotai'
-import { ActionHandler, ProviderConfig, UUID } from "../types";
+import { ActionHandler, ProviderConfig, StreamChunk, UUID } from "../types";
 import { AddUserMessageActionModifier, ClearMessagesActionModifier, ClearSourcesActionModifier, ResetFilterSourcesActionModifier, SearchSourcesActionModifier, SetActiveMessageActionModifier, SetActiveSourcesActionModifier, SetFilterSourcesActionModifier, SetSelectedSourceActionModifier, UserAction } from "../types";
 import { Message, Source } from '../types';
 
@@ -133,7 +133,7 @@ export const addUserMessageAtom = atom(
             addMessageModifier,
         }: {
             message: string;
-            response?: Promise<string> | AsyncIterable<{ content: string; done?: boolean }>;
+            response?: Promise<string> | AsyncIterable<StreamChunk>;
             messages?: Promise<Message[]>;
             sources?: Promise<Source[]>;
             addMessageModifier?: AddUserMessageActionModifier;
@@ -198,10 +198,10 @@ export const addUserMessageAtom = atom(
                 if (Symbol.asyncIterator in response) {
                     // Streaming response: process each chunk.
                     const streamTimeout = new StreamTimeout(config.timeouts?.stream);
-                    for await (const chunk of response as AsyncIterable<{ content: string; done?: boolean }>) {
+                    for await (const chunk of response as AsyncIterable<StreamChunk>) {
                         if (abortController.signal.aborted) break;
                         streamTimeout.check();
-                        accumulatedContent += chunk.content;
+                        accumulatedContent += chunk.content ?? '';
                         // Provide immediate feedback as streaming chunks arrive.
                         set(currentStreamAtom, {
                             id: crypto.randomUUID(),

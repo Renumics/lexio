@@ -92,6 +92,7 @@ export interface SetActiveSourcesActionModifier {
 }
 export interface SetSelectedSourceActionModifier {
     selectedSourceId: string | null;
+    sourceData?: string | Uint8Array | null;
 }
 export interface SetFilterSourcesActionModifier {
 }
@@ -158,7 +159,7 @@ type UserActionModifier =
     ResetFilterSourcesActionModifier;
 
 export type ActionHandlerResponse = {
-    response?: Promise<string> | AsyncIterable<{ content: string; done?: boolean; }>;
+    response?: Promise<string> | AsyncIterable<StreamChunk>;
     messages?: Promise<Message[]> | any;
     sources?: Promise<Source[]>;
     actionOptions?: {
