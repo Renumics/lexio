@@ -4,8 +4,11 @@ import {
     RAGProvider,
     createTheme,
     SourcesDisplay, ContentDisplay, AdvancedQueryField,
-    ErrorDisplay, ActionHandlerResponse, UserAction, Message, Source
+    ErrorDisplay,
 } from 'lexio'
+import { ActionHandlerResponse } from 'lexio';
+import { Message, Source } from 'lexio';
+import { UserAction } from "lexio";
 import React from 'react'
 
 const customTheme = createTheme({
@@ -97,88 +100,9 @@ function App() {
         _activeSources: Source[], 
         _selectedSource: Source | null
     ): ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined => {
-        if (action.type === 'ADD_USER_MESSAGE' && false) {
+        if (action.type === 'ADD_USER_MESSAGE') {
             setInteractionCount(prev => prev + 1);
-            
-        
-
-            //////
-            const apiPromise = new Promise<{ sources: Source[]; content: string }>(
-                async (resolve, reject) => {
-                try {
-                    const question = action.message
-                    const response = await fetch(`http://localhost:8000/query?messages=${question}`)
-        
-                    if (!response.ok) {
-                    throw new Error(`Failed to fetch response: ${response.statusText}`)
-                    }
-        
-                    const data = await response.json()
-        
-                    // Log the data to inspect its structure
-                    console.log('Fetched data:', data)
-        
-                    // Assuming `data` is structured to match Source        
-        
-                const sources: Source[] = data.source_nodes.map((doc: any) => ({
-                    type: 'pdf', // or derive from doc if available
-                    relevanceScore: doc.score,
-                    Source: doc.node.extra_info.file_name,
-                    highlights: [{
-                        page: doc.node.extra_info.bounding_box.page_number,
-                        rect: {
-                            left: doc.node.extra_info.bounding_box.x0,
-                            top: doc.node.extra_info.bounding_box.top,
-                            width: doc.node.extra_info.bounding_box.x1 - doc.node.extra_info.bounding_box.x0,
-                            height: doc.node.extra_info.bounding_box.bottom - doc.node.extra_info.bounding_box.top
-                        }
-                    }],
-                    //metadata: doc.metadata,
-                    }))
-        
-                    console.log('sources', sources)
-        
-                    resolve({
-                    sources: sources,
-                    content: data.response,
-                    })
-                } catch (error) {
-                    reject(error)
-                }
-                }
-            )
-        
-            const sourcesPromise = apiPromise.then((result) => result.sources)
-            const responsePromise = apiPromise.then((result) => result.content)
-            
-            // log results of promises
-            console.log('sourcesPromise', sourcesPromise)
-            console.log('responsePromise', responsePromise)
-            const mockSources: Source[] = [
-                {
-                    title: "Source 1",
-                    type: "text",
-                    data: 'Hello from myOnActionFn',
-                } as Source,
-                {
-                    title: "Source 2",
-                    type: "text",
-                    data: 'Hello from myOnActionFn 2',
-                } as Source,
-                {
-                    title: "Source 3",
-                    type: "text",
-                    data: 'Hello from myOnActionFn 3',
-                } as Source,
-            ];
-
-            return {
-                response: responsePromise,
-                sources: Promise.resolve<Source[]>(mockSources)
-            } satisfies ActionHandlerResponse;
-        }    
-
-        //////
+        }
         
         // Mock sources data
         const mockSources: Source[] = [
@@ -198,7 +122,6 @@ function App() {
                 data: 'Hello from myOnActionFn 3',
             } as Source,
         ];
-
 
         if (action.type === 'ADD_USER_MESSAGE') {
             if (interactionCount === 0) {  // First interaction
