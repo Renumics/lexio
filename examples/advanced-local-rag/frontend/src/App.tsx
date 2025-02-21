@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
     ChatWindow,
     RAGProvider,
@@ -6,126 +6,79 @@ import {
     ContentDisplay,
     AdvancedQueryField,
     ErrorDisplay,
-    useSSERetrieveAndGenerateSource,
-    useSSEGenerateSource,
-    SourceReference,
+    UserAction,
     Message,
-    RetrievalResult,
-    useRestContentSource,
+    Source,
+    createRESTContentSource,
+    createSSEConnector,
 } from 'lexio'
 import './App.css';
 
 
 
+
 function App() {
 
-    const getDataSourceOptions = useMemo(() => ({
-        buildFetchRequest: (source: SourceReference) => {
-          const id = source.metadata?.id;
-          if (!id) {
-            throw new Error('No ID in source metadata');
-          }
-          // For PDFs or text, always use the same endpoint for now
-          return {
-            url: `http://localhost:8000/pdfs/${encodeURIComponent(id)}`, 
-          };
-        }, 
-        parseText: (text: string, source: SourceReference) => {
-            const codeFileExtensions = ['.tsx', '.ts', '.js', '.jsx', '.py', '.java', '.cpp', '.c', '.rs'];
-            const isCodeFile = source.sourceName && codeFileExtensions.some(ext => source.sourceName?.endsWith(ext));
-
-            if (isCodeFile) {
-                // For code files, escape backticks and wrap in code fence
-                const escapedText = text.replace(/`/g, '\\`');
-                const extension = source.sourceName?.split('.').pop() || 'txt';
-                return {
-                    type: source.type,
-                    content: `\`\`\`${extension}\n${escapedText}\n\`\`\``,
-                    metadata: source.metadata || {}
-                };
+    const connectorOptions = useMemo(() => ({
+        endpoint: 'http://localhost:8000/api/retrieve-and-generate',
+        defaultMode: 'both' as const,
+        method: 'POST' as const,
+        buildRequestBody: (messages: Message[], sources: Source[], metadata?: Record<string, any>) => ({
+            query: messages[messages.length - 1].content,
+            metadata
+        }),
+        parseEvent: (data: any) => {
+            if (Array.isArray(data.sources)) {
+                const sources = data.sources.map((item: any) => ({
+                    type: item.doc_path.endsWith('.pdf') ? 'pdf' :
+                        item.doc_path.endsWith('.html') ? 'html' : 'markdown',
+                    sourceReference: item.doc_path,
+                    sourceName: item.doc_path.split('/').pop(),
+                    relevanceScore: item.score,
+                    highlights: item.highlights?.map((highlight: any) => ({
+                        page: highlight.page,
+                        rect: {
+                            left: highlight.bbox.l,
+                            top: highlight.bbox.t,
+                            width: highlight.bbox.r - highlight.bbox.l,
+                            height: highlight.bbox.b - highlight.bbox.t
+                        }
+                    })),
+                    metadata: {
+                        id: item.id,
+                        page: item.page
+                    }
+                }));
+                return { sources, done: false };
             }
-            
-            // For all other files, return as-is with original type
             return {
-                type: source.type,
-                content: text,
-                metadata: source.metadata || {}
+                content: data.content,
+                done: !!data.done
             };
         }
     }), []);
 
-    const getDataSource = useRestContentSource(getDataSourceOptions);
-    
+    const sseConnector = createSSEConnector(connectorOptions);
 
-    // Memoize the options for retrieve and generate
-    const retrieveAndGenerateOptions = useMemo(() => ({
-        endpoint: 'http://localhost:8000/api/retrieve-and-generate',
-        method: 'POST' as const,
-        buildRequestBody: (messages: Message[], metadata?: Record<string, any>) => ({
-            query: messages[messages.length - 1].content,
-            metadata: metadata
-        }),
-        parseEvent: (data: any) => {
-            if (Array.isArray(data.sources)) {
-                const sources = data.sources.map((item: any) => {
-                    const relevanceScore = item.score != null ? item.score : undefined;
-                    const fileName = item.doc_path.split('/').pop();
-
-                    return {
-                        type: item.doc_path.endsWith('.pdf') ? 'pdf' :
-                            item.doc_path.endsWith('.html') ? 'html' : 'markdown',
-                        sourceReference: item.doc_path,
-                        sourceName: fileName,
-                        relevanceScore,
-                        highlights: item.highlights?.map((highlight: any) => ({
-                            page: highlight.page,
-                            rect: {
-                                left: highlight.bbox.l,
-                                top: highlight.bbox.t,
-                                width: highlight.bbox.r - highlight.bbox.l,
-                                height: highlight.bbox.b - highlight.bbox.t
-                            }
-                        })),
-                        metadata: {
-                            id: item.id,
-                            page: item.page
-                        }
-                    } as SourceReference;
-                });
-                return { sources, done: false };
-            }
-            if (typeof data.content === 'string') {
-                return { content: data.content, done: !!data.done };
-            }
-            return {};
+    const onAction = useCallback((action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => {
+        if (action.type === 'ADD_USER_MESSAGE') {
+            const newMessages = [...messages, { content: action.message, role: 'user', id: "dummyid" as string}];
+            
+            // Now we can use the new request object syntax
+            return sseConnector({
+                messages: newMessages,
+                sources,
+                mode: action.metadata?.mode, // Will fall back to defaultMode if not specified
+                metadata: action.metadata
+            });
         }
-    }), []);
-
-    const generateOptions = useMemo(() => ({
-        endpoint: 'http://localhost:8000/api/generate',
-        method: 'POST' as const,
-        buildRequestBody: (messages: Message[], sources?: RetrievalResult[]) => ({
-            messages,
-            source_ids: sources?.map(source => 
-                'sourceReference' in source ? source.metadata?.id : null
-            ).filter(Boolean)
-        }),
-        parseEvent: (data: any) => ({
-            content: data.content,
-            done: !!data.done
-        })
-    }), []);
-
-    // Create the SSE-based functions using the memoized options
-    const retrieveAndGenerate = useSSERetrieveAndGenerateSource(retrieveAndGenerateOptions);
-    const generate = useSSEGenerateSource(generateOptions);
+        return undefined;
+    }, []);
 
     return (
         <div className="app-container">
             <RAGProvider
-                retrieveAndGenerate={retrieveAndGenerate}
-                generate={generate}
-                getDataSource={getDataSource}
+                onAction={onAction}
                 config={{
                     timeouts: {
                         stream: 10000

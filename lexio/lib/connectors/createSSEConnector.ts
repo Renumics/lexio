@@ -8,22 +8,22 @@ import type { Message, Source, StreamChunk } from '../types';
  *  'sources' => ignore parsed.content
  *  'both' => use both
  */
-export interface SSEConnectorOptions {
+export interface SSEConnectorOptions<TData = any> {
   endpoint: string;
-  mode: 'text' | 'sources' | 'both';
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-
-  /**
-   * parseEvent() is how you interpret each SSE event's data (already JSON-parsed).
-   * Return { content?, sources?, done? } as needed.
-   */
-  parseEvent(data: any): StreamChunk;
-
-  /**
-   * Optional method to build the request body (when method != 'GET').
-   * By default: { messages, metadata }
-   */
+  parseEvent(data: TData): StreamChunk;
   buildRequestBody?: (messages: Message[], sources: Source[], metadata?: Record<string, any>) => any;
+  
+  // Instead of a fixed mode, we can make it configurable per-request
+  defaultMode?: 'text' | 'sources' | 'both';
+}
+
+export interface SSEConnectorRequest {
+  messages: Message[];
+  sources: Source[];
+  metadata?: Record<string, any>;
+  // Allow overriding the mode per request
+  mode?: 'text' | 'sources' | 'both';
 }
 
 /**
@@ -31,24 +31,37 @@ export interface SSEConnectorOptions {
  * and yields { response, sources }.
  */
 export function createSSEConnector(options: SSEConnectorOptions) {
-  const {
-    endpoint,
-    mode,
-    method = 'POST',
-    parseEvent,
-    buildRequestBody = (messages, metadata) => ({ messages, metadata }),
-  } = options;
-
-  // Return a stable callback that uses the provided options
   return useCallback(
-    (messages: Message[], sources: Source[], metadata?: Record<string, any>) => {
+    // Accept either the old signature or a request object
+    (
+      messagesOrRequest: Message[] | SSEConnectorRequest,
+      sources?: Source[],
+      metadata?: Record<string, any>
+    ) => {
+      // Normalize the input to get a consistent request object
+      const request: SSEConnectorRequest = Array.isArray(messagesOrRequest)
+        ? { messages: messagesOrRequest, sources: sources || [], metadata }
+        : messagesOrRequest;
+
+      const {
+        endpoint,
+        method = 'POST',
+        parseEvent,
+        buildRequestBody = (messages, metadata) => ({ messages, metadata }),
+      } = options;
+
+      // Use request.mode if provided, fall back to defaultMode, then 'both'
+      const mode = request.mode || options.defaultMode || 'both';
+      
       // 1) Build the RequestInit object
       const requestInit: RequestInit = {
         method,
         headers: { 'Content-Type': 'application/json' },
       };
       if (method !== 'GET') {
-        requestInit.body = JSON.stringify(buildRequestBody(messages, sources, metadata));
+        requestInit.body = JSON.stringify(
+          buildRequestBody(request.messages, request.sources, request.metadata)
+        );
       }
 
       // 2) Prepare data structures for text streaming & source collection
@@ -171,6 +184,6 @@ export function createSSEConnector(options: SSEConnectorOptions) {
         sources: sourcesPromise, // promise of Source[]
       };
     },
-    [endpoint, mode, method, parseEvent, buildRequestBody]
+    [options]
   );
 }

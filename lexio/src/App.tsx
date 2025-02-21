@@ -1,204 +1,148 @@
-import './App.css'
+import { useCallback, useMemo } from 'react';
 import {
     ChatWindow,
     RAGProvider,
-    createTheme,
-    SourcesDisplay, ContentDisplay, AdvancedQueryField,
+    SourcesDisplay,
+    ContentDisplay,
+    AdvancedQueryField,
     ErrorDisplay,
+    UserAction,
+    Message,
+    Source,
+    createRESTContentSource,
+    createSSEConnector,
 } from '../lib/main'
-import { ActionHandlerResponse } from '../lib/types';
-import { Message, Source } from '../lib/types';
-import { UserAction } from "../lib/types";
-import React from 'react'
+import './App.css';
 
-const customTheme = createTheme({
-    colors: {
-        primary: '#1E88E5',
-        secondary: '#64B5F6'
-    }
-});
 
-export const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => {
-    console.log("myOnActionFn", action, messages, sources, activeSources, selectedSource)
 
-    // Mock sources data
-    const mockSources: Source[] = [
-        {
-            title: "Source 1",
-            type: "text",
-            data: 'Hello from myOnActionFn',
-        } as Source,
-        {
-            title: "Source 2",
-            type: "text",
-            data: 'Hello from myOnActionFn 2',
-        } as Source,
-        {
-            title: "Source 3",
-            type: "text",
-            data: 'Hello from myOnActionFn 3',
-        } as Source,
-    ];
-
-    if (action.type === 'ADD_USER_MESSAGE') {
-        if (messages.length <= 1) {  // First interaction (0 or 1 message)
-            // First message - quick streaming response
-            return {
-                response: (async function* () {
-                    yield { content: "Let me think about that... " };
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    yield { content: "Based on the available information, " };
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    yield { content: "I can tell you that this is the first message response!", done: true };
-                })(),
-                sources: Promise.resolve(mockSources),
-            }
-        } else if (messages.length <= 3) {  // Second interaction (2 or 3 messages)
-            // Second message - slower streaming response
-            return {
-                response: (async function* () {
-                    yield { content: "Processing your second question... " };
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                    yield { content: "After careful consideration, " };
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                    yield { content: "I can provide you with a detailed answer!", done: true };
-                })(),
-                sources: Promise.resolve(mockSources),
-            }
-        } else {  // Third interaction and beyond (4+ messages)
-            // Third message and beyond - normal streaming but delayed sources
-            return {
-                response: (async function* () {
-                    yield { content: "Working on your question... " };
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    yield { content: "While I gather the relevant sources, " };
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    yield { content: "here's what I can tell you about your query!", done: true };
-                })(),
-                sources: new Promise(resolve => 
-                    setTimeout(() => resolve(mockSources), 6000) // Sources take > 5 seconds
-                ),
-            }
-        }
-    }
-
-    // Handle search sources action
-    if (action.type === 'SEARCH_SOURCES') {
-        return {
-            sources: Promise.resolve(mockSources),
-        } as ActionHandlerResponse
-    }
-}
 
 function App() {
-    const [interactionCount, setInteractionCount] = React.useState(0);
 
-    const handleAction = React.useCallback((
-        action: UserAction, 
-        _messages: Message[], 
-        _sources: Source[], 
-        _activeSources: Source[], 
-        _selectedSource: Source | null
-    ): ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined => {
-        if (action.type === 'ADD_USER_MESSAGE') {
-            setInteractionCount(prev => prev + 1);
-        }
-        
-        // Mock sources data
-        const mockSources: Source[] = [
-            {
-                title: "Source 1",
-                type: "text",
-                data: 'Hello from myOnActionFn',
-            } as Source,
-            {
-                title: "Source 2",
-                type: "text",
-                data: 'Hello from myOnActionFn 2',
-            } as Source,
-            {
-                title: "Source 3",
-                type: "text",
-                data: 'Hello from myOnActionFn 3',
-            } as Source,
-        ];
-
-        if (action.type === 'ADD_USER_MESSAGE') {
-            if (interactionCount === 0) {  // First interaction
-                return {
-                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
-                        yield { content: "Let me think about that... " };
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        yield { content: "Based on the available information, " };
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        yield { content: "I can tell you that this is the first message response!", done: true };
-                    })(),
-                    sources: Promise.resolve<Source[]>(mockSources),
-                } satisfies ActionHandlerResponse;
-            } else if (interactionCount === 1) {  // Second interaction
-                return {
-                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
-                        yield { content: "Processing your second question... " };
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-                        yield { content: "After careful consideration, " };
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-                        yield { content: "I can provide you with a detailed answer!", done: true };
-                    })(),
-                    sources: Promise.resolve<Source[]>(mockSources),
-                } satisfies ActionHandlerResponse;
-            } else {  // Third interaction and beyond
-                return {
-                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
-                        yield { content: "Working on your question... " };
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        yield { content: "While I gather the relevant sources, " };
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        yield { content: "here's what I can tell you about your query!", done: true };
-                    })(),
-                    sources: new Promise(resolve => 
-                        setTimeout(() => resolve(mockSources), 6000)
-                    ),
-                } satisfies ActionHandlerResponse;
+    const connectorOptions = useMemo(() => ({
+        endpoint: 'http://localhost:8000/api/retrieve-and-generate',
+        defaultMode: 'both' as const,
+        method: 'POST' as const,
+        buildRequestBody: (messages: Message[], sources: Source[], metadata?: Record<string, any>) => ({
+            query: messages[messages.length - 1].content,
+            metadata
+        }),
+        parseEvent: (data: any) => {
+            if (Array.isArray(data.sources)) {
+                const sources = data.sources.map((item: any) => ({
+                    type: item.doc_path.endsWith('.pdf') ? 'pdf' :
+                        item.doc_path.endsWith('.html') ? 'html' : 'markdown',
+                    sourceReference: item.doc_path,
+                    sourceName: item.doc_path.split('/').pop(),
+                    relevanceScore: item.score,
+                    highlights: item.highlights?.map((highlight: any) => ({
+                        page: highlight.page,
+                        rect: {
+                            left: highlight.bbox.l,
+                            top: highlight.bbox.t,
+                            width: highlight.bbox.r - highlight.bbox.l,
+                            height: highlight.bbox.b - highlight.bbox.t
+                        }
+                    })),
+                    metadata: {
+                        id: item.id,
+                        page: item.page
+                    }
+                }));
+                return { sources, done: false };
             }
+            return {
+                content: data.content,
+                done: !!data.done
+            };
         }
+    }), []);
 
-        // Handle search sources action
-        if (action.type === 'SEARCH_SOURCES') {
-            return { sources: Promise.resolve<Source[]>(mockSources) }
+    const sseConnector = createSSEConnector(connectorOptions);
+
+    const onAction = useCallback((action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => {
+        if (action.type === 'ADD_USER_MESSAGE') {
+            const newMessages = [...messages, { content: action.message, role: 'user', id: "dummyid" as string}];
+            
+            // Now we can use the new request object syntax
+            return sseConnector({
+                messages: newMessages,
+                sources,
+                mode: action.metadata?.mode, // Will fall back to defaultMode if not specified
+                metadata: action.metadata
+            });
         }
-
         return undefined;
-    }, [interactionCount]);
+    }, []);
 
     return (
-        <div style={{width: '100%', height: '100vh'}}>
-            {/* Main Content */}
-            <div className="w-full h-full max-w-7xl mx-auto flex flex-row gap-4 p-5">
-                <RAGProvider
-                    onAction={handleAction}
-                    theme={customTheme}
-                >
-                    {/* Left side: Chat and Query */}
-                    <div className="flex flex-col h-full w-1/3">
-                        <div className="flex-none"> {/* Changed from shrink-0 */}
-                            <AdvancedQueryField />
-                        </div>
-                        <div className="flex-1 min-h-0"> {/* Added min-h-0 and flex-1 */}
-                            <ChatWindow />
+        <div className="app-container">
+            <RAGProvider
+                onAction={onAction}
+                config={{
+                    timeouts: {
+                        stream: 10000
+                    }
+                }}
+            >
+                <div style={{
+                    display: 'grid',
+                    height: '100vh',
+                    width: '100%',
+                    gridTemplateColumns: '1fr 2fr',
+                    gridTemplateRows: '1fr 100px',
+                    gap: '20px',
+                    gridTemplateAreas: `
+            "chat viewer"
+            "input viewer"
+          `,
+                    maxHeight: '100vh',
+                    overflow: 'hidden',
+                    padding: '20px',
+                    boxSizing: 'border-box'
+                }}>
+                    {/* Main chat UI */}
+                    <div style={{
+                        gridArea: 'chat',
+                        overflow: 'auto',
+                        minWidth: 0,
+                        maxWidth: '100%'
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                <SourcesDisplay />
+                            </div>
+                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                <ChatWindow />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="h-full w-1/3"> {/* Query field */}
-                       <SourcesDisplay />
+                    {/* Advanced query input */}
+                    <div style={{
+                        gridArea: 'input',
+                        height: '100px',
+                        minWidth: 0,
+                        maxWidth: '100%'
+                    }}>
+                        <AdvancedQueryField />
                     </div>
-                    <div className={"h-full w-1/3"}>
+
+                    {/* Content viewer */}
+                    <div style={{
+                        gridArea: 'viewer',
+                        overflow: "hidden",
+                        width: '100%',
+                        height: '100%'
+                    }}>
                         <ContentDisplay />
                     </div>
-                    <ErrorDisplay />
-                </RAGProvider>
-            </div>
+                </div>
+                {/* Handle any encountered errors */}
+                <ErrorDisplay />
+            </RAGProvider>
         </div>
-    )
+    );
 }
 
-export default App
+export default App;
