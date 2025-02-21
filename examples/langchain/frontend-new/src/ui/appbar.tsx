@@ -6,22 +6,23 @@ export const NAV_BAR_TITLE_CONTAINER_ID = "nav-bar-title-container";
 export const AppBarComponent: FC = () => {
     return (
         <nav
-            className={"grid fixed top-0 left-0 z-[1000] h-[var(--app-bar-height)] grid-rows-[1fr_max-content] backdrop-blur backdrop-filter py-2 px-[var(--outer-padding)]"}
+            className={"grid fixed top-0 left-0 z-[1000] grid-rows-[1fr_max-content] backdrop-blur backdrop-filter py-2"}
             style={{
                 // boxShadow: "0 0 3px gray",
                 // borderColor: "#e5e7eb",
                 marginLeft: SIDEBAR_WIDTH,
                 width: `calc(100dvw - ${SIDEBAR_WIDTH})`,
+                height: "var(--app-bar-height)",
             }}
         >
             <div
-                className="grid grid-cols-[1fr_max-content] gap-[20px] content-center items-center pt-[20px] h-full md:p-[calc(var(--gap-1)+5px)]"
+                className="grid grid-cols-[1fr_max-content] gap-[20px] content-center items-center h-full"
                 style={{
                     margin: "auto",
                     width: "100%",
                     maxWidth: "var(--app-main-content-max-width)",
-                    // paddingRight: "var(--outer-padding)",
-                    // paddingLeft: "var(--outer-padding)",
+                    paddingRight: "var(--outer-padding)",
+                    paddingLeft: "var(--outer-padding)",
                 }}
             >
                 <div id={NAV_BAR_TITLE_CONTAINER_ID} className={"flex gap-3 content-center items-center"}>

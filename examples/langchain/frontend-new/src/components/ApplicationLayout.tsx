@@ -22,13 +22,13 @@ const ApplicationLayout: FC<Props> = (props: Props) => {
                 <div
                     className={"grid lg:grid-cols-1 overflow-hidden"}
                     style={{
-                        height: "calc(100vh-var(--app-bar-height))",
+                        height: "calc(100dvh-var(--app-bar-height))",
                         marginTop: "calc(var(--app-bar-height))",
                     }}
                 >
                     <div className={"grid grid-cols-1 justify-center overflow-hidden justify-items-center overflow-y-auto h-full w-full"}>
                         <main
-                            className={"rounded-tl-[10px] w-full md:px-[7px] overflow-hidden"}
+                            className={"rounded-tl-[10px] w-full overflow-hidden"}
                             style={{
                                 paddingRight: "var(--outer-padding)",
                                 paddingLeft: "var(--outer-padding)",
