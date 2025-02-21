@@ -30,24 +30,24 @@ function App() {
         parseEvent: (data: any) => {
             if (Array.isArray(data.sources)) {
                 const sources = data.sources.map((item: any) => ({
+                    title: item.doc_path.split('/').pop() || '',
                     type: item.doc_path.endsWith('.pdf') ? 'pdf' :
-                        item.doc_path.endsWith('.html') ? 'html' : 'markdown',
-                    sourceReference: item.doc_path,
-                    sourceName: item.doc_path.split('/').pop(),
-                    relevanceScore: item.score,
-                    highlights: item.highlights?.map((highlight: any) => ({
+                          item.doc_path.endsWith('.html') ? 'html' : 
+                          item.doc_path.endsWith('.md') ? 'markdown' : 'text',
+                    relevance: item.score || 0,
+                    data: item.text,
+                    metadata: {
+                        page: item.page || undefined,
+                    },
+                    highlights: item.highlights ? item.highlights.map((highlight: any) => ({
                         page: highlight.page,
-                        rect: {
-                            left: highlight.bbox.l,
+                        rect: highlight.bbox ? {
                             top: highlight.bbox.t,
+                            left: highlight.bbox.l,
                             width: highlight.bbox.r - highlight.bbox.l,
                             height: highlight.bbox.b - highlight.bbox.t
-                        }
-                    })),
-                    metadata: {
-                        id: item.id,
-                        page: item.page
-                    }
+                        } : undefined
+                    })) : undefined
                 }));
                 return { sources, done: false };
             }
@@ -62,15 +62,15 @@ function App() {
 
     const onAction = useCallback((action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => {
         if (action.type === 'ADD_USER_MESSAGE') {
-            const newMessages = [...messages, { content: action.message, role: 'user', id: "dummyid" as string}];
+            const newMessages = [...messages, { content: action.message, role: 'user' as const}];
             
             // Now we can use the new request object syntax
-            return sseConnector({
+            const { response, sources: newSources } = sseConnector({
                 messages: newMessages,
                 sources,
-                mode: action.metadata?.mode, // Will fall back to defaultMode if not specified
-                metadata: action.metadata
+                mode: "both"
             });
+            return {response, sources: newSources};
         }
         return undefined;
     }, []);

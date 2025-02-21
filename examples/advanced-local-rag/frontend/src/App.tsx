@@ -23,7 +23,7 @@ function App() {
         endpoint: 'http://localhost:8000/api/retrieve-and-generate',
         defaultMode: 'both' as const,
         method: 'POST' as const,
-        buildRequestBody: (messages: Message[], sources: Source[], metadata?: Record<string, any>) => ({
+        buildRequestBody: (messages: Message[], _sources: Source[], metadata?: Record<string, any>) => ({
             query: messages[messages.length - 1].content,
             metadata
         }),
