@@ -68,14 +68,16 @@ const App: FC = () => {
         return undefined;
     }, []);
 
+    const ragProviderConfig = {
+        timeouts: {
+            stream: 10000
+        }
+    };
+
     return (
         <RAGProvider
             onAction={onAction}
-            config={{
-                timeouts: {
-                    stream: 10000
-                }
-            }}
+            config={ragProviderConfig}
             theme={customTheme}
         >
             <ApplicationLayout>
