@@ -1,10 +1,6 @@
 import {FunctionComponent} from "react";
 import {CardContainer} from "../ui/card";
-import {
-    ChatWindow,
-    QueryField,
-} from "lexio";
-import {ContentDisplay, SourcesDisplay} from "lexio";
+import {ChatWindow, ContentDisplay, QueryField, SourcesDisplay,} from "../../../../../lexio/lib/main";
 
 const ApplicationMainContent: FunctionComponent = () => {
     const gridColumns = "grid-cols-[1fr_max-content_1fr]";
