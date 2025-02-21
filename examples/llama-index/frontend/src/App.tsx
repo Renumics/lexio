@@ -1,175 +1,281 @@
 import './App.css'
 import {
-    QueryField,
     ChatWindow,
     RAGProvider,
-    RetrieveAndGenerateResponse,
-    RetrievalResult,
-    SourceContent,
-    SourcesDisplay,
-    ErrorDisplay,
-    GetDataSourceResponse,
-    SourceReference,
-    ContentDisplay,
-    Message,
-    AdvancedQueryField
+    createTheme,
+    SourcesDisplay, ContentDisplay, AdvancedQueryField,
+    ErrorDisplay, ActionHandlerResponse, UserAction, Message, Source
 } from 'lexio'
-import { GenerateInput, GenerateStreamChunk } from 'lexio'
+import React from 'react'
 
-function App() {
-    const retrieveAndGenerate = (input: GenerateInput): RetrieveAndGenerateResponse => {
-        const apiPromise = new Promise<{ sources: SourceReference[]; content: string }>(
-          async (resolve, reject) => {
-            try {
-              const question = input[input.length - 1].content
-              const response = await fetch(`http://localhost:8000/query?messages=${question}`)
-    
-              if (!response.ok) {
-                throw new Error(`Failed to fetch response: ${response.statusText}`)
-              }
-    
-              const data = await response.json()
-    
-              // Log the data to inspect its structure
-              console.log('Fetched data:', data)
-    
-              // Assuming `data` is structured to match SourceReference        
+const customTheme = createTheme({
+    colors: {
+        primary: '#1E88E5',
+        secondary: '#64B5F6'
+    }
+});
 
-            const sources: SourceReference[] = data.source_nodes.map((doc: any) => ({
-                type: 'pdf', // or derive from doc if available
-                relevanceScore: doc.score,
-                sourceReference: doc.node.extra_info.file_name,
-                highlights: [{
-                    page: doc.node.extra_info.bounding_box.page_number,
-                    rect: {
-                        left: doc.node.extra_info.bounding_box.x0,
-                        top: doc.node.extra_info.bounding_box.top,
-                        width: doc.node.extra_info.bounding_box.x1 - doc.node.extra_info.bounding_box.x0,
-                        height: doc.node.extra_info.bounding_box.bottom - doc.node.extra_info.bounding_box.top
-                    }
-                }],
-                //metadata: doc.metadata,
-              }))
+export const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => {
+    console.log("myOnActionFn", action, messages, sources, activeSources, selectedSource)
 
-              console.log('sources', sources)
-    
-              resolve({
-                sources: sources,
-                content: data.response,
-              })
-            } catch (error) {
-              reject(error)
+    // Mock sources data
+    const mockSources: Source[] = [
+        {
+            title: "Source 1",
+            type: "text",
+            data: 'Hello from myOnActionFn',
+        } as Source,
+        {
+            title: "Source 2",
+            type: "text",
+            data: 'Hello from myOnActionFn 2',
+        } as Source,
+        {
+            title: "Source 3",
+            type: "text",
+            data: 'Hello from myOnActionFn 3',
+        } as Source,
+    ];
+
+    if (action.type === 'ADD_USER_MESSAGE') {
+        if (messages.length <= 1) {  // First interaction (0 or 1 message)
+            // First message - quick streaming response
+            return {
+                response: (async function* () {
+                    yield { content: "Let me think about that... " };
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    yield { content: "Based on the available information, " };
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    yield { content: "I can tell you that this is the first message response!", done: true };
+                })(),
+                sources: Promise.resolve(mockSources),
             }
-          }
-        )
-    
-        const sourcesPromise = apiPromise.then((result) => result.sources)
-        const responsePromise = apiPromise.then((result) => result.content)
-    
+        } else if (messages.length <= 3) {  // Second interaction (2 or 3 messages)
+            // Second message - slower streaming response
+            return {
+                response: (async function* () {
+                    yield { content: "Processing your second question... " };
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    yield { content: "After careful consideration, " };
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    yield { content: "I can provide you with a detailed answer!", done: true };
+                })(),
+                sources: Promise.resolve(mockSources),
+            }
+        } else {  // Third interaction and beyond (4+ messages)
+            // Third message and beyond - normal streaming but delayed sources
+            return {
+                response: (async function* () {
+                    yield { content: "Working on your question... " };
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    yield { content: "While I gather the relevant sources, " };
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    yield { content: "here's what I can tell you about your query!", done: true };
+                })(),
+                sources: new Promise(resolve => 
+                    setTimeout(() => resolve(mockSources), 6000) // Sources take > 5 seconds
+                ),
+            }
+        }
+    }
+
+    // Handle search sources action
+    if (action.type === 'SEARCH_SOURCES') {
         return {
-          sources: sourcesPromise,
-          response: responsePromise,
-        }
-      }
-    
-      const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
-        let url: string;
-        url = `http://localhost:8000/getDataSource?source_reference=${source.sourceReference}`;
-
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
-        }
-
-        if (source.type === "html") {
-            const text = await response.text();
-            const htmlContent: HTMLSourceContent = {
-                type: 'html',
-                content: `<div class="source-content">${text}</div>`,
-                metadata: source.metadata || {}
-            };
-            return htmlContent;
-        } else if (source.type === "markdown") {
-            const text = await response.text();
-            const markdownContent: MarkdownSourceContent = {
-                type: 'markdown',
-                content: text,
-                metadata: source.metadata || {}
-            };
-            return markdownContent
-        } else if (source.type === "pdf") {
-            const arrayBuffer = await response.arrayBuffer();
-            console.log('source.highlights', source.highlights)
-            const pdfContent: PDFSourceContent = {
-                type: 'pdf',
-                content: new Uint8Array(arrayBuffer),
-                metadata: source.metadata || {},
-                highlights: source.highlights || []
-            };
-            return pdfContent;
-        }
-
-        throw new Error("Invalid source type");
-    };
-
-
-
-    return (
-      <div style={{ 
-          width: '100%', 
-          height: '100vh', 
-          padding: '10px',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          margin: 0
-      }}>
-          <h1>RAG UI</h1>
-            <RAGProvider
-                retrieve={() => {}}
-                retrieveAndGenerate={retrieveAndGenerate}
-                generate={() => {}}
-                getDataSource={getDataSource}
-                config={{
-                    timeouts: {
-                        stream: 10000,
-                        request: 60000
-                    }
-                }}
-                // onAddMessage={() => {
-                //     return {
-                //         type: 'reretrieve',
-                //         preserveHistory: false
-                //     }
-                // }}
-            >
-                <div style={{ 
-                    display: 'grid',
-                    height: 'calc(100vh - 80px)',
-                    gridTemplateColumns: '2fr 1fr 2fr',
-                    gridTemplateRows: '1fr auto',
-                    gap: '20px',
-                    gridTemplateAreas: `
-                        "chat sources viewer"
-                        "input sources viewer"
-                    `
-                }}>
-                    <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
-                        <ChatWindow />
-                    </div>
-                    <div style={{ gridArea: 'input' }}>
-                        <AdvancedQueryField />
-                    </div>
-                    <div style={{ gridArea: 'sources', minHeight: 0, overflow: 'auto' }}>
-                        <SourcesDisplay />
-                    </div>
-                    <div style={{ gridArea: 'viewer', minHeight: 0, overflow: 'auto' }}>
-                        <ContentDisplay />
-                    </div>
-                </div>
-                <ErrorDisplay />
-            </RAGProvider>
-        </div>
-    );
+            sources: Promise.resolve(mockSources),
+        } as ActionHandlerResponse
+    }
 }
 
-export default App;
+function App() {
+    const [interactionCount, setInteractionCount] = React.useState(0);
+
+    const handleAction = React.useCallback((
+        action: UserAction, 
+        _messages: Message[], 
+        _sources: Source[], 
+        _activeSources: Source[], 
+        _selectedSource: Source | null
+    ): ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined => {
+        if (action.type === 'ADD_USER_MESSAGE' && false) {
+            setInteractionCount(prev => prev + 1);
+            
+        
+
+            //////
+            const apiPromise = new Promise<{ sources: Source[]; content: string }>(
+                async (resolve, reject) => {
+                try {
+                    const question = action.message
+                    const response = await fetch(`http://localhost:8000/query?messages=${question}`)
+        
+                    if (!response.ok) {
+                    throw new Error(`Failed to fetch response: ${response.statusText}`)
+                    }
+        
+                    const data = await response.json()
+        
+                    // Log the data to inspect its structure
+                    console.log('Fetched data:', data)
+        
+                    // Assuming `data` is structured to match Source        
+        
+                const sources: Source[] = data.source_nodes.map((doc: any) => ({
+                    type: 'pdf', // or derive from doc if available
+                    relevanceScore: doc.score,
+                    Source: doc.node.extra_info.file_name,
+                    highlights: [{
+                        page: doc.node.extra_info.bounding_box.page_number,
+                        rect: {
+                            left: doc.node.extra_info.bounding_box.x0,
+                            top: doc.node.extra_info.bounding_box.top,
+                            width: doc.node.extra_info.bounding_box.x1 - doc.node.extra_info.bounding_box.x0,
+                            height: doc.node.extra_info.bounding_box.bottom - doc.node.extra_info.bounding_box.top
+                        }
+                    }],
+                    //metadata: doc.metadata,
+                    }))
+        
+                    console.log('sources', sources)
+        
+                    resolve({
+                    sources: sources,
+                    content: data.response,
+                    })
+                } catch (error) {
+                    reject(error)
+                }
+                }
+            )
+        
+            const sourcesPromise = apiPromise.then((result) => result.sources)
+            const responsePromise = apiPromise.then((result) => result.content)
+            
+            // log results of promises
+            console.log('sourcesPromise', sourcesPromise)
+            console.log('responsePromise', responsePromise)
+            const mockSources: Source[] = [
+                {
+                    title: "Source 1",
+                    type: "text",
+                    data: 'Hello from myOnActionFn',
+                } as Source,
+                {
+                    title: "Source 2",
+                    type: "text",
+                    data: 'Hello from myOnActionFn 2',
+                } as Source,
+                {
+                    title: "Source 3",
+                    type: "text",
+                    data: 'Hello from myOnActionFn 3',
+                } as Source,
+            ];
+
+            return {
+                response: responsePromise,
+                sources: Promise.resolve<Source[]>(mockSources)
+            } satisfies ActionHandlerResponse;
+        }    
+
+        //////
+        
+        // Mock sources data
+        const mockSources: Source[] = [
+            {
+                title: "Source 1",
+                type: "text",
+                data: 'Hello from myOnActionFn',
+            } as Source,
+            {
+                title: "Source 2",
+                type: "text",
+                data: 'Hello from myOnActionFn 2',
+            } as Source,
+            {
+                title: "Source 3",
+                type: "text",
+                data: 'Hello from myOnActionFn 3',
+            } as Source,
+        ];
+
+
+        if (action.type === 'ADD_USER_MESSAGE') {
+            if (interactionCount === 0) {  // First interaction
+                return {
+                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
+                        yield { content: "Let me think about that... " };
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        yield { content: "Based on the available information, " };
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        yield { content: "I can tell you that this is the first message response!", done: true };
+                    })(),
+                    sources: Promise.resolve<Source[]>(mockSources),
+                } satisfies ActionHandlerResponse;
+            } else if (interactionCount === 1) {  // Second interaction
+                return {
+                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
+                        yield { content: "Processing your second question... " };
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        yield { content: "After careful consideration, " };
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        yield { content: "I can provide you with a detailed answer!", done: true };
+                    })(),
+                    sources: Promise.resolve<Source[]>(mockSources),
+                } satisfies ActionHandlerResponse;
+            } else {  // Third interaction and beyond
+                return {
+                    response: (async function* (): AsyncIterable<{ content: string, done?: boolean }> {
+                        yield { content: "Working on your question... " };
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        yield { content: "While I gather the relevant sources, " };
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        yield { content: "here's what I can tell you about your query!", done: true };
+                    })(),
+                    sources: new Promise(resolve => 
+                        setTimeout(() => resolve(mockSources), 6000)
+                    ),
+                } satisfies ActionHandlerResponse;
+            }
+        }
+
+        // Handle search sources action
+        if (action.type === 'SEARCH_SOURCES') {
+            return { sources: Promise.resolve<Source[]>(mockSources) }
+        }
+
+        return undefined;
+    }, [interactionCount]);
+
+    return (
+        <div style={{width: '100%', height: '100vh'}}>
+            {/* Main Content */}
+            <div className="w-full h-full max-w-7xl mx-auto flex flex-row gap-4 p-5">
+                <RAGProvider
+                    onAction={handleAction}
+                    theme={customTheme}
+                >
+                    {/* Left side: Chat and Query */}
+                    <div className="flex flex-col h-full w-1/3">
+                        <div className="flex-none"> {/* Changed from shrink-0 */}
+                            <AdvancedQueryField />
+                        </div>
+                        <div className="flex-1 min-h-0"> {/* Added min-h-0 and flex-1 */}
+                            <ChatWindow />
+                        </div>
+                    </div>
+
+                    <div className="h-full w-1/3"> {/* Query field */}
+                       <SourcesDisplay />
+                    </div>
+                    <div className={"h-full w-1/3"}>
+                        <ContentDisplay />
+                    </div>
+                    <ErrorDisplay />
+                </RAGProvider>
+            </div>
+        </div>
+    )
+}
+
+export default App
