@@ -1,8 +1,8 @@
 import ApplicationLayout from "./components/ApplicationLayout.tsx";
 import ApplicationMainContent from "./components/ApplicationMainContent.tsx";
 import {FC, useCallback, useMemo} from "react"
-import {createSSEConnector, ErrorDisplay, Message, RAGProvider, Source, UserAction,} from "../../../../lexio/lib/main";
-import {createTheme} from "../../../../lexio";
+import {createSSEConnector, ErrorDisplay, Message, RAGProvider, Source, UserAction} from "lexio";
+import {createTheme} from "lexio";
 
 const customTheme = createTheme({
     colors: {
