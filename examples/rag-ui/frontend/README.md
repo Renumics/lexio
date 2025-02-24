@@ -49,37 +49,40 @@ This repository demonstrates how to build a _complex Retrieval-Augmented Generat
    cd examples/rag-ui
    ```
 
-2. **Install backend dependencies**:
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   ```
+2. **Navigate to the backend directory:
+```bash
+cd backend
+```
 
-3. **Install frontend dependencies**:
-   ```bash
-   cd ../frontend
-   npm install
-   npm install ../../../lexio --install-links
-   ```
+3. **Create a virtual environment and activate it:
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+    ```
 
-4. **Add your documents**:
+4. **Install dependencies:
+    ```bash
+    pip install -e .
+    ```
+
+5. **Add your documents**:
     - Place any PDF or other files you want to index inside `examples/data` (or point the code to another folder).
     - The system will parse and chunk these documents along with your repository files.
 
-5. **Build the index**:
+6. **Build the index**:
     - In the `backend` folder, run:
       ```bash
       python build_index.py
       ```
     - This parses, chunks, and embeds your data, then stores it in a LanceDB index at `.lancedb`.
 
-6. **Start the backend**:
+7. **Start the backend**:
    ```bash
    uvicorn main:app --reload
    ```
    By default, this listens on `http://localhost:8000`.
 
-7. **Start the frontend**:
+8. **Start the frontend**:
    ```bash
    cd ../frontend
    npm run dev
