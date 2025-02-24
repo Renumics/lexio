@@ -1,6 +1,8 @@
 import { useState, useContext } from "react";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
+import {addOpacity} from "../../utils/scaleFontSize.tsx";
+
 import { useRAGSources, useLexio } from "../../hooks";
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
@@ -141,7 +143,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
     metadataTagColor: colors.secondaryText,
     relevanceScoreColor: colors.primary,
 
-    sourceTypeBackground: colors.secondary + '30',
+    sourceTypeBackground: addOpacity(colors.secondary, 0.17),
     sourceTypeColor: colors.secondary,
     ...removeUndefined(styleOverrides),
   };

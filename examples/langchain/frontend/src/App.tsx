@@ -8,7 +8,7 @@ import {
     Source,
     QueryField,
     ErrorDisplay,
-    createTheme,
+    createTheme, AdvancedQueryField,
 } from 'lexio';
 import LexioLogo from './assets/lexio.svg';
 import LexioIcon from './assets/icon.svg';
@@ -175,8 +175,7 @@ function App() {
                     <div className="w-full h-full max-h-full max-w-full mx-auto flex flex-row gap-6 p-4">
                         <div className="gap-4 w-1/4 flex flex-col">
                             <div className="shrink-0"> {/* Query field */}
-                                <QueryField onSubmit={() => {
-                                }}/>
+                                <AdvancedQueryField/>
                             </div>
                             <div className="h-full"> {/* Chat window */}
                                 <ChatWindow/>
