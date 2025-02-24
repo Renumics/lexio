@@ -1,29 +1,29 @@
 import { atom } from 'jotai'
-import { ActionHandler, ProviderConfig, UUID } from "../types";
+import { ActionHandler, ProviderConfig, StreamChunk, UUID } from "../types";
 import { AddUserMessageActionModifier, ClearMessagesActionModifier, ClearSourcesActionModifier, ResetFilterSourcesActionModifier, SearchSourcesActionModifier, SetActiveMessageActionModifier, SetActiveSourcesActionModifier, SetFilterSourcesActionModifier, SetSelectedSourceActionModifier, UserAction } from "../types";
 import { Message, Source } from '../types';
 
 const allowedModifiers: Record<UserAction['type'], object> = {
     ADD_USER_MESSAGE: { setUserMessage: '' },
-    SET_ACTIVE_MESSAGE: { messageId: '' },
+    SET_ACTIVE_MESSAGE: {},
     CLEAR_MESSAGES: {},
     SEARCH_SOURCES: {},
     CLEAR_SOURCES: {},
-    SET_ACTIVE_SOURCES: { activeSourceIds: [] },
-    SET_SELECTED_SOURCE: { selectedSourceId: '' },
+    SET_ACTIVE_SOURCES: {},
+    SET_SELECTED_SOURCE: {},
     SET_FILTER_SOURCES: {},
     RESET_FILTER_SOURCES: {}
 };
 
 const allowedPayloadKeys: Record<UserAction['type'], string[]> = {
     ADD_USER_MESSAGE: ['response', 'message', 'messages', 'sources', 'actionOptions'],
-    SET_ACTIVE_MESSAGE: ['messageId', 'actionOptions'],
+    SET_ACTIVE_MESSAGE: ['actionOptions'],
     CLEAR_MESSAGES: ['actionOptions'],
     SEARCH_SOURCES: ['sources', 'actionOptions'],
     CLEAR_SOURCES: ['actionOptions'],
-    SET_ACTIVE_SOURCES: ['sourceIds', 'actionOptions'],
-    SET_SELECTED_SOURCE: ['sourceId', 'actionOptions'],
-    SET_FILTER_SOURCES: ['filter', 'actionOptions'],
+    SET_ACTIVE_SOURCES: ['actionOptions'],
+    SET_SELECTED_SOURCE: ['sourceData', 'actionOptions'],
+    SET_FILTER_SOURCES: ['actionOptions'],
     RESET_FILTER_SOURCES: ['actionOptions']
 };
 
@@ -133,7 +133,7 @@ export const addUserMessageAtom = atom(
             addMessageModifier,
         }: {
             message: string;
-            response?: Promise<string> | AsyncIterable<{ content: string; done?: boolean }>;
+            response?: Promise<string> | AsyncIterable<StreamChunk>;
             messages?: Promise<Message[]>;
             sources?: Promise<Source[]>;
             addMessageModifier?: AddUserMessageActionModifier;
@@ -198,10 +198,10 @@ export const addUserMessageAtom = atom(
                 if (Symbol.asyncIterator in response) {
                     // Streaming response: process each chunk.
                     const streamTimeout = new StreamTimeout(config.timeouts?.stream);
-                    for await (const chunk of response as AsyncIterable<{ content: string; done?: boolean }>) {
+                    for await (const chunk of response as AsyncIterable<StreamChunk>) {
                         if (abortController.signal.aborted) break;
                         streamTimeout.check();
-                        accumulatedContent += chunk.content;
+                        accumulatedContent += chunk.content ?? '';
                         // Provide immediate feedback as streaming chunks arrive.
                         set(currentStreamAtom, {
                             id: crypto.randomUUID(),
@@ -375,13 +375,35 @@ const setActiveSourcesAtom = atom(null, (_get, set, { sourceIds, setActiveSource
 });
 
 // set selected source
-const setSelectedSourceAtom = atom(null, (_get, set, { sourceId, setSelectedSourceModifier }: {
-    sourceId?: UUID,
-    setSelectedSourceModifier?: SetSelectedSourceActionModifier
+const setSelectedSourceAtom = atom(null, (get, set, { sourceId, sourceData }: {
+    sourceId: UUID,
+    sourceData?: string | Uint8Array
 }) => {
-    const selectedSourceId = setSelectedSourceModifier?.selectedSourceId ?? sourceId;
-    if (selectedSourceId) {
-        set(selectedSourceIdAtom, selectedSourceId);
+    const currentSources = get(retrievedSourcesAtom);
+    const targetSource = currentSources.find(source => source.id === sourceId);
+    
+    if (!targetSource) {
+        console.warn(`Source with id ${sourceId} not found`);
+        return;
+    }
+
+    // Always set the selected source ID
+    set(selectedSourceIdAtom, sourceId);
+
+    // Only validate and update data if sourceData is provided
+    if (sourceData) {
+        // Warn if trying to update a source that already has data
+        if (targetSource.data) {
+            console.warn(`Source ${sourceId} already has data but new data was provided`);
+            return;
+        }
+
+        const updatedSources = currentSources.map(source => 
+            source.id === sourceId 
+                ? { ...source, data: sourceData }
+                : source
+        );
+        set(retrievedSourcesAtom, updatedSources);
     }
 });
 
@@ -401,175 +423,206 @@ const resetFilterSourcesAtom = atom(null, (_get, _set, { resetFilterSourcesModif
     throw new Error('Not implemented yet');
 });
 
+const isBlockingAction = (action: UserAction): boolean => {
+    switch (action.type) {
+      // Example: these actions might trigger an async operation that we consider blocking
+      case "ADD_USER_MESSAGE":
+      case "SEARCH_SOURCES":
+      case "CLEAR_MESSAGES":
+        return true;
+  
+      // Example: these actions do small or UI-only state updates
+      case "SET_SELECTED_SOURCE":
+      case "SET_ACTIVE_SOURCES":
+      case "SET_FILTER_SOURCES":
+      case "RESET_FILTER_SOURCES":
+        return false;
+  
+      // Provide a default
+      default:
+        return false;
+    }
+  }
+
 
 // ----- MAIN: central dispatch atom / function -----
-export const dispatchAtom = atom(
+  export const dispatchAtom = atom(
     null,
     async (get, set, action: UserAction, recursiveCall: boolean = false) => {
-        // Exit if not a recursive call and we're already loading.
-        if (!recursiveCall && get(loadingAtom)) {
-            set(setErrorAtom, "RAG Operation already in progress");
-            return;
-        }
-
-        // Set the global loading state and clear error (only for top-level calls)
-        if (!recursiveCall) {
-            console.log("set loadingAtom to true");
-            set(loadingAtom, true);
-            set(errorAtom, null);
-        }
-
-        // Find the handler.
+  
+      // ---- 2) If action is blocking, check if we're already busy
+      if (!recursiveCall && isBlockingAction(action) && get(loadingAtom)) {
+        set(setErrorAtom, "RAG Operation already in progress");
+        return;
+      }
+  
+      // ---- 3) If this is the top-level call and the action is blocking, mark loading
+      if (!recursiveCall && isBlockingAction(action)) {
+        set(loadingAtom, true);
+        set(errorAtom, null); // clear any old error
+      }
+  
+      try {
+        // ---- Handler resolution (unchanged)
         const handlers = get(registeredActionHandlersAtom);
-        // (For now we assume the RAGProvider is used; you might later use action.source.)
         const handler = handlers.find(h => h.component === 'RAGProvider');
         if (!handler) {
-            console.warn(`Handler for component ${action.source} not found`);
-            if (!recursiveCall) {
-                set(loadingAtom, false);
+          console.warn(`Handler for component ${action.source} not found`);
+  
+          // If we turned on loading, we should turn it off before returning
+          if (!recursiveCall && isBlockingAction(action)) {
+            set(loadingAtom, false);
+          }
+          return;
+        }
+        // ---- Fetch additional data for certain actions ---
+        if (action.type === 'SET_SELECTED_SOURCE') {
+            const source = get(retrievedSourcesAtom).find(source => source.id === action.sourceId);
+            if (source) {
+                action.sourceObject = source;
             }
-            return;
         }
 
-        // Call the handler and wrap its return value so that it always returns a promise.
-        // This handles both synchronous and asynchronous handlers.
-        const payload = await Promise.resolve(
-            handler.handler(
-                action,
-                get(completedMessagesAtom),
-                get(retrievedSourcesAtom),
-                get(activeSourcesAtom),
-                get(selectedSourceAtom)
-            )
-        );
 
-        // Validate payload keys.
+        // ---- Call the handler
+        const payload = await Promise.resolve(
+          handler.handler(
+            action,
+            get(completedMessagesAtom),
+            get(retrievedSourcesAtom),
+            get(activeSourcesAtom),
+            get(selectedSourceAtom)
+          )
+        );
+  
+        // ---- Validate payload keys
         const allowedKeys = allowedPayloadKeys[action.type] || [];
         if (payload) {
-            const extraKeys = Object.keys(payload).filter(key => !allowedKeys.includes(key));
-            if (extraKeys.length > 0) {
-                console.warn(
-                    `Handler for action "${action.type}" returned unused properties: ${extraKeys.join(', ')}`
-                );
-            }
+          const extraKeys = Object.keys(payload).filter(key => !allowedKeys.includes(key));
+          if (extraKeys.length > 0) {
+            console.warn(
+              `Handler for action "${action.type}" returned unused properties: ${extraKeys.join(', ')}`
+            );
+          }
         }
-
-        // Validate modifiers.
+  
+        // ---- Validate modifiers
         const { actionOptions } = payload ?? {};
         if (actionOptions?.current) {
-            const allowedModifierKeys = Object.keys(allowedModifiers[action.type] || {});
-            const currentModifierKeys = Object.keys(actionOptions.current);
-            const extraModifierKeys = currentModifierKeys.filter(key => !allowedModifierKeys.includes(key));
-            if (extraModifierKeys.length > 0) {
-                console.warn(
-                    `Handler for action "${action.type}" used invalid modifiers: ${extraModifierKeys.join(', ')}`
-                );
-            }
+          const allowedModifierKeys = Object.keys(allowedModifiers[action.type] || {});
+          const currentModifierKeys = Object.keys(actionOptions.current);
+          const extraModifierKeys = currentModifierKeys.filter(key => !allowedModifierKeys.includes(key));
+          if (extraModifierKeys.length > 0) {
+            console.warn(
+              `Handler for action "${action.type}" used invalid modifiers: ${extraModifierKeys.join(', ')}`
+            );
+          }
         }
-
-        // Destructure payload values.
-        const { response, messages, sources } = payload ?? {};
-
-        // Collect all write-atom calls in an array of promises.
-        // Each call is wrapped with Promise.resolve() so that synchronous and asynchronous atoms
-        // are handled uniformly.
+  
+        // ---- Destructure the useful pieces from payload
+        const { response, messages, sources, sourceData } = payload ?? {};
+  
+        // ---- Collect all atom write operations
         const promises: Promise<any>[] = [];
-
+  
         switch (action.type) {
-            case 'ADD_USER_MESSAGE': {
-                const result = set(addUserMessageAtom, {
-                    message: action.message,
-                    response,
-                    messages,
-                    sources,
-                    addMessageModifier: actionOptions?.current as AddUserMessageActionModifier,
-                });
-                promises.push(Promise.resolve(result));
-                break;
-            }
-            case 'SET_ACTIVE_MESSAGE': {
-                const result = set(setActiveMessageAtom, {
-                    setActiveMessageModifier: actionOptions?.current as SetActiveMessageActionModifier,
-                });
-                promises.push(Promise.resolve(result));
-                break;
-            }
-            case 'CLEAR_MESSAGES': {
-                const result = set(clearMessagesAtom, {
-                    clearMessagesModifier: actionOptions?.current as ClearMessagesActionModifier,
-                });
-                promises.push(Promise.resolve(result));
-                break;
-            }
-            case 'SEARCH_SOURCES': {
-                const result = set(searchSourcesAtom, {
-                    query: action.query,
-                    sources,
-                    searchSourcesModifier: actionOptions?.current as SearchSourcesActionModifier,
-                });
-                promises.push(Promise.resolve(result));
-                break;
-            }
-            case 'CLEAR_SOURCES': {
-                const result = set(clearSourcesAtom, {
-                    clearSourcesModifier: actionOptions?.current as ClearSourcesActionModifier,
-                });
-                promises.push(Promise.resolve(result));
-                break;
-            }
-            case 'SET_ACTIVE_SOURCES': {
-                const result = set(setActiveSourcesAtom, {
-                    sourceIds: action.sourceIds as UUID[],
-                    setActiveSourcesModifier: actionOptions?.current as SetActiveSourcesActionModifier,
-                });
-                promises.push(Promise.resolve(result));
-                break;
-            }
-            case 'SET_SELECTED_SOURCE': {
-                const result = set(setSelectedSourceAtom, {
-                    sourceId: action.sourceId as UUID,
-                    setSelectedSourceModifier: actionOptions?.current as SetSelectedSourceActionModifier,
-                });
-                promises.push(Promise.resolve(result));
-                break;
-            }
-            case 'SET_FILTER_SOURCES': {
-                const result = set(setFilterSourcesAtom, {
-                    setFilterSourcesModifier: actionOptions?.current as SetFilterSourcesActionModifier,
-                });
-                promises.push(Promise.resolve(result));
-                break;
-            }
-            case 'RESET_FILTER_SOURCES': {
-                const result = set(resetFilterSourcesAtom, {
-                    resetFilterSourcesModifier: actionOptions?.current as ResetFilterSourcesActionModifier,
-                });
-                promises.push(Promise.resolve(result));
-                break;
-            }
-            default:
-                console.warn(`Unhandled action type: ${(action as any).type}`);
+          case 'ADD_USER_MESSAGE': {
+            const result = set(addUserMessageAtom, {
+              message: action.message,
+              response,
+              messages,
+              sources,
+              addMessageModifier: actionOptions?.current as AddUserMessageActionModifier,
+            });
+            promises.push(Promise.resolve(result));
+            break;
+          }
+          case 'SET_ACTIVE_MESSAGE': {
+            const result = set(setActiveMessageAtom, {
+              setActiveMessageModifier: actionOptions?.current as SetActiveMessageActionModifier,
+            });
+            promises.push(Promise.resolve(result));
+            break;
+          }
+          case 'CLEAR_MESSAGES': {
+            const result = set(clearMessagesAtom, {
+              clearMessagesModifier: actionOptions?.current as ClearMessagesActionModifier,
+            });
+            promises.push(Promise.resolve(result));
+            break;
+          }
+          case 'SEARCH_SOURCES': {
+            const result = set(searchSourcesAtom, {
+              query: action.query,
+              sources,
+              searchSourcesModifier: actionOptions?.current as SearchSourcesActionModifier,
+            });
+            promises.push(Promise.resolve(result));
+            break;
+          }
+          case 'CLEAR_SOURCES': {
+            const result = set(clearSourcesAtom, {
+              clearSourcesModifier: actionOptions?.current as ClearSourcesActionModifier,
+            });
+            promises.push(Promise.resolve(result));
+            break;
+          }
+          case 'SET_ACTIVE_SOURCES': {
+            const result = set(setActiveSourcesAtom, {
+              sourceIds: action.sourceIds as UUID[],
+              setActiveSourcesModifier: actionOptions?.current as SetActiveSourcesActionModifier,
+            });
+            promises.push(Promise.resolve(result));
+            break;
+          }
+          case 'SET_SELECTED_SOURCE': {
+            const result = set(setSelectedSourceAtom, {
+              sourceId: action.sourceId as UUID,
+              sourceData: sourceData,
+            });
+            promises.push(Promise.resolve(result));
+            break;
+          }
+          case 'SET_FILTER_SOURCES': {
+            const result = set(setFilterSourcesAtom, {
+              setFilterSourcesModifier: actionOptions?.current as SetFilterSourcesActionModifier,
+            });
+            promises.push(Promise.resolve(result));
+            break;
+          }
+          case 'RESET_FILTER_SOURCES': {
+            const result = set(resetFilterSourcesAtom, {
+              resetFilterSourcesModifier: actionOptions?.current as ResetFilterSourcesActionModifier,
+            });
+            promises.push(Promise.resolve(result));
+            break;
+          }
+          default:
+            console.warn(`Unhandled action type: ${(action as any).type}`);
         }
-
-        // Handle any follow-up actions recursively.
+  
+        // ---- Process any follow-up action (recursive)
         if (actionOptions?.followUp) {
-            const followUpResult = set(dispatchAtom, actionOptions.followUp, true);
-            promises.push(Promise.resolve(followUpResult));
+          promises.push(Promise.resolve(set(dispatchAtom, actionOptions.followUp, true)));
         }
-
-        // Wait for all write operations to finish.
-        try {
-            await Promise.all(promises);
-        } catch (error) {
-            console.error("Error in dispatch async writes:", error);
-        } finally {
-            if (!recursiveCall) {
-                console.log("set loadingAtom to false");
-                set(loadingAtom, false);
-            }
+  
+        // ---- Wait for all writes
+        await Promise.all(promises);
+  
+      } catch (error) {
+        console.error("Error in dispatch async writes:", error);
+        // Optionally set an error message
+        set(setErrorAtom, `Dispatch failed: ${error instanceof Error ? error.message : String(error)}`);
+  
+      } finally {
+        // ---- 4) If top-level and action was blocking, release the loading lock
+        if (!recursiveCall && isBlockingAction(action)) {
+          set(loadingAtom, false);
         }
+      }
     }
-);
+  );
+  
 
 
 

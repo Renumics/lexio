@@ -65,7 +65,11 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
       return <MarkdownViewer markdownContent={selectedSource.data} />;
     }
 
-    return <div>Unsupported content type</div>;
+    return (
+      <div className="flex justify-center items-center w-full h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
   };
 
   return <div className="w-full h-full" style={style}>{renderContent()}</div>;
