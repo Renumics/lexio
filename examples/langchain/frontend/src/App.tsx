@@ -102,7 +102,7 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
             sources: Promise.resolve([])
         } as ActionHandlerResponse
     }
-
+a
     // Load the data from the API
     // if (action.type === 'SET_SELECTED_SOURCE') {
     //     const selected = sources.filter(source => source.id === action.sourceId)[0];

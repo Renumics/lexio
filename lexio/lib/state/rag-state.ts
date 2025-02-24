@@ -375,9 +375,9 @@ const setActiveSourcesAtom = atom(null, (_get, set, { sourceIds, setActiveSource
 });
 
 // set selected source
-const setSelectedSourceAtom = atom(null, (get, set, { sourceId, sourceData }: {
+const setSelectedSourceAtom = atom(null, (get, set, { sourceId, setSelectedSourceModifier }: {
     sourceId: UUID,
-    sourceData?: string | Uint8Array
+    setSelectedSourceModifier?: SetSelectedSourceActionModifier
 }) => {
     const currentSources = get(retrievedSourcesAtom);
     const targetSource = currentSources.find(source => source.id === sourceId);
@@ -390,8 +390,8 @@ const setSelectedSourceAtom = atom(null, (get, set, { sourceId, sourceData }: {
     // Always set the selected source ID
     set(selectedSourceIdAtom, sourceId);
 
-    // Only validate and update data if sourceData is provided
-    if (sourceData) {
+    // Only validate and update data if sourceData is provided in modifier
+    if (setSelectedSourceModifier?.sourceData) {
         // Warn if trying to update a source that already has data
         if (targetSource.data) {
             console.warn(`Source ${sourceId} already has data but new data was provided`);
@@ -400,7 +400,7 @@ const setSelectedSourceAtom = atom(null, (get, set, { sourceId, sourceData }: {
 
         const updatedSources = currentSources.map(source => 
             source.id === sourceId 
-                ? { ...source, data: sourceData }
+                ? { ...source, data: setSelectedSourceModifier.sourceData }
                 : source
         );
         set(retrievedSourcesAtom, updatedSources);
@@ -520,7 +520,7 @@ const isBlockingAction = (action: UserAction): boolean => {
         }
   
         // ---- Destructure the useful pieces from payload
-        const { response, messages, sources, sourceData } = payload ?? {};
+        const { response, messages, sources } = payload ?? {};
   
         // ---- Collect all atom write operations
         const promises: Promise<any>[] = [];
@@ -577,8 +577,11 @@ const isBlockingAction = (action: UserAction): boolean => {
           }
           case 'SET_SELECTED_SOURCE': {
             const result = set(setSelectedSourceAtom, {
+              //sourceData: sourceData,
+              // why not just use actionOptions?.current as SetSelectedSourceActionModifier?
+              // and then include sourceData in the modifier?
               sourceId: action.sourceId as UUID,
-              sourceData: sourceData,
+              setSelectedSourceModifier: actionOptions?.current as SetSelectedSourceActionModifier,
             });
             promises.push(Promise.resolve(result));
             break;
