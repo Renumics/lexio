@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Provider, createStore } from 'jotai';
-import { registeredActionHandlersAtom } from '../../state/rag-state';
-import { ActionHandler } from '../../types';
+import { configAtom, registeredActionHandlersAtom } from '../../state/rag-state';
+import { ActionHandler, RAGConfig } from '../../types';
 
 
 import { ThemeProvider } from '../../theme/ThemeContext';
@@ -12,6 +12,7 @@ interface RAGProviderProps {
     children: React.ReactNode;
     onAction?: ActionHandler['handler'];
     theme?: Theme;
+    config?: RAGConfig;
 }
 
 
@@ -37,7 +38,8 @@ interface RAGProviderProps {
 const RAGProvider = ({
   children,
   onAction,
-  theme
+  theme,
+  config
 }: RAGProviderProps) => {
   
   // Create a fresh Jotai store on first render
@@ -52,6 +54,15 @@ const RAGProvider = ({
   }, [
     store,
     onAction
+  ]);
+
+  useEffect(() => {
+    if (config) {
+      store.set(configAtom, config);
+    }
+  }, [
+    store,
+    config
   ]);
 
   return (

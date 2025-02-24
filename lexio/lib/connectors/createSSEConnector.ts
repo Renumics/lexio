@@ -3,104 +3,147 @@ import { fetchEventSource } from '@microsoft/fetch-event-source';
 import type { Message, Source, StreamChunk } from '../types';
 
 /**
- * The connector options, including an explicit mode.
- *  'text' => ignore parsed.sources
- *  'sources' => ignore parsed.content
- *  'both' => use both
+ * The connector options, including a parseEvent function (once).
+ *  'text' => only text stream
+ *  'sources' => only sources promise
+ *  'both' => both text stream & sources promise
  */
-export interface SSEConnectorOptions {
+export interface SSEConnectorOptions<TData = any> {
   endpoint: string;
-  mode: 'text' | 'sources' | 'both';
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
 
   /**
-   * parseEvent() is how you interpret each SSE event's data (already JSON-parsed).
-   * Return { content?, sources?, done? } as needed.
+   * parseEvent is the single place to translate incoming SSE data
+   * into your text content, any sources, and a `done` signal.
    */
-  parseEvent(data: any): StreamChunk;
+  parseEvent(data: TData): {
+    content?: string;
+    sources?: Source[];
+    done?: boolean;
+  };
 
   /**
-   * Optional method to build the request body (when method != 'GET').
-   * By default: { messages, metadata }
+   * If you need to build a request body differently, override this.
    */
-  buildRequestBody?: (messages: Message[], sources: Source[], metadata?: Record<string, any>) => any;
+  buildRequestBody?: (
+    messages: Omit<Message, 'id'>[],
+    sources: Source[],
+    metadata?: Record<string, any>
+  ) => any;
+
+  /**
+   * Default mode if not specified at request time.
+   */
+  defaultMode?: 'text' | 'sources' | 'both';
+}
+
+export interface SSEConnectorRequest {
+  messages: Omit<Message, 'id'>[];
+  sources: Source[];
+  metadata?: Record<string, any>;
+
+  /**
+   * Allows overriding mode for this specific request.
+   */
+  mode?: 'text' | 'sources' | 'both';
 }
 
 /**
- * A React Hook returning a function that, when called, opens an SSE stream
- * and yields { response, sources }.
+ * Create an SSE connector as a React hook, returning a function you call to open a stream.
+ * The returned function will:
+ *   - Start the SSE using fetchEventSource
+ *   - Return either:
+ *       { response: AsyncIterable<StreamChunk> }            // if mode === 'text'
+ *       { sources: Promise<Source[]> }                      // if mode === 'sources'
+ *       { response: AsyncIterable<StreamChunk>, sources: Promise<Source[]> } // if 'both'
  */
 export function createSSEConnector(options: SSEConnectorOptions) {
-  const {
-    endpoint,
-    mode,
-    method = 'POST',
-    parseEvent,
-    buildRequestBody = (messages, metadata) => ({ messages, metadata }),
-  } = options;
-
-  // Return a stable callback that uses the provided options
   return useCallback(
-    (messages: Message[], sources: Source[], metadata?: Record<string, any>) => {
-      // 1) Build the RequestInit object
+    (
+      messagesOrRequest: Message[] | SSEConnectorRequest,
+      sources?: Source[],
+      metadata?: Record<string, any>
+    ) => {
+      // 1) Normalize input to a consistent SSEConnectorRequest
+      const request: SSEConnectorRequest = Array.isArray(messagesOrRequest)
+        ? { messages: messagesOrRequest, sources: sources ?? [], metadata }
+        : messagesOrRequest;
+
+      const {
+        endpoint,
+        method = 'POST',
+        parseEvent,
+        buildRequestBody = (msgs, srcs, meta) => ({ messages: msgs, sources: srcs, metadata: meta }),
+        defaultMode = 'both',
+      } = options;
+
+      // Final mode (per-request overrides default)
+      const mode = request.mode || defaultMode;
+
+      // 2) Build fetch config
       const requestInit: RequestInit = {
         method,
         headers: { 'Content-Type': 'application/json' },
       };
       if (method !== 'GET') {
-        requestInit.body = JSON.stringify(buildRequestBody(messages, sources, metadata));
+        requestInit.body = JSON.stringify(
+          buildRequestBody(request.messages, request.sources, request.metadata)
+        );
       }
 
-      // 2) Prepare data structures for text streaming & source collection
+      // 3) Prepare text streaming structures
       const textQueue: StreamChunk[] = [];
-      let notifyGenerator: (() => void) | null = null;
-      let finished = false;
+      let textNotify: (() => void) | null = null; // to unblock the generator
+      let finished = false; // signals no more events
 
+      // 4) Prepare sources Promise
       const allSources: Source[] = [];
       let sourcesResolved = false;
-      let sourcesResolver!: (val: Source[]) => void;
-      let sourcesRejecter!: (err: any) => void;
+      let resolveSources!: (val: Source[]) => void;
+      let rejectSources!: (err: any) => void;
+
       const sourcesPromise = new Promise<Source[]>((resolve, reject) => {
-        sourcesResolver = resolve;
-        sourcesRejecter = reject;
+        resolveSources = resolve;
+        rejectSources = reject;
       });
 
-      // 3) Start SSE in the background
+      // 5) Start SSE in the background
       const sseTask = (async () => {
         try {
           await fetchEventSource(endpoint, {
-            // Because fetchEventSource's `headers` must be Record<string,string>, cast it:
             method: requestInit.method,
             body: requestInit.body,
             headers: requestInit.headers as Record<string, string>,
 
             onmessage(ev) {
-              if (!ev.data) return; // skip ping or empty
+              if (!ev.data) return; // skip pings or empty events
 
               try {
-                const data = JSON.parse(ev.data);
-                const parsed = parseEvent(data);
-                const { content, sources, done } = parsed;
+                const { content, sources: newSources, done } = parseEvent(JSON.parse(ev.data));
 
-                // a) If mode includes text, handle content
-                if ((mode === 'text' || mode === 'both') && typeof content === 'string') {
-                  textQueue.push({ content, done });
-                  notifyGenerator?.();
+                // a) Text (if mode includes it)
+                if ((mode === 'text' || mode === 'both') && content) {
+                  textQueue.push({ content, done: !!done });
+                  textNotify?.();
                 }
 
-                // b) If mode includes sources, handle sources
-                if ((mode === 'sources' || mode === 'both') && Array.isArray(sources)) {
-                  const normalized = sources.map(s => ({
-                    ...s,
-                    id: s.id ?? crypto.randomUUID(),
-                  }));
-                  allSources.push(...normalized);
+                // b) Sources (if mode includes it)
+                if ((mode === 'sources' || mode === 'both') && Array.isArray(newSources)) {
+                  // Directly push any new sources (no ID generation)
+                  allSources.push(...newSources);
+
+                  // If not yet resolved and we have at least one source, resolve now
+                  if (!sourcesResolved && allSources.length > 0) {
+                    sourcesResolved = true;
+                    resolveSources([...allSources]);
+                  }
                 }
 
-                // c) If done => mark finished
+                // c) Check if done
                 if (done) {
                   finished = true;
-                  notifyGenerator?.();
+                  textNotify?.();
+                  // We do not resolveSources here, we already do so above
                 }
               } catch (err) {
                 console.warn('Failed to parse SSE event:', ev.data, err);
@@ -110,47 +153,46 @@ export function createSSEConnector(options: SSEConnectorOptions) {
             onerror(err) {
               console.error('SSE onerror:', err);
               finished = true;
-              notifyGenerator?.();
+              textNotify?.();
               throw err;
             },
 
             onclose() {
               finished = true;
-              notifyGenerator?.();
+              textNotify?.();
             },
           });
         } catch (err) {
-          // If fetchEventSource throws, reject the sources if not already
-          finished = true;
-          const notify: () => void = notifyGenerator!;
-          notify();
+          // If fetchEventSource throws, reject sources if not already
           if (!sourcesResolved) {
-            sourcesRejecter(err);
+            rejectSources(err);
             sourcesResolved = true;
           }
+          throw err;
         } finally {
-          // On final closure, if we haven't resolved sources yet, do so now
+          // SSE has ended for any reason
+          // If sources have never arrived, we still resolve with what we have (could be empty).
           if (!sourcesResolved) {
-            sourcesResolver(allSources);
             sourcesResolved = true;
+            resolveSources([...allSources]);
           }
         }
       })();
 
-      // 4) The text streaming generator
+      // 6) The async generator for text
       async function* streamText(): AsyncIterable<StreamChunk> {
         try {
           while (true) {
             // If no text queued and not finished, wait
             if (textQueue.length === 0 && !finished) {
-              await new Promise<void>((resolve) => (notifyGenerator = resolve));
-              notifyGenerator = null;
+              await new Promise<void>((resolve) => (textNotify = resolve));
+              textNotify = null;
             }
             // If finished and no queued text => break
             if (finished && textQueue.length === 0) {
               break;
             }
-            // Dequeue
+            // Dequeue and yield
             const chunk = textQueue.shift();
             if (chunk) {
               yield chunk;
@@ -160,17 +202,26 @@ export function createSSEConnector(options: SSEConnectorOptions) {
             }
           }
         } finally {
-          // Cleanup SSE
+          // Clean up SSE
           await sseTask;
         }
       }
 
-      // 5) Return the final shape
-      return {
-        response: streamText(),  // async iterator of StreamChunk
-        sources: sourcesPromise, // promise of Source[]
-      };
+      // 7) Return shape based on mode
+      if (mode === 'text') {
+        // Only text stream
+        return { response: streamText() };
+      } else if (mode === 'sources') {
+        // Only sources
+        return { sources: sourcesPromise };
+      } else {
+        // Both text and sources
+        return {
+          response: streamText(),
+          sources: sourcesPromise,
+        };
+      }
     },
-    [endpoint, mode, method, parseEvent, buildRequestBody]
+    [options]
   );
 }
