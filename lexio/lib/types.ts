@@ -15,7 +15,7 @@ export interface Source {
     title: string;
     type: "text" | "pdf" | "markdown" | "html";
     relevance?: number;
-    data?: string | Uint8Array | null;
+    data?: string | Uint8Array;
     /**
      * key convention to hide from display _key
      *
@@ -166,6 +166,7 @@ export type ActionHandlerResponse = {
         current?: UserActionModifier;
         followUp?: UserAction;
     };
+    sourceData?: string | Uint8Array;
 };
 
 export type ActionHandler = {

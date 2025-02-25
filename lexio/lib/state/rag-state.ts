@@ -57,6 +57,7 @@ export const activeSourcesAtom = atom(
     (get) => {
         const retrievedSources = get(retrievedSourcesAtom);
         const activeIds = get(activeSourcesIdsAtom);
+        // Simply filter sources to only include those with IDs in the activeIds array
         return retrievedSources.filter(source => activeIds.includes(source.id));
     }
 );
@@ -375,10 +376,12 @@ const setActiveSourcesAtom = atom(null, (_get, set, { sourceIds, setActiveSource
 });
 
 // set selected source
-const setSelectedSourceAtom = atom(null, (get, set, { sourceId, sourceData }: {
+const setSelectedSourceAtom = atom(null, (get, set, { sourceId, sourceData, setSelectedSourceModifier }: {
     sourceId: UUID,
-    sourceData?: string | Uint8Array
+    sourceData?: string | Uint8Array,
+    setSelectedSourceModifier?: SetSelectedSourceActionModifier
 }) => {
+    console.log('setSelectedSourceAtom', setSelectedSourceModifier);
     const currentSources = get(retrievedSourcesAtom);
     const targetSource = currentSources.find(source => source.id === sourceId);
     
@@ -483,14 +486,24 @@ const isBlockingAction = (action: UserAction): boolean => {
             }
         }
 
+        const retrievedSources = get(retrievedSourcesAtom);
+        
+        const activeSourcesIds = get(activeSourcesIdsAtom);
+
+        // If activeSourcesIds is empty, use all retrievedSources
+        // Otherwise use the filtered sources from activeSourcesAtom
+        const activeSources = activeSourcesIds.length === 0
+            ? retrievedSources
+            : get(activeSourcesAtom);
+            
 
         // ---- Call the handler
         const payload = await Promise.resolve(
           handler.handler(
             action,
             get(completedMessagesAtom),
-            get(retrievedSourcesAtom),
-            get(activeSourcesAtom),
+            retrievedSources,
+            activeSources,
             get(selectedSourceAtom)
           )
         );
