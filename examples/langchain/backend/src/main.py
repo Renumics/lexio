@@ -121,7 +121,6 @@ async def on_message(request: RequestBody) -> EventSourceResponse:
                 type="pdf",
                 relevance=score,
                 metadata={"page": page + 1, "_href": f"sources/{source.replace('data/', '')}"},
-                data="todo",
                 highlights=[h.model_dump() for h in highlights]
             )
             retrieval_results.append(result)

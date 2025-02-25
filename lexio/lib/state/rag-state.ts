@@ -375,35 +375,74 @@ const setActiveSourcesAtom = atom(null, (_get, set, { sourceIds, setActiveSource
 });
 
 // set selected source
-const setSelectedSourceAtom = atom(null, (get, set, { sourceId, setSelectedSourceModifier }: {
+const setSelectedSourceAtom = atom(null, async (get, set, { sourceId, setSelectedSourceModifier }: {
     sourceId: UUID,
     setSelectedSourceModifier?: SetSelectedSourceActionModifier
 }) => {
-    const currentSources = get(retrievedSourcesAtom);
-    const targetSource = currentSources.find(source => source.id === sourceId);
+    // Handle optional selectedSourceId from modifier first
+    const targetSourceId = setSelectedSourceModifier?.selectedSourceId ?? sourceId;
     
-    if (!targetSource) {
-        console.warn(`Source with id ${sourceId} not found`);
+    // If modifier explicitly sets selectedSourceId to null, clear selection
+    if (setSelectedSourceModifier?.selectedSourceId === null) {
+        set(selectedSourceIdAtom, null);
         return;
     }
 
-    // Always set the selected source ID
-    set(selectedSourceIdAtom, sourceId);
+    const currentSources = get(retrievedSourcesAtom);
+    const targetSource = currentSources.find(source => source.id === targetSourceId);
+    
+    if (!targetSource) {
+        console.warn(`Source with id ${targetSourceId} not found`);
+        return;
+    }
 
-    // Only validate and update data if sourceData is provided in modifier
-    if (setSelectedSourceModifier?.sourceData) {
-        // Warn if trying to update a source that already has data
-        if (targetSource.data) {
-            console.warn(`Source ${sourceId} already has data but new data was provided`);
-            return;
+    // Set the selected source ID
+    set(selectedSourceIdAtom, targetSourceId);
+
+    // Handle optional sourceData from modifier
+    if (setSelectedSourceModifier?.sourceData !== undefined) {
+        // Get config and create abort controller for timeout handling
+        const config = get(configAtom);
+        const abortController = new AbortController();
+
+        try {
+            // If sourceData is explicitly null, clear the data
+            if (setSelectedSourceModifier.sourceData === null) {
+                const updatedSources = currentSources.map(source => 
+                    source.id === targetSourceId 
+                        ? { ...source, data: null }
+                        : source
+                );
+                set(retrievedSourcesAtom, updatedSources);
+                return;
+            }
+
+            // Wait for the Promise to resolve with timeout
+            const resolvedData = await addTimeout(
+                // wrap in Promise.resolve to handle both Promise and non-Promise values
+                Promise.resolve(setSelectedSourceModifier.sourceData),
+                config.timeouts?.request,
+                'Source data request timeout exceeded',
+                abortController.signal
+            );
+
+            // Update sources with resolved data
+            const updatedSources = currentSources.map(source => 
+                source.id === targetSourceId 
+                    ? { ...source, data: resolvedData }
+                    : source
+            );
+            set(retrievedSourcesAtom, updatedSources);
+        } catch (error) {
+            // Abort any pending operations
+            abortController.abort();
+            
+            // Set error state
+            set(setErrorAtom, `Failed to load source data: ${error instanceof Error ? error.message : String(error)}`);
+            
+            // Propagate the error
+            throw error;
         }
-
-        const updatedSources = currentSources.map(source => 
-            source.id === sourceId 
-                ? { ...source, data: setSelectedSourceModifier.sourceData }
-                : source
-        );
-        set(retrievedSourcesAtom, updatedSources);
     }
 });
 

@@ -108,20 +108,28 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
         const selected = sources.filter(source => source.id === action.sourceId)[0];
         if (!selected) return {};
 
-        // todo: test this
         return {
             actionOptions: {
                 current: {
                     sourceData: (async () => {
-                        console.log("HEEEELLLOOO")
                         try {
                             const response = await fetch(`${API_BASE_URL}/${selected.metadata?._href}`);
-                            const data = await response.json();
 
-                            console.log("data", data)
-                            return data;
+                            // Check the content type of the response
+                            const contentType = response.headers.get('content-type');
+                            
+                            if (contentType?.includes('application/pdf')) {
+                                // For PDFs, return the array buffer wrapped in a Uint8Array
+                                return new Uint8Array(await response.arrayBuffer());
+                            } else if (contentType?.includes('text/html')) {
+                                // For HTML, return the text content
+                                return await response.text();
+                            } else {
+                                throw new Error(`Unsupported content type: ${contentType}`);
+                            }
                         } catch (error) {
                             console.error('Failed to load source:', error);
+                            throw error;
                         }
                     })()
                 } as SetSelectedSourceActionModifier,
