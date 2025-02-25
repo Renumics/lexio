@@ -1,8 +1,8 @@
 import ApplicationLayout from "./components/ApplicationLayout.tsx";
 import ApplicationMainContent from "./components/ApplicationMainContent.tsx";
-import {FC, useCallback, useMemo} from "react"
-import {createSSEConnector, ErrorDisplay, Message, RAGProvider, Source, UserAction} from "lexio";
-import {createTheme} from "lexio";
+import {FC, useEffect, useState} from "react"
+import {ActionHandlerResponse, createTheme, ErrorDisplay, Message, RAGProvider, Source, UserAction} from "lexio";
+import {v4 as uuid} from "uuid";
 
 const customTheme = createTheme({
     colors: {
@@ -12,72 +12,20 @@ const customTheme = createTheme({
 });
 
 const App: FC = () => {
-    const connectorOptions = useMemo(() => ({
-        endpoint: 'http://localhost:8000/api/retrieve-and-generate',
-        defaultMode: 'both' as const,
-        method: 'POST' as const,
-        buildRequestBody: (messages: Message[], sources: Source[], metadata?: Record<string, any>) => ({
-            query: messages[messages.length - 1].content,
-            metadata
-        }),
-        parseEvent: (data: any) => {
-            if (Array.isArray(data.sources)) {
-                const sources = data.sources.map((item: any) => ({
-                    type: item.doc_path.endsWith('.pdf') ? 'pdf' :
-                        item.doc_path.endsWith('.html') ? 'html' : 'markdown',
-                    sourceReference: item.doc_path,
-                    sourceName: item.doc_path.split('/').pop(),
-                    relevanceScore: item.score,
-                    highlights: item.highlights?.map((highlight: any) => ({
-                        page: highlight.page,
-                        rect: {
-                            left: highlight.bbox.l,
-                            top: highlight.bbox.t,
-                            width: highlight.bbox.r - highlight.bbox.l,
-                            height: highlight.bbox.b - highlight.bbox.t
-                        }
-                    })),
-                    metadata: {
-                        id: item.id,
-                        page: item.page
-                    }
-                }));
-                return { sources, done: false };
-            }
-            return {
-                content: data.content,
-                done: !!data.done
-            };
-        }
-    }), []);
-
-    const sseConnector = createSSEConnector(connectorOptions);
-
-    const onAction = useCallback((action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => {
-        if (action.type === 'ADD_USER_MESSAGE') {
-            const newMessages = [...messages, { content: action.message, role: 'user', id: "dummyid" as string}];
-
-            // Now we can use the new request object syntax
-            return sseConnector({
-                messages: newMessages,
-                sources,
-                mode: action.metadata?.mode, // Will fall back to defaultMode if not specified
-                metadata: action.metadata
-            });
-        }
-        return undefined;
-    }, []);
-
-    const ragProviderConfig = {
-        timeouts: {
-            stream: 10000
-        }
-    };
+    const { sources: mockSources } = useMockData();
+    // @ts-ignore
+    const handleAction = (actionHandlerFunction: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: (Source | null)): ActionHandlerResponse | undefined => {
+        return {
+            response: Promise.resolve("This is what jarvis is about"),
+            messages: [""],
+            sources: Promise.resolve<Source[]>(mockSources),
+        };
+    }
 
     return (
         <RAGProvider
-            onAction={onAction}
-            config={ragProviderConfig}
+            onAction={handleAction}
+            config={undefined}
             theme={customTheme}
         >
             <ApplicationLayout>
@@ -85,7 +33,62 @@ const App: FC = () => {
                 <ErrorDisplay />
             </ApplicationLayout>
         </RAGProvider>
-    )
+    );
+}
+
+type MockData = {
+    sources: Source[];
+}
+const useMockData = (): MockData => {
+    const [jarvisPdfBufferData, setJarvisPdfBufferData] = useState<ArrayBuffer | undefined>(undefined);
+    const [dummyPdfBufferData, setDummyPdfBufferData] = useState<ArrayBuffer | undefined>(undefined);
+
+    // Pdf content mocks
+    useEffect(() => {
+        // Jarvis pdf
+        const getJarvisPdfSource = async () => {
+            const response = await fetch("http://localhost:5173/Current_State_Of_LLM-based_Assistants_For_Engineering.pdf");
+            const data = await response.arrayBuffer() as Uint8Array<ArrayBufferLike>;
+            setJarvisPdfBufferData(data);
+        }
+        // Dummy pdf
+        const getDummyPdfSource = async () => {
+            const response = await fetch("http://localhost:5173/dummy.pdf");
+            const data = await response.arrayBuffer() as Uint8Array<ArrayBufferLike>;
+            setDummyPdfBufferData(data);
+        }
+
+        getJarvisPdfSource();
+        getDummyPdfSource();
+    }, []);
+
+    const sources: Source[] = [
+        // PDF Sources
+        {
+            id: uuid(),
+            title: "Current_State_Of_LLM-based_Assistants_For_Engineering.pdf",
+            type: "pdf",
+            relevance: 40,
+            data: new Uint8Array(jarvisPdfBufferData as ArrayBuffer),
+            metadata: {
+                page: 4,
+            }
+        } as Source,
+        {
+            id: uuid(),
+            title: "dummy.pdf",
+            type: "pdf",
+            relevance: 30,
+            data: new Uint8Array(dummyPdfBufferData as ArrayBuffer),
+            metadata: {
+                page: 1,
+            }
+        } as Source,
+    ];
+
+    return {
+        sources,
+    };
 }
 
 export default App
