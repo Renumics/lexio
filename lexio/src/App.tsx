@@ -142,29 +142,9 @@ function App() {
         if (action.type === 'ADD_USER_MESSAGE') {
             const newMessages = [...messages, { content: action.message, role: 'user' as const }];
             
-            // Always include the default source in the sources array
-            const currentSources = sources.length > 0 ? sources : [defaultSource];
-            console.log('Using sources:', currentSources);
-            
-            if (activeSources.length > 0) {
-                console.log('Using follow-up connector with active sources:', activeSources);
-                const { response } = followUpConnector({
-                    messages: newMessages,
-                    sources: activeSources,
-                    mode: 'text',
-                });
-                return { response };
-            }
-            
-            console.log('Using SSE connector for new query with sources:', currentSources);
-            const { response, sources: newSources } = sseConnector({
-                messages: newMessages,
-                sources: currentSources,
-                mode: 'both',
-            });
             return {
-                response,
-                sources: Promise.resolve(newSources || currentSources)
+                response: Promise.resolve("DeepSeek-R1 enhances reasoning by starting with a small set of high-quality chain-of-thought examples (cold-start data) and then using reinforcement learning to refine its outputs. This multi-stage approach not only improves accuracy but also produces clearer and more coherent reasoning, outperforming traditional supervised fine-tuning methods."),
+                sources: Promise.resolve([defaultSource])
             };
         } 
         
