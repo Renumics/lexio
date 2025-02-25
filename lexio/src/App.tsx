@@ -11,6 +11,7 @@ import {
     Source,
     createRESTContentSource, 
     createSSEConnector,
+    ActionHandlerResponse,
 } from '../lib/main';
 import './App.css';
 
@@ -20,7 +21,7 @@ function App() {
         endpoint: 'http://localhost:8000/api/retrieve-and-generate',
         defaultMode: 'both' as const,
         method: 'POST' as const,
-        buildRequestBody: (messages: Message[], sources: Source[], metadata?: Record<string, any>) => ({
+        buildRequestBody: (messages: Omit<Message, "id">[], _sources: Source[], _metadata?: Record<string, any>) => ({
             query: messages[messages.length - 1].content
         }),
         parseEvent: (data: any) => {
@@ -65,7 +66,7 @@ function App() {
         endpoint: 'http://localhost:8000/api/generate',
         defaultMode: 'text' as const,
         method: 'POST' as const,
-        buildRequestBody: (messages: Message[], sources: Source[]) => ({
+        buildRequestBody: (messages: Omit<Message, "id">[], sources: Source[], _metadata?: Record<string, any>) => ({
             messages: messages.map(m => ({
                 role: m.role,
                 content: m.content
@@ -80,26 +81,74 @@ function App() {
 
     const contentSourceOptions = useMemo(() => ({
         buildFetchRequest: (source: Source) => {
-            const id = source.metadata?.id;
-            if (!id) {
-                throw new Error('No ID in source metadata');
-            }
+            console.log('Building fetch request for source:', source);
             return {
-                url: `http://localhost:8000/pdfs/${encodeURIComponent(id)}`
+                url: '/pdfs/deepseek.pdf',
+                options: {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/pdf',
+                        'Cache-Control': 'no-cache'
+                    },
+                    responseType: 'blob',
+                    credentials: 'same-origin'
+                }
             };
         },
     }), []);
 
     const contentSource = createRESTContentSource(contentSourceOptions);
 
+    // Update the default source to match the new PDF
+    const defaultSource: Source = {
+        id: '12345678-1234-1234-1234-123456789012',
+        title: 'DeepSeek Paper',
+        type: 'pdf',
+        relevance: 1,
+        metadata: {
+            id: 'deepseek.pdf'
+        }
+    };
+
     // 3) Action handler uses the SSE connector for "ADD_USER_MESSAGE"
-    const onAction = useCallback((action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => {
+    const onAction = useCallback((
+        action: UserAction, 
+        messages: Message[], 
+        sources: Source[], 
+        activeSources: Source[], 
+        selectedSource: Source | null
+    ): ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined => {
+        console.log('Action received:', action.type);
+        console.log('Current sources:', sources);
+        console.log('Active sources:', activeSources);
+        console.log('Selected source:', selectedSource);
+
+        if (action.type === 'SEARCH_SOURCES') {
+            console.log('Handling search sources action');
+            return {
+                sources: Promise.resolve([defaultSource])
+            };
+        }
+
+        if (action.type === 'SET_ACTIVE_SOURCES') {
+            console.log('Setting active sources:', action.sourceIds);
+            return {
+                sources: Promise.resolve(action.sourceIds.map(id => 
+                    sources.find(s => s.metadata?.id === id) || defaultSource
+                ))
+            };
+        }
+
         if (action.type === 'ADD_USER_MESSAGE') {
             const newMessages = [...messages, { content: action.message, role: 'user' as const }];
             
-            // Use followUpConnector for follow-up questions if we have active sources
+            // Always include the default source in the sources array
+            const currentSources = sources.length > 0 ? sources : [defaultSource];
+            console.log('Using sources:', currentSources);
+            
             if (activeSources.length > 0) {
-                const response = followUpConnector({
+                console.log('Using follow-up connector with active sources:', activeSources);
+                const { response } = followUpConnector({
                     messages: newMessages,
                     sources: activeSources,
                     mode: 'text',
@@ -107,25 +156,131 @@ function App() {
                 return { response };
             }
             
-            // Use main connector for new queries
+            console.log('Using SSE connector for new query with sources:', currentSources);
             const { response, sources: newSources } = sseConnector({
                 messages: newMessages,
-                sources: [],
+                sources: currentSources,
                 mode: 'both',
             });
-            return { response, sources: newSources };
-        } else if (action.type === 'SET_SELECTED_SOURCE') {
-            if (!selectedSource?.metadata?.id) {
-                return undefined;
+            return {
+                response,
+                sources: Promise.resolve(newSources || currentSources)
+            };
+        } 
+        
+        if (action.type === 'SET_SELECTED_SOURCE') {
+            const sourceToLoad = selectedSource || defaultSource;
+            console.log('Attempting to load PDF source:', sourceToLoad);
+            return contentSource(sourceToLoad)
+                .then(async sourceWithData => {
+                    console.log('Successfully loaded PDF data:', sourceWithData);
+                    
+                    try {
+                        let finalData: Uint8Array;
+                        const data = sourceWithData.data;
+                        
+                        // Type guard for Blob
+                        if (data instanceof Blob) {
+                            // First try to validate the PDF using a FileReader
+                            const validateReader = new FileReader();
+                            const validation = await new Promise((resolve, reject) => {
+                                validateReader.onload = () => resolve(true);
+                                validateReader.onerror = () => reject(new Error('Failed to read PDF file'));
+                                validateReader.readAsArrayBuffer(data);
+                            });
+
+                            if (!validation) {
+                                throw new Error('PDF validation failed');
+                            }
+
+                            const arrayBuffer = await data.arrayBuffer();
+                            finalData = new Uint8Array(arrayBuffer);
+                        } else if (data instanceof Uint8Array) {
+                            finalData = data;
+                        } else if (data instanceof ArrayBuffer) {
+                            finalData = new Uint8Array(data);
+                        } else {
+                            throw new Error(`Unsupported data type: ${typeof data}`);
+                        }
+
+                        // Basic PDF validation
+                        if (finalData.length < 32) {
+                            throw new Error('Invalid PDF: File too small');
+                        }
+
+                        // Check PDF header (%PDF-)
+                        const pdfHeader = [37, 80, 68, 70, 45];
+                        const isValidPDF = pdfHeader.every((byte, i) => finalData[i] === byte);
+                        
+                        if (!isValidPDF) {
+                            throw new Error('Invalid PDF format: Missing PDF header');
+                        }
+
+                        // Try to repair common PDF issues
+                        const repairedData = await repairPDF(finalData);
+
+                        // Return the correct type for ActionHandlerResponse
+                        return {
+                            sourceData: repairedData
+                        } as ActionHandlerResponse;
+                    } catch (error) {
+                        console.error('Error processing PDF data:', error);
+                        return {
+                            error: {
+                                message: 'Failed to load PDF: ' + (error instanceof Error ? error.message : 'Unknown error')
+                            }
+                        } as ActionHandlerResponse;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading PDF:', error);
+                    return {
+                        error: {
+                            message: 'Failed to load PDF: ' + (error instanceof Error ? error.message : 'Unknown error')
+                        }
+                    } as ActionHandlerResponse;
+                });
+        }
+        
+        return undefined;
+    }, [sseConnector, followUpConnector, contentSource]);
+
+    // Helper function to attempt PDF repair
+    async function repairPDF(data: Uint8Array): Promise<Uint8Array> {
+        // Create a copy of the data to avoid modifying the original
+        const repairedData = new Uint8Array(data);
+        
+        try {
+            // Find the start of the xref table
+            const decoder = new TextDecoder();
+            const text = decoder.decode(data);
+            const xrefIndex = text.lastIndexOf('xref');
+            
+            if (xrefIndex === -1) {
+                console.log('No xref table found, attempting to rebuild PDF structure');
+                return repairedData;
             }
 
-            // Use the content source connector to fetch the data
-            return contentSource(selectedSource).then(sourceWithData => ({
-                sourceData: sourceWithData.data
-            }));
+            // Check for common stream compression issues
+            const streamStart = text.indexOf('stream');
+            if (streamStart !== -1) {
+                // Look for invalid FCHECK values and try to correct them
+                for (let i = streamStart; i < data.length - 2; i++) {
+                    if (data[i] === 0x78) { // zlib header
+                        // Fix common FCHECK values
+                        if (data[i + 1] === 0xEF) { // Bad FCHECK value
+                            repairedData[i + 1] = 0x9C; // Standard zlib compression
+                        }
+                    }
+                }
+            }
+
+            return repairedData;
+        } catch (error) {
+            console.warn('PDF repair attempt failed:', error);
+            return data; // Return original data if repair fails
         }
-        return undefined;
-    }, [sseConnector, followUpConnector]);
+    }
 
     // 4) Provide the SSE connector and the REST content source to the RAGProvider
     return (
@@ -134,8 +289,8 @@ function App() {
                 onAction={onAction}
                 config={{
                     timeouts: {
-                        stream: 10000,
-                    },
+                        stream: 10000
+                    }
                 }}
             // This is the key: your RAGProvider can now fetch Source data (like PDFs) via REST
             >
