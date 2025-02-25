@@ -302,7 +302,6 @@ const searchSourcesAtom = atom(
             searchSourcesModifier?: SearchSourcesActionModifier
         }
     ) => {
-        // todo: make use of query and searchSourcesModifier
         console.log('searchSourcesAtom', query, searchSourcesModifier);
         // Save previous state for rollback.
         const previousSources = get(retrievedSourcesAtom);
@@ -311,8 +310,10 @@ const searchSourcesAtom = atom(
         const config = get(configAtom);
         const abortController = new AbortController();
 
-        // Set the loading state to block concurrent operations.
         try {
+            // Set loading state
+            set(loadingAtom, true);
+            
             // If no sources promise is provided, skip updating and return early.
             if (!sources) {
                 console.warn("No sources provided to searchSourcesAtom. Operation skipped.");
@@ -320,21 +321,27 @@ const searchSourcesAtom = atom(
             }
 
             // Await the sources, applying the configured timeout.
-            const timedSources = await addTimeout(
+            const sourcesData = await addTimeout(
                 sources,
                 config.timeouts?.request,
                 'Sources request timeout exceeded in searchSourcesAtom',
                 abortController.signal
             );
 
+            // Add a UUID to each source if it's missing (like in addUserMessageAtom)
+            const sourcesDataWithIds = sourcesData.map(source => ({
+                ...source,
+                id: source.id || (crypto.randomUUID() as UUID),
+            }));
+
             // If successful, update the retrieved sources.
-            set(retrievedSourcesAtom, timedSources);
+            set(retrievedSourcesAtom, sourcesDataWithIds);
 
             // Optionally reset related state associated with sources.
             set(activeSourcesIdsAtom, []);
             set(selectedSourceIdAtom, null);
 
-            return timedSources;
+            return sourcesDataWithIds;
         } catch (error) {
             // Abort any further processing if an error occurs.
             abortController.abort();
@@ -350,6 +357,9 @@ const searchSourcesAtom = atom(
 
             // Propagate the error for any higher-level handling.
             throw error;
+        } finally {
+            // Always reset loading state
+            set(loadingAtom, false);
         }
     }
 );
