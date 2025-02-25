@@ -10,6 +10,8 @@ export interface Message {
     content: string;
 }
 
+export type MessageWithOptionalId = Partial<Pick<Message, 'id'>> & Omit<Message, 'id'>;
+
 export interface Source {
     readonly id: UUID; // todo: make sure this is unique -> validate changes
     title: string;

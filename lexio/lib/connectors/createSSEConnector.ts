@@ -1,9 +1,7 @@
 import { useCallback } from 'react';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import type { Message, Source, StreamChunk } from '../types';
+import type { Message, Source, StreamChunk, MessageWithOptionalId } from '../types';
 
-// Add a new internal type for the connector's message handling
-export type MessageWithOptionalId = Partial<Pick<Message, 'id'>> & Omit<Message, 'id'>;
 
 /**
  * The connector options, including a parseEvent function (once).

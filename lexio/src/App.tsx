@@ -13,7 +13,7 @@ import {
     createSSEConnector,
 } from '../lib/main';
 import './App.css';
-import { MessageWithOptionalId } from '../lib/connectors/createSSEConnector';
+import { MessageWithOptionalId } from '../lib/types';
 
 function App() {
 
