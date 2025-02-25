@@ -117,10 +117,10 @@ async def on_message(request: RequestBody) -> EventSourceResponse:
             highlights = convert_bboxes_to_highlights(page, metadata.get("text_bboxes", []))
 
             result = Source(
-                title=source,
+                title=source.replace("data/", ""),
                 type="pdf",
                 relevance=score,
-                metadata={"page": page + 1, "_href": f"/sources/{source.replace('data/', '')}"},
+                metadata={"page": page + 1, "_href": f"sources/{source.replace('data/', '')}"},
                 data="todo",
                 highlights=[h.model_dump() for h in highlights]
             )

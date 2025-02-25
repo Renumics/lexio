@@ -8,7 +8,7 @@ import {
     Source,
     QueryField,
     ErrorDisplay,
-    createTheme, AdvancedQueryField,
+    createTheme, AdvancedQueryField, SetSelectedSourceActionModifier,
 } from 'lexio';
 import LexioLogo from './assets/lexio.svg';
 import LexioIcon from './assets/icon.svg';
@@ -102,33 +102,34 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
             sources: Promise.resolve([])
         } as ActionHandlerResponse
     }
-a
+
     // Load the data from the API
-    // if (action.type === 'SET_SELECTED_SOURCE') {
-    //     const selected = sources.filter(source => source.id === action.sourceId)[0];
-    //     if (!selected) return {};
-    //
-    //     // todo: test this
-    //     return {
-    //         sources: (async () => {
-    //             try {
-    //                 const response = await fetch(`${API_BASE_URL}/sources/${selected.id}`);
-    //                 const data = await response.json();
-    //
-    //                 // Update the selected source with new data
-    //                 return sources.map(source =>
-    //                     source.id === selected.id
-    //                         ? { ...source, data: data.content }
-    //                         : source
-    //                 );
-    //             } catch (error) {
-    //                 console.error('Failed to load source:', error);
-    //                 return sources;
-    //             }
-    //         })()
-    //     };
-    // }
+    if (action.type === 'SET_SELECTED_SOURCE') {
+        const selected = sources.filter(source => source.id === action.sourceId)[0];
+        if (!selected) return {};
+
+        // todo: test this
+        return {
+            actionOptions: {
+                current: {
+                    sourceData: (async () => {
+                        console.log("HEEEELLLOOO")
+                        try {
+                            const response = await fetch(`${API_BASE_URL}/${selected.metadata?._href}`);
+                            const data = await response.json();
+
+                            console.log("data", data)
+                            return data;
+                        } catch (error) {
+                            console.error('Failed to load source:', error);
+                        }
+                    })()
+                } as SetSelectedSourceActionModifier,
+            }
+        } as ActionHandlerResponse;
+    }
 }
+
 
 function App() {
     return (

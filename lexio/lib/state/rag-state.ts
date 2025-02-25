@@ -10,7 +10,7 @@ const allowedModifiers: Record<UserAction['type'], object> = {
     SEARCH_SOURCES: {},
     CLEAR_SOURCES: {},
     SET_ACTIVE_SOURCES: {},
-    SET_SELECTED_SOURCE: {},
+    SET_SELECTED_SOURCE: { sourceData: Promise<string | Uint8Array | null> },
     SET_FILTER_SOURCES: {},
     RESET_FILTER_SOURCES: {}
 };
@@ -22,7 +22,7 @@ const allowedPayloadKeys: Record<UserAction['type'], string[]> = {
     SEARCH_SOURCES: ['sources', 'actionOptions'],
     CLEAR_SOURCES: ['actionOptions'],
     SET_ACTIVE_SOURCES: ['actionOptions'],
-    SET_SELECTED_SOURCE: ['sourceData', 'actionOptions'],
+    SET_SELECTED_SOURCE: ['actionOptions'],
     SET_FILTER_SOURCES: ['actionOptions'],
     RESET_FILTER_SOURCES: ['actionOptions']
 };
