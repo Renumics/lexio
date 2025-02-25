@@ -253,20 +253,22 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
                     <div className="mt-2 pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(source.metadata).map(([key, value]) => (
-                          <span
-                            key={key}
-                            className="inline-flex items-center px-2 py-1 rounded-md"
-                            style={{
-                              backgroundColor: style.metadataTagBackground,
-                              color: style.metadataTagColor,
-                              fontSize: `calc(${style.fontSize} * 0.75)`,
-                              lineHeight: '1.2',
-                            }}
-                          >
-                            {key}: {value}
-                          </span>
-                        ))}
+                        {Object.entries(source.metadata)
+                          .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
+                          .map(([key, value]) => (
+                            <span
+                              key={key}
+                              className="inline-flex items-center px-2 py-1 rounded-md"
+                              style={{
+                                backgroundColor: style.metadataTagBackground,
+                                color: style.metadataTagColor,
+                                fontSize: `calc(${style.fontSize} * 0.75)`,
+                                lineHeight: "1.2",
+                              }}
+                            >
+                              {key}: {value}
+                            </span>
+                          ))}
                       </div>
                     </div>
                   )}
