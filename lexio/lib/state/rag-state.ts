@@ -3,6 +3,7 @@ import { ActionHandler, ProviderConfig, StreamChunk, UUID } from "../types";
 import { AddUserMessageActionModifier, ClearMessagesActionModifier, ClearSourcesActionModifier, ResetFilterSourcesActionModifier, SearchSourcesActionModifier, SetActiveMessageActionModifier, SetActiveSourcesActionModifier, SetFilterSourcesActionModifier, SetSelectedSourceActionModifier, UserAction } from "../types";
 import { Message, Source } from '../types';
 
+// todo: talk about this
 const allowedModifiers: Record<UserAction['type'], object> = {
     ADD_USER_MESSAGE: { setUserMessage: '' },
     SET_ACTIVE_MESSAGE: {},
@@ -15,14 +16,15 @@ const allowedModifiers: Record<UserAction['type'], object> = {
     RESET_FILTER_SOURCES: {}
 };
 
+// todo: talk about this: 'response', 'message', 'messages', 'sources', 'actionOptions' OR NEW?
 const allowedPayloadKeys: Record<UserAction['type'], string[]> = {
     ADD_USER_MESSAGE: ['response', 'message', 'messages', 'sources', 'actionOptions'],
     SET_ACTIVE_MESSAGE: ['actionOptions'],
     CLEAR_MESSAGES: ['actionOptions'],
     SEARCH_SOURCES: ['sources', 'actionOptions'],
     CLEAR_SOURCES: ['actionOptions'],
-    SET_ACTIVE_SOURCES: ['actionOptions'],
-    SET_SELECTED_SOURCE: ['actionOptions'],
+    SET_ACTIVE_SOURCES: ['actionOptions'],  // todo: talk about this
+    SET_SELECTED_SOURCE: ['actionOptions'],  // todo: talk about this
     SET_FILTER_SOURCES: ['actionOptions'],
     RESET_FILTER_SOURCES: ['actionOptions']
 };

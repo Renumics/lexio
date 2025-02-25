@@ -64,7 +64,8 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
                         body: JSON.stringify({
                             message: action.message,
                             messages: messages,
-                            sources: sources,
+                            // remove the data field from sources to avoid sending the data over the network
+                            sources: sources.map(source => ({ ...source, data: undefined })), // todo: talk about this
                         }),
                         signal: controller.signal,
                         onmessage(ev) {
@@ -109,6 +110,7 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
         if (!selected) return {};
 
         return {
+             // todo: talk about this
             actionOptions: {
                 current: {
                     sourceData: (async () => {
