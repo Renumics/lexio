@@ -73,7 +73,7 @@ const useMockData = (): MockData => {
             metadata: {
                 page: 4,
             }
-        } as Source,
+        },
         {
             id: uuid(),
             title: "dummy.pdf",
@@ -83,8 +83,8 @@ const useMockData = (): MockData => {
             metadata: {
                 page: 1,
             }
-        } as Source,
-    ];
+        },
+    ] as Source[];
 
     return {
         sources,
