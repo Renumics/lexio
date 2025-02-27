@@ -240,89 +240,223 @@ function App() {
         }
         
         if (action.type === 'ADD_USER_MESSAGE') {
-            const responsePromise = Promise.resolve(MOCKED_RESPONSE.final_answer);
+            console.log('ADD_USER_MESSAGE action started');
 
-            const sourcesPromise = Promise.resolve().then(async () => {
-                const pdfSource = selectedSource || activeSources[0] || defaultSource;
+            // Create messages
+            const userMessage: Message = {
+                id: crypto.randomUUID(),
+                role: 'user',
+                content: action.message
+            };
+
+            // Just use the plain text response
+            const assistantMessage: Message = {
+                id: crypto.randomUUID(),
+                role: 'assistant',
+                content: MOCKED_RESPONSE.final_answer
+            };
+
+            const messages = [userMessage, assistantMessage];
+            console.log('Messages array created with length:', messages.length);
+
+            // Directly resolve the array
+            const messagesPromise = Promise.resolve(messages);
+
+            // Create the source updates with highlights
+            const COLORS = [
+                'rgba(255, 99, 132, 0.3)',   // red
+                'rgba(54, 162, 235, 0.3)',   // blue
+                'rgba(255, 206, 86, 0.3)',   // yellow
+                'rgba(75, 192, 192, 0.3)',   // green
+                'rgba(153, 102, 255, 0.3)',  // purple
+                'rgba(255, 159, 64, 0.3)',   // orange
+            ];
+
+            // Get the source data if available
+            const sourceToProcess = selectedSource || defaultSource;
+            
+            // Check if we have source data
+            if (sourceToProcess && sourceToProcess.data) {
+                console.log('Source data available, triggering actual explanation process...');
                 
-                try {
-                    const updatedSource = { ...pdfSource };
-                    let sourceData = pdfSource.data as SourceData;
-
-                    if (!sourceData) {
-                        const sourceWithData = await contentSource(pdfSource);
-                        const data = sourceWithData.data as SourceData;
+                // Actually call the ExplanationProcessor
+                return ExplanationProcessor.processResponse(
+                    MOCKED_RESPONSE.final_answer,
+                    sourceToProcess.data as Uint8Array
+                )
+                .then(explanationResult => {
+                    console.log('Explanation process completed successfully:', explanationResult);
+                    
+                    // Map the explanation results to highlights
+                    const coloredIdeas = explanationResult.explanations.map((explanation, index) => {
+                        // Get the first piece of supporting evidence
+                        const evidence = explanation.supporting_evidence[0];
                         
-                        if (data instanceof Blob) {
-                            const arrayBuffer = await data.arrayBuffer();
-                            sourceData = new Uint8Array(arrayBuffer);
-                        } else if (data instanceof Uint8Array) {
-                            sourceData = data;
-                        } else if (data instanceof ArrayBuffer) {
-                            sourceData = new Uint8Array(data);
-                        } else {
-                            throw new Error(`Unsupported data type: ${typeof data}`);
-                        }
-                    }
-
-                    if (!sourceData || !(sourceData instanceof Uint8Array)) {
-                        throw new Error('Could not get valid source data for processing');
-                    }
-
-                    const explanationResult = await ExplanationProcessor.processResponse(
-                        MOCKED_RESPONSE.final_answer,
-                        sourceData
-                    );
-
-                    const highlights: PDFHighlight[] = explanationResult.explanations.map((exp, index) => {
-                        const color = `rgba(255, ${99 + (index * 40)}, ${132 + (index * 20)}, 0.3)`;
                         return {
-                            page: exp.supporting_evidence[0]?.location?.page || 1,
-                            rect: exp.supporting_evidence[0]?.location?.rect || {
-                                left: 0.1,
-                                top: 0.1 + (index * 0.1),
-                                width: 0.8,
-                                height: 0.05
-                            },
-                            color
+                            text: explanation.answer_idea,
+                            color: COLORS[index % COLORS.length],
+                            evidence: {
+                                text: evidence.source_text,
+                                location: evidence.location,
+                                // Use the highlight from the evidence if available, or create a default one
+                                highlight: evidence.location.rect ? {
+                                    page: evidence.location.page,
+                                    rect: evidence.location.rect,
+                                    color: COLORS[index % COLORS.length]
+                                } : {
+                                    page: evidence.location.page,
+                                    rect: {
+                                        left: 0.1,
+                                        top: 0.1 + (index * 0.1),
+                                        width: 0.8,
+                                        height: 0.05
+                                    },
+                                    color: COLORS[index % COLORS.length]
+                                }
+                            }
                         };
                     });
 
-                    updatedSource.highlights = highlights;
-                    updatedSource.metadata = {
-                        ...updatedSource.metadata,
-                        coloredAnswerIdeas: MOCKED_RESPONSE.answer_ideas.map((idea, index) => ({
-                            text: idea,
-                            color: `rgba(255, ${99 + (index * 40)}, ${132 + (index * 20)}, 0.3)`
-                        }))
+                    // Create PDF highlights from the evidence
+                    const pdfHighlights = coloredIdeas.map(idea => idea.evidence.highlight);
+
+                    const updatedSource = {
+                        ...sourceToProcess,
+                        highlights: pdfHighlights,
+                        metadata: {
+                            ...sourceToProcess.metadata,
+                            coloredAnswerIdeas: coloredIdeas
+                        }
                     };
 
-                    console.log('Updated source with highlights:', updatedSource);
-                    console.log('Explanation result:', explanationResult);
-                    return [updatedSource];
-                } catch (error) {
-                    console.error('Error processing explanation:', error);
-                    return [pdfSource];
-                }
-            });
+                    console.log('Returning action response with processed explanations');
+                    const response: ActionHandlerResponse = {
+                        response: Promise.resolve(explanationResult.finalAnswer),
+                        messages: messagesPromise,
+                        sources: Promise.resolve([updatedSource]),
+                        actionOptions: {
+                            followUp: {
+                                type: SET_ACTIVE_SOURCES,
+                                sourceIds: [sourceToProcess.id],
+                                source: 'RAGProvider' as const
+                            }
+                        }
+                    };
 
-            return {
-                response: responsePromise,
-                sources: sourcesPromise,
-                metadata: {
-                    coloredIdeas: MOCKED_RESPONSE.answer_ideas.map((idea, index) => ({
-                        text: idea,
-                        color: `rgba(255, ${99 + (index * 40)}, ${132 + (index * 20)}, 0.3)`
-                    }))
-                },
-                actionOptions: {
-                    followUp: {
-                        type: SET_ACTIVE_SOURCES,
-                        sourceIds: [selectedSource?.id || defaultSource.id],
-                        source: 'RAGProvider' as const
+                    return response;
+                })
+                .catch(error => {
+                    console.error('Error in explanation process:', error);
+                    
+                    // Fall back to mocked response if there's an error
+                    console.log('Falling back to mocked response due to error');
+                    
+                    // Map our mocked explanations to the format needed for highlighting
+                    const coloredIdeas = MOCKED_RESPONSE.explanations.map((explanation, index) => {
+                        // Get the first piece of supporting evidence
+                        const evidence = explanation.supporting_evidence[0];
+                        
+                        return {
+                            text: explanation.idea,
+                            color: COLORS[index % COLORS.length],
+                            evidence: {
+                                text: evidence.source_text,
+                                location: evidence.location,
+                                // Add a highlight for this evidence in the PDF
+                                highlight: {
+                                    page: evidence.location.page || 1,
+                                    rect: {
+                                        left: 0.1,
+                                        top: 0.1 + (index * 0.1),
+                                        width: 0.8,
+                                        height: 0.05
+                                    },
+                                    color: COLORS[index % COLORS.length]
+                                }
+                            }
+                        };
+                    });
+
+                    // Create PDF highlights from the evidence
+                    const pdfHighlights = coloredIdeas.map(idea => idea.evidence.highlight);
+
+                    const updatedSource = {
+                        ...sourceToProcess,
+                        highlights: pdfHighlights,
+                        metadata: {
+                            ...sourceToProcess.metadata,
+                            coloredAnswerIdeas: coloredIdeas
+                        }
+                    };
+
+                    return {
+                        response: Promise.resolve(MOCKED_RESPONSE.final_answer),
+                        messages: messagesPromise,
+                        sources: Promise.resolve([updatedSource]),
+                        actionOptions: {
+                            followUp: {
+                                type: SET_ACTIVE_SOURCES,
+                                sourceIds: [sourceToProcess.id],
+                                source: 'RAGProvider' as const
+                            }
+                        }
+                    };
+                });
+            } else {
+                console.log('No source data available, using mocked response');
+                
+                // If we don't have source data, use the mocked response
+                // Map our mocked explanations to the format needed for highlighting
+                const coloredIdeas = MOCKED_RESPONSE.explanations.map((explanation, index) => {
+                    // Get the first piece of supporting evidence
+                    const evidence = explanation.supporting_evidence[0];
+                    
+                    return {
+                        text: explanation.idea,
+                        color: COLORS[index % COLORS.length],
+                        evidence: {
+                            text: evidence.source_text,
+                            location: evidence.location,
+                            // Add a highlight for this evidence in the PDF
+                            highlight: {
+                                page: evidence.location.page || 1,
+                                rect: {
+                                    left: 0.1,
+                                    top: 0.1 + (index * 0.1),
+                                    width: 0.8,
+                                    height: 0.05
+                                },
+                                color: COLORS[index % COLORS.length]
+                            }
+                        }
+                    };
+                });
+
+                // Create PDF highlights from the evidence
+                const pdfHighlights = coloredIdeas.map(idea => idea.evidence.highlight);
+
+                const updatedSource = {
+                    ...sourceToProcess,
+                    highlights: pdfHighlights,
+                    metadata: {
+                        ...sourceToProcess.metadata,
+                        coloredAnswerIdeas: coloredIdeas
                     }
-                }
-            } as ActionHandlerResponse;
+                };
+
+                return {
+                    response: Promise.resolve(MOCKED_RESPONSE.final_answer),
+                    messages: messagesPromise,
+                    sources: Promise.resolve([updatedSource]),
+                    actionOptions: {
+                        followUp: {
+                            type: SET_ACTIVE_SOURCES,
+                            sourceIds: [sourceToProcess.id],
+                            source: 'RAGProvider' as const
+                        }
+                    }
+                };
+            }
         }
 
         return undefined;

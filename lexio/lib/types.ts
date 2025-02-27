@@ -8,6 +8,13 @@ export interface Message {
     readonly id: UUID; // todo: make sure this is unique -> validate changes
     role: "user" | "assistant";
     content: string;
+    metadata?: {
+        coloredIdeas?: Array<{
+            text: string;
+            color: string;
+        }>;
+        [key: string]: any;
+    };
 }
 
 export interface Source {
