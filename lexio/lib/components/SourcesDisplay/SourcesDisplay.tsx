@@ -160,13 +160,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
 
   return (
     <ResetWrapper>
-      <div className="w-full h-full flex flex-col" style={{
-        backgroundColor: style.backgroundColor,
-        color: style.color,
-        borderRadius: style.borderRadius,
-        fontFamily: style.fontFamily,
-        fontSize: style.fontSize,
-      }}>
+      <div className="w-full h-full flex flex-col" style={style}>
         {/* Header */}
         <div className="flex justify-between items-center p-4">
           <h2 className="font-semibold" style={{ color: style.color, fontSize: `calc(${style.fontSize} * 1.15)` }}>
@@ -204,9 +198,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                       ? style.selectedSourceBackground
                       : activeSources.includes(source)
                         ? style.activeSourceBackground
-                        : activeSources.length > 0
-                          ? style.inactiveSourceBackground
-                          : style.inactiveSourceBackground,
+                        : style.inactiveSourceBackground,
                     borderColor: source.id === selectedSourceId
                       ? style.selectedSourceBorderColor
                       : activeSources.includes(source)
@@ -227,7 +219,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                         <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
                           backgroundColor: style.sourceTypeBackground,
                           color: style.sourceTypeColor,
-                          fontSize: `calc(${style.fontSize} * 0.75)`  // todo: replace with utils func
+                          fontSize: `calc(${style.fontSize} * 0.75)`
                         }}>
                           {source.type}
                         </span>
@@ -251,20 +243,34 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
                     <div className="mt-2 pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(source.metadata).map(([key, value]) => (
-                          <span
-                            key={key}
-                            className="inline-flex items-center px-2 py-1 rounded-md"
-                            style={{
-                              backgroundColor: style.metadataTagBackground,
-                              color: style.metadataTagColor,
-                              fontSize: `calc(${style.fontSize} * 0.75)`,
-                              lineHeight: '1.2',
-                            }}
-                          >
-                            {key}: {value}
-                          </span>
-                        ))}
+                        {Object.entries(source.metadata)
+                          .filter(([key]) => !key.startsWith('_') && key !== 'coloredAnswerIdeas') // Filter out private fields and coloredAnswerIdeas
+                          .map(([key, value]) => {
+                            // Handle different types of values
+                            let displayValue = '';
+                            if (typeof value === 'string' || typeof value === 'number') {
+                              displayValue = String(value);
+                            } else if (Array.isArray(value)) {
+                              displayValue = value.length.toString();
+                            } else if (typeof value === 'object' && value !== null) {
+                              displayValue = 'Object';
+                            }
+
+                            return (
+                              <span
+                                key={key}
+                                className="inline-flex items-center px-2 py-1 rounded-md"
+                                style={{
+                                  backgroundColor: style.metadataTagBackground,
+                                  color: style.metadataTagColor,
+                                  fontSize: `calc(${style.fontSize} * 0.75)`,
+                                  lineHeight: '1.2',
+                                }}
+                              >
+                                {key}: {displayValue}
+                              </span>
+                            );
+                        })}
                       </div>
                     </div>
                   )}

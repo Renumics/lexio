@@ -12,15 +12,60 @@ import {
     createRESTContentSource, 
     createSSEConnector,
     ActionHandlerResponse,
+    PDFHighlight,
 } from '../lib/main';
 import { ExplanationProcessor } from '../lib/explanation';
 import './App.css';
 
-// Add this constant at the top of the file, after imports
-const MOCKED_RESPONSE = "DeepSeek-R1 enhances reasoning by starting with a small set of high-quality chain-of-thought examples (cold-start data) and then using reinforcement learning to refine its outputs. This multi-stage approach not only improves accuracy but also produces clearer and more coherent reasoning, outperfrming traditional supervised fine-tuning methods.";
+// Update the MOCKED_RESPONSE constant to include structured data
+const MOCKED_RESPONSE = {
+    summary: "DeepSeek-R1 enhances reasoning through multi-stage learning",
+    final_answer: "DeepSeek-R1 enhances reasoning by starting with a small set of high-quality chain-of-thought examples (cold-start data) and then using reinforcement learning to refine its outputs. This multi-stage approach not only improves accuracy but also produces clearer and more coherent reasoning, outperfrming traditional supervised fine-tuning methods.",
+    answer_ideas: [
+        "Uses high-quality chain-of-thought examples",
+        "Employs reinforcement learning for refinement",
+        "Implements a multi-stage approach",
+        "Improves accuracy and coherence"
+    ],
+    explanations: [
+        {
+            idea: "Uses high-quality chain-of-thought examples",
+            supporting_evidence: [{
+                source_text: "starting with a small set of high-quality chain-of-thought examples (cold-start data)",
+                location: { page: 1 }
+            }]
+        },
+        {
+            idea: "Employs reinforcement learning for refinement",
+            supporting_evidence: [{
+                source_text: "using reinforcement learning to refine its outputs",
+                location: { page: 1 }
+            }]
+        },
+        {
+            idea: "Implements a multi-stage approach",
+            supporting_evidence: [{
+                source_text: "This multi-stage approach",
+                location: { page: 1 }
+            }]
+        },
+        {
+            idea: "Improves accuracy and coherence",
+            supporting_evidence: [{
+                source_text: "improves accuracy but also produces clearer and more coherent reasoning",
+                location: { page: 1 }
+            }]
+        }
+    ]
+};
+
+// Add type for source data
+type SourceData = Blob | Uint8Array | ArrayBuffer;
+
+// Add type literals for action types
+const SET_ACTIVE_SOURCES = 'SET_ACTIVE_SOURCES' as const;
 
 function App() {
-    // Move connector creation outside of useMemo
     const sseConnector = createSSEConnector({
         endpoint: 'http://localhost:8000/api/retrieve-and-generate',
         defaultMode: 'both' as const,
@@ -65,7 +110,6 @@ function App() {
         },
     });
 
-    // Move follow-up connector creation outside of useMemo
     const followUpConnector = createSSEConnector({
         endpoint: 'http://localhost:8000/api/generate',
         defaultMode: 'text' as const,
@@ -103,7 +147,6 @@ function App() {
 
     const contentSource = createRESTContentSource(contentSourceOptions);
 
-    // Update the default source to match the new PDF
     const defaultSource: Source = {
         id: '12345678-1234-1234-1234-123456789012',
         title: 'DeepSeek Paper',
@@ -114,10 +157,9 @@ function App() {
         }
     };
 
-    // 3) Action handler uses the SSE connector for "ADD_USER_MESSAGE"
     const onAction = useCallback((
         action: UserAction, 
-        messages: Message[], 
+        _messages: Message[], // Add underscore to indicate intentionally unused
         sources: Source[], 
         activeSources: Source[], 
         selectedSource: Source | null
@@ -136,56 +178,16 @@ function App() {
 
         if (action.type === 'SET_ACTIVE_SOURCES') {
             console.log('Setting active sources:', action.sourceIds);
+            const activeSourcesList = action.sourceIds.map(id => 
+                sources.find(s => s.id === id) || 
+                sources.find(s => s.metadata?.id === id) || 
+                defaultSource
+            );
             return {
-                sources: Promise.resolve(action.sourceIds.map(id => 
-                    sources.find(s => s.metadata?.id === id) || defaultSource
-                ))
+                sources: Promise.resolve(activeSourcesList)
             };
         }
 
-        if (action.type === 'ADD_USER_MESSAGE') {
-            // First, immediately return the mocked response for display
-            const responsePromise = Promise.resolve(MOCKED_RESPONSE);
-
-            // Then process the explanation in the background
-            responsePromise.then(async () => {
-                try {
-                    // Get or load the PDF data
-                    const pdfSource = selectedSource || activeSources[0];
-                    let sourceWithData = pdfSource;
-
-                    if (!pdfSource?.data) {
-                        sourceWithData = await contentSource(pdfSource || defaultSource);
-                        console.log('Loaded source for processing:', sourceWithData);
-                    }
-
-                    if (!sourceWithData?.data) {
-                        throw new Error('No PDF data available');
-                    }
-
-                    // Process the response to find matching parts in the PDF
-                    const result = await ExplanationProcessor.processResponse(
-                        MOCKED_RESPONSE,
-                        sourceWithData.data as Uint8Array
-                    );
-                    console.log('Explanation processing result:', result);
-
-                    // TODO: Use result.explanations to highlight matching parts in both
-                    // the response text and the PDF source
-                    // Each explanation has:
-                    // - answer_idea: part of the response
-                    // - supporting_evidence: matching parts in the PDF with location info
-
-                } catch (error) {
-                    console.error('Error in explanation processing:', error);
-                }
-            });
-
-            return {
-                response: responsePromise
-            };
-        } 
-        
         if (action.type === 'SET_SELECTED_SOURCE') {
             const sourceToLoad = selectedSource || defaultSource;
             console.log('Attempting to load PDF source:', sourceToLoad);
@@ -195,22 +197,9 @@ function App() {
                     
                     try {
                         let finalData: Uint8Array;
-                        const data = sourceWithData.data;
+                        const data = sourceWithData.data as SourceData;
                         
-                        // Type guard for Blob
                         if (data instanceof Blob) {
-                            // First try to validate the PDF using a FileReader
-                            const validateReader = new FileReader();
-                            const validation = await new Promise((resolve, reject) => {
-                                validateReader.onload = () => resolve(true);
-                                validateReader.onerror = () => reject(new Error('Failed to read PDF file'));
-                                validateReader.readAsArrayBuffer(data);
-                            });
-
-                            if (!validation) {
-                                throw new Error('PDF validation failed');
-                            }
-
                             const arrayBuffer = await data.arrayBuffer();
                             finalData = new Uint8Array(arrayBuffer);
                         } else if (data instanceof Uint8Array) {
@@ -221,25 +210,15 @@ function App() {
                             throw new Error(`Unsupported data type: ${typeof data}`);
                         }
 
-                        // Basic PDF validation
-                        if (finalData.length < 32) {
-                            throw new Error('Invalid PDF: File too small');
-                        }
-
-                        // Check PDF header (%PDF-)
-                        const pdfHeader = [37, 80, 68, 70, 45];
-                        const isValidPDF = pdfHeader.every((byte, i) => finalData[i] === byte);
-                        
-                        if (!isValidPDF) {
-                            throw new Error('Invalid PDF format: Missing PDF header');
-                        }
-
-                        // Try to repair common PDF issues
-                        const repairedData = await repairPDF(finalData);
-
-                        // Return the correct type for ActionHandlerResponse
                         return {
-                            sourceData: repairedData
+                            sourceData: finalData,
+                            actionOptions: {
+                                followUp: {
+                                    type: SET_ACTIVE_SOURCES,
+                                    sourceIds: [sourceToLoad.id],
+                                    source: 'RAGProvider' as const
+                                }
+                            }
                         } as ActionHandlerResponse;
                     } catch (error) {
                         console.error('Error processing PDF data:', error);
@@ -260,47 +239,95 @@ function App() {
                 });
         }
         
-        return undefined;
-    }, [sseConnector, followUpConnector, contentSource]);
+        if (action.type === 'ADD_USER_MESSAGE') {
+            const responsePromise = Promise.resolve(MOCKED_RESPONSE.final_answer);
 
-    // Helper function to attempt PDF repair
-    async function repairPDF(data: Uint8Array): Promise<Uint8Array> {
-        // Create a copy of the data to avoid modifying the original
-        const repairedData = new Uint8Array(data);
-        
-        try {
-            // Find the start of the xref table
-            const decoder = new TextDecoder();
-            const text = decoder.decode(data);
-            const xrefIndex = text.lastIndexOf('xref');
-            
-            if (xrefIndex === -1) {
-                console.log('No xref table found, attempting to rebuild PDF structure');
-                return repairedData;
-            }
+            const sourcesPromise = Promise.resolve().then(async () => {
+                const pdfSource = selectedSource || activeSources[0] || defaultSource;
+                
+                try {
+                    const updatedSource = { ...pdfSource };
+                    let sourceData = pdfSource.data as SourceData;
 
-            // Check for common stream compression issues
-            const streamStart = text.indexOf('stream');
-            if (streamStart !== -1) {
-                // Look for invalid FCHECK values and try to correct them
-                for (let i = streamStart; i < data.length - 2; i++) {
-                    if (data[i] === 0x78) { // zlib header
-                        // Fix common FCHECK values
-                        if (data[i + 1] === 0xEF) { // Bad FCHECK value
-                            repairedData[i + 1] = 0x9C; // Standard zlib compression
+                    if (!sourceData) {
+                        const sourceWithData = await contentSource(pdfSource);
+                        const data = sourceWithData.data as SourceData;
+                        
+                        if (data instanceof Blob) {
+                            const arrayBuffer = await data.arrayBuffer();
+                            sourceData = new Uint8Array(arrayBuffer);
+                        } else if (data instanceof Uint8Array) {
+                            sourceData = data;
+                        } else if (data instanceof ArrayBuffer) {
+                            sourceData = new Uint8Array(data);
+                        } else {
+                            throw new Error(`Unsupported data type: ${typeof data}`);
                         }
                     }
+
+                    if (!sourceData || !(sourceData instanceof Uint8Array)) {
+                        throw new Error('Could not get valid source data for processing');
+                    }
+
+                    const explanationResult = await ExplanationProcessor.processResponse(
+                        MOCKED_RESPONSE.final_answer,
+                        sourceData
+                    );
+
+                    const highlights: PDFHighlight[] = explanationResult.explanations.map((exp, index) => {
+                        const color = `rgba(255, ${99 + (index * 40)}, ${132 + (index * 20)}, 0.3)`;
+                        return {
+                            page: exp.supporting_evidence[0]?.location?.page || 1,
+                            rect: exp.supporting_evidence[0]?.location?.rect || {
+                                left: 0.1,
+                                top: 0.1 + (index * 0.1),
+                                width: 0.8,
+                                height: 0.05
+                            },
+                            color
+                        };
+                    });
+
+                    updatedSource.highlights = highlights;
+                    updatedSource.metadata = {
+                        ...updatedSource.metadata,
+                        coloredAnswerIdeas: MOCKED_RESPONSE.answer_ideas.map((idea, index) => ({
+                            text: idea,
+                            color: `rgba(255, ${99 + (index * 40)}, ${132 + (index * 20)}, 0.3)`
+                        }))
+                    };
+
+                    console.log('Updated source with highlights:', updatedSource);
+                    console.log('Explanation result:', explanationResult);
+                    return [updatedSource];
+                } catch (error) {
+                    console.error('Error processing explanation:', error);
+                    return [pdfSource];
                 }
-            }
+            });
 
-            return repairedData;
-        } catch (error) {
-            console.warn('PDF repair attempt failed:', error);
-            return data; // Return original data if repair fails
+            return {
+                response: responsePromise,
+                sources: sourcesPromise,
+                metadata: {
+                    coloredIdeas: MOCKED_RESPONSE.answer_ideas.map((idea, index) => ({
+                        text: idea,
+                        color: `rgba(255, ${99 + (index * 40)}, ${132 + (index * 20)}, 0.3)`
+                    }))
+                },
+                actionOptions: {
+                    followUp: {
+                        type: SET_ACTIVE_SOURCES,
+                        sourceIds: [selectedSource?.id || defaultSource.id],
+                        source: 'RAGProvider' as const
+                    }
+                }
+            } as ActionHandlerResponse;
         }
-    }
 
-    // 4) Provide the SSE connector and the REST content source to the RAGProvider
+        return undefined;
+    }, [contentSource]);
+
     console.log('OpenAI Key exists:', !!import.meta.env.VITE_OPENAI_API_KEY);
     return (
         <div className="app-container">
@@ -311,7 +338,6 @@ function App() {
                         stream: 10000
                     }
                 }}
-            // This is the key: your RAGProvider can now fetch Source data (like PDFs) via REST
             >
                 <div
                     style={{
@@ -331,7 +357,6 @@ function App() {
                         boxSizing: 'border-box',
                     }}
                 >
-                    {/* Main chat UI */}
                     <div
                         style={{
                             gridArea: 'chat',
@@ -350,7 +375,6 @@ function App() {
                         </div>
                     </div>
 
-                    {/* Advanced query input */}
                     <div
                         style={{
                             gridArea: 'input',
@@ -362,7 +386,6 @@ function App() {
                         <AdvancedQueryField />
                     </div>
 
-                    {/* Content viewer */}
                     <div
                         style={{
                             gridArea: 'viewer',
@@ -374,7 +397,6 @@ function App() {
                         <ContentDisplay />
                     </div>
                 </div>
-                {/* Handle any encountered errors */}
                 <ErrorDisplay />
             </RAGProvider>
         </div>

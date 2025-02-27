@@ -136,6 +136,10 @@ export interface PDFHighlight {
          */
         height: number;
     };
+    /**
+     * The color of the highlight in rgba format
+     */
+    color?: string;
 }
 // ---- central data atoms -----
 

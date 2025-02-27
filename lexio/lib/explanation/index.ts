@@ -82,8 +82,17 @@ export class ExplanationProcessor {
             }
             console.log('Number of answer ideas:', answerIdeas.length);
 
+            const COLORS = [
+                'rgba(255, 99, 132, 0.3)',   // red
+                'rgba(54, 162, 235, 0.3)',   // blue
+                'rgba(255, 206, 86, 0.3)',   // yellow
+                'rgba(75, 192, 192, 0.3)',   // green
+                'rgba(153, 102, 255, 0.3)',  // purple
+                'rgba(255, 159, 64, 0.3)',   // orange
+            ];
+
             const explanations = await Promise.all(
-                answerIdeas.map(async (idea) => {
+                answerIdeas.map(async (idea, ideaIndex) => {
                     const keyPhrases = extractKeyPhrases(idea);
                     const ideaEmbedding = await getEmbedding(idea);
                     
@@ -129,6 +138,19 @@ export class ExplanationProcessor {
                         }
                     );
 
+                    // Add highlight information for the best matching evidence
+                    const bestEvidence = topSentences[0]; // Get the best match
+                    const highlight = bestEvidence ? {
+                        page: 1, // Default to page 1 if not specified
+                        rect: {
+                            top: 0.1 + (ideaIndex * 0.1), // Stagger highlights vertically
+                            left: 0.1,
+                            width: 0.8,
+                            height: 0.05
+                        },
+                        color: COLORS[ideaIndex % COLORS.length]
+                    } : undefined;
+
                     return {
                         answer_idea: idea,
                         key_phrases: keyPhrases,
@@ -139,13 +161,15 @@ export class ExplanationProcessor {
                             location: match.metadata,
                             overlapping_keywords: keyPhrases.filter(phrase =>
                                 match.sentence.toLowerCase().includes(phrase.toLowerCase())
-                            )
+                            ),
+                            highlight // Add highlight information
                         })),
                         analysis: {
                             average_similarity: topSentences.length
                                 ? topSentences.reduce((sum, m) => sum + m.similarity, 0) / topSentences.length
                                 : 0,
-                        }
+                        },
+                        color: COLORS[ideaIndex % COLORS.length] // Add color for the answer idea
                     };
                 })
             );

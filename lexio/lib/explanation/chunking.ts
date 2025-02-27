@@ -16,7 +16,7 @@ export interface Chunk {
   sentences: SentenceObject[];
 }
 
-// // Initialize Natural’s sentence tokenizer.
+// // Initialize Natural's sentence tokenizer.
 // const sentenceTokenizer = new SentenceTokenizer([]); // Provide an empty array if no abbreviations are needed.
 
 /**
@@ -58,25 +58,25 @@ export async function groupSentenceObjectsIntoChunks(
   sentences: SentenceObject[],
   maxTokens: number = 500
 ): Promise<Chunk[]> {
-  // Extract sentence text from each object.
-  const sentenceTexts = sentences.map(s => s.text);
-  // Count tokens for each sentence.
-  const tokenCounts = countTokens(sentenceTexts);
-
   const chunks: Chunk[] = [];
   let currentChunkSentences: SentenceObject[] = [];
   let currentTokenCount = 0;
 
   for (let i = 0; i < sentences.length; i++) {
     const sentenceObj = sentences[i];
-    const sentenceTokenCount = tokenCounts[i];
+    const sentenceTokenCount = countTokens([sentenceObj.text])[0];
 
     // If adding this sentence would exceed maxTokens and the current chunk is not empty,
     // then push the current chunk and start a new one.
     if (currentTokenCount + sentenceTokenCount > maxTokens && currentChunkSentences.length > 0) {
+      // Create chunk with properly populated sentences array
+      const chunkText = currentChunkSentences.map(s => s.text).join(" ");
       chunks.push({
-        text: currentChunkSentences.map(s => s.text).join(" "),
-        sentences: [...currentChunkSentences],
+        text: chunkText,
+        sentences: currentChunkSentences.map(s => ({
+          text: s.text,
+          metadata: s.metadata || {}
+        }))
       });
       currentChunkSentences = [];
       currentTokenCount = 0;
@@ -89,9 +89,13 @@ export async function groupSentenceObjectsIntoChunks(
 
   // Push any remaining sentences as the final chunk.
   if (currentChunkSentences.length > 0) {
+    const chunkText = currentChunkSentences.map(s => s.text).join(" ");
     chunks.push({
-      text: currentChunkSentences.map(s => s.text).join(" "),
-      sentences: [...currentChunkSentences],
+      text: chunkText,
+      sentences: currentChunkSentences.map(s => ({
+        text: s.text,
+        metadata: s.metadata || {}
+      }))
     });
   }
 

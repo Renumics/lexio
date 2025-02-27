@@ -1,6 +1,8 @@
 // similarity.ts
 import nlp from 'compromise';
 import { getEmbedding } from './embedding';
+import { splitIntoSentences } from './chunking';
+import { PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
 
 export interface IChunk {
   text: string;
@@ -62,6 +64,26 @@ export interface IExplanationResult {
       semantic_coherence: number;
     };
   };
+}
+
+export interface PDFHighlight {
+  rect: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  };
+}
+
+interface IHighlight {
+  text: string;
+  color: string;
+  page?: number;
+  rect?: PDFHighlight["rect"];
+}
+
+export interface IHighlightedExplanation extends IExplanationResult {
+  highlights: Array<IHighlight>;
 }
 
 /**
@@ -164,10 +186,21 @@ export async function findTopSentencesGlobally(
       console.log("No chunk found in match", match);
       continue;
     }
+
+    // If chunk doesn't have sentences array or it's empty, split the text into sentences
     if (!chunk.sentences || chunk.sentences.length === 0) {
-      console.log("No sentences in chunk", chunk);
+      const splitSentences = splitIntoSentences(chunk.text);
+      chunk.sentences = splitSentences.map(text => ({
+        text,
+        metadata: chunk.metadata || {}
+      }));
+    }
+
+    if (chunk.sentences.length === 0) {
+      console.log("No sentences could be extracted from chunk", chunk);
       continue;
     }
+
     console.log(`Processing ${chunk.sentences.length} sentences for chunk`, chunk);
 
     if (!chunk || !chunk.sentences) continue;
@@ -240,34 +273,47 @@ export function extractKeyPhrases(text: string): string[] {
 export async function explainAnswerSegmentWithEntities(
   segment: string,
   sourceMatches: ISentenceResult[]
-): Promise<IExplanationResult> {
-  const answerEntities = extractEntitiesAndTopics(segment);
+): Promise<IHighlightedExplanation> {
+  const answerIdeas = segment.split('\n').filter(idea => idea.trim());
+  const COLORS = [
+    'rgba(255, 99, 132, 0.3)',   // red
+    'rgba(54, 162, 235, 0.3)',   // blue
+    'rgba(255, 206, 86, 0.3)',   // yellow
+    'rgba(75, 192, 192, 0.3)',   // green
+    'rgba(153, 102, 255, 0.3)',  // purple
+  ];
+
+  const highlights: IHighlight[] = answerIdeas.map((idea, index) => ({
+    text: idea.replace(/^[-\s]+/, ''), // Remove leading dash and spaces
+    color: COLORS[index % COLORS.length]
+  }));
+
+  // Add the best matching source text as a highlight
+  if (sourceMatches.length > 0) {
+    const bestMatch = sourceMatches[0];
+    highlights.push({
+      text: bestMatch.sentence,
+      color: 'rgba(255, 255, 0, 0.3)', // yellow for source matches
+      page: bestMatch.metadata?.page,
+      rect: bestMatch.metadata?.rect
+    });
+  }
+
   return {
     answer_segment: segment,
-    supporting_evidence: sourceMatches.map((match) => {
-      const sourceEntities = extractEntitiesAndTopics(match.sentence);
-      const overlappingEntities: IOverlappingEntity[] = [];
-      ["people", "places", "organizations", "topics"].forEach((type) => {
-        const overlap = sourceEntities[type as keyof Entities].filter((entity: string) =>
-          answerEntities[type as keyof Entities].includes(entity)
-        );
-        if (overlap.length > 0) {
-          overlappingEntities.push({ type, entities: overlap });
-        }
-      });
-      return {
-        source_text: match.sentence,
-        similarity_score: match.similarity,
-        context: match.originalChunk ? match.originalChunk.text : "",
-        location: match.metadata,
-        overlapping_entities: overlappingEntities,
-      };
-    }),
+    highlights,
+    supporting_evidence: sourceMatches.map(match => ({
+      source_text: match.sentence,
+      similarity_score: match.similarity,
+      context: match.originalChunk?.text || '',
+      location: match.metadata,
+      overlapping_entities: []
+    })),
     analysis: {
-      confidence: Math.max(...sourceMatches.map((m) => m.similarity)),
-      coverage: sourceMatches.length / segment.split(".").length,
-      context_summary: summarizeContext(sourceMatches),
-    },
+      confidence: Math.max(...sourceMatches.map(m => m.similarity)),
+      coverage: sourceMatches.length / segment.split('.').length,
+      context_summary: summarizeContext(sourceMatches)
+    }
   };
 }
 
@@ -316,4 +362,33 @@ export function highlightOverlap(finalSentence: string, matchedChunk: string): s
     highlightedChunk = highlightedChunk.replace(regex, `**${keyword}**`);
   });
   return highlightedChunk;
+}
+
+export async function findTextBoundsInPdf(
+  page: PDFPageProxy,
+  searchText: string
+): Promise<PDFHighlight["rect"] | null> {
+  try {
+    const textContent = await page.getTextContent();
+    const viewport = page.getViewport({ scale: 1.0 });
+    
+    // Clean and normalize search text
+    const normalizedSearch = searchText.trim().toLowerCase();
+    
+    for (const item of textContent.items) {
+      const text = (item as any).str;
+      if (text.toLowerCase().includes(normalizedSearch)) {
+        // Convert PDF coordinates to normalized viewport coordinates
+        return {
+          left: (item as any).transform[4] / viewport.width,
+          top: 1 - ((item as any).transform[5] / viewport.height), // Flip Y coordinate
+          width: ((item as any).width || 0) / viewport.width,
+          height: ((item as any).height || 20) / viewport.height // Default height if not provided
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error finding text bounds:', error);
+  }
+  return null;
 }

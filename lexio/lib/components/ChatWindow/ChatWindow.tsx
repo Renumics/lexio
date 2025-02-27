@@ -3,6 +3,8 @@ import { ThemeContext } from '../../theme/ThemeContext';
 import { useLexio, useRAGMessages } from '../../hooks/hooks';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
+import { ColoredMessage } from './ColoredMessage';
+import { Message, Source, UUID } from '../../types';
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -12,6 +14,12 @@ export interface ChatWindowStyles extends React.CSSProperties {
   fontFamily?: string;
   fontSize?: string;
   borderRadius?: string;
+}
+
+// Add interface for colored idea
+interface ColoredIdea {
+  text: string;
+  color: string;
 }
 
 /**
@@ -69,9 +77,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   userLabel = 'User: ',
   assistantLabel = 'Assistant: ',
 }) => {
-  const { messages, currentStream } = useRAGMessages();
+  // Update type assertion to match your types
+  const { messages, currentStream, selectedSource } = useRAGMessages() as {
+    messages: Array<Message>;
+    currentStream: Message | null;
+    selectedSource: Source | null;
+  };
+  
   const { clearMessages } = useLexio(componentKey ? `ChatWindow-${componentKey}` : 'ChatWindow');
-
 
   // Add ref for scrolling
   const chatEndRef = React.useRef<HTMLDivElement>(null);
@@ -133,9 +146,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                     {msg.role === 'user' ? userLabel : assistantLabel}
                   </strong>
                 )}
-                <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>
-                  {msg.content}
-                </div>
+                {msg.role === 'assistant' && selectedSource?.metadata?.coloredAnswerIdeas ? (
+                  <ColoredMessage 
+                    message={msg.content} 
+                    coloredIdeas={selectedSource.metadata.coloredAnswerIdeas.map((idea: ColoredIdea) => ({
+                      text: typeof idea.text === 'string' ? idea.text : '',
+                      color: typeof idea.color === 'string' ? idea.color : 'yellow'
+                    }))} 
+                  />
+                ) : (
+                  <div className="inline" style={{ whiteSpace: 'pre-wrap' }}>
+                    {msg.content}
+                  </div>
+                )}
               </div>
             ))}
             {currentStream && (
