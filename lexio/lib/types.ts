@@ -15,9 +15,9 @@ export type MessageWithOptionalId = Partial<Pick<Message, 'id'>> & Omit<Message,
 export interface Source {
     readonly id: UUID; // todo: make sure this is unique -> validate changes
     title: string;
-    type: "text" | "pdf" | "markdown" | "html";
+    type: "text" | "pdf" | "markdown" | "html" | "xlsx";
     relevance?: number;
-    data?: string | Uint8Array;
+    data?: string | Uint8Array | ArrayBuffer;
     /**
      * key convention to hide from display _key
      *
@@ -41,6 +41,12 @@ export interface Source {
      * Highlight annotations in the PDF document. Only applicable for PDF sources.
      */
     highlights?: PDFHighlight[];
+
+    /**
+     * Highlight ranges in the spreadsheet file. Only applicable for spreadsheet sources.
+     */
+    rangesHighlights?: SpreadsheetHighlight[];
+
 }// ---- central state management types -----
 export type Component = 'RAGProvider' |
     'QueryField' |
@@ -138,6 +144,24 @@ export interface PDFHighlight {
          */
         height: number;
     };
+}
+
+/**
+ * Represents ranges to highlight on a sheet in a spreadsheet file.
+ *
+ * @interface SpreadsheetHighlight
+ * @property {string} sheetName - The name of the sheet where the highlight should be applied.
+ * @property {string[]} ranges - The ranges to highlight. E.g "A1:B5", "B100:F200"
+ */
+export interface SpreadsheetHighlight {
+    /**
+     * The name of the sheet where the highlight appears.
+     */
+    sheetName: string;
+    /**
+     * The ranges to highlight. E.g "A1:B5", "B100:F200"
+     */
+    ranges: string[];
 }
 // ---- central data atoms -----
 
