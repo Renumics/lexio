@@ -15,3 +15,5 @@ dummy-package/
 examples/llama-index/frontend/rag-ui/
 
 pdfs/
+
+.env.local

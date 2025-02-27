@@ -13,7 +13,11 @@ import {
     createSSEConnector,
     ActionHandlerResponse,
 } from '../lib/main';
+import { ExplanationProcessor } from '../lib/explanation';
 import './App.css';
+
+// Add this constant at the top of the file, after imports
+const MOCKED_RESPONSE = "DeepSeek-R1 enhances reasoning by starting with a small set of high-quality chain-of-thought examples (cold-start data) and then using reinforcement learning to refine its outputs. This multi-stage approach not only improves accuracy but also produces clearer and more coherent reasoning, outperfrming traditional supervised fine-tuning methods.";
 
 function App() {
     // Move connector creation outside of useMemo
@@ -140,11 +144,45 @@ function App() {
         }
 
         if (action.type === 'ADD_USER_MESSAGE') {
-            const newMessages = [...messages, { content: action.message, role: 'user' as const }];
-            
+            // First, immediately return the mocked response for display
+            const responsePromise = Promise.resolve(MOCKED_RESPONSE);
+
+            // Then process the explanation in the background
+            responsePromise.then(async () => {
+                try {
+                    // Get or load the PDF data
+                    const pdfSource = selectedSource || activeSources[0];
+                    let sourceWithData = pdfSource;
+
+                    if (!pdfSource?.data) {
+                        sourceWithData = await contentSource(pdfSource || defaultSource);
+                        console.log('Loaded source for processing:', sourceWithData);
+                    }
+
+                    if (!sourceWithData?.data) {
+                        throw new Error('No PDF data available');
+                    }
+
+                    // Process the response to find matching parts in the PDF
+                    const result = await ExplanationProcessor.processResponse(
+                        MOCKED_RESPONSE,
+                        sourceWithData.data as Uint8Array
+                    );
+                    console.log('Explanation processing result:', result);
+
+                    // TODO: Use result.explanations to highlight matching parts in both
+                    // the response text and the PDF source
+                    // Each explanation has:
+                    // - answer_idea: part of the response
+                    // - supporting_evidence: matching parts in the PDF with location info
+
+                } catch (error) {
+                    console.error('Error in explanation processing:', error);
+                }
+            });
+
             return {
-                response: Promise.resolve("DeepSeek-R1 enhances reasoning by starting with a small set of high-quality chain-of-thought examples (cold-start data) and then using reinforcement learning to refine its outputs. This multi-stage approach not only improves accuracy but also produces clearer and more coherent reasoning, outperforming traditional supervised fine-tuning methods."),
-                sources: Promise.resolve([defaultSource])
+                response: responsePromise
             };
         } 
         
@@ -263,6 +301,7 @@ function App() {
     }
 
     // 4) Provide the SSE connector and the REST content source to the RAGProvider
+    console.log('OpenAI Key exists:', !!import.meta.env.VITE_OPENAI_API_KEY);
     return (
         <div className="app-container">
             <RAGProvider
