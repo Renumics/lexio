@@ -11,7 +11,7 @@ const allowedModifiers: Record<UserAction['type'], object> = {
     SEARCH_SOURCES: {},
     CLEAR_SOURCES: {},
     SET_ACTIVE_SOURCES: {},
-    SET_SELECTED_SOURCE: { sourceData: Promise<string | Uint8Array | null> },
+    SET_SELECTED_SOURCE: { setSourceData: Promise<string | Uint8Array | null> },
     SET_FILTER_SOURCES: {},
     RESET_FILTER_SOURCES: {}
 };

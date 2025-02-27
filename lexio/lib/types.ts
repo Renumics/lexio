@@ -13,7 +13,8 @@ export interface Message {
 export interface Source {
     readonly id: UUID; // todo: make sure this is unique -> validate changes
     title: string;
-    type: "text" | "pdf" | "markdown" | "html";
+    description?: string;
+    type?: "text" | "pdf" | "markdown" | "html";
     relevance?: number;
     data?: string | Uint8Array | null;
     /**

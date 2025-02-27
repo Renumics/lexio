@@ -225,6 +225,11 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                       <p className="font-medium truncate" style={{ color: style.color }}>
                         {source.title}
                       </p>
+                      {source.description && (
+                        <p className="text-sm text-gray-500 line-clamp-2" style={{ color: style.color + '90' }}>
+                            {source.description}
+                        </p>
+                      )}
                       {source.type && (
                         <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
                           backgroundColor: style.sourceTypeBackground,
@@ -235,7 +240,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                         </span>
                       )}
                       {showRelevanceScore && source.relevance !== undefined && (
-                        <div className="mt-2 flex items-center">
+                        <div className="inline-block mt-2 items-center">
                           <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
                           <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
                             <div

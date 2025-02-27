@@ -6,15 +6,15 @@ import {
     ContentDisplay,
     Message,
     Source,
-    QueryField,
     ErrorDisplay,
-    createTheme, AdvancedQueryField, SetSelectedSourceActionModifier,
+    createTheme, AdvancedQueryField, 
 } from 'lexio';
 import LexioLogo from './assets/lexio.svg';
 import LexioIcon from './assets/icon.svg';
-import {ActionHandlerResponse, UserAction} from "lexio/lib/types.ts";
+import {ActionHandlerResponse, UserAction} from "lexio";
 
 // define the API base URL
+// @ts-ignore
 const API_BASE_URL = __API_BASE_URL__;
 
 // we create a custom theme for the demo which overrides the default theme values
@@ -44,7 +44,7 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
         return {
             response: (async function* () {
                 const controller = new AbortController();
-                const queue = [];
+                const queue: { content: any; done: any; }[] = [];
                 let resolver: ((value: unknown) => void) | null = null;
                 
                 const TIMEOUT_MS = 3000; // 3 seconds timeout
@@ -75,6 +75,7 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
                             }
                             if (data.content !== undefined) {
                                 queue.push({ content: data.content, done: data.done });
+                                // @ts-ignore
                                 if (resolver) resolver();
                             }
                         },
@@ -113,7 +114,7 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
              // todo: talk about this
             actionOptions: {
                 current: {
-                    sourceData: (async () => {
+                    setSourceData: (async () => {
                         try {
                             const response = await fetch(`${API_BASE_URL}/${selected.metadata?._href}`);
 
@@ -134,10 +135,12 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
                             throw error;
                         }
                     })()
-                } as SetSelectedSourceActionModifier,
+                },
             }
-        } as ActionHandlerResponse;
+        };
     }
+
+    return {}
 }
 
 

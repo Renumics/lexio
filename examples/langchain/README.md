@@ -138,6 +138,20 @@ make start-backend    # Start the FastAPI server
 make start-frontend   # Start the Vite development server
 ```
 
+## Docker Compose Setup
+
+This project includes Docker Compose configurations for both development and production environments.
+
+### Development Setup
+
+3. Build and start the development containers:
+```bash
+docker compose build
+docker compose up
+```
+
+4. Access the frontend at http://localhost:5173
+
 ## Requirements
 
 - Make (optional)

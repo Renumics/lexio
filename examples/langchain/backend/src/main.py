@@ -81,6 +81,7 @@ class Message(BaseModel):
 
 class Source(BaseModel):
     title: str
+    description: str
     type: str
     relevance: Optional[float] = None
     metadata: Optional[object] = None
@@ -99,11 +100,8 @@ async def on_message(request: RequestBody) -> EventSourceResponse:
     body = request.model_dump()
     query = body.get("message")
     message_history = body.get("messages")
+    # todo: use sources
     sources = body.get("sources")
-
-    print(f"Received message: {query}")
-    print(f"Message history: {message_history}")
-    print(f"Sources: {sources}")
 
     # Retrieve relevant documents
     retrieval_results = []
@@ -117,10 +115,15 @@ async def on_message(request: RequestBody) -> EventSourceResponse:
             highlights = convert_bboxes_to_highlights(page, metadata.get("text_bboxes", []))
 
             result = Source(
-                title=source.replace("data/", ""),
+                title=source.replace("data/", "").split(".")[0],
+                description=doc.page_content,
                 type="pdf",
                 relevance=score,
-                metadata={"page": page, "_href": f"sources/{source.replace('data/', '')}"},
+                metadata={
+                    "page": page,
+                    "file": source.replace("data/", ""),
+                    "_href": f"sources/{source.replace('data/', '')}"
+                },
                 highlights=[h.model_dump() for h in highlights]
             )
             retrieval_results.append(result)
