@@ -30,83 +30,19 @@ type SourceData = Blob | Uint8Array | ArrayBuffer;
 const SET_ACTIVE_SOURCES = 'SET_ACTIVE_SOURCES' as const;
 
 function App() {
-    const sseConnector = createSSEConnector({
-        endpoint: 'http://localhost:8000/api/retrieve-and-generate',
-        defaultMode: 'both' as const,
-        method: 'POST' as const,
-        buildRequestBody: (messages: Omit<Message, "id">[], _sources: Source[], _metadata?: Record<string, any>) => ({
-            query: messages[messages.length - 1].content
-        }),
-        parseEvent: (data: any) => {
-            if (Array.isArray(data.sources)) {
-                const sources = data.sources.map((item: any) => ({
-                    title: item.doc_path.split('/').pop() || '',
-                    type: item.doc_path.endsWith('.pdf') ? 'pdf'
-                        : item.doc_path.endsWith('.html') ? 'html'
-                            : item.doc_path.endsWith('.md') ? 'markdown'
-                                : 'text',
-                    relevance: item.score || 0,
-                    metadata: {
-                        page: item.page || undefined,
-                        id: item.id || undefined,
-                    },
-                    content: item.text,
-                    highlights: item.highlights
-                        ? item.highlights.map((highlight: any) => ({
-                            page: highlight.page,
-                            rect: highlight.bbox
-                                ? {
-                                    top: highlight.bbox.t,
-                                    left: highlight.bbox.l,
-                                    width: highlight.bbox.r - highlight.bbox.l,
-                                    height: highlight.bbox.b - highlight.bbox.t,
-                                }
-                                : undefined,
-                        }))
-                        : undefined,
-                }));
-                return { sources, done: false };
-            }
-            return {
-                content: data.content,
-                done: !!data.done,
-            };
-        },
-    });
-
-    const followUpConnector = createSSEConnector({
-        endpoint: 'http://localhost:8000/api/generate',
-        defaultMode: 'text' as const,
-        method: 'POST' as const,
-        buildRequestBody: (messages: Omit<Message, "id">[], sources: Source[], _metadata?: Record<string, any>) => ({
-            messages: messages.map(m => ({
-                role: m.role,
-                content: m.content
-            })),
-            source_ids: sources.map(s => s.metadata?.id).filter(Boolean)
-        }),
-        parseEvent: (data: any) => ({
-            content: data.content,
-            done: !!data.done,
-        }),
-    });
-
     const contentSourceOptions = useMemo(() => ({
-        buildFetchRequest: (source: Source) => {
-            console.log('Building fetch request for source:', source);
-            return {
-                url: '/pdfs/deepseek.pdf',
-                options: {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/pdf',
-                        'Cache-Control': 'no-cache'
-                    },
-                    responseType: 'blob',
-                    credentials: 'same-origin'
-                }
-            };
-        },
+        buildFetchRequest: (_source: Source) => ({
+            url: '/pdfs/deepseek.pdf', // Hardcoded path for testing
+            options: {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/pdf',
+                    'Cache-Control': 'no-cache'
+                },
+                responseType: 'blob',
+                credentials: 'same-origin'
+            }
+        }),
     }), []);
 
     const contentSource = createRESTContentSource(contentSourceOptions);
