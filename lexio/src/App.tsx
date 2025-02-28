@@ -17,46 +17,10 @@ import {
 import { ExplanationProcessor } from '../lib/explanation';
 import './App.css';
 
-// Update the MOCKED_RESPONSE constant to include structured data
+// This is a temporary mocked response for testing purposes
+// In the future, this will be replaced with a real response from the RAG system
 const MOCKED_RESPONSE = {
-    summary: "DeepSeek-R1 enhances reasoning through multi-stage learning",
-    final_answer: "DeepSeek-R1 enhances reasoning by starting with a small set of high-quality chain-of-thought examples (cold-start data) and then using reinforcement learning to refine its outputs. This multi-stage approach not only improves accuracy but also produces clearer and more coherent reasoning, outperfrming traditional supervised fine-tuning methods.",
-    answer_ideas: [
-        "Uses high-quality chain-of-thought examples",
-        "Employs reinforcement learning for refinement",
-        "Implements a multi-stage approach",
-        "Improves accuracy and coherence"
-    ],
-    explanations: [
-        {
-            idea: "Uses high-quality chain-of-thought examples",
-            supporting_evidence: [{
-                source_text: "starting with a small set of high-quality chain-of-thought examples (cold-start data)",
-                location: { page: 1 }
-            }]
-        },
-        {
-            idea: "Employs reinforcement learning for refinement",
-            supporting_evidence: [{
-                source_text: "using reinforcement learning to refine its outputs",
-                location: { page: 1 }
-            }]
-        },
-        {
-            idea: "Implements a multi-stage approach",
-            supporting_evidence: [{
-                source_text: "This multi-stage approach",
-                location: { page: 1 }
-            }]
-        },
-        {
-            idea: "Improves accuracy and coherence",
-            supporting_evidence: [{
-                source_text: "improves accuracy but also produces clearer and more coherent reasoning",
-                location: { page: 1 }
-            }]
-        }
-    ]
+    final_answer: "DeepSeek-R1 enhances reasoning by starting with a small set of high-quality chain-of-thought examples (cold-start data) and then using reinforcement learning to refine its outputs. This multi-stage approach not only improves accuracy but also produces clearer and more coherent reasoning, outperfrming traditional supervised fine-tuning methods."
 };
 
 // Add type for source data
@@ -249,28 +213,9 @@ function App() {
                 content: action.message
             };
 
-            // Just use the plain text response
-            const assistantMessage: Message = {
-                id: crypto.randomUUID(),
-                role: 'assistant',
-                content: MOCKED_RESPONSE.final_answer
-            };
-
-            const messages = [userMessage, assistantMessage];
-            console.log('Messages array created with length:', messages.length);
-
-            // Directly resolve the array
-            const messagesPromise = Promise.resolve(messages);
-
-            // Create the source updates with highlights
-            const COLORS = [
-                'rgba(255, 99, 132, 0.3)',   // red
-                'rgba(54, 162, 235, 0.3)',   // blue
-                'rgba(255, 206, 86, 0.3)',   // yellow
-                'rgba(75, 192, 192, 0.3)',   // green
-                'rgba(153, 102, 255, 0.3)',  // purple
-                'rgba(255, 159, 64, 0.3)',   // orange
-            ];
+            // For now, use the mocked response
+            // Later this will be replaced with the actual RAG system response
+            const ragResponse = MOCKED_RESPONSE.final_answer;
 
             // Get the source data if available
             const sourceToProcess = selectedSource || defaultSource;
@@ -279,32 +224,67 @@ function App() {
             if (sourceToProcess && sourceToProcess.data) {
                 console.log('Source data available, triggering actual explanation process...');
                 
-                // Actually call the ExplanationProcessor
+                // Send the RAG response to the ExplanationProcessor
+                // This will remain the same when we switch to real RAG responses
                 return ExplanationProcessor.processResponse(
-                    MOCKED_RESPONSE.final_answer,
+                    ragResponse,
                     sourceToProcess.data as Uint8Array
                 )
                 .then(explanationResult => {
                     console.log('Explanation process completed successfully:', explanationResult);
+                    
+                    // Log the extracted answer ideas
+                    console.log('Extracted answer ideas:');
+                    explanationResult.answerIdeas.forEach((idea, index) => {
+                        console.log(`Idea ${index + 1}: "${idea}"`);
+                    });
+                    
+                    // Log the explanations with their supporting evidence
+                    console.log('Explanations with supporting evidence:');
+                    explanationResult.explanations.forEach((explanation, index) => {
+                        console.log(`Explanation ${index + 1}:`);
+                        console.log(`  Answer idea: "${explanation.answer_idea}"`);
+                        console.log(`  Key phrases: ${explanation.key_phrases.join(', ')}`);
+                        console.log(`  Supporting evidence (${explanation.supporting_evidence.length}):`);
+                        explanation.supporting_evidence.forEach((evidence, evidenceIndex) => {
+                            console.log(`    Evidence ${evidenceIndex + 1}: "${evidence.source_text}"`);
+                            console.log(`      Page: ${evidence.highlight?.page}`);
+                            console.log(`      Similarity score: ${evidence.similarity_score}`);
+                        });
+                    });
+                    
+                    // Create the COLORS array for highlighting
+                    const COLORS = [
+                        'rgba(255, 99, 132, 0.3)',   // red
+                        'rgba(54, 162, 235, 0.3)',   // blue
+                        'rgba(255, 206, 86, 0.3)',   // yellow
+                        'rgba(75, 192, 192, 0.3)',   // green
+                        'rgba(153, 102, 255, 0.3)',  // purple
+                        'rgba(255, 159, 64, 0.3)',   // orange
+                    ];
                     
                     // Map the explanation results to highlights
                     const coloredIdeas = explanationResult.explanations.map((explanation, index) => {
                         // Get the first piece of supporting evidence
                         const evidence = explanation.supporting_evidence[0];
                         
+                        // Log the mapping of idea to color
+                        console.log(`Coloring idea: "${explanation.answer_idea}" with color: ${COLORS[index % COLORS.length]}`);
+                        
+                        // todo: better way to handle this.
                         return {
                             text: explanation.answer_idea,
                             color: COLORS[index % COLORS.length],
                             evidence: {
                                 text: evidence.source_text,
-                                location: evidence.location,
+                                location: evidence.highlight,
                                 // Use the highlight from the evidence if available, or create a default one
-                                highlight: evidence.location.rect ? {
-                                    page: evidence.location.page,
-                                    rect: evidence.location.rect,
+                                highlight: evidence.highlight?.rect ? {
+                                    page: evidence.highlight.page,
+                                    rect: evidence.highlight.rect,
                                     color: COLORS[index % COLORS.length]
                                 } : {
-                                    page: evidence.location.page,
+                                    page: 0,
                                     rect: {
                                         left: 0.1,
                                         top: 0.1 + (index * 0.1),
@@ -317,8 +297,27 @@ function App() {
                         };
                     });
 
+                    // Log the final colored ideas that will be used for highlighting
+                    console.log('Final colored ideas for highlighting:');
+                    coloredIdeas.forEach((idea, index) => {
+                        console.log(`Colored idea ${index + 1}:`);
+                        console.log(`  Text: "${idea.text}"`);
+                        console.log(`  Color: ${idea.color}`);
+                        console.log(`  Evidence text: "${idea.evidence.text}"`);
+                        console.log(`  Evidence location: Page ${idea.evidence.highlight?.page}`);
+                    });
+
                     // Create PDF highlights from the evidence
                     const pdfHighlights = coloredIdeas.map(idea => idea.evidence.highlight);
+                    
+                    // Log the PDF highlights
+                    console.log('PDF highlights:');
+                    pdfHighlights.forEach((highlight, index) => {
+                        console.log(`Highlight ${index + 1}:`);
+                        console.log(`  Page: ${highlight.page}`);
+                        console.log(`  Color: ${highlight.color}`);
+                        console.log(`  Position: left=${highlight.rect.left}, top=${highlight.rect.top}, width=${highlight.rect.width}, height=${highlight.rect.height}`);
+                    });
 
                     const updatedSource = {
                         ...sourceToProcess,
@@ -328,6 +327,19 @@ function App() {
                             coloredAnswerIdeas: coloredIdeas
                         }
                     };
+
+                    // Create the assistant message with the RAG response
+                    const assistantMessage: Message = {
+                        id: crypto.randomUUID(),
+                        role: 'assistant',
+                        content: explanationResult.finalAnswer,
+                        metadata: {
+                            coloredAnswerIdeas: coloredIdeas
+                        }
+                    };
+
+                    const messages = [userMessage, assistantMessage];
+                    const messagesPromise = Promise.resolve(messages);
 
                     console.log('Returning action response with processed explanations');
                     const response: ActionHandlerResponse = {
@@ -348,51 +360,22 @@ function App() {
                 .catch(error => {
                     console.error('Error in explanation process:', error);
                     
-                    // Fall back to mocked response if there's an error
-                    console.log('Falling back to mocked response due to error');
+                    // Fall back to a simple response if there's an error
+                    console.log('Falling back to simple response due to error');
                     
-                    // Map our mocked explanations to the format needed for highlighting
-                    const coloredIdeas = MOCKED_RESPONSE.explanations.map((explanation, index) => {
-                        // Get the first piece of supporting evidence
-                        const evidence = explanation.supporting_evidence[0];
-                        
-                        return {
-                            text: explanation.idea,
-                            color: COLORS[index % COLORS.length],
-                            evidence: {
-                                text: evidence.source_text,
-                                location: evidence.location,
-                                // Add a highlight for this evidence in the PDF
-                                highlight: {
-                                    page: evidence.location.page || 1,
-                                    rect: {
-                                        left: 0.1,
-                                        top: 0.1 + (index * 0.1),
-                                        width: 0.8,
-                                        height: 0.05
-                                    },
-                                    color: COLORS[index % COLORS.length]
-                                }
-                            }
-                        };
-                    });
-
-                    // Create PDF highlights from the evidence
-                    const pdfHighlights = coloredIdeas.map(idea => idea.evidence.highlight);
-
-                    const updatedSource = {
-                        ...sourceToProcess,
-                        highlights: pdfHighlights,
-                        metadata: {
-                            ...sourceToProcess.metadata,
-                            coloredAnswerIdeas: coloredIdeas
-                        }
+                    const assistantMessage: Message = {
+                        id: crypto.randomUUID(),
+                        role: 'assistant',
+                        content: ragResponse
                     };
 
+                    const messages = [userMessage, assistantMessage];
+                    const messagesPromise = Promise.resolve(messages);
+
                     return {
-                        response: Promise.resolve(MOCKED_RESPONSE.final_answer),
+                        response: Promise.resolve(ragResponse),
                         messages: messagesPromise,
-                        sources: Promise.resolve([updatedSource]),
+                        sources: Promise.resolve([sourceToProcess]),
                         actionOptions: {
                             followUp: {
                                 type: SET_ACTIVE_SOURCES,
@@ -403,51 +386,22 @@ function App() {
                     };
                 });
             } else {
-                console.log('No source data available, using mocked response');
+                console.log('No source data available, using simple response');
                 
-                // If we don't have source data, use the mocked response
-                // Map our mocked explanations to the format needed for highlighting
-                const coloredIdeas = MOCKED_RESPONSE.explanations.map((explanation, index) => {
-                    // Get the first piece of supporting evidence
-                    const evidence = explanation.supporting_evidence[0];
-                    
-                    return {
-                        text: explanation.idea,
-                        color: COLORS[index % COLORS.length],
-                        evidence: {
-                            text: evidence.source_text,
-                            location: evidence.location,
-                            // Add a highlight for this evidence in the PDF
-                            highlight: {
-                                page: evidence.location.page || 1,
-                                rect: {
-                                    left: 0.1,
-                                    top: 0.1 + (index * 0.1),
-                                    width: 0.8,
-                                    height: 0.05
-                                },
-                                color: COLORS[index % COLORS.length]
-                            }
-                        }
-                    };
-                });
-
-                // Create PDF highlights from the evidence
-                const pdfHighlights = coloredIdeas.map(idea => idea.evidence.highlight);
-
-                const updatedSource = {
-                    ...sourceToProcess,
-                    highlights: pdfHighlights,
-                    metadata: {
-                        ...sourceToProcess.metadata,
-                        coloredAnswerIdeas: coloredIdeas
-                    }
+                // If we don't have source data, just return the RAG response without explanations
+                const assistantMessage: Message = {
+                    id: crypto.randomUUID(),
+                    role: 'assistant',
+                    content: ragResponse
                 };
 
+                const messages = [userMessage, assistantMessage];
+                const messagesPromise = Promise.resolve(messages);
+
                 return {
-                    response: Promise.resolve(MOCKED_RESPONSE.final_answer),
+                    response: Promise.resolve(ragResponse),
                     messages: messagesPromise,
-                    sources: Promise.resolve([updatedSource]),
+                    sources: Promise.resolve([sourceToProcess]),
                     actionOptions: {
                         followUp: {
                             type: SET_ACTIVE_SOURCES,

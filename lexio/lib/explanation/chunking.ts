@@ -98,6 +98,7 @@ export async function groupSentenceObjectsIntoChunks(
       }))
     });
   }
+  console.log("chunks", chunks);
 
   console.log(`Chunk grouping complete: ${chunks.length} chunks`);
   return chunks;

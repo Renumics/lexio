@@ -267,6 +267,7 @@ export function extractKeyPhrases(text: string): string[] {
   return doc.topics().out("array");
 }
 
+// todo: why do we need to store colors i a few modules? fix
 /**
  * Explains an answer segment by showing overlapping entities with supporting evidence.
  */
@@ -364,6 +365,7 @@ export function highlightOverlap(finalSentence: string, matchedChunk: string): s
   return highlightedChunk;
 }
 
+// todo: it feels like this UI logic should be somewhere else.
 export async function findTextBoundsInPdf(
   page: PDFPageProxy,
   searchText: string

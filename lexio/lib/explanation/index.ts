@@ -25,7 +25,8 @@ export interface ExplanationResult {
             source_text: string;
             similarity_score: number;
             context: string;
-            location: {
+            highlight?: {
+                color: string;
                 page: number;
                 rect?: {
                     top: number;
@@ -82,6 +83,7 @@ export class ExplanationProcessor {
             }
             console.log('Number of answer ideas:', answerIdeas.length);
 
+            // todo: # od colours shold be connected to the number of answer ideas
             const COLORS = [
                 'rgba(255, 99, 132, 0.3)',   // red
                 'rgba(54, 162, 235, 0.3)',   // blue
@@ -138,10 +140,11 @@ export class ExplanationProcessor {
                         }
                     );
 
+                    // todo: fix this mechanism.
                     // Add highlight information for the best matching evidence
                     const bestEvidence = topSentences[0]; // Get the best match
                     const highlight = bestEvidence ? {
-                        page: 1, // Default to page 1 if not specified
+                        page: bestEvidence.metadata.page, // Default to page 1 if not specified
                         rect: {
                             top: 0.1 + (ideaIndex * 0.1), // Stagger highlights vertically
                             left: 0.1,

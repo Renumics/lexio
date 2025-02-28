@@ -12,7 +12,7 @@ export interface ParseResult {
 
 export interface TextWithMetadata {
   text: string;
-  metadata: { [key: string]: any };
+  metadata: {page: number};
 }
 
 /**
@@ -47,6 +47,7 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
       id: `page_${i}`,
       block_type: "Page",
       text: pageText,
+      page: i,
     });
   }
 
@@ -65,6 +66,7 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, "");
 }
 
+// todo: change type and add metadata.
 /**
  * Recursively traverse block structure and collect text.
  */
@@ -74,8 +76,9 @@ function traverseAndCollectText(
 ): TextWithMetadata[] {
   const collected: TextWithMetadata[] = [];
   const currentMetadata = {
-    block_id: block.id,
-    block_type: block.block_type,
+    // block_id: block.id,
+    // block_type: block.block_type,
+    page: block.page,
   };
   const metadata = { ...parentMetadata, ...currentMetadata };
 
@@ -129,7 +132,7 @@ function cleanAndSplitText(rawBlocks: any, metadata: any): TextWithMetadata[] {
     textsWithMetadata = traverseAndCollectText(rawBlocks);
   } else {
     const rawText = metadata.rawText || "";
-    textsWithMetadata = [{ text: rawText, metadata: {} }];
+    textsWithMetadata = [{ text: rawText, metadata: {page: 0} }];
   }
 
   const processedSentences: TextWithMetadata[] = [];
