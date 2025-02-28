@@ -19,28 +19,34 @@ const ExampleComponent = () => (
           ]),
           // Return an async generator for streaming
           response: (async function* () {
-            yield { content: "Based on the document, " };
+            yield { content: "### Analysis Result\n\n" };
             await new Promise(resolve => setTimeout(resolve, 500));
-            yield { content: "the answer is..." };
+            yield { content: "Based on the document, here are the key points:\n\n" };
             await new Promise(resolve => setTimeout(resolve, 500));
-            yield { content: " Hope this helps!", done: true };
+            yield { content: "1. First important finding\n" };
+            await new Promise(resolve => setTimeout(resolve, 500));
+            yield { content: "2. Second key insight\n\n" };
+            await new Promise(resolve => setTimeout(resolve, 500));
+            yield { content: "**Conclusion**: This demonstrates both streaming *and* markdown support!", done: true };
           })()
         };
       }}
       // Follow-up questions can also use streaming
       generate={(messages: Message[], sources: RetrievalResult[]) => {
         return (async function* () {
-          yield { content: "Let me answer your follow-up. " };
+          yield { content: "### Follow-up Analysis\n\n" };
           await new Promise(resolve => setTimeout(resolve, 500));
-          yield { content: "Using the previous sources, " };
+          yield { content: "Using the previous sources, I can tell you that:\n\n" };
           await new Promise(resolve => setTimeout(resolve, 500));
-          yield { content: "I can tell you that...", done: true };
+          yield { content: "- Point one\n- Point two\n\n" };
+          await new Promise(resolve => setTimeout(resolve, 500));
+          yield { content: "*This concludes the analysis.*", done: true };
         })();
       }}
     >
       <div className="flex flex-col gap-4 h-full">
         <div className="flex-1">
-          <ChatWindow />
+          <ChatWindow markdown={true} />
         </div>
         <div>
           <AdvancedQueryField />
@@ -66,6 +72,7 @@ This guide will show you how to:
 - Stream responses word by word
 - Handle streaming in both initial queries and follow-ups
 - Properly structure streaming chunks
+- Display markdown-formatted responses in the chat window
 
 ## Streaming Format
 
@@ -78,6 +85,13 @@ interface GenerateStreamChunk {
   done?: boolean;    // Set to true for the final chunk
 }
 \`\`\`
+
+### Markdown Support in Streaming Responses
+
+The \`ChatWindow\` component supports markdown in streaming responses out of the box. It is enabled by default and can explicitly set with the \`markdown\` prop.
+In this example we will use headers, bold text, and lists in the streaming responses.  
+
+See the \`ChatWindow\` component documentation for more details.
 
 ## Example Implementation
 
@@ -94,35 +108,33 @@ interface GenerateStreamChunk {
           }
         }
       ]),
-      // Return an async generator for streaming
+      // Return an async generator for streaming. Text is automatically formatted as markdown.
       response: (async function* () {
-        yield { content: "Based on the document, " };
-        await new Promise(resolve => setTimeout(resolve, 500));
-        yield { content: "the answer is..." };
-        await new Promise(resolve => setTimeout(resolve, 500));
-        yield { content: " Hope this helps!", done: true };
+        yield { content: "### Analysis Result\\n\\n" };
+        yield { content: "Based on the document, here are the key points:\\n\\n" };
+        yield { content: "1. First important finding\\n" };
+        yield { content: "2. Second key insight\\n\\n" };
+        yield { content: "**Conclusion**: This demonstrates both streaming *and* markdown!", done: true };
       })()
     };
   }}
   // Follow-up questions can also use streaming
   generate={(messages, sources) => {
     return (async function* () {
-      yield { content: "Let me answer your follow-up. " };
-      await new Promise(resolve => setTimeout(resolve, 500));
-      yield { content: "Using the previous sources, " };
-      await new Promise(resolve => setTimeout(resolve, 500));
-      yield { content: "I can tell you that...", done: true };
+      yield { content: "### Follow-up Analysis\\n\\n" };
+      yield { content: "Using the previous sources...\\n\\n" };
+      yield { content: "- Point one\\n- Point two", done: true };
     })();
   }}
 >
-  <ChatWindow />
+  <ChatWindow markdown={true} />
   <AdvancedQueryField />
 </RAGProvider>
 \`\`\`
 
 Try it out:
-1. Ask a question - notice how the response appears word by word
-2. Ask a follow-up - both initial and follow-up responses support streaming
+- Ask a question - notice how the response appears word by word with markdown formatting.
+- Then, ask a follow-up question - both initial and follow-up responses support streaming and markdown.
 
 Next, move on to "04. Follow-up Questions" to learn how to handle follow-up questions with existing context.
         `

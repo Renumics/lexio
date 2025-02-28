@@ -52,53 +52,103 @@ export type Component = 'RAGProvider' |
     `SourcesDisplay-${string}` |
     `AdvancedQueryField-${string}`; // Flow: action in component -> triggers wrapped user function with state props -> triggers dispatch -> manipulates state
 
-export type UserAction = { type: 'ADD_USER_MESSAGE'; message: string; source: Component; } // User message
-    |
+export type AddUserMessageAction = { 
+  type: 'ADD_USER_MESSAGE'; 
+  message: string; 
+  source: Component; 
+};
 
-{ type: 'SET_ACTIVE_MESSAGE'; messageId: string; source: Component; } // Set active message -> can be used to rollback to a previous message
-    |
+export type SetActiveMessageAction = { 
+  type: 'SET_ACTIVE_MESSAGE'; 
+  messageId: string; 
+  source: Component; 
+};
 
-{ type: 'CLEAR_MESSAGES'; source: Component; } // Clear all messages in the chat
-    |
+export type ClearMessagesAction = { 
+  type: 'CLEAR_MESSAGES'; 
+  source: Component; 
+};
 
-{ type: 'SEARCH_SOURCES'; query: string; source: Component; } // Search sources, retrieve function - triggered by SourceDisplay
-    |
+export type SearchSourcesAction = { 
+  type: 'SEARCH_SOURCES'; 
+  query: string; 
+  source: Component; 
+};
 
-{ type: 'CLEAR_SOURCES'; source: Component; } // Clear all sources
-    |
+export type ClearSourcesAction = { 
+  type: 'CLEAR_SOURCES'; 
+  source: Component; 
+};
 
-{ type: 'SET_ACTIVE_SOURCES'; sourceIds: string[]; source: Component; } // Sets active sources
-    |
+export type SetActiveSourcesAction = { 
+  type: 'SET_ACTIVE_SOURCES'; 
+  sourceIds: string[]; 
+  source: Component; 
+};
 
-{ type: 'SET_SELECTED_SOURCE'; sourceId: string; sourceObject?: Source; source: Component; } // Sets selected source -> viewers
-    |
+export type SetSelectedSourceAction = { 
+  type: 'SET_SELECTED_SOURCE'; 
+  sourceId: string; 
+  sourceObject?: Source; 
+  source: Component; 
+};
 
-{ type: 'SET_FILTER_SOURCES'; filter: any; source: Component; } // todo: define filter object
-    |
+export type SetFilterSourcesAction = { 
+  type: 'SET_FILTER_SOURCES'; 
+  filter: any; // todo: define filter object
+  source: Component; 
+};
 
-{ type: 'RESET_FILTER_SOURCES'; source: Component; };
-export interface AddUserMessageActionModifier {
+export type ResetFilterSourcesAction = { 
+  type: 'RESET_FILTER_SOURCES'; 
+  source: Component; 
+};
+
+export type UserAction = 
+  | AddUserMessageAction       // User message
+  | SetActiveMessageAction     // Set active message -> can be used to rollback to a previous message
+  | ClearMessagesAction        // Clear all messages in the chat
+  | SearchSourcesAction        // Search sources, retrieve function - triggered by SourceDisplay
+  | ClearSourcesAction         // Clear all sources
+  | SetActiveSourcesAction     // Sets active sources
+  | SetSelectedSourceAction    // Sets selected source -> viewers
+  | SetFilterSourcesAction     // Sets filter for sources
+  | ResetFilterSourcesAction;  // Resets source filters
+
+export interface AddUserMessageActionResponse {
+    response?: Promise<string> | AsyncIterable<StreamChunk>;
+    sources?: Promise<Source[]>;
     setUserMessage?: string;
+    followUpAction?: UserAction;
 }
-export interface SetActiveMessageActionModifier {
-    messageId: string;
+export interface SetActiveMessageActionResponse {
+    messageId?: string;
+    followUpAction?: UserAction;
 }
-export interface ClearMessagesActionModifier {
+export interface ClearMessagesActionResponse {
+    followUpAction?: UserAction;
 }
-export interface SearchSourcesActionModifier {
+export interface SearchSourcesActionResponse {
+    sources?: Promise<Source[]>;
+    followUpAction?: UserAction;
 }
-export interface ClearSourcesActionModifier {
+export interface ClearSourcesActionResponse {
+    followUpAction?: UserAction;
 }
-export interface SetActiveSourcesActionModifier {
-    activeSourceIds: string[];
+export interface SetActiveSourcesActionResponse {
+    activeSourceIds?: string[];
+    followUpAction?: UserAction;
 }
-export interface SetSelectedSourceActionModifier {
-    selectedSourceId: string | null;
-    sourceData?: string | Uint8Array | null;
+export interface SetSelectedSourceActionResponse {
+    selectedSourceId?: string | null;
+    sourceData?: Promise<string | Uint8Array>;
+    followUpAction?: UserAction;
 }
-export interface SetFilterSourcesActionModifier {
+export interface SetFilterSourcesActionResponse {
+    followUpAction?: UserAction;
 }
-export interface ResetFilterSourcesActionModifier {
+export interface ResetFilterSourcesActionResponse {
+    followUpAction?: UserAction;
 }
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 /**
@@ -149,27 +199,16 @@ export interface ProviderConfig {
 }
 // ---- ActionHandler Function types -----
 // todo: replace with allowedModifiers
-type UserActionModifier =
-    AddUserMessageActionModifier |
-    SetActiveMessageActionModifier |
-    ClearMessagesActionModifier |
-    SearchSourcesActionModifier |
-    ClearSourcesActionModifier |
-    SetActiveSourcesActionModifier |
-    SetSelectedSourceActionModifier |
-    SetFilterSourcesActionModifier |
-    ResetFilterSourcesActionModifier;
-
-export type ActionHandlerResponse = {
-    response?: Promise<string> | AsyncIterable<StreamChunk>;
-    messages?: Promise<Message[]> | any;
-    sources?: Promise<Source[]>;
-    actionOptions?: {
-        current?: UserActionModifier;
-        followUp?: UserAction;
-    };
-    sourceData?: string | Uint8Array;
-};
+type ActionHandlerResponse =
+    AddUserMessageActionResponse |
+    SetActiveMessageActionResponse |
+    ClearMessagesActionResponse |
+    SearchSourcesActionResponse |
+    ClearSourcesActionResponse |
+    SetActiveSourcesActionResponse |
+    SetSelectedSourceActionResponse |
+    SetFilterSourcesActionResponse |
+    ResetFilterSourcesActionResponse;
 
 export type ActionHandler = {
     component: Component;

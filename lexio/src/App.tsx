@@ -11,9 +11,9 @@ import {
     Source,
     createRESTContentSource, 
     createSSEConnector,
+    MessageWithOptionalId
 } from '../lib/main';
 import './App.css';
-import { MessageWithOptionalId } from '../lib/types';
 
 function App() {
 
@@ -123,9 +123,11 @@ function App() {
                 return undefined;
             }
 
-            return contentSource(action.sourceObject).then(sourceWithData => ({
-                sourceData: sourceWithData.data
-            }));
+            // Return a SetSelectedSourceActionResponse object
+            return {
+                // The sourceData should be a Promise<string | Uint8Array>
+                sourceData: contentSource(action.sourceObject).then(sourceWithData => sourceWithData.data)
+            };
         }
         return undefined;
     }, [chatConnector, contentSource]);
