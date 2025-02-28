@@ -1,10 +1,26 @@
-import {CSSProperties, Ref, useEffect, useMemo, useRef} from "react";
-import {Cell, ColumnDef, flexRender, getCoreRowModel, useReactTable} from "@tanstack/react-table";
+import {CSSProperties, FC, PropsWithChildren, Ref, useEffect, useMemo, useRef} from "react";
+import {Cell, ColumnDef, flexRender, getCoreRowModel, Row, useReactTable} from "@tanstack/react-table";
 import "./spreadsheet.css";
 import {cn} from "./ui/utils";
 import {Range, SelectedCell} from "./useSpreadsheetStore";
 import {isCellInRange} from "./utils";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "./ui/table";
+
+import {
+    ContextMenu,
+    ContextMenuCheckboxItem,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuLabel,
+    ContextMenuRadioGroup,
+    ContextMenuRadioItem,
+    ContextMenuSeparator,
+    ContextMenuShortcut,
+    ContextMenuSub,
+    ContextMenuSubContent,
+    ContextMenuSubTrigger,
+    ContextMenuTrigger,
+} from "./ui/context-menu"
 
 type CellRange = Record<"top" | "right" | "bottom" | "left", string[]>;
 
@@ -67,10 +83,10 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
                     const rangeCheck: (borderSide: "top" | "right" | "bottom" | "left") => boolean = (borderSide: "top" | "right" | "bottom" | "left") => rangeToApply[borderSide].includes(`${cell.column.id}${cell.row.index + 1}`);
 
                     if (cellToStyle && isCellWithInRange) {
-                        const borderTop = rangeCheck("top") ? "3px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "0.5px solid gray";
-                        const borderRight = rangeCheck("right") ? "3px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "0.5px solid gray";
-                        const borderBottom = rangeCheck("bottom") ? "3px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "0.5px solid gray";
-                        const borderLeft = rangeCheck("left") ? "3px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "0.5px solid gray";
+                        const borderTop = rangeCheck("top") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "0.5px solid #E5E7EBFF";
+                        const borderRight = rangeCheck("right") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "0.5px solid #E5E7EBFF";
+                        const borderBottom = rangeCheck("bottom") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "0.5px solid #E5E7EBFF";
+                        const borderLeft = rangeCheck("left") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "0.5px solid #E5E7EBFF";
 
                         cellToStyle.style.borderTop = borderTop
                         cellToStyle.style.borderRight = borderRight
@@ -81,8 +97,7 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
                     if (!cellContainerToStyle) return;
 
                     cellContainerToStyle.className = cn(cellContainerToStyle.className, {
-                        "!opacity-[70%]": isCellInRange(row.index + 1, cell.column.id, range),
-                        "!bg-blue-200 hover:!bg-blue-200": isCellInRange(row.index + 1, cell.column.id, range),
+                        "!opacity-[80%] !bg-blue-200 hover:!bg-blue-200": isCellInRange(row.index + 1, cell.column.id, range),
                     });
                 });
             });
@@ -133,31 +148,9 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
         return border;
     }
 
-    const getCellStyle = (row: number, column: string): CSSProperties => {
-        if (!row || !column) return {};
-        return cellsStyles[`${column}${row}`];
-    }
-
-    const cssPropsToIgnoreInCellContent: (keyof CSSProperties)[] = [
-        "borderTop",
-        "borderRight",
-        "borderBottom",
-        "borderLeft",
-    ];
-
     const cssPropsToIgnoreInTableHead: (keyof CSSProperties)[] = [
         "minWidth",
     ];
-
-    const getCellStyleOfCellContent = (row: number, column: string): CSSProperties => {
-        const styles = getCellStyle(row, column);
-        if (!styles) return {};
-        const allStyleEntries = Object.entries(styles);
-        const styleEntriesWithoutBorders = allStyleEntries.filter(([key]) =>
-            !cssPropsToIgnoreInCellContent.includes(key as (keyof CSSProperties))
-        );
-        return Object.fromEntries(styleEntriesWithoutBorders) as CSSProperties;
-    }
 
     const getColumnStyle = (columnId: string): CSSProperties => {
         const stylesOfColumns = headerStyles[columnId];
@@ -166,11 +159,6 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
             .filter(([key]) => !cssPropsToIgnoreInTableHead.includes(key as (keyof CSSProperties)))
 
         return Object.fromEntries(styleWithExcludedProps) as CSSProperties;
-    }
-
-    const handleCellClickEvent = (cell: Cell<TData, TValue>) => {
-        if (!props.handleCellClick) return;
-        props.handleCellClick(cell);
     }
 
     const calculateWidthOfFirstColumn = (): number => {
@@ -196,27 +184,31 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
 
     return (
         <Table className="bordered-table">
-            <TableHeader className="sticky top-0 left-0 z-[10] bg-neutral-100">
+            <TableHeader className="bg-neutral-100">
                 {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id} className={"bg-neutral-100"}>
-                        {headerGroup.headers.map((header, index) => {
+                        {headerGroup.headers.map((header, index, array) => {
                             return (
                                 <TableHead
                                     key={header.id}
                                     style={{
                                         textAlign: "center",
                                         ...(props.selectedCell?.column === header.id && index !== 0 ? {
+                                            // Todo: Set a global color as selection color
                                             backgroundColor: "rgb(59 130 246 / var(--tw-bg-opacity, 1))",
                                         } : {}),
                                         ...getColumnStyle(header.column.id),
                                         width: index === 0 ? `${calculateWidthOfFirstColumn()}px` : `${calculateWidthOfColumn(header.column.id)}px`,
+                                        borderTop: "unset",
+                                        borderRight: index === array.length - 1 ? "1px solid #e5e7eb" : "unset",
+                                        borderLeft: index === 0 ? "unset" : "1px solid #e5e7eb",
+                                        borderBottom: "1px solid #e5e7eb",
                                     }}
-                                    className={cn(`bg-neutral-100 border-r border-b border-gray-200 text-sm text-neutral-600 font-normal tracking-tight`, {
+                                    className={cn("bg-neutral-100 text-sm text-neutral-600 font-normal tracking-tight sticky top-[-1px] left-[-1px] z-[10]", {
                                         // "min-w-[10px]": index === 0,
                                         //"min-w-[80px]": index !== 0,
-                                        "font-bold": props.selectedCell && props.selectedCell.column === header.id && index !== 0,
-                                        "text-white": props.selectedCell && props.selectedCell.column === header.id && index !== 0,
-                                        "border-blue-500 border-solid !border-[1px]": props.selectedCell && props.selectedCell.column === header.id && index !== 0,
+                                        "font-bold text-white": props.selectedCell && props.selectedCell.column === header.id && index !== 0,
+                                        "!border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0": props.selectedCell && props.selectedCell.column === header.id && index !== 0,
                                         //"bg-blue-500 hover:bg-blue-500": props.selectedCell?.column === header.id && index !== 0,
                                     })}
                                 >
@@ -235,86 +227,214 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
                 ))}
             </TableHeader>
             <TableBody ref={tableBodyRef as Ref<HTMLTableSectionElement>}>
-                {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row, rowIndex) => (
-                        <TableRow
+                {table.getRowModel().rows?.length ?
+                    table.getRowModel().rows.map((row, rowIndex, array) =>
+                        <RowRenderer
                             key={row.id}
-                            data-state={row.getIsSelected() && "selected"}
-                            style={{
-                                ...(rowStyles[`${rowIndex + 1}`] as CSSProperties ?? {})
-                            }}
-                        >
-                            {row.getVisibleCells().map((cell, index) => (
-                                <TableCell
-                                    id={`${cell.column.id}${cell.row.index + 1}`}
-                                    key={cell.id}
-                                    className={cn(`${cell.column.id}${cell.row.index + 1}`, {
-                                        "text-center sticky left-0 z-[9] bg-neutral-100 border-r border-b border-gray-200 text-sm text-neutral-600 font-normal tracking-tight": index === 0,
-                                        "font-bold": props.selectedCell && props.selectedCell.row === cell.row.index + 1 && index === 0,
-                                        "text-white": props.selectedCell && props.selectedCell.row === cell.row.index + 1 && index === 0,
-                                        "bg-blue-500": props.selectedCell && props.selectedCell.row === cell.row.index + 1 && index === 0,
-                                    })}
-                                    onClick={() => handleCellClickEvent(cell)}
-                                >
-                                    <div
-                                        id={`${cell.column.id}${cell.row.index + 1}-absolute-container`}
-                                        style={{
-                                            position: "absolute",
-                                            top: 0,
-                                            bottom: 0,
-                                            left: 0,
-                                            right: 0,
-                                            width: "100%",
-                                            wordWrap: "break-word",
-                                            overflowWrap: "break-word",
-                                            whiteSpace: "ellipsis",
-                                            borderTop: getCellStyle(cell.row.index + 1, cell.column.id)?.borderTop,
-                                            borderRight: getCellStyle(cell.row.index + 1, cell.column.id)?.borderRight,
-                                            borderBottom: getCellStyle(cell.row.index + 1, cell.column.id)?.borderBottom,
-                                            borderLeft: getCellStyle(cell.row.index + 1, cell.column.id)?.borderLeft,
-                                        }}
-                                        className={`${cell.column.id}${cell.row.index + 1}-absolute-container`}
-                                    >
-                                        <div
-                                            style={{
-                                                position: "relative",
-                                                top: 0,
-                                                bottom: 0,
-                                                left: 0,
-                                                right: 0,
-                                                display: "flex",
-                                                width: "100%",
-                                                height: "100%",
-                                                // styles from source file
-                                                ...getCellStyleOfCellContent(cell.row.index + 1, cell.column.id),
-                                                // For first column containing the row number.
-                                                ...(index === 0 ? {
-                                                    display: "flex",
-                                                    justifyContent: "center",
-                                                    justifyItems: "center",
-                                                    alignContent: "center",
-                                                    alignItems: "center",
-                                                } : {}),
-                                            }}
-                                        >
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </div>
-                                    </div>
-                                </TableCell>
-                            ))}
-                        </TableRow>
-                    ))
-                ) : (
+                            row={row}
+                            rowIndex={rowIndex}
+                            rowStyles={rowStyles}
+                            cellsStyles={cellsStyles}
+                            rowCount={array.length}
+                            selectedCell={props.selectedCell}
+                        />
+                    ) :
                     <TableRow>
                         <TableCell colSpan={columns.length} className="h-24 text-center">
                             No results.
                         </TableCell>
                     </TableRow>
-                )}
+                }
             </TableBody>
         </Table>
     );
 };
 SpreadsheetTable.displayName = "SpreadsheetComponent";
+
+type PropsRowRenderer<TData, TValue> = {
+    row: Row<TData>;
+    rowIndex: number;
+    rowCount: number;
+    selectedCell?: SelectedCell | undefined;
+    rowStyles: Record<number, CSSProperties>;
+    cellsStyles: Record<string, CSSProperties>;
+    handleCellClick?: ((cell: Cell<TData, TValue>) => void) | undefined;
+}
+const RowRenderer = <T, S>(props: PropsRowRenderer<T, S>) => {
+    const {
+        row,
+        rowStyles,
+        rowIndex,
+        rowCount,
+        cellsStyles,
+    } = props;
+
+    const handleCellClickEvent = (cell: Cell<T, S>) => {
+        if (!props.handleCellClick) return;
+        props.handleCellClick(cell);
+    }
+
+    const getCellStyle = (row: number, column: string): CSSProperties => {
+        if (!row || !column) return {};
+        return cellsStyles[`${column}${row}`];
+    }
+
+    const cssPropsToIgnoreInCellContent: (keyof CSSProperties)[] = [
+        "borderTop",
+        "borderRight",
+        "borderBottom",
+        "borderLeft",
+    ];
+
+    const getCellStyleOfCellContent = (row: number, column: string): CSSProperties => {
+        const styles = getCellStyle(row, column);
+        if (!styles) return {};
+        const allStyleEntries = Object.entries(styles);
+        const styleEntriesWithoutBorders = allStyleEntries.filter(([key]) =>
+            !cssPropsToIgnoreInCellContent.includes(key as (keyof CSSProperties))
+        );
+        return Object.fromEntries(styleEntriesWithoutBorders) as CSSProperties;
+    }
+
+
+    return (
+        <TableRow
+            data-state={row.getIsSelected() && "selected"}
+            style={{
+                ...(rowStyles[`${rowIndex + 1}`] as CSSProperties ?? {})
+            }}
+        >
+            {row.getVisibleCells().map((cell, cellIndex) => (
+                <TableCell
+                    id={`${cell.column.id}${cell.row.index + 1}`}
+                    key={cell.id}
+                    className={cn(`${cell.column.id}${cell.row.index + 1} relative`, {
+                        // "text-center sticky left-[-1px] z-[9] bg-neutral-100 border-r border-b border-t-[0] border-l-[0] border-gray-200 text-sm text-neutral-600 font-normal tracking-tight": index === 0,
+                        "text-center sticky left-[-1px] z-[9] bg-neutral-100 text-sm text-neutral-600 font-normal tracking-tight": cellIndex === 0,
+                        "font-bold bg-blue-500 text-white": props.selectedCell && props.selectedCell.row === cell.row.index + 1 && cellIndex === 0,
+                    })}
+                    style={{
+                        borderTop: "unset",
+                        borderRight: cellIndex === rowCount - 1 ? "1px solid #e5e7eb" : "unset",
+                        borderLeft: cellIndex === 0 ? "unset" : "1px solid #e5e7eb",
+                        borderBottom: props.selectedCell && props.selectedCell.row === cell.row.index + 1 && cellIndex === 0 ? "none" : "1px solid #e5e7eb",
+                    }}
+                    onClick={() => cellIndex === 0 ? undefined : handleCellClickEvent(cell)}
+                >
+                    <CellContentRenderer>
+                        <>
+                            <div
+                                id={`${cell.column.id}${cell.row.index + 1}-absolute-container`}
+                                style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    width: "100%",
+                                    height: "100%",
+                                    wordWrap: "break-word",
+                                    overflowWrap: "break-word",
+                                    whiteSpace: "ellipsis",
+                                    borderTop: getCellStyle(cell.row.index + 1, cell.column.id)?.borderTop,
+                                    borderRight: getCellStyle(cell.row.index + 1, cell.column.id)?.borderRight,
+                                    borderBottom: getCellStyle(cell.row.index + 1, cell.column.id)?.borderBottom,
+                                    borderLeft: getCellStyle(cell.row.index + 1, cell.column.id)?.borderLeft,
+                                }}
+                                className={`${cell.column.id}${cell.row.index + 1}-absolute-container`}
+                            >
+                                <div
+                                    style={{
+                                        position: "relative",
+                                        top: 0,
+                                        bottom: 0,
+                                        left: 0,
+                                        right: 0,
+                                        display: "flex",
+                                        width: "100%",
+                                        height: "100%",
+                                        // styles from source file
+                                        ...getCellStyleOfCellContent(cell.row.index + 1, cell.column.id),
+                                        // For first column containing the row number.
+                                        ...(cellIndex === 0 ? {
+                                            display: "flex",
+                                            justifyContent: "center",
+                                            justifyItems: "center",
+                                            alignContent: "center",
+                                            alignItems: "center",
+                                        } : {}),
+                                    }}
+                                >
+                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </div>
+                            </div>
+                            {props.selectedCell && (props.selectedCell.row === cell.row.index + 1 && props.selectedCell.column === cell.column.id) ?
+                                <div
+                                    className="bg-blue-500 text-blue-500 size-2 border border-white border-r-0 border-b-0 drop-shadow-md absolute bottom-[-5px] right-[-5px] z-[8]"
+                                ></div>
+                                : null
+                            }
+                        </>
+                    </CellContentRenderer>
+                </TableCell>
+            ))}
+        </TableRow>
+    );
+}
+RowRenderer.displayName = "RowRenderer";
+
+const CellContentRenderer: FC<PropsWithChildren> = (props) => {
+    const { children } = props;
+    return (
+        <ContextMenu>
+            <ContextMenuTrigger>
+                {children}
+            </ContextMenuTrigger>
+            <ContextMenuContent className="w-64 bg-white">
+                <ContextMenuItem inset>
+                    Back
+                    <ContextMenuShortcut>⌘[</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem inset disabled>
+                    Forward
+                    <ContextMenuShortcut>⌘]</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem inset>
+                    Reload
+                    <ContextMenuShortcut>⌘R</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger inset>More Tools</ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-48">
+                        <ContextMenuItem>
+                            Save Page As...
+                            <ContextMenuShortcut>⇧⌘S</ContextMenuShortcut>
+                        </ContextMenuItem>
+                        <ContextMenuItem>Create Shortcut...</ContextMenuItem>
+                        <ContextMenuItem>Name Window...</ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem>Developer Tools</ContextMenuItem>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+                <ContextMenuSeparator />
+                <ContextMenuCheckboxItem checked>
+                    Show Bookmarks Bar
+                    <ContextMenuShortcut>⌘⇧B</ContextMenuShortcut>
+                </ContextMenuCheckboxItem>
+                <ContextMenuCheckboxItem>Show Full URLs</ContextMenuCheckboxItem>
+                <ContextMenuSeparator />
+                <ContextMenuRadioGroup value="pedro">
+                    <ContextMenuLabel inset>People</ContextMenuLabel>
+                    <ContextMenuSeparator />
+                    <ContextMenuRadioItem value="pedro">
+                        Pedro Duarte
+                    </ContextMenuRadioItem>
+                    <ContextMenuRadioItem value="colm">Colm Tuite</ContextMenuRadioItem>
+                </ContextMenuRadioGroup>
+            </ContextMenuContent>
+        </ContextMenu>
+    );
+}
+CellContentRenderer.displayName = "CellRenderer";
 
 export { SpreadsheetTable };
