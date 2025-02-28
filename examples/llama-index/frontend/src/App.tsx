@@ -170,7 +170,7 @@ function App() {
                 let url: string;
                 url = `http://localhost:8000/getDataSource?source_reference=${source.title}`;
         
-                const apiPromise = new Promise<{ sources: Source[] }>(
+                const apiPromise = new Promise<Uint8Array>(
                     async (resolve, reject) => {
                         try {
                             const response = await fetch(url);
@@ -180,21 +180,21 @@ function App() {
                             const data = await response.arrayBuffer()
                             source.data = new Uint8Array(data)
                             console.log('data', data)
-                            resolve({
-                                sources: [source],
-                            })  
+                            resolve(new Uint8Array(data))  
                         } catch (error) {
                             reject(error)
                         }
                     }
                 )
 
-                const sourcesPromise = apiPromise.then((result) => result.sources)
+                const sourcesPromise = apiPromise.then((result) => result)
                 // ensure promise is resolved
                 sourcesPromise.then(() => {
                     console.log('source loaded', source)
                 })
-                return
+                return {
+                    sourceData: sourcesPromise
+                }
             }
         }
 
