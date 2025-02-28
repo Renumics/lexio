@@ -124,7 +124,7 @@ export interface AddUserMessageActionResponse {
     followUpAction?: UserAction;
 }
 export interface SetActiveMessageActionResponse {
-    messageId: string;
+    messageId?: string;
     followUpAction?: UserAction;
 }
 export interface ClearMessagesActionResponse {
@@ -138,11 +138,11 @@ export interface ClearSourcesActionResponse {
     followUpAction?: UserAction;
 }
 export interface SetActiveSourcesActionResponse {
-    activeSourceIds: string[];
+    activeSourceIds?: string[];
     followUpAction?: UserAction;
 }
 export interface SetSelectedSourceActionResponse {
-    selectedSourceId: string | null;
+    selectedSourceId?: string | null;
     sourceData?: string | Uint8Array;
     followUpAction?: UserAction;
 }

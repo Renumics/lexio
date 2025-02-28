@@ -174,11 +174,16 @@ export const addUserMessageAtom = atom(
             return sourcesDataWithIds;
         };
 
+        console.log('response', response);
+
         // Process the user message or streaming response independently.
         const processMessage = async () => {
             if (response.response) {
                 let accumulatedContent = '';
-                if (Symbol.asyncIterator in response) {
+                if (Symbol.asyncIterator in response.response) {
+                    // Create a single consistent ID for the entire streaming message
+                    const messageId = crypto.randomUUID() as UUID;
+                    
                     // Streaming response: process each chunk.
                     const streamTimeout = new StreamTimeout(config.timeouts?.stream);
                     for await (const chunk of response.response as AsyncIterable<StreamChunk>) {
@@ -187,7 +192,7 @@ export const addUserMessageAtom = atom(
                         accumulatedContent += chunk.content ?? '';
                         // Provide immediate feedback as streaming chunks arrive.
                         set(currentStreamAtom, {
-                            id: crypto.randomUUID(),
+                            id: messageId, // Use the same ID for all updates
                             role: 'assistant',
                             content: accumulatedContent,
                         });
@@ -196,7 +201,7 @@ export const addUserMessageAtom = atom(
                     set(completedMessagesAtom, [
                         ...get(completedMessagesAtom),
                         {
-                            id: crypto.randomUUID() as UUID,
+                            id: messageId, // Use the same ID for the final message
                             role: 'assistant',
                             content: accumulatedContent,
                         },
@@ -502,10 +507,6 @@ export const dispatchAtom = atom(
       );
 
       // ---- Validate payload keys
-      if (!payload) {
-          console.warn(`Handler for action "${action.type}" returned no payload`);
-          return;
-      }
       const allowedKeys = allowedActionReturnValues[action.type] || [];
       if (payload) {
         const extraKeys = Object.keys(payload).filter(key => !allowedKeys.includes(key));
@@ -615,7 +616,7 @@ export const dispatchAtom = atom(
       }
 
       // ---- Process any follow-up action (recursive)
-      if (payload.followUpAction) {
+      if (payload && payload.followUpAction) {
         promises.push(Promise.resolve(set(dispatchAtom, payload.followUpAction, true)));
       }
 

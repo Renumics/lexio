@@ -11,9 +11,9 @@ import {
     Source,
     createRESTContentSource, 
     createSSEConnector,
+    MessageWithOptionalId
 } from '../lib/main';
 import './App.css';
-import { MessageWithOptionalId } from '../lib/types';
 
 function App() {
 
