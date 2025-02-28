@@ -374,7 +374,7 @@ const setActiveSourcesAtom = atom(null, (_get, set, { action, response }: {
 });
 
 // set selected source
-const setSelectedSourceAtom = atom(null, (get, set, { action, response }: {
+const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: {
     action: SetSelectedSourceAction,
     response: SetSelectedSourceActionResponse
 }) => {
@@ -398,12 +398,20 @@ const setSelectedSourceAtom = atom(null, (get, set, { action, response }: {
             return;
         }
 
-        const updatedSources = currentSources.map(source => 
-            source.id === action.sourceId 
-                ? { ...source, data: response.sourceData }
-                : source
-        );
-        set(retrievedSourcesAtom, updatedSources);
+        try {
+            // Await the Promise to get the actual data
+            const resolvedData = await response.sourceData;
+            
+            const updatedSources = currentSources.map(source => 
+                source.id === action.sourceId 
+                    ? { ...source, data: resolvedData }
+                    : source
+            );
+            set(retrievedSourcesAtom, updatedSources);
+        } catch (error) {
+            console.error(`Failed to load data for source ${action.sourceId}:`, error);
+            set(errorAtom, `Failed to load source data: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
 });
 

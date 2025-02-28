@@ -117,8 +117,6 @@ export type UserAction =
 
 export interface AddUserMessageActionResponse {
     response?: Promise<string> | AsyncIterable<StreamChunk>;
-    message?: Message;
-    messages?: Promise<Message[]> ;
     sources?: Promise<Source[]>;
     setUserMessage?: string;
     followUpAction?: UserAction;
@@ -143,7 +141,7 @@ export interface SetActiveSourcesActionResponse {
 }
 export interface SetSelectedSourceActionResponse {
     selectedSourceId?: string | null;
-    sourceData?: string | Uint8Array;
+    sourceData?: Promise<string | Uint8Array>;
     followUpAction?: UserAction;
 }
 export interface SetFilterSourcesActionResponse {
