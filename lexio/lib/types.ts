@@ -141,7 +141,6 @@ export interface SetActiveSourcesActionResponse {
     followUpAction?: UserAction;
 }
 export interface SetSelectedSourceActionResponse {
-    selectedSourceId?: string | null;
     sourceData?: Promise<string | Uint8Array>;
     followUpAction?: UserAction;
 }

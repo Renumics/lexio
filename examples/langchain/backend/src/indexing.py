@@ -1,10 +1,12 @@
 import os
 import json
+import hashlib
 from pathlib import Path
 from typing import Optional
 
 import fitz
 from dotenv import load_dotenv
+from tqdm import tqdm
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_chroma import Chroma
@@ -47,6 +49,21 @@ def get_bbox_of_text(document: Document) -> Document:
     document.metadata["text_bboxes"] = json.dumps(hits)
 
     return document
+
+
+def compute_document_hash(document: Document) -> str:
+    """
+    Compute a hash for a document based on its content and metadata.
+    
+    Args:
+        document (Document): The document to hash.
+        
+    Returns:
+        str: The hex digest of the hash.
+    """
+    content = document.page_content.encode('utf-8')
+    metadata_str = json.dumps(document.metadata, sort_keys=True).encode('utf-8')
+    return hashlib.sha256(content + metadata_str).hexdigest()
 
 
 class DocumentIndexer:
@@ -96,25 +113,63 @@ class DocumentIndexer:
         if not collection_name:
             collection_name = "langchain_demo"
 
+        # Get existing database if it exists
+        try:
+            db = self.get_db(collection_name)
+            existing_hashes = set()
+            # Get existing document hashes
+            if db._collection.count() > 0:
+                results = db.get()
+                if results and results.get('metadatas'):
+                    existing_hashes = {meta.get('doc_hash') for meta in results['metadatas'] if meta.get('doc_hash')}
+        except Exception:
+            db = None
+            existing_hashes = set()
+
         documents = []
-        for pdf_path in self.data_dir.glob("*.pdf"):
-            try:
-                chunks = self.load_and_split_pdf(pdf_path)
-                documents.extend(chunks)
-            except Exception as e:
-                print(f"Error processing {pdf_path}: {e}")
+        pdf_files = list(self.data_dir.glob("*.pdf"))
+        
+        # Show progress bar for PDF processing
+        with tqdm(total=len(pdf_files), desc="Processing PDFs") as pbar:
+            for pdf_path in pdf_files:
+                try:
+                    chunks = self.load_and_split_pdf(pdf_path)
+                    # Add document hashes and filter duplicates
+                    for chunk in chunks:
+                        doc_hash = compute_document_hash(chunk)
+                        if doc_hash not in existing_hashes:
+                            chunk.metadata['doc_hash'] = doc_hash
+                            documents.append(chunk)
+                except Exception as e:
+                    print(f"Error processing {pdf_path}: {e}")
+                pbar.update(1)
 
+        print(f"Will add {len(documents)} documents to the database.")
         if not documents:
-            raise ValueError(f"No documents found in {self.data_dir}")
+            print("No new documents will be created from PDF files in the data directory.")
+            return db
 
-        documents = list(map(get_bbox_of_text, documents))
+        # Show progress bar for adding positional metadata
+        with tqdm(total=len(documents), desc="Adding positional metadata") as pbar:
+            documents_with_bbox = []
+            for doc in documents:
+                doc_with_bbox = get_bbox_of_text(doc)
+                documents_with_bbox.append(doc_with_bbox)
+                pbar.update(1)
 
-        db = Chroma.from_documents(
-            documents=documents,
-            embedding=self.embeddings,
-            persist_directory=str(self.db_dir),
-            collection_name=collection_name,
-        )
+        # Create or update the database
+        if db is None:
+            db = Chroma.from_documents(
+                documents=documents_with_bbox,
+                embedding=self.embeddings,
+                persist_directory=str(self.db_dir),
+                collection_name=collection_name,
+            )
+        else:
+            # Add new documents to existing database
+            if documents_with_bbox:
+                db.add_documents(documents_with_bbox)
+
         return db
 
     def get_db(self, collection_name: Optional[str] = None) -> Chroma:

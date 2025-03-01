@@ -75,6 +75,7 @@ def format_docs(docs) -> str:
     return "\n\n".join(f"Document: {doc.page_content}" for doc in docs)
 
 
+# todo: replace with python/lexio types
 class Message(BaseModel):
     role: str
     content: str
@@ -92,6 +93,46 @@ class RequestBody(BaseModel):
     message: str
     messages: Optional[List[Message]] = []
     sources: Optional[List[Source]] = []
+    activeSources: Optional[List[Source]] = []
+    selectedSource: Optional[Source] = None
+
+
+@app.get("/search")
+async def on_message(query: str = Query(None, description="Search query string")):
+    if not query:
+        raise HTTPException(status_code=400, detail="No query string provided.")
+
+    # Retrieve relevant documents
+    retrieval_results = []
+    retrieval_docs = []
+    try:
+        results = db.similarity_search_with_score(query, k=4)
+        for doc, score in results:
+            metadata = doc.metadata
+            source = metadata.get("source", "unknown.pdf")
+            page = metadata.get("page", 0) + 1
+            highlights = convert_bboxes_to_highlights(page, metadata.get("text_bboxes", []))
+
+            result = Source(
+                title=source.replace("data/", "").split(".")[0],
+                description=doc.page_content,
+                type="pdf",
+                relevance=score,
+                metadata={
+                    "page": page,
+                    "file": source.replace("data/", ""),
+                    "_href": f"sources/{source.replace('data/', '')}"
+                },
+                highlights=[h.model_dump() for h in highlights]
+            )
+            retrieval_results.append(result)
+            retrieval_docs.append(doc)
+
+    except Exception as e:
+        print(f"Error in retrieve: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return retrieval_results
 
 
 # todo: implement this endpoint -> add some logic to the on-message endpoint
@@ -100,8 +141,13 @@ async def on_message(request: RequestBody) -> EventSourceResponse:
     body = request.model_dump()
     query = body.get("message")
     message_history = body.get("messages")
-    # todo: use sources
+
+    # todo: use sources in workflow
     sources = body.get("sources")
+    active_sources = body.get("activeSources")
+    selected_source = body.get("selectedSource")
+
+    # print(sources, active_sources, selected_source)
 
     # Retrieve relevant documents
     retrieval_results = []

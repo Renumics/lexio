@@ -25,6 +25,7 @@ services:
       start_period: 10s
 
   frontend:
+    platform: linux/amd64
     build:
       context: ../../
       dockerfile: examples/langchain/frontend/Dockerfile

@@ -33,6 +33,7 @@ const demoTheme = createTheme({
 });
 
 const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null): ActionHandlerResponse => {
+    const TIMEOUT_MS = 10000; // 10 seconds timeout
     console.log("myOnActionFn", action, messages, sources, activeSources, selectedSource)
 
     if (action.type === 'ADD_USER_MESSAGE') {
@@ -46,8 +47,7 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
                 const controller = new AbortController();
                 const queue: { content: any; done: any; }[] = [];
                 let resolver: ((value: unknown) => void) | null = null;
-                
-                const TIMEOUT_MS = 3000; // 3 seconds timeout
+
                 const waitForData = () => Promise.race([
                     new Promise(resolve => resolver = resolve),
                     new Promise((_, reject) => 
@@ -66,6 +66,8 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
                             messages: messages,
                             // remove the data field from sources to avoid sending the data over the network
                             sources: sources.map(source => ({ ...source, data: undefined })), // todo: talk about this
+                            activeSources: activeSources.map(source => ({ ...source, data: undefined })), // todo: talk about this
+                            selectedSource: selectedSource ?  {...selectedSource, data: undefined} : undefined,
                         }),
                         signal: controller.signal,
                         onmessage(ev) {
@@ -100,9 +102,26 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
 
     // Handle search sources action
     if (action.type === 'SEARCH_SOURCES') {
+        // implement call to backend for fetching source
         return {
-            sources: Promise.resolve([])
-        } as ActionHandlerResponse
+            sources: (async () => {
+                try {
+                    const response = await fetch(API_BASE_URL + '/search?query=' + encodeURIComponent(action.query));
+                    const data = await response.json();
+
+                    // check for error response
+                    if (!response.ok) {
+                        // get error message from body or default to response statusText
+                        const error = (data && data.message) || response.statusText;
+                        throw new Error(`Error in fetching search sources endpoint ${error}`);
+                    }
+                    return data;
+                } catch (error) {
+                    console.error('There was an error!', error);
+                    return [];
+                }
+            })()
+        };
     }
 
     // Load the data from the API
@@ -111,32 +130,27 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
         if (!selected) return {};
 
         return {
-             // todo: talk about this
-            actionOptions: {
-                current: {
-                    setSourceData: (async () => {
-                        try {
-                            const response = await fetch(`${API_BASE_URL}/${selected.metadata?._href}`);
+            sourceData: (async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/${selected.metadata?._href}`);
 
-                            // Check the content type of the response
-                            const contentType = response.headers.get('content-type');
-                            
-                            if (contentType?.includes('application/pdf')) {
-                                // For PDFs, return the array buffer wrapped in a Uint8Array
-                                return new Uint8Array(await response.arrayBuffer());
-                            } else if (contentType?.includes('text/html')) {
-                                // For HTML, return the text content
-                                return await response.text();
-                            } else {
-                                throw new Error(`Unsupported content type: ${contentType}`);
-                            }
-                        } catch (error) {
-                            console.error('Failed to load source:', error);
-                            throw error;
-                        }
-                    })()
-                },
-            }
+                    // Check the content type of the response
+                    const contentType = response.headers.get('content-type');
+
+                    if (contentType?.includes('application/pdf')) {
+                        // For PDFs, return the array buffer wrapped in a Uint8Array
+                        return new Uint8Array(await response.arrayBuffer());
+                    } else if (contentType?.includes('text/html')) {
+                        // For HTML, return the text content
+                        return await response.text();
+                    } else {
+                        throw new Error(`Unsupported content type: ${contentType}`);
+                    }
+                } catch (error) {
+                    console.error('Failed to load source:', error);
+                    throw error;
+                }
+            })()
         };
     }
 
@@ -146,7 +160,7 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
 
 function App() {
     return (
-        <div className="w-full h-screen flex flex-col">
+        <div className="w-full h-full flex flex-col">
             {/* Modern Navbar */}
             <nav className="w-full bg-white shadow-sm p-2">
                 <div className="max-w-7xl mx-auto flex items-center justify-between px-4">
@@ -181,17 +195,17 @@ function App() {
             </nav>
 
             {/* Main Content */}
-            <div className="flex-1 p-4">
+            <div className="flex-1 h-full max-h-full overflow-y-hidden p-4">
                 <RAGProvider
                     onAction={myOnActionFn}
                     theme={demoTheme}
                 >
                     <div className="w-full h-full max-h-full max-w-full mx-auto flex flex-row gap-6 p-4">
-                        <div className="gap-4 w-1/4 flex flex-col">
+                        <div className="gap-4 w-1/4 flex flex-col h-full">
                             <div className="shrink-0"> {/* Query field */}
                                 <AdvancedQueryField/>
                             </div>
-                            <div className="h-full"> {/* Chat window */}
+                            <div className="h-full overflow-y-scroll"> {/* Chat window */}
                                 <ChatWindow/>
                             </div>
                         </div>
