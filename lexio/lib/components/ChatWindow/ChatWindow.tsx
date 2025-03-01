@@ -6,8 +6,8 @@ import {
 } from '../../hooks';
 import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
 import {ResetWrapper} from '../../utils/ResetWrapper';
-import {ChatWindowUserMessage} from "./ChatWindowUserMessage.tsx";
-import {ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage.tsx";
+import {ChatWindowUserMessage} from "./ChatWindowUserMessage";
+import {ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage";
 import {addOpacity, scaleFontSize} from '../../utils/scaleFontSize';
 
 // todo: Add docu for new components, remove border around icon, add longer description

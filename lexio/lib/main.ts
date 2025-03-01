@@ -16,7 +16,12 @@ import { createRESTContentSource } from './connectors/createRESTContentSource'
 import { createSSEConnector } from './connectors/createSSEConnector'
 import { createRESTConnector } from './connectors/createRESTConnector'
 
+
+import { MessageWithOptionalId } from './types'
+export type { MessageWithOptionalId }
+
 export {
+
     // Components
     AdvancedQueryField,
     ChatWindow,

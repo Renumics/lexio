@@ -240,8 +240,8 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                         </span>
                       )}
                       {showRelevanceScore && source.relevance !== undefined && (
-                        <div className="inline-block mt-2 items-center">
-                          <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
+                        <div className="mt-2 flex items-center">
+                          <span style={{ color: addOpacity(style.color || colors.text, 0.6), fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
                           <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
                             <div
                               className="h-2 rounded-full"

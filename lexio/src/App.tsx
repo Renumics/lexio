@@ -11,18 +11,30 @@ import {
     Source,
     createRESTContentSource, 
     createSSEConnector,
+    MessageWithOptionalId
 } from '../lib/main';
 import './App.css';
 
 function App() {
-    // Move connector creation outside of useMemo
-    const sseConnector = createSSEConnector({
-        endpoint: 'http://localhost:8000/api/retrieve-and-generate',
+
+    const chatConnectorOptions = useMemo(() => ({
+        endpoint: 'http://localhost:8000/api/chat',
         defaultMode: 'both' as const,
         method: 'POST' as const,
-        buildRequestBody: (messages: Message[], sources: Source[], metadata?: Record<string, any>) => ({
-            query: messages[messages.length - 1].content
-        }),
+        buildRequestBody: (messages: MessageWithOptionalId[], sources: Source[], metadata?: Record<string, any>) => {
+            const requestBody = {
+                messages: messages.map(m => ({
+                    role: m.role,
+                    content: m.content
+                })),
+                source_ids: metadata?.useExistingSources 
+                    ? sources.map(s => s.metadata?.id).filter(Boolean)
+                    : undefined
+            };
+            
+            console.log('Request body being sent to backend:', requestBody);
+            return requestBody;
+        },
         parseEvent: (data: any) => {
             if (Array.isArray(data.sources)) {
                 const sources = data.sources.map((item: any) => ({
@@ -58,25 +70,9 @@ function App() {
                 done: !!data.done,
             };
         },
-    });
-
-    // Move follow-up connector creation outside of useMemo
-    const followUpConnector = createSSEConnector({
-        endpoint: 'http://localhost:8000/api/generate',
-        defaultMode: 'text' as const,
-        method: 'POST' as const,
-        buildRequestBody: (messages: Message[], sources: Source[]) => ({
-            messages: messages.map(m => ({
-                role: m.role,
-                content: m.content
-            })),
-            source_ids: sources.map(s => s.metadata?.id).filter(Boolean)
-        }),
-        parseEvent: (data: any) => ({
-            content: data.content,
-            done: !!data.done,
-        }),
-    });
+    }), []);
+    // Combine both connectors into a single unified connector
+    const chatConnector = createSSEConnector(chatConnectorOptions);
 
     const contentSourceOptions = useMemo(() => ({
         buildFetchRequest: (source: Source) => {
@@ -93,39 +89,48 @@ function App() {
     const contentSource = createRESTContentSource(contentSourceOptions);
 
     // 3) Action handler uses the SSE connector for "ADD_USER_MESSAGE"
-    const onAction = useCallback((action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null) => {
+    const onAction = useCallback((action: UserAction, messages: Message[], _sources: Source[], activeSources: Source[], _selectedSource: Source | null) => {
         if (action.type === 'ADD_USER_MESSAGE') {
             const newMessages = [...messages, { content: action.message, role: 'user' as const }];
             
-            // Use followUpConnector for follow-up questions if we have active sources
-            if (activeSources.length > 0) {
-                const response = followUpConnector({
-                    messages: newMessages,
-                    sources: activeSources,
-                    mode: 'text',
-                });
-                return { response };
-            }
+            console.log('activeSources', activeSources);
             
-            // Use main connector for new queries
-            const { response, sources: newSources } = sseConnector({
-                messages: newMessages,
-                sources: [],
-                mode: 'both',
+            const useExistingSources = activeSources.length > 0;
+            
+            console.log('Chat action metadata:', {
+                useExistingSources,
+                activeSourceCount: activeSources.length
             });
-            return { response, sources: newSources };
+            
+            // When using existing sources, set mode to 'text' to prevent sources update
+            // When not using existing sources, use 'both' to get new sources
+            const { response, sources: newSources } = chatConnector({
+                messages: newMessages,
+                sources: activeSources,
+                mode: useExistingSources ? 'text' : 'both',
+                metadata: {
+                    useExistingSources
+                }
+            });
+            
+            // Only return new sources if we're not using existing ones
+            return { 
+                response, 
+                sources: useExistingSources ? undefined : newSources 
+            };
         } else if (action.type === 'SET_SELECTED_SOURCE') {
-            if (!selectedSource?.metadata?.id) {
+            if (!action.sourceObject?.metadata?.id) {
                 return undefined;
             }
 
-            // Use the content source connector to fetch the data
-            return contentSource(selectedSource).then(sourceWithData => ({
-                sourceData: sourceWithData.data
-            }));
+            // Return a SetSelectedSourceActionResponse object
+            return {
+                // The sourceData should be a Promise<string | Uint8Array>
+                sourceData: contentSource(action.sourceObject).then(sourceWithData => sourceWithData.data)
+            };
         }
         return undefined;
-    }, [sseConnector, followUpConnector]);
+    }, [chatConnector, contentSource]);
 
     // 4) Provide the SSE connector and the REST content source to the RAGProvider
     return (
