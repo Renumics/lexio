@@ -98,7 +98,7 @@ class RequestBody(BaseModel):
 
 
 @app.get("/search")
-async def on_message(query: str = Query(None, description="Search query string")):
+async def on_message(query: str = Query(None, description="Search query string"), k: int = Query(5, ge=1, description="Number of sources to retrieve")):
     if not query:
         raise HTTPException(status_code=400, detail="No query string provided.")
 
@@ -106,7 +106,7 @@ async def on_message(query: str = Query(None, description="Search query string")
     retrieval_results = []
     retrieval_docs = []
     try:
-        results = db.similarity_search_with_score(query, k=4)
+        results = db.similarity_search_with_score(query, k=k)
         for doc, score in results:
             metadata = doc.metadata
             source = metadata.get("source", "unknown.pdf")
@@ -142,12 +142,13 @@ async def on_message(request: RequestBody) -> EventSourceResponse:
     query = body.get("message")
     message_history = body.get("messages")
 
-    # todo: use sources in workflow
+    # todo: use sources in workflow - create a tool workflow to either
+    #  search the db,
+    #  look into existing sources (also active and selected),
+    #  check if the answer can be answered with existing sources -> re-retrieve
     sources = body.get("sources")
     active_sources = body.get("activeSources")
     selected_source = body.get("selectedSource")
-
-    # print(sources, active_sources, selected_source)
 
     # Retrieve relevant documents
     retrieval_results = []
