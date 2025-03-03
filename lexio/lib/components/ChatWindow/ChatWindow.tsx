@@ -5,7 +5,7 @@ import { ResetWrapper } from '../../utils/ResetWrapper';
 import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
 import { ColoredMessage, ColoredMessageProps } from './ColoredMessage';
 import { HighlightedMessage } from '../../../src/HighlightedMessage';
-import { Message, Source, UUID, ColoredIdea } from '../../types';
+import { Message, Source, UUID } from '../../types';
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -15,6 +15,12 @@ export interface ChatWindowStyles extends React.CSSProperties {
   fontFamily?: string;
   fontSize?: string;
   borderRadius?: string;
+}
+
+// Add interface for colored idea
+interface ColoredIdea {
+  text: string;
+  color: string;
 }
 
 /**
@@ -159,21 +165,24 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   }, [messages, setSelectedSource, setActiveSources]); // Include the functions in the dependency array
   
   const renderMessage = (message: Message) => {
+    console.log('Rendering message with full details:', {
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        metadata: message.metadata,
+        coloredIdeas: message.metadata?.coloredIdeas
+    });
+
     if (message.role === 'assistant' && typeof message.content === 'string') {
         const coloredIdeas = message.metadata?.coloredIdeas;
         
         if (coloredIdeas && Array.isArray(coloredIdeas)) {
+            console.log('Processing colored ideas:', coloredIdeas);
             let htmlContent = message.content;
             let hasHighlights = false;
             
-            // Sort ideas by length (longest first) to handle overlapping matches correctly
-            const sortedIdeas = [...coloredIdeas].sort(
-                (a, b) => b.originalText.length - a.originalText.length
-            );
-            
-            sortedIdeas.forEach((idea: ColoredIdea, index: number) => {
-                const escapedText = idea.originalText
-                    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            coloredIdeas.forEach((idea: { text: string; color: string }, index: number) => {
+                const escapedText = idea.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(`(${escapedText})`, 'gi');
                 
                 if (regex.test(htmlContent)) {
@@ -184,11 +193,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                             style="background-color:${idea.color}; cursor: pointer;" 
                             class="idea-highlight" 
                             data-idea-index="${index}"
-                            title="${idea.text}"
                         >$1</span>`
                     );
-                } else {
-                    console.log(`No match found for idea: "${idea.text}" with original text: "${idea.originalText}"`);
                 }
             });
             
@@ -198,6 +204,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         }
     }
 
+    // Remove the JSON parsing attempt since we're not using that format
     return <div>{message.content}</div>;
   };
 
