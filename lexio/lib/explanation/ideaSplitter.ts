@@ -89,23 +89,24 @@ export interface IdeaWithSnippet {
 export async function splitIntoIdeasUsingLLM(sentence: string): Promise<string[]> {
   console.log('Input sentence:', sentence);
   
-  const prompt = `Extract key phrases from this text that represent distinct ideas. Each phrase must be an exact word-for-word match from the original text.
+  const prompt = `Extract key phrases from this text that represent complete, distinct ideas. Each phrase must be an exact word-for-word match from the original text.
 
 Original text: "${sentence}"
 
 Rules:
 1. Only use words that appear exactly in the original text
-2. Each phrase should be short and focused (5-10 words)
-3. Do not add any numbering or prefixes
-4. Do not modify or paraphrase the text
-5. Do not add any formatting or punctuation
+2. Include subject/context when important (e.g., "The model learns" rather than just "learns")
+3. Keep related concepts together (e.g., "examples and data" rather than separate)
+4. Each phrase should be complete enough to stand alone (typically 5-15 words)
+5. Do not add any numbering or formatting
+6. Do not modify or paraphrase the text
 
 Example:
-Text: "The model learns from examples and uses reinforcement learning to improve performance."
+Text: "The model learns from examples and uses reinforcement learning to improve performance over time."
 Output:
-learns from examples
-uses reinforcement learning
-improve performance
+The model learns from examples
+uses reinforcement learning to improve performance
+improve performance over time
 
 Now extract phrases from the original text:`;
 
@@ -113,11 +114,11 @@ Now extract phrases from the original text:`;
     const response = await client.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
-        { role: 'system', content: 'You are a helpful assistant that extracts exact phrases from text.' },
+        { role: 'system', content: 'You are a helpful assistant that extracts meaningful, complete phrases from text.' },
         { role: 'user', content: prompt }
       ],
       max_tokens: 150,
-      temperature: 0.3, // Lower temperature for more consistent results
+      temperature: 0.3,
     });
 
     const outputText: string = response.choices[0].message?.content || '';
