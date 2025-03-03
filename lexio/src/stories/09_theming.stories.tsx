@@ -1,18 +1,19 @@
 import type {Meta, StoryObj} from '@storybook/react';
 import {
-    RAGProvider,
+    LexioProvider,
     ChatWindow,
     AdvancedQueryField,
     SourcesDisplay,
     ContentDisplay,
-    useRAGSources,
+    useSources,
     Message,
-    useRAGMessages,
+    useMessages,
     createTheme,
     defaultTheme,
     Theme,
+    UserAction,
+    Source
 } from '../../lib/main';
-import type {GetDataSourceResponse, SourceReference} from '../../lib/main';
 import {useEffect} from "react";
 
 const warmTheme = createTheme({
@@ -100,141 +101,162 @@ const SharedLayout = () => (
 // We mock a basic retrieval state for the story
 const SAMPLE_MESSAGES: Message[] = [
     {
+        id: crypto.randomUUID(),
         role: 'user',
         content: 'What is RAG?',
     },
 ];
 
+// Sample sources for the demo
+const SAMPLE_SOURCES: Source[] = [
+    {
+        id: crypto.randomUUID(),
+        title: "RAG Whitepaper",
+        type: "pdf",
+        relevance: 0.95,
+        metadata: {
+            title: "Understanding RAG Systems",
+            page: 2,
+            author: "Research Team"
+        },
+    },
+    {
+        id: crypto.randomUUID(),
+        title: "Implementation Guide",
+        type: "html",
+        relevance: 0.88,
+        metadata: {
+            section: "Setup",
+            difficulty: "Intermediate"
+        }
+    },
+    {
+        id: crypto.randomUUID(),
+        title: "Best Practices",
+        type: "text",
+        relevance: 0.82,
+        data: `<div class="content">
+          <h2>Quick Tips</h2>
+          <ul>
+            <li>Always validate your data sources</li>
+            <li>Monitor retrieval performance</li>
+            <li>Keep your knowledge base updated</li>
+          </ul>
+        </div>`,
+        metadata: {
+            type: "Tips",
+            lastUpdated: "2024-03-20"
+        }
+    }
+];
+
+// Fetch a sample PDF from a URL
+const fetchSamplePDF = async (): Promise<Uint8Array> => {
+  try {
+    const pdfUrl = 'https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf';
+    
+    const response = await fetch(pdfUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
+  } catch (error) {
+    console.error('Error fetching PDF:', error);
+    return new Uint8Array([37, 80, 68, 70, 45, 49, 46, 53, 10]); // "%PDF-1.5" header
+  }
+};
+
 // Component to load initial data, add sample messages, and set the active source index
 const DataLoader = () => {
-    const {addMessage} = useRAGMessages();
-    const {setActiveSourceIndex, sources} = useRAGSources();
+    const {addUserMessage} = useMessages('DataLoader');
+    const {setActiveSources, sources} = useSources('DataLoader');
 
     useEffect(() => {
         // Small delay to ensure provider is ready
         const timer = setTimeout(() => {
-            addMessage(SAMPLE_MESSAGES[0]);
-
+            addUserMessage(SAMPLE_MESSAGES[0].content);
         }, 0);
 
         return () => clearTimeout(timer);
     }, []);
 
-    // todo: we could mock the mentioning feature here
     useEffect(() => {
-        // we mock active source selection to display viewer
-        setActiveSourceIndex(0);
+        if (sources.length > 0) {
+            // Set the first source as active
+            setActiveSources([sources[0].id]);
+        }
     }, [sources]);
 
     return null;
-};
-
-// Mocked retrieval function that returns sources and a response
-const getSourcesAndResponse = () => {
-    return {
-        sources: Promise.resolve([
-            {
-                sourceReference: "example.pdf",
-                sourceName: "RAG Whitepaper",
-                type: "pdf" as const,
-                relevanceScore: 0.95,
-                metadata: {
-                    title: "Understanding RAG Systems",
-                    page: 2,
-                    author: "Research Team"
-                },
-            },
-            {
-                sourceReference: "implementation_guide.html",
-                sourceName: "Implementation Guide",
-                type: "html" as const,
-                relevanceScore: 0.88,
-                metadata: {
-                    section: "Setup",
-                    difficulty: "Intermediate"
-                }
-            },
-            {
-                text: `<div class="content">
-              <h2>Quick Tips</h2>
-              <ul>
-                <li>Always validate your data sources</li>
-                <li>Monitor retrieval performance</li>
-                <li>Keep your knowledge base updated</li>
-              </ul>
-            </div>`,
-                sourceName: "Best Practices",
-                relevanceScore: 0.82,
-                metadata: {
-                    type: "Tips",
-                    lastUpdated: "2024-03-20"
-                }
-            }
-        ]),
-        response: Promise.resolve("I've found relevant information from multiple sources...")
-    };
-};
-
-// Mocked getDataSource function that returns SourceContent
-const getDataSource = (source: SourceReference): GetDataSourceResponse => {
-    if (source.type === 'pdf') {
-        return fetch('https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf')
-            .then(response => response.arrayBuffer())
-            .then(buffer => ({
-                type: 'pdf',
-                content: new Uint8Array(buffer),
-                metadata: source.metadata,
-                highlights: source.highlights,
-            }));
-    } else if (source.type === 'html') {
-        return Promise.resolve({
-            type: 'html',
-            content: `
-<div style="padding: 20px; font-family: system-ui;">
-  <h1>RAG Implementation Guide</h1>
-  <h2>Setup Instructions</h2>
-  <p>Follow these steps to implement a RAG system in your application:</p>
-  <ol>
-    <li>Set up your document store</li>
-    <li>Implement the retrieval mechanism</li>
-    <li>Configure the generation model</li>
-    <li>Connect the components</li>
-  </ol>
-  <p>For more details, refer to the API documentation.</p>
-</div>
-`,
-            metadata: source.metadata
-        });
-    }
-    return Promise.reject(new Error('Unsupported type'));
 };
 
 interface ThemeStoryProps {
     customTheme?: Theme;
 }
 
-const SourceTypesExample = ({customTheme}: ThemeStoryProps) => {
-    const {setActiveSourceIndex} = useRAGSources();
+const ThemingExample = ({customTheme}: ThemeStoryProps) => {
     return (
         <BaseLayout>
-            <RAGProvider
-                retrieveAndGenerate={() => getSourcesAndResponse()}
-                getDataSource={(source) => getDataSource(source)}
+            <LexioProvider
                 theme={customTheme}
+                onAction={(
+                    action: UserAction,
+                    messages: Message[],
+                    sources: Source[],
+                    activeSources: Source[],
+                    selectedSource: Source | null
+                ) => {
+                    if (action.type === 'ADD_USER_MESSAGE') {
+                        return {
+                            response: Promise.resolve("I've found relevant information about RAG systems from multiple sources..."),
+                            sources: Promise.resolve(SAMPLE_SOURCES)
+                        };
+                    }
+                    
+                    if (action.type === 'SET_SELECTED_SOURCE') {
+                        if (action.sourceObject?.type === 'pdf') {
+                            return {
+                                sourceData: fetchSamplePDF()
+                            };
+                        } else if (action.sourceObject?.type === 'html') {
+                            return {
+                                sourceData: Promise.resolve(`
+                                <div style="padding: 20px; font-family: system-ui;">
+                                  <h1>RAG Implementation Guide</h1>
+                                  <h2>Setup Instructions</h2>
+                                  <p>Follow these steps to implement a RAG system in your application:</p>
+                                  <ol>
+                                    <li>Set up your document store</li>
+                                    <li>Implement the retrieval mechanism</li>
+                                    <li>Configure the generation model</li>
+                                    <li>Connect the components</li>
+                                  </ol>
+                                  <p>For more details, refer to the API documentation.</p>
+                                </div>
+                                `)
+                            };
+                        } else {
+                            return {
+                                sourceData: Promise.resolve(action.sourceObject?.data)
+                            };
+                        }
+                    }
+                }}
             >
-                {/* We use the Dataloader to add messages to the ChatWindow, the retrieveAndGenerate function will populate the SourcesDisplay */}
                 <DataLoader/>
                 <SharedLayout/>
-            </RAGProvider>
+            </LexioProvider>
         </BaseLayout>
     );
 };
 
-type Story = StoryObj<typeof SourceTypesExample>;
+type Story = StoryObj<typeof ThemingExample>;
 
 const meta = {
     title: 'Tutorial/09. Theming',
-    component: SourceTypesExample,
+    component: ThemingExample,
     parameters: {
         layout: 'centered',
         docs: {
@@ -246,7 +268,7 @@ The \`Lexio\` library provides a flexible theming system that allows you to cust
 
 ## Theme Structure
 
-The theme consists of four three parts:
+The theme consists of three main parts:
 
 \`\`\`typescript
 interface Theme {
@@ -307,13 +329,13 @@ interface ComponentDefaults {
 The default theme is automatically applied when no theme is provided:
 
 \`\`\`typescript
-import { RAGProvider } from 'lexio';
+import { LexioProvider } from 'lexio';
 
 function App() {
   return (
-    <RAGProvider>
+    <LexioProvider onAction={handleAction}>
       <YourComponents />
-    </RAGProvider>
+    </LexioProvider>
   );
 }
 \`\`\`
@@ -360,9 +382,9 @@ const myTheme: Theme = {
 #### Apply your custom theme:
 
 \`\`\`typescript
-<RAGProvider theme={myTheme}>
+<LexioProvider theme={myTheme} onAction={handleAction}>
   <YourComponents />
-</RAGProvider>
+</LexioProvider>
 \`\`\`
 
 ## Interactive Example 
@@ -385,7 +407,7 @@ Change the \`customTheme\` value via the dropdown menu under \`Control\`.
             description: 'Select a predefined theme to see how it affects the components.',
         },
     }
-} satisfies Meta<typeof SourceTypesExample>;
+} satisfies Meta<typeof ThemingExample>;
 
 export default meta;
 
