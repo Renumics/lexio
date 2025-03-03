@@ -77,30 +77,65 @@ export function splitIntoIdeasDependencyParsing(sentence: string): string[] {
   }
 }
 
+export interface IdeaWithSnippet {
+  full: string;
+  snippet: string;
+}
+
 /**
  * LLM-based splitting:
  * Uses the OpenAI API to split the sentence into distinct ideas.
  */
 export async function splitIntoIdeasUsingLLM(sentence: string): Promise<string[]> {
-  const prompt = `Please split the following sentence into a list of distinct ideas, each on a new line:\n\n"${sentence}"\n\nList:`;
+  console.log('Input sentence:', sentence);
+  
+  const prompt = `Extract key phrases from this text that represent distinct ideas. Each phrase must be an exact word-for-word match from the original text.
+
+Original text: "${sentence}"
+
+Rules:
+1. Only use words that appear exactly in the original text
+2. Each phrase should be short and focused (5-10 words)
+3. Do not add any numbering or prefixes
+4. Do not modify or paraphrase the text
+5. Do not add any formatting or punctuation
+
+Example:
+Text: "The model learns from examples and uses reinforcement learning to improve performance."
+Output:
+learns from examples
+uses reinforcement learning
+improve performance
+
+Now extract phrases from the original text:`;
 
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-3.5-turbo', // Change to your desired model (e.g., 'gpt-4o')
+      model: 'gpt-3.5-turbo',
       messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'system', content: 'You are a helpful assistant that extracts exact phrases from text.' },
         { role: 'user', content: prompt }
       ],
       max_tokens: 150,
-      temperature: 0.5,
+      temperature: 0.3, // Lower temperature for more consistent results
     });
 
-    // Access the output text from the first choice.
     const outputText: string = response.choices[0].message?.content || '';
-    return outputText
+    console.log('LLM raw output:', outputText);
+
+    const ideas = outputText
       .split('\n')
-      .map(line => line.replace(/^\d+[\).\s]*/, '').trim())
-      .filter(Boolean);
+      .map(line => line.trim())
+      .filter(line => {
+        const exists = line && sentence.includes(line);
+        if (!exists && line) {
+          console.log('Filtered out non-matching phrase:', line);
+        }
+        return exists;
+      });
+
+    console.log('Final extracted ideas:', ideas);
+    return ideas;
   } catch (error) {
     console.error("Error calling LLM for idea splitting:", error);
     return [sentence];

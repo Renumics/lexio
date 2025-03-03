@@ -14,10 +14,26 @@ import {
 } from './matching';
 import config from './config';
 
+export interface ColoredIdea {
+    text: string;
+    color: string;
+    evidence?: {
+        text: string;
+        page?: number;
+        rect?: {
+            top: number;
+            left: number;
+            width: number;
+            height: number;
+        };
+    };
+}
+
 export interface ExplanationResult {
     summary: string;
     finalAnswer: string;
     answerIdeas: string[];
+    coloredIdeas: ColoredIdea[];
     explanations: Array<{
         answer_idea: string;
         original_text: string;
@@ -118,11 +134,17 @@ export class ExplanationProcessor {
             }
             console.log('Number of answer ideas:', answerIdeas.length);
 
-            // Generate colors based on number of ideas
+            // Generate colors for the answer ideas
             const colors = this.generateColors(answerIdeas.length);
+            
+            // Assign colors to answer ideas
+            const coloredAnswerIdeas = answerIdeas.map((idea, index) => ({
+                ...idea,
+                color: colors[index]
+            }));
 
             const explanations = await Promise.all(
-                answerIdeas.map(async ({ idea, originalText }, ideaIndex) => {
+                coloredAnswerIdeas.map(async ({ idea, originalText }, ideaIndex) => {
                     const keyPhrases = extractKeyPhrases(idea);
                     const ideaEmbedding = await getEmbedding(idea);
                     
@@ -217,6 +239,15 @@ export class ExplanationProcessor {
                 summary: `Processed PDF: ${chunks.length} chunks, embeddings generated for ${chunkEmbeddings.length} chunks, ${answerIdeas.length} answer ideas, and ${validExplanations.length} explanations generated.`,
                 finalAnswer: response,
                 answerIdeas: answerIdeas.map(a => a.idea),
+                coloredIdeas: coloredAnswerIdeas.map((idea, index) => ({
+                    text: idea.idea,
+                    color: idea.color,
+                    evidence: validExplanations[index]?.supporting_evidence[0] ? {
+                        text: validExplanations[index].supporting_evidence[0].source_text,
+                        page: validExplanations[index].supporting_evidence[0].highlight?.page,
+                        rect: validExplanations[index].supporting_evidence[0].highlight?.rect
+                    } : undefined
+                })),
                 explanations: validExplanations
             };
         } catch (error) {
