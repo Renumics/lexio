@@ -20,7 +20,8 @@ import './App.css';
 // This is a temporary mocked response for testing purposes
 // In the future, this will be replaced with a real response from the RAG system
 const MOCKED_RESPONSE = {
-    final_answer: "DeepSeek-R1 enhances reasoning by starting with a small set of high-quality chain-of-thought examples (cold-start data) and then using reinforcement learning to refine its outputs. This multi-stage approach not only improves accuracy but also produces clearer and more coherent reasoning, outperfrming traditional supervised fine-tuning methods."
+    //final_answer: "DeepSeek-R1 enhances reasoning by starting with a small set of high-quality chain-of-thought examples (cold-start data) and then using reinforcement learning to refine its outputs. This multi-stage approach not only improves accuracy but also produces clearer and more coherent reasoning, outperfrming traditional supervised fine-tuning methods."
+    final_answer: "Deep learning improves traffic data imputation by automatically learning patterns without manual feature selection. The Denoising Stacked Autoencoder (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through layer-wise pre-training and fine-tuning. Compared to traditional methods like ARIMA and k-NN, it maintains higher accuracy and stable error rates across different missing data levels, as demonstrated on Caltrans PeMS traffic data."
 };
 
 // Add type for source data
@@ -32,7 +33,8 @@ const SET_ACTIVE_SOURCES = 'SET_ACTIVE_SOURCES' as const;
 function App() {
     const contentSourceOptions = useMemo(() => ({
         buildFetchRequest: (_source: Source) => ({
-            url: '/pdfs/deepseek.pdf', // Hardcoded path for testing
+            // url: '/pdfs/deepseek.pdf',  
+            url: '/pdfs/traffic.pdf', 
             options: {
                 method: 'GET',
                 headers: {
@@ -49,11 +51,11 @@ function App() {
 
     const defaultSource: Source = {
         id: '12345678-1234-1234-1234-123456789012',
-        title: 'DeepSeek Paper',
+        title: '... Paper',
         type: 'pdf',
         relevance: 1,
         metadata: {
-            id: 'deepseek.pdf'
+            id: 'id.pdf'
         }
     };
 
