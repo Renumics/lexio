@@ -26,9 +26,21 @@ export const useSources = (component: Component) => {
      * Get the sources from the state
      */
     const sources = useAtomValue(retrievedSourcesAtom);
+    /**
+     * Get the active sources from the state
+     */
     const activeSources = useAtomValue(activeSourcesAtom);
+    /**
+     * Get the active sources IDs from the state
+     */
     const activeSourcesIds = useAtomValue(activeSourcesIdsAtom);
+    /**
+     * Get the selected source from the state
+     */
     const selectedSource = useAtomValue(selectedSourceAtom);
+    /**
+     * Get the selected source ID from the state
+     */
     const selectedSourceId = useAtomValue(selectedSourceIdAtom);
 
     /**

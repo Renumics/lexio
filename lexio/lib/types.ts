@@ -1,4 +1,4 @@
-export interface RAGConfig {
+export interface ProviderConfig  {
   timeouts?: {
     stream?: number;  // Timeout between stream chunks in ms
     request?: number; // Overall request timeout in ms
@@ -200,7 +200,7 @@ export interface ProviderConfig {
     };
 }
 // ---- ActionHandler Function types -----
-type ActionHandlerResponse =
+export type ActionHandlerResponse =
     AddUserMessageActionResponse |
     SetActiveMessageActionResponse |
     ClearMessagesActionResponse |

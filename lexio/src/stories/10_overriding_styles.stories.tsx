@@ -1,15 +1,17 @@
 import type {Meta, StoryObj} from '@storybook/react';
 import {useEffect} from 'react';
 import {
-    RAGProvider,
+    LexioProvider,
     ChatWindow,
     AdvancedQueryField,
     SourcesDisplay,
     ContentDisplay,
-    useRAGSources, Message, useRAGMessages
+    useSources, 
+    Message, 
+    useMessages,
+    Source,
+    UserAction
 } from '../../lib/main';
-import type {GetDataSourceResponse, SourceReference} from '../../lib/main';
-import {ChatWindowStyles} from "../../lib/components/ChatWindow/ChatWindow.tsx";
 
 // Base layout component for consistent story presentation
 const BaseLayout = ({children}: { children: React.ReactNode }) => (
@@ -62,60 +64,79 @@ const SharedLayout = ({styleOverrides}: SharedLayoutProps) => (
 // Mock data and functions
 const SAMPLE_MESSAGES: Message[] = [
     {
+        id: crypto.randomUUID(),
         role: 'user',
         content: 'What is RAG?',
     },
 ];
 
+// Fetch a sample PDF from a URL
+const fetchSamplePDF = async (): Promise<Uint8Array> => {
+  try {
+    // URL to a sample PDF from GitHub (this worked before)
+    const pdfUrl = 'https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf';
+    
+    const response = await fetch(pdfUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
+  } catch (error) {
+    console.error('Error fetching PDF:', error);
+    // Fallback to minimal PDF header if fetch fails
+    return new Uint8Array([37, 80, 68, 70, 45, 49, 46, 53, 10]); // "%PDF-1.5" header
+  }
+};
+
+const SAMPLE_SOURCES: Source[] = [
+    {
+        title: "Example PDF",
+        type: "pdf",
+        relevance: 0.95,
+        metadata: {
+            title: "Understanding RAG Systems",
+            page: 2,
+        },
+    },
+    {
+        title: "Best Practices",
+        type: "html",
+        relevance: 0.82,
+        metadata: {
+            type: "Tips",
+            lastUpdated: "2024-03-20"
+        },
+        data: `<div class="content">
+      <h2>Quick Tips</h2>
+      <ul>
+        <li>Always validate your data sources</li>
+        <li>Monitor retrieval performance</li>
+        <li>Keep your knowledge base updated</li>
+      </ul>
+    </div>`
+    }
+];
+
 const DataLoader = () => {
-    const {addMessage} = useRAGMessages();
-    const {setActiveSourceIndex, sources} = useRAGSources();
+    const {addUserMessage} = useMessages('LexioProvider');
+    const {setActiveSources, sources} = useSources('LexioProvider');
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            addMessage(SAMPLE_MESSAGES[0]);
+            addUserMessage(SAMPLE_MESSAGES[0].content);
         }, 0);
         return () => clearTimeout(timer);
     }, []);
 
     useEffect(() => {
-        setActiveSourceIndex(0);
+        if (sources.length > 0) {
+            setActiveSources([sources[0].id]);
+        }
     }, [sources]);
 
     return null;
-};
-
-const getSourcesAndResponse = () => {
-    return {
-        sources: Promise.resolve([
-            {
-                sourceReference: "example.pdf",
-                sourceName: "RAG Whitepaper",
-                type: "pdf" as const,
-                relevanceScore: 0.95,
-                metadata: {
-                    title: "Understanding RAG Systems",
-                    page: 1,
-                    author: "Research Team"
-                },
-            }
-        ]),
-        response: Promise.resolve("I've found relevant information about RAG systems...")
-    };
-};
-
-const getDataSource = (source: SourceReference): GetDataSourceResponse => {
-    if (source.type === 'pdf') {
-        return fetch('https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf')
-            .then(response => response.arrayBuffer())
-            .then(buffer => ({
-                type: 'pdf',
-                content: new Uint8Array(buffer),
-                metadata: source.metadata,
-                highlights: source.highlights
-            }));
-    }
-    return Promise.reject(new Error('Unsupported type'));
 };
 
 interface StyleOverridesExampleProps {
@@ -125,10 +146,38 @@ interface StyleOverridesExampleProps {
 const StyleOverridesExample = ({ styleOverrides }: StyleOverridesExampleProps) => {
     return (
         <BaseLayout>
-            <RAGProvider retrieveAndGenerate={getSourcesAndResponse} getDataSource={getDataSource}>
+            <LexioProvider onAction={(
+                action: UserAction,
+                messages: Message[],
+                sources: Source[],
+                activeSources: Source[],
+                selectedSource: Source | null
+            ) => {
+                if (action.type === 'ADD_USER_MESSAGE' && messages.length === 0) {
+                    return {
+                        response: Promise.resolve("RAG is a technology that allows you to search for information in a database of documents."),
+                        sources: Promise.resolve(SAMPLE_SOURCES)
+                    }
+                } else if (action.type === 'ADD_USER_MESSAGE' && messages.length > 0) {
+                    return {
+                        response: Promise.resolve("I am sorry, I don't know the answer to that question."),
+                    }
+                }
+                if (action.type === 'SET_SELECTED_SOURCE') {
+                    if (action.sourceObject?.type === 'pdf') {
+                        return {
+                            sourceData: fetchSamplePDF()
+                        }
+                    } else {
+                        return {
+                            sourceData: Promise.resolve(action.sourceObject?.data)
+                        }
+                    }
+                }
+            }}>
                 <DataLoader />
                 <SharedLayout styleOverrides={styleOverrides} />
-            </RAGProvider>
+            </LexioProvider>
         </BaseLayout>
     );
 };
@@ -150,9 +199,9 @@ Each component has its own set of style properties that can be overridden. Refer
 
 Components that support style overrides:
 - ChatWindow -> ChatWindowStyles
+- QueryField -> QueryFieldStyles
 - AdvancedQueryField -> AdvancedQueryFieldStyles
 - SourcesDisplay -> SourcesDisplayStyles
-- QueryField -> QueryFieldStyles
 - ContentDisplay -> ContentDisplayStyles
 - PDFViewer -> PdfViewerStyles
 - HTMLViewer -> HtmlViewerStyles
