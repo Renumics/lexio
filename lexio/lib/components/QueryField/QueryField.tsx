@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import useResizeObserver from '@react-hook/resize-observer';
-import type { WorkflowMode } from '../../types';
-import { useRAGMessages, useRAGStatus } from '../RAGProvider/hooks';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
+import { useMessages} from '../../hooks';
 
 /**
  * Styles interface for the QueryField component
@@ -34,11 +33,10 @@ export interface QueryFieldStyles extends React.CSSProperties {
  */
 interface QueryFieldProps {
   /**
-   * Callback function triggered when a message is submitted
-   * @param message The message text that was submitted
+   * Unique key for the component which can be used to identify the source of UserAction's if multiple QueryField components are used.
+   * The default is 'QueryField', if key is provided it will be appended to the default key as following 'QueryField-${key}'.
    */
-  onSubmit: (message: string) => void;
-  
+  componentKey?: string;
   /**
    * Custom placeholder text for the input field
    * @default "Type a message..."
@@ -68,11 +66,13 @@ interface QueryFieldProps {
  * - Responsive design
  */
 const QueryField: React.FC<QueryFieldProps> = ({
-  onSubmit,
+  componentKey = undefined,
   placeholder = 'Type a message...',
   disabled = false,
   styleOverrides = {},
 }) => {
+  const { addUserMessage } = useMessages(componentKey ? `QueryField-${componentKey}` : 'QueryField');
+
   // Access theme from context
   const theme = useContext(ThemeContext);
   if (!theme) {
@@ -107,30 +107,10 @@ const QueryField: React.FC<QueryFieldProps> = ({
     ...removeUndefined(styleOverrides),
   };
 
-  // Workflow mode + messages
-  const { workflowMode } = useRAGStatus();
-  const { addMessage } = useRAGMessages();
-
   // Local state
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-
-  // Workflow status with fallback colors if none provided
-  const workflowStatus: Record<WorkflowMode, { label: string; color: string }> = {
-    init: {
-      label: 'New Conversation',
-      color: style.modeInitColor ?? '#3b82f6',
-    },
-    'follow-up': {
-      label: 'Follow-up',
-      color: style.modeFollowUpColor ?? '#22c55e',
-    },
-    reretrieve: {
-      label: 'New Search',
-      color: style.modeReRetrieveColor ?? '#9333ea',
-    },
-  };
 
   // Auto-expand logic
   const adjustTextareaHeight = () => {
@@ -155,9 +135,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
     e.preventDefault();
     if (message.trim()) {
       // Push to context
-      addMessage({ role: 'user', content: message });
-      // External callback
-      onSubmit(message);
+      addUserMessage(message);
       // Reset
       setMessage('');
     }
@@ -219,22 +197,6 @@ const QueryField: React.FC<QueryFieldProps> = ({
       {/* Footer with workflow status + send button */}
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-2">
-          <div
-            className="h-2.5 w-2.5 rounded-full animate-pulse"
-            style={{
-              backgroundColor: workflowStatus[workflowMode].color,
-            }}
-          />
-          <span
-            className="font-medium"
-            style={{
-              color: style.statusTextColor,
-              fontFamily: style.fontFamily,
-              fontSize: `calc(${style.fontSize} * 0.85)`
-            }}
-          >
-            {workflowStatus[workflowMode].label}
-          </span>
         </div>
         <button
           type="submit"

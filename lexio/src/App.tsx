@@ -1,270 +1,215 @@
-import './App.css'
+import { useCallback, useMemo } from 'react';
 import {
     ChatWindow,
     RAGProvider,
     SourcesDisplay,
     ContentDisplay,
-    QueryField,
-    ErrorDisplay,
-    Message,
     AdvancedQueryField,
-    RetrievalResult,
-    SourceReference,
-    SourceContent,
-    HTMLSourceContent,
-    PDFSourceContent,
-    GenerateStreamChunk,
-    TextContent,
-    MarkdownSourceContent,
-    createTheme
-} from '../lib/main'
-
-const customTheme = createTheme({
-    colors: {
-        primary: '#1E88E5',
-        secondary: '#64B5F6'
-    }
-});
+    ErrorDisplay,
+    UserAction,
+    Message,
+    Source,
+    createRESTContentSource, 
+    createSSEConnector,
+    MessageWithOptionalId
+} from '../lib/main';
+import './App.css';
 
 function App() {
-    const retrieveAndGenerate = (messages: Message[]) => {
-        // Convert input messages array to URL-safe format
-        const query = encodeURIComponent(JSON.stringify({messages: messages}));
-        const eventSource = new EventSource(
-            `http://localhost:8000/retrieve-and-generate?messages=${query}`
-        );
 
-        // Retrieve sources from the server
-        const sourcesPromise = new Promise<RetrievalResult[]>((resolve, reject) => {
-            const handleSources = (event: MessageEvent) => {
-                const data = JSON.parse(event.data);
-                if (data.sources) {
-                    // Transform sources to match the expected format
-                    const transformedSources = data.sources.map((source: any) => {
-
-                        if ('text' in source) {
-                            return {
-                                text: source.text,
-                                sourceName: source.sourceName,
-                                relevanceScore: source.relevanceScore,
-                                metadata: source.metadata || {}
-                            } as TextContent;
-                        } else {
-                            return {
-                                sourceReference: source.sourceReference,
-                                type: source.type,
-                                sourceName: source.sourceName,
-                                relevanceScore: source.relevanceScore,
-                                metadata: source.metadata || {},
-                                highlights: source.highlights || []
-                            } as SourceReference;
-                        }
-                    });
-                    resolve(transformedSources);
-                    eventSource.removeEventListener('message', handleSources);
-                }
+    const chatConnectorOptions = useMemo(() => ({
+        endpoint: 'http://localhost:8000/api/chat',
+        defaultMode: 'both' as const,
+        method: 'POST' as const,
+        buildRequestBody: (messages: MessageWithOptionalId[], sources: Source[], metadata?: Record<string, any>) => {
+            const requestBody = {
+                messages: messages.map(m => ({
+                    role: m.role,
+                    content: m.content
+                })),
+                source_ids: metadata?.useExistingSources 
+                    ? sources.map(s => s.metadata?.id).filter(Boolean)
+                    : undefined
             };
-
-            eventSource.addEventListener('message', handleSources);
-            eventSource.onerror = (error) => {
-                console.error("EventSource failed:", error);
-                eventSource.close();
-                reject(new Error('Failed to retrieve sources'));
-            };
-        });
-
-        const messageQueue: GenerateStreamChunk[] = [];
-        let resolveNext: (() => void) | null = null;
-
-        const handleContent = (event: MessageEvent) => {
-            const data = JSON.parse(event.data);
-            // Skip source-only messages
-            if (!data.content && !data.done) return;
-
-            // Only use content and done fields, ignore role
-            const chunk: GenerateStreamChunk = {
-                content: data.content || '',
-                done: !!data.done
-            };
-            messageQueue.push(chunk);
-            resolveNext?.();
-        };
-
-        eventSource.addEventListener('message', handleContent);
-
-        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-            try {
-                while (true) {
-                    if (messageQueue.length === 0) {
-                        await new Promise<void>(resolve => {
-                            resolveNext = resolve;
-                        });
-                    }
-
-                    const chunk = messageQueue.shift()!;
-                    yield chunk;
-                    if (chunk.done) {
-                        break;
-                    }
-                }
-            } finally {
-                eventSource.removeEventListener('message', handleContent);
-                eventSource.close();
+            
+            console.log('Request body being sent to backend:', requestBody);
+            return requestBody;
+        },
+        parseEvent: (data: any) => {
+            if (Array.isArray(data.sources)) {
+                const sources = data.sources.map((item: any) => ({
+                    title: item.doc_path.split('/').pop() || '',
+                    type: item.doc_path.endsWith('.pdf') ? 'pdf'
+                        : item.doc_path.endsWith('.html') ? 'html'
+                            : item.doc_path.endsWith('.md') ? 'markdown'
+                                : 'text',
+                    relevance: item.score || 0,
+                    metadata: {
+                        page: item.page || undefined,
+                        id: item.id || undefined,
+                    },
+                    content: item.text,
+                    highlights: item.highlights
+                        ? item.highlights.map((highlight: any) => ({
+                            page: highlight.page,
+                            rect: highlight.bbox
+                                ? {
+                                    top: highlight.bbox.t,
+                                    left: highlight.bbox.l,
+                                    width: highlight.bbox.r - highlight.bbox.l,
+                                    height: highlight.bbox.b - highlight.bbox.t,
+                                }
+                                : undefined,
+                        }))
+                        : undefined,
+                }));
+                return { sources, done: false };
             }
-        }
-
-        return {
-            sources: sourcesPromise,
-            response: streamChunks()
-        };
-    };
-
-    /*
-      * This is a simple retrieval function that sends a query to the server and returns a list of sources.
-     */
-    const retrieve = async (query: string): Promise<RetrievalResult[]> => {
-        const response = await fetch(`http://localhost:8000/retrieve?query=${encodeURIComponent(query)}`);
-
-        // Read and log the response content
-        const responseData = await response.json();
-        //console.log('Response Content:', responseData);
-
-        const messageQueue: GenerateStreamChunk[] = [];
-        let resolveNext: (() => void) | null = null;
-
-        const handleMessage = (event: MessageEvent) => {
-            const data = JSON.parse(event.data);
-            // Only use content and done fields, ignore role
-            const chunk: GenerateStreamChunk = {
-                content: data.content || '',
-                done: !!data.done
+            return {
+                content: data.content,
+                done: !!data.done,
             };
-            messageQueue.push(chunk);
-            resolveNext?.();
-        };
-  
-        eventSource.addEventListener('message', handleMessage);
+        },
+    }), []);
+    // Combine both connectors into a single unified connector
+    const chatConnector = createSSEConnector(chatConnectorOptions);
 
-        async function* streamChunks(): AsyncIterable<GenerateStreamChunk> {
-            try {
-                while (true) {
-                    if (messageQueue.length === 0) {
-                        await new Promise(resolve => {
-                            resolveNext = resolve;
-                        });
-                    }
-
-                    const chunk = messageQueue.shift()!;
-                    yield chunk;
-                    if (chunk.done) {
-                        break;
-                    }
-                }
-            } finally {
-                eventSource.removeEventListener('message', handleMessage);
-                eventSource.close();
+    const contentSourceOptions = useMemo(() => ({
+        buildFetchRequest: (source: Source) => {
+            const id = source.metadata?.id;
+            if (!id) {
+                throw new Error('No ID in source metadata');
             }
+            return {
+                url: `http://localhost:8000/pdfs/${encodeURIComponent(id)}`
+            };
+        },
+    }), []);
+
+    const contentSource = createRESTContentSource(contentSourceOptions);
+
+    // 3) Action handler uses the SSE connector for "ADD_USER_MESSAGE"
+    const onAction = useCallback((action: UserAction, messages: Message[], _sources: Source[], activeSources: Source[], _selectedSource: Source | null) => {
+        if (action.type === 'ADD_USER_MESSAGE') {
+            const newMessages = [...messages, { content: action.message, role: 'user' as const }];
+            
+            console.log('activeSources', activeSources);
+            
+            const useExistingSources = activeSources.length > 0;
+            
+            console.log('Chat action metadata:', {
+                useExistingSources,
+                activeSourceCount: activeSources.length
+            });
+            
+            // When using existing sources, set mode to 'text' to prevent sources update
+            // When not using existing sources, use 'both' to get new sources
+            const { response, sources: newSources } = chatConnector({
+                messages: newMessages,
+                sources: activeSources,
+                mode: useExistingSources ? 'text' : 'both',
+                metadata: {
+                    useExistingSources
+                }
+            });
+            
+            // Only return new sources if we're not using existing ones
+            return { 
+                response, 
+                sources: useExistingSources ? undefined : newSources 
+            };
+        } else if (action.type === 'SET_SELECTED_SOURCE') {
+            if (!action.sourceObject?.metadata?.id) {
+                return undefined;
+            }
+
+            // Return a SetSelectedSourceActionResponse object
+            return {
+                // The sourceData should be a Promise<string | Uint8Array>
+                sourceData: contentSource(action.sourceObject).then(sourceWithData => sourceWithData.data)
+            };
         }
+        return undefined;
+    }, [chatConnector, contentSource]);
 
-        return streamChunks();
-    };
-
-    const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
-        // We allow only PDF files in this demo
-        if (source.type !== "pdf") {
-            throw new Error("Invalid source type");
-        }
-
-        const url = `http://localhost:8000/sources/${encodeURIComponent(source.sourceReference)}`;
-
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        const pdfContent: PDFSourceContent = {
-            type: 'pdf',
-            content: new Uint8Array(arrayBuffer),
-            metadata: source.metadata || {},
-            highlights: source.highlights || []
-        };
-        return pdfContent;
-    };
-
+    // 4) Provide the SSE connector and the REST content source to the RAGProvider
     return (
-        <div style={{ width: '100%', height: '100vh', padding: '20px' }}>
+        <div className="app-container">
             <RAGProvider
-                retrieveAndGenerate={retrieveAndGenerate}
-                generate={generate}
-                getDataSource={getDataSource}
+                onAction={onAction}
                 config={{
                     timeouts: {
                         stream: 10000,
-                        request: 60000
-                    }
+                    },
                 }}
+            // This is the key: your RAGProvider can now fetch Source data (like PDFs) via REST
             >
-                <div style={{ 
-                    display: 'grid',
-                    height: '100%',
-                    gridTemplateColumns: '3fr 1fr',
-                    gridTemplateRows: '1fr auto 300px',
-                    gap: '20px',
-                    gridTemplateAreas: `
-                        "chat sources"
-                        "input sources"
-                        "viewer viewer"
-                    `
-                }}>
-                    <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
-                        <ChatWindow />
+                <div
+                    style={{
+                        display: 'grid',
+                        height: '100vh',
+                        width: '100%',
+                        gridTemplateColumns: '1fr 2fr',
+                        gridTemplateRows: '1fr 100px',
+                        gap: '20px',
+                        gridTemplateAreas: `
+                            "chat viewer"
+                            "input viewer"
+                        `,
+                        maxHeight: '100vh',
+                        overflow: 'hidden',
+                        padding: '20px',
+                        boxSizing: 'border-box',
+                    }}
+                >
+                    {/* Main chat UI */}
+                    <div
+                        style={{
+                            gridArea: 'chat',
+                            overflow: 'auto',
+                            minWidth: 0,
+                            maxWidth: '100%',
+                        }}
+                    >
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                <SourcesDisplay />
+                            </div>
+                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                <ChatWindow />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Advanced query input */}
+                    <div
+                        style={{
+                            gridArea: 'input',
+                            height: '100px',
+                            minWidth: 0,
+                            maxWidth: '100%',
+                        }}
+                    >
+                        <AdvancedQueryField />
+                    </div>
+
+                    {/* Content viewer */}
+                    <div
+                        style={{
+                            gridArea: 'viewer',
+                            overflow: 'hidden',
+                            width: '100%',
+                            height: '100%',
+                        }}
+                    >
+                        <ContentDisplay />
                     </div>
                 </div>
-
-            {/* Main Content */}
-            <div className="flex-1 p-4">
-                <RAGProvider
-                    retrieve={retrieve}
-                    retrieveAndGenerate={retrieveAndGenerate}
-                    getDataSource={getDataSource}
-                    config={{
-                        timeouts: {
-                            stream: 10000,
-                            request: 60000
-                        }
-                    }}
-                    onAddMessage={() => {
-                        return {
-                            type: 'reretrieve',
-                            preserveHistory: false
-                        }
-                    }}
-                    theme={customTheme}
-                >
-                    <div className="w-full h-full max-h-full max-w-6xl mx-auto flex flex-row gap-4 p-2">
-                        {/* Left side: Chat and Query */}
-                        <div className="h-3/4 gap-4 w-1/4 flex flex-col">
-                            <div className="shrink-0"> {/* Query field */}
-                                <QueryField onSubmit={() => {
-                                }}/>
-                            </div>
-                            <div className="h-full"> {/* Chat window */}
-                                <ChatWindow/>
-                            </div>
-                        </div>
-                        <div className="w-1/6 h-full"> {/* Sources panel */}
-                            <SourcesDisplay/>
-                        </div>
-                        <div className="w-2/3 h-full overflow-hidden"> {/* Sources panel */}
-                            <ContentDisplay/>
-                        </div>
-                        <ErrorDisplay/>
-                    </div>
-                </RAGProvider>
-            </div>
+                {/* Handle any encountered errors */}
+                <ErrorDisplay />
+            </RAGProvider>
         </div>
-    )
+    );
 }
 
-export default App
+export default App;

@@ -1,8 +1,8 @@
 import { useEffect, useContext } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useRAGStatus } from '../RAGProvider/hooks';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
+import {useStatus} from "../../hooks";
 
 export interface ErrorDisplayStyles {
   fontFamily?: string;
@@ -18,7 +18,7 @@ interface ErrorDisplayProps {
 }
 
 const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ styleOverrides = {} }) => {
-  const { error } = useRAGStatus();
+  const { error } = useStatus();
   
   // use theme
   const theme = useContext(ThemeContext);

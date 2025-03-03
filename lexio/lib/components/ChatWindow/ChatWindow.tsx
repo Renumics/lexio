@@ -1,9 +1,10 @@
 import React, {useContext} from 'react';
 import {ThemeContext, removeUndefined} from '../../theme/ThemeContext';
-import {useRAGMessages} from '../RAGProvider/hooks';
+import {useMessages} from '../../hooks';
+import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
 import {ResetWrapper} from '../../utils/ResetWrapper';
-import {ChatWindowUserMessage} from "./ChatWindowUserMessage.tsx";
-import {ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage.tsx";
+import {ChatWindowUserMessage} from "./ChatWindowUserMessage";
+import {ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage";
 import {addOpacity, scaleFontSize} from '../../utils/scaleFontSize';
 
 // todo: Add docu for new components, remove border around icon, add longer description
@@ -65,6 +66,7 @@ export interface ChatWindowProps {
      * @default true
      */
     showCopy?: boolean;
+    componentKey?: string;
 }
 
 /**
@@ -117,8 +119,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                                    showRoleIndicator = true,
                                                    markdown = true,
                                                    showCopy = true,
+                                                   componentKey = undefined,
                                                }) => {
-    const {messages, currentStream} = useRAGMessages();
+    const {messages, currentStream, clearMessages} = useMessages(componentKey ? `ChatWindow-${componentKey}` : 'ChatWindow');
     // Add ref for scrolling
     const chatEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -165,6 +168,23 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 className="w-full h-full overflow-y-auto flex flex-col gap-y-6"
                 style={style}
             >
+                {/* Fixed header */}
+                <div className="flex justify-end p-2 h-14 flex-none">
+                  <button
+                    onClick={clearMessages}
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    style={{
+                      color: colors.text,
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                    title="New conversation"
+                    aria-label="New conversation"
+                  >
+                    <DocumentPlusIcon className="size-5" />
+                  </button>
+                </div>
                 {messages.map((msg, index) => (
                     <>
                         {msg.role == "user" && (

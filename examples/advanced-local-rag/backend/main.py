@@ -28,9 +28,14 @@ app.add_middleware(
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 # Load model & tokenizer
-model_name = "Qwen/Qwen2.5-7B-Instruct"
+model_name = "Qwen/Qwen2.5-7B-Instruct" if device == "cuda" else "HuggingFaceTB/SmolLM2-360M-Instruct"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", load_in_4bit=True).to(device)
+model = AutoModelForCausalLM.from_pretrained(
+    model_name, 
+    device_map="auto", 
+    load_in_4bit=True if device == "cuda" else False,
+    bnb_4bit_compute_dtype=torch.float16  # Set compute dtype to float16
+).to(device)
 
 class Message(BaseModel):
     role: str
@@ -74,7 +79,10 @@ Please answer the query based on the reference documents above."""
                     inputs=inputs,
                     streamer=streamer,
                     max_new_tokens=1024,
-                    do_sample=False  # set to True if you'd like more "interactive" sampling
+                    do_sample=False,
+                    top_p=None,
+                    top_k=None,
+                    temperature=None
                 )
         finally:
             # Ensure streamer is properly ended even if generation fails
@@ -87,175 +95,6 @@ Please answer the query based on the reference documents above."""
     # 5) Return the streamer to the caller
     return streamer
 
-class RetrieveAndGenerateRequest(BaseModel):
-    query: str
-
-@app.post("/api/retrieve-and-generate")
-async def retrieve_and_generate(request: RetrieveAndGenerateRequest):
-    """
-    SSE endpoint that:
-      1) Retrieves relevant chunks from your DB
-      2) Yields a JSON with 'sources' first
-      3) Streams tokens from the model as they are generated (real time)
-    """
-    query = request.query
-    try:
-        # Start timing
-        start_time = time.time()
-        
-        # 1) Time the embedding generation
-        embed_start = time.time()
-        query_embedding = db_utils.get_model().encode(query)
-        embed_time = time.time() - embed_start
-        print(f"Embedding generation took: {embed_time:.2f} seconds")
-        
-        # 2) Time the database search
-        search_start = time.time()
-        table = db_utils.get_table()
-        results = (
-            table.search(query=query_embedding, vector_column_name="embedding")
-                 .limit(5)
-                 .to_list()
-        )
-
-        search_time = time.time() - search_start
-        print(f"Database search took: {search_time:.2f} seconds")
-        
-        # 3) Time the sources processing
-        process_start = time.time()
-        sources = [
-            {
-                "doc_path": r["doc_path"],
-                "page": r["page_number"],
-                "text": r["text"],
-                "id": r["id"],
-                "highlights": [{
-                    "page": r["page_number"],
-                    "bbox": {
-                        "l": r["bbox_left"],
-                        "t": r["bbox_top"],
-                        "r": r["bbox_right"],
-                        "b": r["bbox_bottom"]
-                    }
-                }] if all(r.get(k) is not None for k in ["page_number", "bbox_left", "bbox_top", "bbox_right", "bbox_bottom"]) else None,
-                "score": float(r.score) if hasattr(r, "score") else None
-            }
-            for r in results
-        ]
-        process_time = time.time() - process_start
-        print(f"Processing results took: {process_time:.2f} seconds")
-
-        # Log total preparation time
-        total_prep_time = time.time() - start_time
-        print(f"Total preparation time: {total_prep_time:.2f} seconds")
-
-        # 4) Build context
-        context_str = "\n\n".join([
-            f"[Document: {r['doc_path']}]\n{r['text']}"
-            for r in results
-        ])
-        messages = [Message(role="user", content=query)]
-
-        # 5) Create async generator to yield SSE
-        async def event_generator():
-            try:
-                # First yield the sources
-                yield {"data": json.dumps({"sources": sources})}
-
-                # Now create the streamer & generate tokens
-                streamer = generate_stream(messages, context_str)
-
-                # For each partial token, yield SSE data
-                for token in streamer:
-                    if token:  # Only send if token is not empty
-                        try:
-                            data = json.dumps({"content": token, "done": False})
-                            yield {"data": data}
-                            await asyncio.sleep(0)  # let the event loop flush data
-                        except Exception as e:
-                            print(f"Error during token streaming: {str(e)}")
-                            continue
-
-                # Finally, yield "done"
-                yield {"data": json.dumps({"content": "", "done": True})}
-            except Exception as e:
-                print(f"Error in event generator: {str(e)}")
-                yield {"data": json.dumps({"error": str(e)})}
-
-        # 6) Return SSE
-        return EventSourceResponse(event_generator())
-
-    except Exception as e:
-        return {"error": str(e)}
-    
-class GenerateRequest(BaseModel):
-    messages: List[Message]
-    source_ids: Optional[List[str]] = None
-
-@app.post("/api/generate")
-async def generate_endpoint(request: GenerateRequest):
-    """
-    SSE endpoint for follow-up requests using:
-      - messages: list of previous chat messages
-      - source_ids: optional list of doc references to build context
-    Streams the model response in real time.
-    """
-    try:
-        # Log message history length and content
-        messages_list = request.messages
-        print(f"Chat history length: {len(messages_list)}")
-        print("Message roles:", [msg.role for msg in messages_list])
-        
-        # Log source usage
-        source_ids_list = request.source_ids
-        print(f"Using source IDs: {source_ids_list if source_ids_list else 'No sources'}")
-        
-        # 1) Build context from source IDs (if provided)
-        context_str = ""
-        if source_ids_list:
-            table = db_utils.get_table()
-            source_ids_str = "('" + "','".join(source_ids_list) + "')"
-            chunks = table.search().where(f"id in {source_ids_str}", prefilter=True).to_list()
-            
-            # Log retrieved chunks info
-            print(f"Retrieved {len(chunks)} chunks from database")
-            for chunk in chunks:
-                print(f"Document: {chunk['doc_path']}")
-            
-            context_str = "\n\n".join([
-                f"[Document: {chunk['doc_path']}]\n{chunk['text']}"
-                for chunk in chunks
-            ])
-            print(f"Total context length: {len(context_str)} characters")
-
-        # 2) Build async generator for SSE
-        async def event_generator():
-            try:
-                # Create the streamer
-                streamer = generate_stream(messages_list, context_str)
-
-                # For each partial token, yield SSE data
-                for token in streamer:
-                    if token:  # Only send if token is not empty
-                        try:
-                            data = json.dumps({"content": token, "done": False})
-                            yield {"data": data}
-                            await asyncio.sleep(0)  # yield control so data can flush
-                        except Exception as e:
-                            print(f"Error during token streaming: {str(e)}")
-                            continue
-
-                # Finally, yield "done"
-                yield {"data": json.dumps({"content": "", "done": True})}
-            except Exception as e:
-                print(f"Error in event generator: {str(e)}")
-                yield {"data": json.dumps({"error": str(e)})}
-
-        # 3) Return SSE
-        return EventSourceResponse(event_generator())
-
-    except Exception as e:
-        return {"error": str(e)}
 
 @app.get("/pdfs/{id}")
 async def get_pdf(id: str):
@@ -295,6 +134,105 @@ async def get_pdf(id: str):
             media_type='text/plain',
             filename=os.path.basename(doc_path)
         )
+
+class ChatRequest(BaseModel):
+    messages: List[Message]
+    source_ids: Optional[List[str]] = None
+
+@app.post("/api/chat")
+async def chat_endpoint(request: ChatRequest):
+    """
+    Unified SSE endpoint that handles both initial queries and follow-ups:
+      - messages: list of chat messages (required)
+      - source_ids: optional list of specific source IDs to use
+        If source_ids are provided, those specific sources will be used as context
+        If no source_ids are provided, the system will automatically retrieve relevant sources
+        based on the latest user query
+    """
+    print("Request received:", request)
+    try:
+        messages_list = request.messages
+        print(f"Chat history length: {len(messages_list)}")
+        print("Message roles:", [msg.role for msg in messages_list])
+        
+        context_str = ""
+        sources = []
+        
+        # Get the latest user message as the query for retrieval
+        latest_query = next((msg.content for msg in reversed(messages_list) if msg.role == "user"), None)
+        
+        table = db_utils.get_table()
+        
+        if request.source_ids:
+            # Use specified sources if provided
+            print(f"Using provided source IDs: {request.source_ids}")
+            source_ids_str = "('" + "','".join(request.source_ids) + "')"
+            results = table.search().where(f"id in {source_ids_str}", prefilter=True).to_list()
+        else:
+            # Otherwise perform semantic search based on the latest query
+            print(f"Performing semantic search for: {latest_query}")
+            query_embedding = db_utils.get_model().encode(latest_query)
+            results = (
+                table.search(query=query_embedding, vector_column_name="embedding")
+                     .limit(5)
+                     .to_list()
+            )
+        
+        # Process results into sources and context
+        sources = [
+            {
+                "doc_path": r["doc_path"],
+                "page": r["page_number"],
+                "text": r["text"],
+                "id": r["id"],
+                "highlights": [{
+                    "page": r["page_number"],
+                    "bbox": {
+                        "l": r["bbox_left"],
+                        "t": r["bbox_top"],
+                        "r": r["bbox_right"],
+                        "b": r["bbox_bottom"]
+                    }
+                }] if all(r.get(k) is not None for k in ["page_number", "bbox_left", "bbox_top", "bbox_right", "bbox_bottom"]) else None,
+                "score": float(r.score) if hasattr(r, "score") else None
+            }
+            for r in results
+        ]
+        
+        context_str = "\n\n".join([
+            f"[Document: {r['doc_path']}]\n{r['text']}"
+            for r in results
+        ])
+
+        # 2) Build async generator for SSE
+        async def event_generator():
+            try:
+                # First yield the sources if we have any
+                if sources:
+                    yield {"data": json.dumps({"sources": sources})}
+
+                # Create the streamer & generate tokens
+                streamer = generate_stream(messages_list, context_str)
+
+                for token in streamer:
+                    if token:
+                        try:
+                            data = json.dumps({"content": token, "done": False})
+                            yield {"data": data}
+                            await asyncio.sleep(0)
+                        except Exception as e:
+                            print(f"Error during token streaming: {str(e)}")
+                            continue
+
+                yield {"data": json.dumps({"content": "", "done": True})}
+            except Exception as e:
+                print(f"Error in event generator: {str(e)}")
+                yield {"data": json.dumps({"error": str(e)})}
+
+        return EventSourceResponse(event_generator())
+
+    except Exception as e:
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn

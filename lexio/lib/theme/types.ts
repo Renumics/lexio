@@ -1,3 +1,4 @@
+
 /**
  * Defines the color palette used throughout the application.
  * These colors are used for various UI elements like buttons, backgrounds, and text.

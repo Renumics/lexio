@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { SourcesDisplay } from '../../../lib/components/SourcesDisplay/SourcesDisplay';
 import { RAGProvider } from '../../../lib/components/RAGProvider';
-import { useRAGSources } from '../../../lib/components/RAGProvider/hooks';
+import { useRAGSources } from '../../../lib/hooks/hooks.ts';
 import { useEffect } from 'react';
 import 'tailwindcss/tailwind.css';
 import type { RetrievalResult } from '../../../lib/types';

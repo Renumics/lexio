@@ -1,488 +1,276 @@
-import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeEach,
-  afterEach,
-} from 'vitest';
+import React, { useEffect } from 'react';
+import { describe, it, expect } from 'vitest'; // Removed beforeEach, afterEach
 import { renderHook, act, waitFor } from '@testing-library/react';
-import React from 'react';
+import { Provider, useSetAtom } from 'jotai';
 
+import { registerActionHandler } from './rag-state'; // Removed unregisterActionHandler
+import type { Message, Source, UUID } from '../types'; // Import from ../types (or wherever these types actually live)
+
+// --- NEW HOOKS (adjust import path as needed) ---
 import {
-  RAGProvider
-} from '../components/RAGProvider';
+  useStatus,
+  useMessages,
+  useSources
+} from '../hooks'; // <- Replace with your correct hooks path
 
-import {
-  useRAGMessages,
-  useRAGSources,
-  useRAGStatus,
-} from '../components/RAGProvider/hooks';
-
-import type {
-  Message,
-  RetrievalResult,
-  RetrieveAndGenerateResponse,
-  GetDataSourceResponse,
-  GenerateResponse,
-  SourceReference,
-  PDFSourceContent,
-  TextContent,
-  RAGConfig,
-} from '../types';
-
-interface MockProviderProps {
-  retrieveAndGenerate?: (messages: Message[], metadata?: Record<string, any>) => RetrieveAndGenerateResponse;
-  generate?: (messages: Message[], sources?: RetrievalResult[]) => GenerateResponse;
-  getDataSource?: (source: SourceReference) => GetDataSourceResponse;
-  retrieve?: (query: string, metadata?: Record<string, any>) => Promise<RetrievalResult[]>;
-  config?: RAGConfig;
+// -------------------------------------------------------------------------
+// A helper component to register a fake action handler for tests.
+interface TestActionHandlerProps {
+  handler: any;
+  children?: React.ReactNode;
 }
 
-/**
- * --- MOCK CREATORS ---
- */
-const createMockRetrieveAndGenerate = () =>
-  vi.fn(
-    (_messages: Message[], _metadata?: Record<string, any>): RetrieveAndGenerateResponse => ({
-      sources: Promise.resolve([
-        {
-          text: 'This is a text source',
-          metadata: { title: 'Text Document' },
-        } as TextContent,
-      ]),
-      response: Promise.resolve('Response based on text source'),
-    })
-  );
+const TestActionHandler: React.FC<TestActionHandlerProps> = ({
+  handler,
+  children,
+}) => {
+  const setRegister = useSetAtom(registerActionHandler);
 
-const createMockGenerate = () =>
-  vi.fn(
-    (_messages: Message[], _sources?: RetrievalResult[]): GenerateResponse =>
-      Promise.resolve('Generated response')
-  );
+  useEffect(() => {
+    // Register our handler when mounted
+    setRegister(handler);
+    // Optionally unregister when unmounting
+    return () => {
+      // ...
+    };
+  }, [handler, setRegister]);
 
-const createMockGetDataSource = () =>
-  vi.fn(async (_source: SourceReference): Promise<PDFSourceContent> => ({
-    type: 'pdf',
-    content: new Uint8Array([1, 2, 3]),
-    metadata: { title: 'PDF Document' },
-  }));
-
-/**
- * Helper to advance Jest timers. This simulates the passage of real time
- * in an environment using fake timers.
- */
-const advanceTime = async (ms: number) => {
-  await act(async () => {
-    vi.advanceTimersByTime(ms);
-    await vi.runAllTimersAsync();
-  });
+  return <>{children}</>;
 };
 
-/**
- * --- HOOK TEST RENDERER ---
- * Utility to reduce duplication across tests.
- */
-function renderRAGHooks(
-  mocks: MockProviderProps = {},
-  timeouts?: Partial<RAGConfig['timeouts']>
-) {
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <RAGProvider
-      retrieveAndGenerate={mocks.retrieveAndGenerate ?? createMockRetrieveAndGenerate()}
-      generate={mocks.generate ?? createMockGenerate()}
-      getDataSource={mocks.getDataSource ?? createMockGetDataSource()}
-      retrieve={mocks.retrieve}
-      config={{
-        timeouts: {
-          stream: 1000,
-          request: 5000,
-          ...(timeouts ?? {}),
-        },
-      }}
-    >
-      {children}
-    </RAGProvider>
+// A helper to render our hooks wrapped in Jotai's <Provider> plus the test handler
+function renderRAGTestHooks(handler: any) {
+  const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <Provider>
+      <TestActionHandler handler={handler}>{children}</TestActionHandler>
+    </Provider>
   );
 
-  const { result } = renderHook(
-    () => ({
-      messages: useRAGMessages(),
-      sources: useRAGSources(),
-      status: useRAGStatus(),
-    }),
+  return renderHook(
+    () => {
+      const ragMessages = useMessages('LexioProvider');
+      const ragSources = useSources('LexioProvider');
+      const ragStatus = useStatus();
+      return { ragMessages, ragSources, ragStatus };
+    },
     { wrapper }
   );
-
-  /**
-   * Helper to add a user message and automatically wait
-   * for any returned promises (like `response` and `sources`) to resolve.
-   */
-  async function addUserMessage(content: string) {
-    await act(async () => {
-      const response = result.current.messages.addMessage({
-        role: 'user',
-        content,
-      });
-      if (response && typeof response === 'object' && 'sources' in response && 'response' in response) {
-        await response.sources;
-        await response.response;
-      }
-    });
-  }
-
-  /**
-   * Helper to wait until loading is set to `false`.
-   */
-  async function waitUntilNotLoading() {
-    await waitFor(() => {
-      expect(result.current.status.loading).toBe(false);
-    });
-  }
-
-  return {
-    result,
-    addUserMessage,
-    waitUntilNotLoading,
-  };
 }
 
-/**
- * --- TEST SUITE ---
- */
-describe('RAG Workflow Tests', () => {
+// -------------------------------------------------------------------------
+// TEST SUITE
+describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
   describe('Basic Usage Workflow', () => {
     it('should handle initial query with text sources', async () => {
-      const mockRetrieveAndGenerate = createMockRetrieveAndGenerate();
-      const { result, addUserMessage, waitUntilNotLoading } = renderRAGHooks({
-        retrieveAndGenerate: mockRetrieveAndGenerate,
+      const mockHandler = {
+        component: 'LexioProvider',
+        handler: (_action: any, _messages: Message[], _sources: Source[]) => {
+          // For an ADD_USER_MESSAGE action, return both response + sources
+          return {
+            sources: Promise.resolve([
+              {
+                id: 'text-source-uuid' as UUID,
+                title: 'Text Document',
+                type: 'text',
+                data: 'This is a text source',
+                metadata: { title: 'Text Document' },
+              },
+            ]),
+            response: Promise.resolve('Response based on text source'),
+          };
+        },
+      };
+
+      const { result } = renderRAGTestHooks(mockHandler);
+
+      // 1) Dispatch action to add user message
+      act(() => {
+        result.current.ragMessages.addUserMessage('test query');
       });
 
-      await addUserMessage('test query');
-      await waitUntilNotLoading();
+      // 2) Wait for final state: we expect 2 messages (user + assistant)
+      //    and a single text source
+      await waitFor(() => {
+        expect(result.current.ragMessages.messages).toHaveLength(2);
+      });
 
-      // Assertions
-      expect(result.current.status.error).toBe(null);
-      expect(result.current.status.workflowMode).toBe('follow-up');
-      expect(result.current.messages.messages).toHaveLength(2);
-      expect(result.current.sources.sources).toHaveLength(1);
-      expect('text' in result.current.sources.sources[0]).toBe(true);
-      expect(mockRetrieveAndGenerate).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ role: 'user', content: 'test query' }),
-        ]),
-        undefined
-      );
-    });
+      // Check for no errors
+      expect(result.current.ragStatus.error).toBe(null);
 
-    it('should handle initial query with reference sources', async () => {
-      // Mock that returns a PDF reference instead of text
-      const mockRetrieveAndGenerate = vi.fn(
-        (): RetrieveAndGenerateResponse => ({
-          sources: Promise.resolve([
-            {
-              sourceReference: 'example.pdf',
-              type: 'pdf' as const,
-              metadata: { title: 'PDF Document' },
-            } as SourceReference,
-          ]),
-          response: Promise.resolve('Response based on PDF source'),
+      // The second message should be assistant's
+      expect(result.current.ragMessages.messages[1]).toEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          content: 'Response based on text source',
         })
       );
 
-      const mockGetDataSource = createMockGetDataSource();
-      const { result, addUserMessage, waitUntilNotLoading } = renderRAGHooks({
-        retrieveAndGenerate: mockRetrieveAndGenerate,
-        getDataSource: mockGetDataSource,
+      // Verify that a text source has been added
+      expect(result.current.ragSources.sources).toHaveLength(1);
+      expect(result.current.ragSources.sources[0]).toEqual(
+        expect.objectContaining({
+          type: 'text',
+          data: 'This is a text source',
+        })
+      );
+    });
+
+    it('should handle initial query with a PDF (reference) source', async () => {
+      const mockHandler = {
+        component: 'LexioProvider',
+        handler: (_action: any) => {
+          return {
+            sources: Promise.resolve([
+              {
+                id: 'pdf-source-uuid' as UUID,
+                title: 'PDF Document',
+                type: 'pdf',
+                metadata: { title: 'PDF Document' },
+              },
+            ]),
+            response: Promise.resolve('Response based on PDF source'),
+          };
+        },
+      };
+
+      const { result } = renderRAGTestHooks(mockHandler);
+
+      act(() => {
+        result.current.ragMessages.addUserMessage('test query');
       });
 
-      await addUserMessage('test query');
-      await waitUntilNotLoading();
+      // Wait until messages appear
+      await waitFor(() => {
+        expect(result.current.ragMessages.messages).toHaveLength(2);
+      });
 
-      // Assertions
-      expect(result.current.status.error).toBe(null);
-      expect(result.current.sources.sources).toHaveLength(1);
-      expect('sourceReference' in result.current.sources.sources[0]).toBe(true);
+      // Ensure no error
+      expect(result.current.ragStatus.error).toBe(null);
 
-      const source = result.current.sources.sources[0] as SourceReference;
-      expect(source.sourceReference).toBe('example.pdf');
+      // Source is of type PDF
+      expect(result.current.ragSources.sources).toHaveLength(1);
+      expect(result.current.ragSources.sources[0]).toEqual(
+        expect.objectContaining({
+          type: 'pdf',
+          title: 'PDF Document',
+        })
+      );
     });
   });
 
   describe('Follow-up Questions Workflow', () => {
-    it('should use generate function for follow-up questions', async () => {
-      const initialSources = [
-        {
-          sourceReference: 'example.pdf',
-          type: 'pdf' as const,
-          metadata: { title: 'PDF Document' },
-        } as SourceReference,
-      ];
+    it('should handle a two-step conversation with follow-up questions', async () => {
+      const mockHandler = {
+        component: 'LexioProvider',
+        handler: (action: any, messages: Message[]) => {
+          if (action.type === 'ADD_USER_MESSAGE') {
+            // If no prior messages, treat it as the first query
+            if (messages.length === 0) {
+              return {
+                response: Promise.resolve('Initial response'),
+              };
+            }
+            // Otherwise, a follow-up
+            return {
+              response: Promise.resolve('Follow-up response'),
+            };
+          }
+          return {};
+        },
+      };
 
-      const mockGenerate = vi.fn(
-        (_messages: Message[], _sources?: RetrievalResult[]): GenerateResponse => {
-          return Promise.resolve('Follow-up response');
-        }
-      );
-      const mockRetrieveAndGenerate = vi.fn(() => ({
-        sources: Promise.resolve(initialSources),
-        response: Promise.resolve('Initial response'),
-      }));
+      const { result } = renderRAGTestHooks(mockHandler);
 
-      const { result, addUserMessage, waitUntilNotLoading } = renderRAGHooks({
-        retrieveAndGenerate: mockRetrieveAndGenerate,
-        generate: mockGenerate,
+      // 1) Initial query
+      act(() => {
+        result.current.ragMessages.addUserMessage('initial query');
       });
-
-      // Initial query
-      await addUserMessage('initial query');
-      await waitUntilNotLoading();
-      expect(result.current.sources.sources).toHaveLength(1);
-
-      // Set current sources
-      await act(async () => {
-        result.current.sources.setCurrentSourceIndices([0]);
-      });
-      expect(result.current.sources.currentSourceIndices).toEqual([0]);
-
-      // Follow-up question
-      await addUserMessage('follow-up question');
-      await waitUntilNotLoading();
-
-      expect(result.current.messages.messages).toHaveLength(4);
-
-      // Check the generate call arguments
-      expect(mockGenerate).toHaveBeenCalledWith(
-        [
-          { role: 'user', content: 'initial query' },
-          { role: 'assistant', content: 'Initial response' },
-          { role: 'user', content: 'follow-up question' },
-        ],
-        initialSources
-      );
-    });
-  });
-
-  describe('Source Management', () => {
-    it('should handle source content loading for different types', async () => {
-      const mockGetDataSource = vi
-        .fn()
-        .mockImplementationOnce(async () => ({
-          type: 'pdf' as const,
-          content: new Uint8Array([1, 2, 3]),
-          metadata: { title: 'PDF Document' },
-        }));
-
-      const mockRetrieveAndGenerate = vi.fn(
-        (): RetrieveAndGenerateResponse => ({
-          sources: Promise.resolve([
-            {
-              sourceReference: 'example.pdf',
-              type: 'pdf' as const,
-              metadata: { title: 'PDF Document' },
-            } as SourceReference,
-          ]),
-          response: Promise.resolve('Response based on PDF source'),
-        })
-      );
-
-      const { result, addUserMessage, waitUntilNotLoading } = renderRAGHooks({
-        getDataSource: mockGetDataSource,
-        retrieveAndGenerate: mockRetrieveAndGenerate,
-      });
-
-      // Add message to trigger retrieving sources
-      await addUserMessage('test query');
-      await waitUntilNotLoading();
-      expect(result.current.sources.sources).toHaveLength(1);
-
-      // Set active source index
-      await act(async () => {
-        result.current.sources.setActiveSourceIndex(0);
-      });
-
-      // Wait for the source content to be loaded
       await waitFor(() => {
-        expect(result.current.status.loading).toBe(false);
-        const content = result.current.sources.currentSourceContent;
-        expect(content).toBeTruthy();
-        expect(content?.type).toBe('pdf');
+        expect(result.current.ragMessages.messages).toHaveLength(2);
       });
 
-      // Verify the mock was called
-      expect(mockGetDataSource).toHaveBeenCalledWith(
+      // 2) Follow-up question
+      act(() => {
+        result.current.ragMessages.addUserMessage('follow-up question');
+      });
+
+      // Wait for 4 total messages (2 from first round + 2 from second round)
+      await waitFor(() => {
+        expect(result.current.ragMessages.messages).toHaveLength(4);
+      });
+
+      // The last message should be assistant's "Follow-up response"
+      expect(
+        result.current.ragMessages.messages[
+          result.current.ragMessages.messages.length - 1
+        ]
+      ).toEqual(
         expect.objectContaining({
-          sourceReference: 'example.pdf',
-          type: 'pdf',
+          role: 'assistant',
+          content: 'Follow-up response',
         })
       );
     });
-
-    it('should handle source search with metadata', async () => {
-      const mockRetrieve = vi.fn((_query: string, _metadata?: Record<string, any>) =>
-        Promise.resolve([
-          {
-            text: 'result 1',
-            metadata: { score: 0.9, category: 'docs' },
-          },
-          {
-            text: 'result 2',
-            metadata: { score: 0.8, category: 'code' },
-          },
-        ])
-      );
-
-      const { result } = renderRAGHooks({ retrieve: mockRetrieve });
-
-      await act(async () => {
-        await result.current.sources.retrieveSources('test search', { category: 'docs' });
-      });
-
-      expect(result.current.sources.sources).toHaveLength(2);
-      expect(mockRetrieve).toHaveBeenCalledWith('test search', { category: 'docs' });
-    });
   });
 
-  describe('Streaming Response Tests', () => {
-    it('should handle streaming responses with partial updates', async () => {
-      const mockRetrieveAndGenerate = vi.fn(() => ({
-        sources: Promise.resolve([
-          { text: 'A text-based source', metadata: { title: 'Text Doc' } },
-        ]),
-        response: (async function* () {
-          yield { content: 'Partial answer chunk 1...' };
-          await new Promise((resolve) => setTimeout(resolve, 50));
-          yield { content: 'Partial answer chunk 2...', done: true };
-        })(),
-      }));
-
-      const { result, addUserMessage, waitUntilNotLoading } = renderRAGHooks({
-        retrieveAndGenerate: mockRetrieveAndGenerate,
-      });
-
-      await addUserMessage('Stream test query');
-
-      // Wait for streaming to complete
-      await waitUntilNotLoading();
-
-      // Check final state
-      expect(result.current.messages.messages).toHaveLength(2);
-      expect(result.current.messages.messages[1]).toEqual({
-        role: 'assistant',
-        content: 'Partial answer chunk 1...Partial answer chunk 2...',
-      });
-      expect(result.current.messages.currentStream).toBe(null);
-    });
-  });
-
-  describe('Timeout Error Handling', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('should handle request timeout', async () => {
-      const mockRetrieveAndGenerate = vi.fn((): RetrieveAndGenerateResponse => ({
-        sources: new Promise<RetrievalResult[]>((resolve) => {
-          // 6 seconds -> longer than 5s request timeout
-          setTimeout(() => {
-            resolve([
-              {
-                sourceReference: 'example-doc.pdf',
-                type: 'pdf' as const,
-                metadata: { title: 'Example Document' },
-              },
-            ]);
-          }, 6000);
-        }),
-        response: new Promise((resolve) => {
-          setTimeout(() => {
-            resolve('Response that exceeds request timeout');
-          }, 6000);
-        }),
-      }));
-
-      const { result, addUserMessage } = renderRAGHooks(
-        {
-          retrieveAndGenerate: mockRetrieveAndGenerate,
-        },
-        {
-          // Override the default request timeout to 5s
-          stream: 2000,
-          request: 5000,
-        }
-      );
-
-      await addUserMessage('test query');
-
-      // Advance time past 5 seconds
-      await advanceTime(5500);
-
-      expect(result.current.status.loading).toBe(false);
-      expect(result.current.status.error).toBe(
-        'Response processing failed: Response timeout exceeded'
-      );
-    });
-
-    it('should handle stream timeout', async () => {
-      const mockRetrieveAndGenerate = vi.fn(() => ({
-        sources: Promise.resolve([
-          {
-            sourceReference: 'example-doc.pdf',
-            type: 'pdf' as const,
-            metadata: { title: 'Example Document' },
-          },
-        ]),
-        response: (async function* () {
-          yield { content: 'Starting analysis... ' };
-          await new Promise((resolve) => setTimeout(resolve, 200));
-
-          yield { content: 'Processing content... ' };
-          await new Promise((resolve) => setTimeout(resolve, 200));
-
-          // Simulate a long gap (3s) -> exceeds 2s stream timeout
-          yield { content: '\n\nProcessing additional details...' };
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-
-          yield { content: 'This will never appear because of the timeout' };
-        })(),
-      }));
-
-      const { result, addUserMessage } = renderRAGHooks(
-        {
-          retrieveAndGenerate: mockRetrieveAndGenerate,
-        },
-        {
-          stream: 2000,
-          request: 5000,
-        }
-      );
-
-      // Add message -> begin streaming
-      await addUserMessage('test query');
-
-      // Let the first chunk or two happen
-      await advanceTime(500);
-
-      // Then advance past stream timeout
-      await advanceTime(2500);
-
-      expect(result.current.status.loading).toBe(false);
-      expect(result.current.status.error).toBe(
-        'Response processing failed: Stream timeout exceeded'
-      );
-    });
-  });
   describe('Additional Error Handling', () => {
     it('should perform rollback on generation error', async () => {
-     
+      const mockHandler = {
+        component: 'LexioProvider',
+        handler: () => {
+          return {
+            sources: Promise.resolve([]),
+            response: Promise.reject(new Error('Generation error')),
+          };
+        },
+      };
+
+      const { result } = renderRAGTestHooks(mockHandler);
+
+      act(() => {
+        result.current.ragMessages.addUserMessage('trigger error');
+      });
+
+      // Wait for the error to appear
+      await waitFor(() => {
+        expect(result.current.ragStatus.error).toMatch(/Generation error/);
+      });
+
+      // After rollback, confirm messages or sources are left in a consistent state
+      // (e.g., no new assistant message was appended)
+      expect(result.current.ragMessages.messages).toHaveLength(0);
+      expect(result.current.ragSources.sources).toHaveLength(0);
     });
+
     it('should perform rollback on retrieval error', async () => {
-     
+      const mockHandler = {
+        component: 'LexioProvider',
+        handler: () => {
+          return {
+            // This will fail
+            sources: Promise.reject(new Error('Retrieval error')),
+            // But we do have a valid response
+            response: Promise.resolve('Some response'),
+          };
+        },
+      };
+
+      const { result } = renderRAGTestHooks(mockHandler);
+
+      act(() => {
+        result.current.ragMessages.addUserMessage('trigger retrieval error');
+      });
+
+      // Wait for the error
+      await waitFor(() => {
+        expect(result.current.ragStatus.error).toMatch(/Retrieval error/);
+      });
+
+      // Check that no sources were persisted
+      expect(result.current.ragSources.sources).toHaveLength(0);
+
+      // The user message might still show up, but the assistant's response is rolled back
+      expect(result.current.ragMessages.messages).toHaveLength(0);
     });
   });
-
 });
