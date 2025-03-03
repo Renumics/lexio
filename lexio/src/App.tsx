@@ -176,18 +176,18 @@ function App() {
                     });
                     
                     // Log the explanations with their supporting evidence
-                    console.log('Explanations with supporting evidence:');
-                    explanationResult.explanations.forEach((explanation, index) => {
-                        console.log(`Explanation ${index + 1}:`);
-                        console.log(`  Answer idea: "${explanation.answer_idea}"`);
-                        console.log(`  Key phrases: ${explanation.key_phrases.join(', ')}`);
-                        console.log(`  Supporting evidence (${explanation.supporting_evidence.length}):`);
-                        explanation.supporting_evidence.forEach((evidence, evidenceIndex) => {
-                            console.log(`    Evidence ${evidenceIndex + 1}: "${evidence.source_text}"`);
-                            console.log(`      Page: ${evidence.highlight?.page}`);
-                            console.log(`      Similarity score: ${evidence.similarity_score}`);
-                        });
-                    });
+                    // console.log('Explanations with supporting evidence:');
+                    // explanationResult.explanations.forEach((explanation, index) => {
+                    //     console.log(`Explanation ${index + 1}:`);
+                    //     console.log(`  Answer idea: "${explanation.answer_idea}"`);
+                    //     console.log(`  Key phrases: ${explanation.key_phrases.join(', ')}`);
+                    //     console.log(`  Supporting evidence (${explanation.supporting_evidence.length}):`);
+                    //     explanation.supporting_evidence.forEach((evidence, evidenceIndex) => {
+                    //         console.log(`    Evidence ${evidenceIndex + 1}: "${evidence.source_text}"`);
+                    //         console.log(`      Page: ${evidence.highlight?.page}`);
+                    //         console.log(`      Similarity score: ${evidence.similarity_score}`);
+                    //     });
+                    // });
                     
                     // Create the COLORS array for highlighting
                     const COLORS = [
@@ -210,6 +210,7 @@ function App() {
                         // todo: better way to handle this.
                         return {
                             text: explanation.answer_idea,
+                            originalText: explanation.original_text,
                             color: COLORS[index % COLORS.length],
                             evidence: {
                                 text: evidence.source_text,
@@ -270,14 +271,18 @@ function App() {
                         role: 'assistant',
                         content: explanationResult.finalAnswer,
                         metadata: {
-                            coloredAnswerIdeas: coloredIdeas
+                            coloredIdeas: coloredIdeas.map(idea => ({
+                                text: idea.text,
+                                originalText: idea.originalText,
+                                color: idea.color
+                            }))
                         }
                     };
 
                     const messages = [userMessage, assistantMessage];
                     const messagesPromise = Promise.resolve(messages);
 
-                    console.log('Returning action response with processed explanations');
+                    console.log('Returning action response with messages:', messages);
                     const response: ActionHandlerResponse = {
                         response: Promise.resolve(explanationResult.finalAnswer),
                         messages: messagesPromise,

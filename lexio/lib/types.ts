@@ -4,18 +4,6 @@ export interface RAGConfig {
     request?: number; // Overall request timeout in ms
   },
 }
-export interface Message {
-    readonly id: UUID; // todo: make sure this is unique -> validate changes
-    role: "user" | "assistant";
-    content: string;
-    metadata?: {
-        coloredIdeas?: Array<{
-            text: string;
-            color: string;
-        }>;
-        [key: string]: any;
-    };
-}
 
 export interface Source {
     readonly id: UUID; // todo: make sure this is unique -> validate changes
@@ -173,6 +161,7 @@ export type ActionHandlerResponse = {
     response?: Promise<string> | AsyncIterable<StreamChunk>;
     messages?: Promise<Message[]> | any;
     sources?: Promise<Source[]>;
+    sourceData?: string | Uint8Array | null;
     actionOptions?: {
         current?: UserActionModifier;
         followUp?: UserAction;
@@ -191,3 +180,19 @@ export type ActionHandler = {
 };
 
 export type StreamChunk = { content?: string; sources?: Source[]; done?: boolean; };
+
+export interface ColoredIdea {
+  text: string;          // The LLM-generated idea text
+  originalText: string;  // The original text segment from the response
+  color: string;
+}
+
+export interface Message {
+  readonly id: UUID;
+  role: "user" | "assistant";
+  content: string;
+  metadata?: {
+    coloredIdeas?: ColoredIdea[];
+    [key: string]: any;
+  };
+}

@@ -20,6 +20,7 @@ export interface ExplanationResult {
     answerIdeas: string[];
     explanations: Array<{
         answer_idea: string;
+        original_text: string;
         key_phrases: string[];
         supporting_evidence: {
             source_text: string;
@@ -40,10 +41,21 @@ export interface ExplanationResult {
         analysis: {
             average_similarity: number;
         };
+        color: string;
     }>;
 }
 
 export class ExplanationProcessor {
+    /**
+     * Generates evenly distributed colors based on the number of ideas
+     */
+    private static generateColors(count: number): string[] {
+        return Array.from({ length: count }, (_, i) => {
+            const hue = (i * 360) / count;
+            return `hsla(${hue}, 70%, 70%, 0.3)`;
+        });
+    }
+
     static async processResponse(
         response: string,
         sourceData: Uint8Array | File
@@ -72,29 +84,45 @@ export class ExplanationProcessor {
             console.log('Generated embeddings for chunks:', chunkEmbeddings.length);
 
             const sentences = splitIntoSentences(response);
-            let answerIdeas: string[] = [];
+            const answerIdeas: Array<{ idea: string, originalText: string }> = [];
 
             for (const sentence of sentences) {
                 const ideas = config.IDEA_SPLITTING_METHOD === 'heuristic' ? splitIntoIdeasHeuristic(sentence)
                     : config.IDEA_SPLITTING_METHOD === 'dependency' ? splitIntoIdeasDependencyParsing(sentence)
                     : config.IDEA_SPLITTING_METHOD === 'llm' ? await splitIntoIdeasUsingLLM(sentence)
                     : [sentence];
-                answerIdeas.push(...ideas);
+                
+                // For each idea, find its specific part within the sentence
+                ideas.forEach(idea => {
+                    // Clean up the idea text for better matching
+                    const cleanIdea = idea
+                        .replace(/^[-\s.]+|[-\s.]+$/g, '') // Remove leading/trailing dashes, spaces, periods
+                        .replace(/^(It|This)\s+/i, ''); // Remove leading "It" or "This"
+                    
+                    // Create a regex to find the specific part in the sentence
+                    const ideaRegex = new RegExp(
+                        cleanIdea
+                            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape regex special chars
+                            .replace(/\s+/g, '\\s+'), // Make whitespace flexible
+                        'i'
+                    );
+                    
+                    const match = sentence.match(ideaRegex);
+                    const originalText = match ? match[0] : sentence;
+
+                    answerIdeas.push({
+                        idea: cleanIdea,
+                        originalText
+                    });
+                });
             }
             console.log('Number of answer ideas:', answerIdeas.length);
 
-            // todo: # od colours shold be connected to the number of answer ideas
-            const COLORS = [
-                'rgba(255, 99, 132, 0.3)',   // red
-                'rgba(54, 162, 235, 0.3)',   // blue
-                'rgba(255, 206, 86, 0.3)',   // yellow
-                'rgba(75, 192, 192, 0.3)',   // green
-                'rgba(153, 102, 255, 0.3)',  // purple
-                'rgba(255, 159, 64, 0.3)',   // orange
-            ];
+            // Generate colors based on number of ideas
+            const colors = this.generateColors(answerIdeas.length);
 
             const explanations = await Promise.all(
-                answerIdeas.map(async (idea, ideaIndex) => {
+                answerIdeas.map(async ({ idea, originalText }, ideaIndex) => {
                     const keyPhrases = extractKeyPhrases(idea);
                     const ideaEmbedding = await getEmbedding(idea);
                     
@@ -102,11 +130,13 @@ export class ExplanationProcessor {
                         console.warn(`No embedding generated for idea: ${idea}`);
                         return {
                             answer_idea: idea,
+                            original_text: originalText,
                             key_phrases: keyPhrases,
                             supporting_evidence: [],
                             analysis: {
                                 average_similarity: 0,
-                            }
+                            },
+                            color: colors[ideaIndex]
                         };
                     }
 
@@ -114,11 +144,13 @@ export class ExplanationProcessor {
                         console.warn('No valid chunk embeddings available');
                         return {
                             answer_idea: idea,
+                            original_text: originalText,
                             key_phrases: keyPhrases,
                             supporting_evidence: [],
                             analysis: {
                                 average_similarity: 0,
-                            }
+                            },
+                            color: colors[ideaIndex]
                         };
                     }
 
@@ -144,18 +176,19 @@ export class ExplanationProcessor {
                     // Add highlight information for the best matching evidence
                     const bestEvidence = topSentences[0]; // Get the best match
                     const highlight = bestEvidence ? {
-                        page: bestEvidence.metadata.page, // Default to page 1 if not specified
+                        page: bestEvidence.metadata.page,
                         rect: {
-                            top: 0.1 + (ideaIndex * 0.1), // Stagger highlights vertically
+                            top: 0.1 + (ideaIndex * 0.1),
                             left: 0.1,
                             width: 0.8,
                             height: 0.05
                         },
-                        color: COLORS[ideaIndex % COLORS.length]
+                        color: colors[ideaIndex]
                     } : undefined;
 
                     return {
                         answer_idea: idea,
+                        original_text: originalText,
                         key_phrases: keyPhrases,
                         supporting_evidence: topSentences.map(match => ({
                             source_text: match.sentence,
@@ -165,14 +198,14 @@ export class ExplanationProcessor {
                             overlapping_keywords: keyPhrases.filter(phrase =>
                                 match.sentence.toLowerCase().includes(phrase.toLowerCase())
                             ),
-                            highlight // Add highlight information
+                            highlight
                         })),
                         analysis: {
                             average_similarity: topSentences.length
                                 ? topSentences.reduce((sum, m) => sum + m.similarity, 0) / topSentences.length
                                 : 0,
                         },
-                        color: COLORS[ideaIndex % COLORS.length] // Add color for the answer idea
+                        color: colors[ideaIndex] // Add color for the answer idea
                     };
                 })
             );
@@ -183,7 +216,7 @@ export class ExplanationProcessor {
             return {
                 summary: `Processed PDF: ${chunks.length} chunks, embeddings generated for ${chunkEmbeddings.length} chunks, ${answerIdeas.length} answer ideas, and ${validExplanations.length} explanations generated.`,
                 finalAnswer: response,
-                answerIdeas,
+                answerIdeas: answerIdeas.map(a => a.idea),
                 explanations: validExplanations
             };
         } catch (error) {

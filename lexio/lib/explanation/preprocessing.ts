@@ -60,52 +60,6 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
 }
 
 /**
- * Remove HTML tags from a string.
- */
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, "");
-}
-
-// todo: change type and add metadata.
-/**
- * Recursively traverse block structure and collect text.
- */
-function traverseAndCollectText(
-  block: any,
-  parentMetadata: { [key: string]: any } = {}
-): TextWithMetadata[] {
-  const collected: TextWithMetadata[] = [];
-  const currentMetadata = {
-    // block_id: block.id,
-    // block_type: block.block_type,
-    page: block.page,
-  };
-  const metadata = { ...parentMetadata, ...currentMetadata };
-
-  if (block.text && typeof block.text === "string" && block.text.trim()) {
-    collected.push({
-      text: block.text.trim(),
-      metadata,
-    });
-  } else if (block.html && typeof block.html === "string") {
-    const stripped = stripHtml(block.html).trim();
-    if (stripped) {
-      collected.push({
-        text: stripped,
-        metadata,
-      });
-    }
-  }
-
-  if (Array.isArray(block.children)) {
-    for (const child of block.children) {
-      collected.push(...traverseAndCollectText(child, metadata));
-    }
-  }
-  return collected;
-}
-
-/**
  * Escape RegExp special characters.
  */
 function escapeRegExp(str: string): string {
@@ -129,10 +83,19 @@ function cleanAndSplitText(rawBlocks: any, metadata: any): TextWithMetadata[] {
   let textsWithMetadata: TextWithMetadata[] = [];
 
   if (rawBlocks && rawBlocks.block_type === "Document") {
-    textsWithMetadata = traverseAndCollectText(rawBlocks);
+    // Directly process page blocks
+    for (const pageBlock of rawBlocks.children) {
+      if (pageBlock.text && typeof pageBlock.text === "string") {
+        textsWithMetadata.push({
+          text: pageBlock.text.trim(),
+          metadata: { page: parseInt(pageBlock.id.replace('page_', '')) }
+        });
+      }
+    }
   } else {
+    // Fallback for non-PDF content
     const rawText = metadata.rawText || "";
-    textsWithMetadata = [{ text: rawText, metadata: {page: 0} }];
+    textsWithMetadata = [{ text: rawText, metadata: { page: 0 } }];
   }
 
   const processedSentences: TextWithMetadata[] = [];

@@ -216,6 +216,8 @@ export const addUserMessageAtom = atom(
                             id: crypto.randomUUID() as UUID,
                             role: 'assistant',
                             content: accumulatedContent,
+                            ...(messages && Array.isArray(messages) && messages.length > 0 ? 
+                                { metadata: messages[messages.length - 1].metadata } : {})
                         },
                     ]);
                     set(currentStreamAtom, null);
@@ -228,14 +230,22 @@ export const addUserMessageAtom = atom(
                         'Response timeout exceeded',
                         abortController.signal
                     );
-                    set(completedMessagesAtom, [
-                        ...get(completedMessagesAtom),
-                        {
-                            id: crypto.randomUUID() as UUID,
-                            role: 'assistant',
-                            content: messageData,
-                        } as Message,
-                    ]);
+                    if (messages) {
+                        const resolvedMessages = await messages;
+                        set(completedMessagesAtom, [
+                            ...get(completedMessagesAtom),
+                            ...resolvedMessages
+                        ]);
+                    } else {
+                        set(completedMessagesAtom, [
+                            ...get(completedMessagesAtom),
+                            {
+                                id: crypto.randomUUID() as UUID,
+                                role: 'assistant',
+                                content: messageData,
+                            } as Message,
+                        ]);
+                    }
                     return messageData;
                 }
             }
@@ -377,7 +387,7 @@ const setActiveSourcesAtom = atom(null, (_get, set, { sourceIds, setActiveSource
 // set selected source
 const setSelectedSourceAtom = atom(null, (get, set, { sourceId, sourceData }: {
     sourceId: UUID,
-    sourceData?: string | Uint8Array
+    sourceData?: string | Uint8Array | null
 }) => {
     const currentSources = get(retrievedSourcesAtom);
     const targetSource = currentSources.find(source => source.id === sourceId);
@@ -390,8 +400,8 @@ const setSelectedSourceAtom = atom(null, (get, set, { sourceId, sourceData }: {
     // Always set the selected source ID
     set(selectedSourceIdAtom, sourceId);
 
-    // Only validate and update data if sourceData is provided
-    if (sourceData) {
+    // Only validate and update data if sourceData is provided and not null
+    if (sourceData !== undefined && sourceData !== null) {
         // Warn if trying to update a source that already has data
         if (targetSource.data) {
             console.warn(`Source ${sourceId} already has data but new data was provided`);

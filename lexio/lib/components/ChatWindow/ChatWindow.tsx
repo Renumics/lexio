@@ -5,7 +5,7 @@ import { ResetWrapper } from '../../utils/ResetWrapper';
 import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
 import { ColoredMessage, ColoredMessageProps } from './ColoredMessage';
 import { HighlightedMessage } from '../../../src/HighlightedMessage';
-import { Message, Source, UUID } from '../../types';
+import { Message, Source, UUID, ColoredIdea } from '../../types';
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -15,12 +15,6 @@ export interface ChatWindowStyles extends React.CSSProperties {
   fontFamily?: string;
   fontSize?: string;
   borderRadius?: string;
-}
-
-// Add interface for colored idea
-interface ColoredIdea {
-  text: string;
-  color: string;
 }
 
 /**
@@ -165,119 +159,46 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   }, [messages, setSelectedSource, setActiveSources]); // Include the functions in the dependency array
   
   const renderMessage = (message: Message) => {
-    console.log('ChatWindow renderMessage (full message):', {
-        id: message.id,
-        role: message.role,
-        content: message.content?.substring(0, 50) + (message.content?.length > 50 ? '...' : ''),
-        contentIsHTML: typeof message.content === 'string' && message.content.startsWith('__HTML__'),
-        metadata: message.metadata,
-        hasMetadata: !!message.metadata,
-        metadataKeys: message.metadata ? Object.keys(message.metadata) : []
-    });
-    
-    // For assistant messages, check if we need to highlight specific phrases
     if (message.role === 'assistant' && typeof message.content === 'string') {
-        // Define the phrases we want to highlight and their colors
-        const COLORS = [
-            'rgba(255, 99, 132, 0.3)',   // red
-            'rgba(54, 162, 235, 0.3)',   // blue
-            'rgba(255, 206, 86, 0.3)',   // yellow
-            'rgba(75, 192, 192, 0.3)',   // green
-            'rgba(153, 102, 255, 0.3)',  // purple
-            'rgba(255, 159, 64, 0.3)',   // orange
-        ];
+        const coloredIdeas = message.metadata?.coloredIdeas;
         
-        const phrasesToHighlight = [
-            "starting with a small set of high-quality chain-of-thought examples (cold-start data)",
-            "using reinforcement learning to refine its outputs",
-            "multi-stage approach",
-            "improves accuracy",
-            "produces clearer and more coherent reasoning",
-            "outperfrming traditional supervised fine-tuning methods"
-        ];
-        
-        // Create HTML content with highlighting
-        let htmlContent = message.content;
-        let hasHighlights = false;
-        
-        // Add markers in the content for highlighting
-        phrasesToHighlight.forEach((phrase, index) => {
-            const escapedText = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(${escapedText})`, 'gi');
-            if (regex.test(htmlContent)) {
-                hasHighlights = true;
-                // Make the highlight clickable with a data attribute for the index
-                htmlContent = htmlContent.replace(
-                    regex, 
-                    `<span 
-                        style="background-color:${COLORS[index % COLORS.length]}; cursor: pointer;" 
-                        class="idea-highlight" 
-                        data-idea-index="${index}"
-                    >$1</span>`
-                );
+        if (coloredIdeas && Array.isArray(coloredIdeas)) {
+            let htmlContent = message.content;
+            let hasHighlights = false;
+            
+            // Sort ideas by length (longest first) to handle overlapping matches correctly
+            const sortedIdeas = [...coloredIdeas].sort(
+                (a, b) => b.originalText.length - a.originalText.length
+            );
+            
+            sortedIdeas.forEach((idea: ColoredIdea, index: number) => {
+                const escapedText = idea.originalText
+                    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(${escapedText})`, 'gi');
+                
+                if (regex.test(htmlContent)) {
+                    hasHighlights = true;
+                    htmlContent = htmlContent.replace(
+                        regex, 
+                        `<span 
+                            style="background-color:${idea.color}; cursor: pointer;" 
+                            class="idea-highlight" 
+                            data-idea-index="${index}"
+                            title="${idea.text}"
+                        >$1</span>`
+                    );
+                } else {
+                    console.log(`No match found for idea: "${idea.text}" with original text: "${idea.originalText}"`);
+                }
+            });
+            
+            if (hasHighlights) {
+                return <div ref={highlightedContentRef} dangerouslySetInnerHTML={{ __html: htmlContent }} />;
             }
-        });
-        
-        if (hasHighlights) {
-            console.log('Rendering message with highlights');
-            return <div ref={highlightedContentRef} dangerouslySetInnerHTML={{ __html: htmlContent }} />;
         }
     }
-    
-    // Check if content is in the special JSON format for HighlightedMessage
-    if (message.role === 'assistant' && typeof message.content === 'string') {
-        try {
-            // Try to parse as JSON
-            const contentObj = JSON.parse(message.content);
-            if (contentObj.text && Array.isArray(contentObj.highlights)) {
-                console.log('Content is in HighlightedMessage format, rendering with HighlightedMessage component');
-                return <HighlightedMessage content={message.content} />;
-            }
-        } catch (e) {
-            // Not JSON, continue with normal processing
-            console.log('Failed to parse content as JSON:', e);
-        }
-    }
-    
-    // Type guard to ensure we have valid coloredIdeas
-    const coloredIdeas = message.metadata?.coloredIdeas;
-    
-    if (
-        message.role === 'assistant' && 
-        coloredIdeas && 
-        Array.isArray(coloredIdeas) && 
-        coloredIdeas.length > 0
-    ) {
-        console.log('Rendering ColoredMessage with ideas:', coloredIdeas);
-        
-        // If we have rawContent in metadata, use that instead of message.content
-        const contentToUse = message.metadata?.rawContent || message.content;
-        
-        return (
-            <ColoredMessage
-                content={contentToUse}
-                coloredIdeas={coloredIdeas}
-            />
-        );
-    }
-    
-    // If there's HTML content in the metadata, use that instead
-    if (message.role === 'assistant' && message.metadata?.htmlContent) {
-        console.log('Rendering HTML content from metadata');
-        return <div dangerouslySetInnerHTML={{ __html: message.metadata.htmlContent }} />;
-    }
-    
-    console.log('Rendering plain message:', {
-        reason: !message.metadata ? 'no metadata' 
-            : !coloredIdeas ? 'no coloredIdeas in metadata'
-            : !Array.isArray(coloredIdeas) ? 'coloredIdeas not an array'
-            : coloredIdeas.length === 0 ? 'empty coloredIdeas array'
-            : 'unknown'
-    });
-    
-    // If we have rawContent in metadata, use that instead of message.content
-    const contentToDisplay = message.metadata?.rawContent || message.content;
-    return <div>{contentToDisplay}</div>;
+
+    return <div>{message.content}</div>;
   };
 
   return (
