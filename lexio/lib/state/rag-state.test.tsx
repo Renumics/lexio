@@ -48,8 +48,8 @@ function renderRAGTestHooks(handler: any) {
 
   return renderHook(
     () => {
-      const ragMessages = useMessages('RAGProvider');
-      const ragSources = useSources('RAGProvider');
+      const ragMessages = useMessages('LexioProvider');
+      const ragSources = useSources('LexioProvider');
       const ragStatus = useStatus();
       return { ragMessages, ragSources, ragStatus };
     },
@@ -63,7 +63,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
   describe('Basic Usage Workflow', () => {
     it('should handle initial query with text sources', async () => {
       const mockHandler = {
-        component: 'RAGProvider',
+        component: 'LexioProvider',
         handler: (_action: any, _messages: Message[], _sources: Source[]) => {
           // For an ADD_USER_MESSAGE action, return both response + sources
           return {
@@ -117,7 +117,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
 
     it('should handle initial query with a PDF (reference) source', async () => {
       const mockHandler = {
-        component: 'RAGProvider',
+        component: 'LexioProvider',
         handler: (_action: any) => {
           return {
             sources: Promise.resolve([
@@ -161,7 +161,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
   describe('Follow-up Questions Workflow', () => {
     it('should handle a two-step conversation with follow-up questions', async () => {
       const mockHandler = {
-        component: 'RAGProvider',
+        component: 'LexioProvider',
         handler: (action: any, messages: Message[]) => {
           if (action.type === 'ADD_USER_MESSAGE') {
             // If no prior messages, treat it as the first query
@@ -216,7 +216,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
   describe('Additional Error Handling', () => {
     it('should perform rollback on generation error', async () => {
       const mockHandler = {
-        component: 'RAGProvider',
+        component: 'LexioProvider',
         handler: () => {
           return {
             sources: Promise.resolve([]),
@@ -244,7 +244,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
 
     it('should perform rollback on retrieval error', async () => {
       const mockHandler = {
-        component: 'RAGProvider',
+        component: 'LexioProvider',
         handler: () => {
           return {
             // This will fail

@@ -42,7 +42,7 @@ export interface Source {
      */
     highlights?: PDFHighlight[];
 }// ---- central state management types -----
-export type Component = 'RAGProvider' |
+export type Component = 'LexioProvider' |
     'QueryField' |
     'ChatWindow' |
     'ContentDisplay' |

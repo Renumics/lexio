@@ -1,6 +1,6 @@
 {
   "name": "lexio",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "type": "module",
   "license": "GPL-3.0-or-later",
   "module": "dist/lexio.es.js",

@@ -9,3 +9,5 @@
 - [ ] activeSources -> [], null, or set of retrievedSources
 - [ ] Document .data attribute and how to omit it from backend calls to avoid timeouts
 - [ ] Document Hooks (docstrings)
+- [ ] Look into type inference (auto complete) for ActionHandlerResponses
+- [ ] Refactor docs 'LexioProvider'

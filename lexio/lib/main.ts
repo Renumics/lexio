@@ -4,7 +4,7 @@ import { QueryField } from './components/QueryField'
 import { AdvancedQueryField } from './components/AdvancedQueryField'
 import { ChatWindow } from './components/ChatWindow'
 import { PdfViewer } from './components/Viewers/PdfViewer'
-import { RAGProvider } from './components/RAGProvider'
+import { LexioProvider } from './components/LexioProvider'
 import { useMessages, useSources, useStatus } from './hooks'
 import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
@@ -29,7 +29,7 @@ export {
     ErrorDisplay,
     PdfViewer,
     QueryField,
-    RAGProvider,
+    LexioProvider,
     SourcesDisplay,
 
     // Connectors

@@ -475,7 +475,7 @@ export const dispatchAtom = atom(
     try {
       // ---- Handler resolution (unchanged)
       const handlers = get(registeredActionHandlersAtom);
-      const handler = handlers.find(h => h.component === 'RAGProvider');
+      const handler = handlers.find(h => h.component === 'LexioProvider');
       if (!handler) {
         console.warn(`Handler for component ${action.source} not found`);
 
