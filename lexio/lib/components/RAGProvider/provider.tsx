@@ -39,7 +39,7 @@ const RAGProvider = ({
   children,
   onAction,
   theme,
-  config
+  config,
 }: RAGProviderProps) => {
   
   // Create a fresh Jotai store on first render

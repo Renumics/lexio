@@ -5,7 +5,7 @@ import { AdvancedQueryField } from './components/AdvancedQueryField'
 import { ChatWindow } from './components/ChatWindow'
 import { PdfViewer } from './components/Viewers/PdfViewer'
 import { RAGProvider } from './components/RAGProvider'
-import { useRAGMessages, useRAGSources, useLexioStatus, useLexio } from './hooks'
+import { useMessages, useSources, useStatus } from './hooks'
 import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
@@ -38,10 +38,9 @@ export {
     createRESTConnector,
 
     // Hooks
-    useRAGMessages,
-    useRAGSources,
-    useLexioStatus,
-    useLexio,
+    useMessages,
+    useSources,
+    useStatus,
 
     // Theme
     createTheme,

@@ -7,3 +7,5 @@
 - [ ] Python API: Update to API 2.0
 - [ ] (Optional) add user action modifiers to current set of operations (slack canvas)
 - [ ] activeSources -> [], null, or set of retrievedSources
+- [ ] Document .data attribute and how to omit it from backend calls to avoid timeouts
+- [ ] Document Hooks (docstrings)

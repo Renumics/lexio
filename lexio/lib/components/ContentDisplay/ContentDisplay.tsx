@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { MarkdownViewer } from "../Viewers/MarkdownViewer";
-import { useRAGSources } from "../../hooks/hooks";
+import { useSources } from "../../hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
@@ -14,10 +14,14 @@ export interface ContentDisplayStyles extends React.CSSProperties {
 
 interface ContentDisplayProps {
   styleOverrides?: ContentDisplayStyles;
+  componentKey?: string;
 }
 
-const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) => {
-  const { selectedSource } = useRAGSources();
+const ContentDisplay: React.FC<ContentDisplayProps> = ({
+                                                   styleOverrides = {},
+                                                   componentKey = undefined,
+}) => {
+  const { selectedSource } = useSources(componentKey ? `ContentDisplay-${componentKey}` : 'ContentDisplay');
   
   // use theme
   const theme = useContext(ThemeContext);
