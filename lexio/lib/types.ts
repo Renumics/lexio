@@ -200,7 +200,7 @@ export interface ProviderConfig {
     };
 }
 // ---- ActionHandler Function types -----
-type ActionHandlerResponse =
+export type ActionHandlerResponse =
     AddUserMessageActionResponse |
     SetActiveMessageActionResponse |
     ClearMessagesActionResponse |
