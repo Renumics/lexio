@@ -10,18 +10,18 @@ import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom';
 
 import { SourcesDisplay } from './SourcesDisplay';
-import { RAGProvider } from '../RAGProvider';
+import { LexioProvider } from '../LexioProvider';
 
 /**
  * Utility to create a wrapper that provides:
  *   - ThemeContext
- *   - RAGProvider with an onAction mock
+ *   - LexioProvider with an onAction mock
  */
 function createWrapper(onAction: (...args: any[]) => any) {
   return ({ children }: { children: React.ReactNode }) => (
-      <RAGProvider onAction={onAction}>
+      <LexioProvider onAction={onAction}>
         {children}
-      </RAGProvider>
+      </LexioProvider>
   );
 }
 
@@ -41,7 +41,7 @@ describe('SourcesDisplay (with onAction-based SEARCH_SOURCES)', () => {
       return undefined;
     });
 
-    // 2) Render the SourcesDisplay inside RAGProvider
+    // 2) Render the SourcesDisplay inside LexioProvider
     const wrapper = createWrapper(mockOnAction);
     render(<SourcesDisplay />, { wrapper });
 

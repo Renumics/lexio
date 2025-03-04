@@ -8,10 +8,9 @@ import type { Message, Source, UUID } from '../types'; // Import from ../types (
 
 // --- NEW HOOKS (adjust import path as needed) ---
 import {
-  useRAGMessages,
-  useRAGSources,
-  useLexio,
-  useLexioStatus,
+  useStatus,
+  useMessages,
+  useSources
 } from '../hooks'; // <- Replace with your correct hooks path
 
 // -------------------------------------------------------------------------
@@ -49,11 +48,10 @@ function renderRAGTestHooks(handler: any) {
 
   return renderHook(
     () => {
-      const ragMessages = useRAGMessages();
-      const ragSources = useRAGSources();
-      const ragStatus = useLexioStatus();
-      const lexio = useLexio('RAGProvider');
-      return { ragMessages, ragSources, ragStatus, lexio };
+      const ragMessages = useMessages('LexioProvider');
+      const ragSources = useSources('LexioProvider');
+      const ragStatus = useStatus();
+      return { ragMessages, ragSources, ragStatus };
     },
     { wrapper }
   );
@@ -65,7 +63,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
   describe('Basic Usage Workflow', () => {
     it('should handle initial query with text sources', async () => {
       const mockHandler = {
-        component: 'RAGProvider',
+        component: 'LexioProvider',
         handler: (_action: any, _messages: Message[], _sources: Source[]) => {
           // For an ADD_USER_MESSAGE action, return both response + sources
           return {
@@ -87,7 +85,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
 
       // 1) Dispatch action to add user message
       act(() => {
-        result.current.lexio.addUserMessage('test query');
+        result.current.ragMessages.addUserMessage('test query');
       });
 
       // 2) Wait for final state: we expect 2 messages (user + assistant)
@@ -119,7 +117,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
 
     it('should handle initial query with a PDF (reference) source', async () => {
       const mockHandler = {
-        component: 'RAGProvider',
+        component: 'LexioProvider',
         handler: (_action: any) => {
           return {
             sources: Promise.resolve([
@@ -138,7 +136,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
       const { result } = renderRAGTestHooks(mockHandler);
 
       act(() => {
-        result.current.lexio.addUserMessage('test query');
+        result.current.ragMessages.addUserMessage('test query');
       });
 
       // Wait until messages appear
@@ -163,7 +161,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
   describe('Follow-up Questions Workflow', () => {
     it('should handle a two-step conversation with follow-up questions', async () => {
       const mockHandler = {
-        component: 'RAGProvider',
+        component: 'LexioProvider',
         handler: (action: any, messages: Message[]) => {
           if (action.type === 'ADD_USER_MESSAGE') {
             // If no prior messages, treat it as the first query
@@ -185,7 +183,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
 
       // 1) Initial query
       act(() => {
-        result.current.lexio.addUserMessage('initial query');
+        result.current.ragMessages.addUserMessage('initial query');
       });
       await waitFor(() => {
         expect(result.current.ragMessages.messages).toHaveLength(2);
@@ -193,7 +191,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
 
       // 2) Follow-up question
       act(() => {
-        result.current.lexio.addUserMessage('follow-up question');
+        result.current.ragMessages.addUserMessage('follow-up question');
       });
 
       // Wait for 4 total messages (2 from first round + 2 from second round)
@@ -218,7 +216,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
   describe('Additional Error Handling', () => {
     it('should perform rollback on generation error', async () => {
       const mockHandler = {
-        component: 'RAGProvider',
+        component: 'LexioProvider',
         handler: () => {
           return {
             sources: Promise.resolve([]),
@@ -230,7 +228,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
       const { result } = renderRAGTestHooks(mockHandler);
 
       act(() => {
-        result.current.lexio.addUserMessage('trigger error');
+        result.current.ragMessages.addUserMessage('trigger error');
       });
 
       // Wait for the error to appear
@@ -246,7 +244,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
 
     it('should perform rollback on retrieval error', async () => {
       const mockHandler = {
-        component: 'RAGProvider',
+        component: 'LexioProvider',
         handler: () => {
           return {
             // This will fail
@@ -260,7 +258,7 @@ describe('RAG Workflow Tests (Jotai version, new hooks)', () => {
       const { result } = renderRAGTestHooks(mockHandler);
 
       act(() => {
-        result.current.lexio.addUserMessage('trigger retrieval error');
+        result.current.ragMessages.addUserMessage('trigger retrieval error');
       });
 
       // Wait for the error

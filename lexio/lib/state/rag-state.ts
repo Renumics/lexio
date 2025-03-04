@@ -475,7 +475,7 @@ export const dispatchAtom = atom(
     try {
       // ---- Handler resolution (unchanged)
       const handlers = get(registeredActionHandlersAtom);
-      const handler = handlers.find(h => h.component === 'RAGProvider');
+      const handler = handlers.find(h => h.component === 'LexioProvider');
       if (!handler) {
         console.warn(`Handler for component ${action.source} not found`);
 
@@ -518,6 +518,7 @@ export const dispatchAtom = atom(
       const allowedKeys = allowedActionReturnValues[action.type] || [];
       if (payload) {
         const extraKeys = Object.keys(payload).filter(key => !allowedKeys.includes(key));
+        // we currently have no required keys, if we plan to add some in the future -> type guard is required -> throw error
         if (extraKeys.length > 0) {
           console.warn(
             `Handler for action "${action.type}" returned unused properties: ${extraKeys.join(', ')}`
@@ -532,11 +533,14 @@ export const dispatchAtom = atom(
         case 'ADD_USER_MESSAGE': {
           const typedAction = action as AddUserMessageAction;
           const typedResponse = payload as AddUserMessageActionResponse;
+          // set Atom returns either a value or a promise
           const result = set(addUserMessageAtom, {
             action: typedAction,
             response: typedResponse,
           });
-          promises.push(Promise.resolve(result));
+          // Promise.resolve is used to ensure that the result is a promise -> required for Promise.all
+          // This is not necessary if the result is already a promise but it allows sync and async ActionHandlerResponse values
+          promises.push(Promise.resolve(result));  // resolve(value) directly returns a promise
           break;
         }
         case 'SET_ACTIVE_MESSAGE': {

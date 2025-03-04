@@ -1,7 +1,7 @@
 import { useState, useContext } from "react";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
-import { useRAGSources, useLexio } from "../../hooks";
+import { useSources} from "../../hooks";
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import {addOpacity} from "../../utils/scaleFontSize.tsx";
@@ -102,8 +102,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   showMetadata = true,
   styleOverrides = {},
 }) => {
-  const { sources, activeSources, selectedSourceId } = useRAGSources();
-  const { setSelectedSource, searchSources, clearSources } = useLexio(componentKey ? `SourcesDisplay-${componentKey}` : 'SourcesDisplay'); // todo: make use of new API
+  const { sources, activeSources, selectedSourceId, setSelectedSource, searchSources, clearSources } = useSources(componentKey ? `SourcesDisplay-${componentKey}` : 'SourcesDisplay'); // todo: make use of new API
   const [searchQuery, setSearchQuery] = useState("");
 
   // use theme

@@ -5,7 +5,7 @@ export interface RAGConfig {
   },
 }
 export interface Message {
-    readonly id: UUID; // todo: make sure this is unique -> validate changes
+    readonly id: UUID;
     role: "user" | "assistant";
     content: string;
 }
@@ -13,7 +13,7 @@ export interface Message {
 export type MessageWithOptionalId = Partial<Pick<Message, 'id'>> & Omit<Message, 'id'>;
 
 export interface Source {
-    readonly id: UUID; // todo: make sure this is unique -> validate changes
+    readonly id: UUID;
     title: string;
     type: "text" | "pdf" | "markdown" | "html";
     relevance?: number;
@@ -42,13 +42,15 @@ export interface Source {
      */
     highlights?: PDFHighlight[];
 }// ---- central state management types -----
-export type Component = 'RAGProvider' |
+export type Component = 'LexioProvider' |
     'QueryField' |
     'ChatWindow' |
+    'ContentDisplay' |
     'SourcesDisplay' |
     'AdvancedQueryField' |
     `QueryField-${string}` |
     `ChatWindow-${string}` |
+    `ContentDisplay-${string}` |
     `SourcesDisplay-${string}` |
     `AdvancedQueryField-${string}`; // Flow: action in component -> triggers wrapped user function with state props -> triggers dispatch -> manipulates state
 
@@ -198,7 +200,6 @@ export interface ProviderConfig {
     };
 }
 // ---- ActionHandler Function types -----
-// todo: replace with allowedModifiers
 type ActionHandlerResponse =
     AddUserMessageActionResponse |
     SetActiveMessageActionResponse |

@@ -18,8 +18,8 @@ import ReactDOM from 'react-dom';
 import useResizeObserver from '@react-hook/resize-observer';
 
 import {
-  useRAGSources,
-  useLexio,
+  useSources,
+  useMessages
 } from '../../hooks';
 
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
@@ -257,8 +257,8 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   const filterInputRef = useRef<HTMLInputElement>(null);
 
   // Lexio Hooks
-  const { addUserMessage, setActiveSources } = useLexio(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
-  const { sources } = useRAGSources();
+  const { sources, setActiveSources } = useSources(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
+  const { addUserMessage } = useMessages(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
 
   // Floating UI
   const { refs, context } = useFloating({

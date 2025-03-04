@@ -8,54 +8,22 @@ import {
     activeSourcesIdsAtom,
     selectedSourceAtom,
     selectedSourceIdAtom,
-    retrievedSourcesAtom, errorAtom} from "../state/rag-state";
+    retrievedSourcesAtom,
+    errorAtom
+} from "../state/rag-state";
 import { UUID } from "../types";
 import { Component } from "../types";
 
+// hooks for sources related stuff
+export const useSources = (component: Component) => {
+    const dispatch = useSetAtom(dispatchAtom);
 
-export const useRAGSources = () => {
     const sources = useAtomValue(retrievedSourcesAtom);
     const activeSources = useAtomValue(activeSourcesAtom);
     const activeSourcesIds = useAtomValue(activeSourcesIdsAtom);
     const selectedSource = useAtomValue(selectedSourceAtom);
     const selectedSourceId = useAtomValue(selectedSourceIdAtom);
 
-    return {
-        sources,
-        activeSources,
-        activeSourcesIds,
-        selectedSource,
-        selectedSourceId,
-    };
-};
-
-// only data for now
-export const useRAGMessages = () => {
-    const completedMessages = useAtomValue(completedMessagesAtom);
-    const currentStream = useAtomValue(currentStreamAtom);
-
-    return {messages: completedMessages, currentStream};
-}
-
-// all actions
-export const useLexio = (component: Component) => {
-    const dispatch = useSetAtom(dispatchAtom);
-
-    const addUserMessage = (message: string) => {
-        dispatch({type: 'ADD_USER_MESSAGE', message, source: component}, false);
-    };
-
-    /**
-     * Set the active message in the chat window
-     * @param messageId
-     */
-    const setActiveMessage = (messageId: string | UUID) => {
-        dispatch({type: 'SET_ACTIVE_MESSAGE', messageId, source: component}, false);
-    };
-
-    const clearMessages = () => {
-        dispatch({type: 'CLEAR_MESSAGES', source: component}, false);
-    };
 
     const searchSources = (query: string) => {
         dispatch({type: 'SEARCH_SOURCES', query: query, source: component}, false);
@@ -82,9 +50,11 @@ export const useLexio = (component: Component) => {
     };
 
     return {
-        addUserMessage,
-        setActiveMessage,
-        clearMessages,
+        sources,
+        activeSources,
+        activeSourcesIds,
+        selectedSource,
+        selectedSourceId,
         searchSources,
         clearSources,
         setActiveSources,
@@ -94,7 +64,39 @@ export const useLexio = (component: Component) => {
     };
 };
 
-export const useLexioStatus = () => {
+// only data for now
+export const useMessages = (component: Component) => {
+    const dispatch = useSetAtom(dispatchAtom);
+
+    const completedMessages = useAtomValue(completedMessagesAtom);
+    const currentStream = useAtomValue(currentStreamAtom);
+
+    const addUserMessage = (message: string) => {
+        dispatch({type: 'ADD_USER_MESSAGE', message, source: component}, false);
+    };
+
+    /**
+     * Set the active message in the chat window
+     * @param messageId
+     */
+    const setActiveMessage = (messageId: string | UUID) => {
+        dispatch({type: 'SET_ACTIVE_MESSAGE', messageId, source: component}, false);
+    };
+
+    const clearMessages = () => {
+        dispatch({type: 'CLEAR_MESSAGES', source: component}, false);
+    };
+
+    return {
+        messages: completedMessages,
+        currentStream,
+        addUserMessage,
+        setActiveMessage,
+        clearMessages,
+    };
+}
+
+export const useStatus = () => {
     const loading = useAtomValue(loadingAtom);
     const error = useAtomValue(errorAtom)
 
