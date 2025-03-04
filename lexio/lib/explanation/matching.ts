@@ -201,7 +201,7 @@ export async function findTopSentencesGlobally(
       continue;
     }
 
-    console.log(`Processing ${chunk.sentences.length} sentences for chunk`, chunk);
+    //console.log(`Processing ${chunk.sentences.length} sentences for chunk`, chunk);
 
     if (!chunk || !chunk.sentences) continue;
     const chunkSentences = await Promise.all(
@@ -212,7 +212,7 @@ export async function findTopSentencesGlobally(
         const sentenceEmbedding = await getEmbedding(sentence);
         if (!sentenceEmbedding) return null;
         const similarity = cosineSimilarity(queryEmbedding, sentenceEmbedding);
-        console.log(`Sentence: "${sentence}" | Similarity: ${similarity}`);
+        //console.log(`Sentence: "${sentence}" | Similarity: ${similarity}`);
 
         return {
           sentence,
@@ -267,7 +267,6 @@ export function extractKeyPhrases(text: string): string[] {
   return doc.topics().out("array");
 }
 
-// todo: why do we need to store colors i a few modules? fix
 /**
  * Explains an answer segment by showing overlapping entities with supporting evidence.
  */
@@ -276,17 +275,10 @@ export async function explainAnswerSegmentWithEntities(
   sourceMatches: ISentenceResult[]
 ): Promise<IHighlightedExplanation> {
   const answerIdeas = segment.split('\n').filter(idea => idea.trim());
-  const COLORS = [
-    'rgba(255, 99, 132, 0.3)',   // red
-    'rgba(54, 162, 235, 0.3)',   // blue
-    'rgba(255, 206, 86, 0.3)',   // yellow
-    'rgba(75, 192, 192, 0.3)',   // green
-    'rgba(153, 102, 255, 0.3)',  // purple
-  ];
-
-  const highlights: IHighlight[] = answerIdeas.map((idea, index) => ({
+  
+  const highlights: IHighlight[] = answerIdeas.map(idea => ({
     text: idea.replace(/^[-\s]+/, ''), // Remove leading dash and spaces
-    color: COLORS[index % COLORS.length]
+    color: '' // Color will be assigned by the ExplanationProcessor
   }));
 
   // Add the best matching source text as a highlight
@@ -294,7 +286,7 @@ export async function explainAnswerSegmentWithEntities(
     const bestMatch = sourceMatches[0];
     highlights.push({
       text: bestMatch.sentence,
-      color: 'rgba(255, 255, 0, 0.3)', // yellow for source matches
+      color: '', // Color will be assigned by the ExplanationProcessor
       page: bestMatch.metadata?.page,
       rect: bestMatch.metadata?.rect
     });

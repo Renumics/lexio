@@ -191,37 +191,25 @@ function App() {
                     //     });
                     // });
                     
-                    // Create the COLORS array for highlighting
-                    const COLORS = [
-                        'rgba(255, 99, 132, 0.3)',   // red
-                        'rgba(54, 162, 235, 0.3)',   // blue
-                        'rgba(255, 206, 86, 0.3)',   // yellow
-                        'rgba(75, 192, 192, 0.3)',   // green
-                        'rgba(153, 102, 255, 0.3)',  // purple
-                        'rgba(255, 159, 64, 0.3)',   // orange
-                    ];
-                    
                     // Map the explanation results to highlights
                     const coloredIdeas = explanationResult.explanations.map((explanation, index) => {
                         // Get the first piece of supporting evidence
                         const evidence = explanation.supporting_evidence[0];
                         
                         // Log the mapping of idea to color
-                        console.log(`Coloring idea: "${explanation.answer_idea}" with color: ${COLORS[index % COLORS.length]}`);
+                        console.log(`Coloring idea: "${explanation.answer_idea}" with color: ${explanation.color}`);
                         
-                        // todo: better way to handle this.
                         return {
                             text: explanation.answer_idea,
                             originalText: explanation.original_text,
-                            color: COLORS[index % COLORS.length],
+                            color: explanation.color, // Use the color from ExplanationProcessor
                             evidence: {
                                 text: evidence.source_text,
                                 location: evidence.highlight,
-                                // Use the highlight from the evidence if available, or create a default one
                                 highlight: evidence.highlight?.rect ? {
                                     page: evidence.highlight.page,
                                     rect: evidence.highlight.rect,
-                                    color: COLORS[index % COLORS.length]
+                                    color: explanation.color // Use the color from ExplanationProcessor
                                 } : {
                                     page: 0,
                                     rect: {
@@ -230,7 +218,7 @@ function App() {
                                         width: 0.8,
                                         height: 0.05
                                     },
-                                    color: COLORS[index % COLORS.length]
+                                    color: explanation.color // Use the color from ExplanationProcessor
                                 }
                             }
                         };

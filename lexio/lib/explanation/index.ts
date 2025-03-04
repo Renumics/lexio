@@ -133,9 +133,11 @@ export class ExplanationProcessor {
                 });
             }
             console.log('Number of answer ideas:', answerIdeas.length);
+            console.log('Answer ideas:', answerIdeas);
 
             // Generate colors for the answer ideas
             const colors = this.generateColors(answerIdeas.length);
+            console.log('Colors:', colors);
             
             // Assign colors to answer ideas
             const coloredAnswerIdeas = answerIdeas.map((idea, index) => ({
