@@ -13,7 +13,7 @@ import {
     Theme,
     UserAction,
     Source
-} from '../../lib/main';
+} from '../../../lib/main';
 import {useEffect} from "react";
 
 const warmTheme = createTheme({
@@ -63,7 +63,7 @@ const modernTheme = createTheme({
 });
 
 const BaseLayout = ({children}: { children: React.ReactNode }) => (
-    <div style={{width: '100%', maxWidth: '1200px', height: '800px', margin: '0 auto'}}>
+    <div style={{width: '100%', maxWidth: '1200px', height: '1000px', margin: '0 auto'}}>
         {children}
     </div>
 );
@@ -74,7 +74,7 @@ const SharedLayout = () => (
         display: 'grid',
         height: '100%',
         gridTemplateColumns: '3fr 1fr',
-        gridTemplateRows: '1fr auto 300px',
+        gridTemplateRows: '1fr auto 400px',
         gap: '20px',
         gridTemplateAreas: `
       "chat sources"
@@ -91,7 +91,7 @@ const SharedLayout = () => (
         <div style={{gridArea: 'sources', minHeight: 0, overflow: 'auto'}}>
             <SourcesDisplay/>
         </div>
-        <div style={{gridArea: 'viewer', height: '300px'}}>
+        <div style={{gridArea: 'viewer', height: '400px'}}>
             <ContentDisplay/>
         </div>
     </div>
@@ -135,14 +135,12 @@ const SAMPLE_SOURCES: Source[] = [
         title: "Best Practices",
         type: "text",
         relevance: 0.82,
-        data: `<div class="content">
-          <h2>Quick Tips</h2>
-          <ul>
-            <li>Always validate your data sources</li>
-            <li>Monitor retrieval performance</li>
-            <li>Keep your knowledge base updated</li>
-          </ul>
-        </div>`,
+        data: `
+## Quick Tips
+- Always validate your data sources
+- Monitor retrieval performance
+- Keep your knowledge base updated
+`,
         metadata: {
             type: "Tips",
             lastUpdated: "2024-03-20"
@@ -170,8 +168,8 @@ const fetchSamplePDF = async (): Promise<Uint8Array> => {
 
 // Component to load initial data, add sample messages, and set the active source index
 const DataLoader = () => {
-    const {addUserMessage} = useMessages('DataLoader');
-    const {setActiveSources, sources} = useSources('DataLoader');
+    const {addUserMessage} = useMessages('LexioProvider');
+    const {setActiveSources, sources} = useSources('LexioProvider');
 
     useEffect(() => {
         // Small delay to ensure provider is ready
@@ -255,14 +253,14 @@ const ThemingExample = ({customTheme}: ThemeStoryProps) => {
 type Story = StoryObj<typeof ThemingExample>;
 
 const meta = {
-    title: 'Tutorial/09. Theming',
+    title: 'Additional Features/02. Global Theme',
     component: ThemingExample,
     parameters: {
         layout: 'centered',
         docs: {
             description: {
                 component: `
-# Theming
+## Introduction
 
 The \`Lexio\` library provides a flexible theming system that allows you to customize the look and feel of all components. You can either use the default theme, modify specific parts of it, or create an entirely new theme.
 

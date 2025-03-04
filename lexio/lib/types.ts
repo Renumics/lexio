@@ -17,6 +17,15 @@ export interface Source {
     title: string;
     type: "text" | "pdf" | "markdown" | "html";
     relevance?: number;
+    /**
+     * Optional href to display a link to the source in the SourcesDisplay component.
+     */
+    href?: string;
+    /**
+     * Optional data to display in the ContentDisplay component. This can be set initially
+     * or lazily loaded when the \`SET_SELECTED_SOURCE\` action is handled. Simply return the data 
+     * from your \`onAction()\` function as \`sourceData\` in the response.
+     */
     data?: string | Uint8Array;
     /**
      * key convention to hide from display _key

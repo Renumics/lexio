@@ -8,7 +8,9 @@ import {
   useSSERetrieveAndGenerateSource,
   useRESTGenerateSource,
   useRESTRetrieveAndGenerateSource,
-} from '../../lib/main';
+} from '../../../lib/main';
+
+// TODO; update this story to use the new connectors
 
 /**
  * A tiny placeholder component so we can satisfy the 'component' requirement
@@ -17,14 +19,14 @@ import {
 const Placeholder = () => null;
 
 const meta: Meta<typeof Placeholder> = {
-  title: 'Tutorial/11. Using Connectors',
+  title: 'Additional Features/04. Data Connectors',
   component: Placeholder,
   parameters: {
     layout: 'centered',
     docs: {
       description: {
         component: `
-# Using Connectors
+## Introduction
 
 Connectors provide a straightforward way to hook up your data sources to a RAG (Retrieval-Augmented Generation) workflow. They unify:
 1. **Fetching** or **loading** sources (via REST, SSE, etc.)

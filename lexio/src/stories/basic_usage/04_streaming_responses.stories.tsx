@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { RAGProvider, ChatWindow, AdvancedQueryField, ErrorDisplay } from '../../lib/main';
-import type { Message, RetrievalResult, GenerateStreamChunk } from '../../lib/main';
+import { RAGProvider, ChatWindow, AdvancedQueryField, ErrorDisplay } from '../../../lib/main';
+import type { Message, RetrievalResult, GenerateStreamChunk } from '../../../lib/main';
 
 const ExampleComponent = () => (
   <div style={{ width: '600px', height: '400px' }}>
@@ -58,7 +58,7 @@ const ExampleComponent = () => (
 );
 
 const meta = {
-  title: 'Tutorial/03. Streaming Responses',
+  title: 'Basic Usage/03. Streaming Responses',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',

@@ -11,11 +11,11 @@ import {
     useMessages,
     Source,
     UserAction
-} from '../../lib/main';
+} from '../../../lib/main';
 
 // Base layout component for consistent story presentation
 const BaseLayout = ({children}: { children: React.ReactNode }) => (
-    <div style={{width: '100%', maxWidth: '1200px', height: '800px', margin: '0 auto'}}>
+    <div style={{width: '100%', maxWidth: '1200px', height: '1000px', margin: '0 auto'}}>
         {children}
     </div>
 );
@@ -29,6 +29,7 @@ interface SharedLayoutProps {
         secondaryBackgroundColor?: string;
         metadataTagBackground?: string;
         sourceTypeBackground?: string;
+        fontSize?: string;
     };
 }
 
@@ -38,7 +39,7 @@ const SharedLayout = ({styleOverrides}: SharedLayoutProps) => (
         display: 'grid',
         height: '100%',
         gridTemplateColumns: '3fr 1fr',
-        gridTemplateRows: '1fr auto 300px',
+        gridTemplateRows: '1fr auto 400px',
         gap: '20px',
         gridTemplateAreas: `
       "chat sources"
@@ -55,7 +56,7 @@ const SharedLayout = ({styleOverrides}: SharedLayoutProps) => (
         <div style={{gridArea: 'sources', minHeight: 0, overflow: 'auto'}}>
             <SourcesDisplay styleOverrides={styleOverrides} />
         </div>
-        <div style={{gridArea: 'viewer', height: '300px'}}>
+        <div style={{gridArea: 'viewer', height: '400px'}}>
             <ContentDisplay/>
         </div>
     </div>
@@ -90,7 +91,7 @@ const fetchSamplePDF = async (): Promise<Uint8Array> => {
   }
 };
 
-const SAMPLE_SOURCES: Source[] = [
+const SAMPLE_SOURCES: [] = [
     {
         title: "Example PDF",
         type: "pdf",
@@ -185,27 +186,27 @@ const StyleOverridesExample = ({ styleOverrides }: StyleOverridesExampleProps) =
 type Story = StoryObj<typeof StyleOverridesExample>;
 
 const meta = {
-    title: 'Tutorial/10. Style Overrides',
+    title: 'Additional Features/03. Component Style Overrides',
     component: StyleOverridesExample,
     parameters: {
         layout: 'centered',
         docs: {
             description: {
                 component: `
-# Component Style Overrides
+## Introduction
 
 While theming provides a way to customize the global appearance of your UI components, sometimes you need more fine-grained control over individual components. Each component in the \`Lexio\` library accepts a \`styleOverrides\` prop that allows you to customize its appearance. 
 Each component has its own set of style properties that can be overridden. Refer to the interfaces of each component for available options.
 
 Components that support style overrides:
-- ChatWindow -> ChatWindowStyles
-- QueryField -> QueryFieldStyles
-- AdvancedQueryField -> AdvancedQueryFieldStyles
-- SourcesDisplay -> SourcesDisplayStyles
-- ContentDisplay -> ContentDisplayStyles
-- PDFViewer -> PdfViewerStyles
-- HTMLViewer -> HtmlViewerStyles
-- ViewerToolbar -> ViewerToolbarStyles
+- ChatWindow: ChatWindowStyles
+- QueryField: QueryFieldStyles
+- AdvancedQueryField: AdvancedQueryFieldStyles
+- SourcesDisplay: SourcesDisplayStyles
+- ContentDisplay: ContentDisplayStyles
+- PDFViewer: PdfViewerStyles
+- HTMLViewer: HtmlViewerStyles
+- ViewerToolbar: ViewerToolbarStyles
 
 #### Example: ChatWindow and ChatWindowStyles
 
@@ -237,6 +238,7 @@ const styleOverrides = {
     activeSourceBorderColor: '#4a90e2',
     metadataTagBackground: '#edf2f7',
     sourceTypeBackground: '#ebf5ff',
+    fontSize: '0.9rem',
 }
 
 // pass the styleOverrides object to the SourcesDisplay component
@@ -269,6 +271,7 @@ export const Docs: Story = {
             activeSourceBorderColor: '#00acc1',
             metadataTagBackground: '#b3e5fc',
             sourceTypeBackground: '#e1f5fe',
+            fontSize: '0.9rem',
         },
     },
 };
