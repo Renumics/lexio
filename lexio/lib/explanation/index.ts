@@ -29,35 +29,53 @@ export interface ColoredIdea {
     };
 }
 
+export interface IdeaSource {
+    answer_idea: string;
+    color: string;
+    supporting_evidence: Array<{
+        source_sentence: string;
+        similarity_score: number;
+        context_chunk: string;
+        highlight?: {
+            color: string;
+            page: number;
+            rect?: {
+                top: number;
+                left: number;
+                width: number;
+                height: number;
+            };
+        };
+        overlapping_keywords: string[];
+    }>;
+}
+
 export interface ExplanationResult {
     summary: string;
-    finalAnswer: string;
-    answerIdeas: string[];
-    coloredIdeas: ColoredIdea[];
-    explanations: Array<{
+    answer: string;
+    answerIdeas: Array<{
+        text: string;
+        color: string;
+    }>;
+    ideaSources: Array<{
         answer_idea: string;
-        original_text: string;
-        key_phrases: string[];
-        supporting_evidence: {
-            source_text: string;
+        color: string;
+        supporting_evidence: Array<{
+            source_sentence: string;
             similarity_score: number;
-            context: string;
-            highlight?: {
-                color: string;
+            context_chunk: string;
+            highlight: {
                 page: number;
-                rect?: {
+                rect: {
                     top: number;
                     left: number;
                     width: number;
                     height: number;
                 };
+                color: string;
             };
             overlapping_keywords: string[];
-        }[];
-        analysis: {
-            average_similarity: number;
-        };
-        color: string;
+        }>;
     }>;
 }
 
@@ -137,16 +155,15 @@ export class ExplanationProcessor {
 
             // Generate colors for the answer ideas
             const colors = this.generateColors(answerIdeas.length);
-            console.log('Colors:', colors);
             
             // Assign colors to answer ideas
             const coloredAnswerIdeas = answerIdeas.map((idea, index) => ({
-                ...idea,
+                text: idea.idea,
                 color: colors[index]
             }));
 
-            const explanations = await Promise.all(
-                coloredAnswerIdeas.map(async ({ idea, originalText }, ideaIndex) => {
+            const ideaSources = await Promise.all(
+                answerIdeas.map(async ({ idea, originalText }, ideaIndex) => {
                     const keyPhrases = extractKeyPhrases(idea);
                     const ideaEmbedding = await getEmbedding(idea);
                     
@@ -154,13 +171,8 @@ export class ExplanationProcessor {
                         console.warn(`No embedding generated for idea: ${idea}`);
                         return {
                             answer_idea: idea,
-                            original_text: originalText,
-                            key_phrases: keyPhrases,
-                            supporting_evidence: [],
-                            analysis: {
-                                average_similarity: 0,
-                            },
-                            color: colors[ideaIndex]
+                            color: colors[ideaIndex],
+                            supporting_evidence: []
                         };
                     }
 
@@ -168,13 +180,8 @@ export class ExplanationProcessor {
                         console.warn('No valid chunk embeddings available');
                         return {
                             answer_idea: idea,
-                            original_text: originalText,
-                            key_phrases: keyPhrases,
-                            supporting_evidence: [],
-                            analysis: {
-                                average_similarity: 0,
-                            },
-                            color: colors[ideaIndex]
+                            color: colors[ideaIndex],
+                            supporting_evidence: []
                         };
                     }
 
@@ -196,61 +203,36 @@ export class ExplanationProcessor {
                         }
                     );
 
-                    // todo: fix this mechanism.
-                    // Add highlight information for the best matching evidence
-                    const bestEvidence = topSentences[0]; // Get the best match
-                    const highlight = bestEvidence ? {
-                        page: bestEvidence.metadata.page,
-                        rect: {
-                            top: 0.1 + (ideaIndex * 0.1),
-                            left: 0.1,
-                            width: 0.8,
-                            height: 0.05
-                        },
-                        color: colors[ideaIndex]
-                    } : undefined;
-
                     return {
                         answer_idea: idea,
-                        original_text: originalText,
-                        key_phrases: keyPhrases,
+                        color: colors[ideaIndex],
                         supporting_evidence: topSentences.map(match => ({
-                            source_text: match.sentence,
+                            source_sentence: match.sentence,
                             similarity_score: match.similarity,
-                            context: match.originalChunk.text,
-                            location: match.metadata,
+                            context_chunk: match.originalChunk.text,
+                            highlight: {
+                                page: match.metadata?.page || 0,
+                                rect: {
+                                    top: 0.1 + (ideaIndex * 0.1),
+                                    left: 0.1,
+                                    width: 0.8,
+                                    height: 0.05
+                                },
+                                color: colors[ideaIndex]
+                            },
                             overlapping_keywords: keyPhrases.filter(phrase =>
                                 match.sentence.toLowerCase().includes(phrase.toLowerCase())
-                            ),
-                            highlight
-                        })),
-                        analysis: {
-                            average_similarity: topSentences.length
-                                ? topSentences.reduce((sum, m) => sum + m.similarity, 0) / topSentences.length
-                                : 0,
-                        },
-                        color: colors[ideaIndex] // Add color for the answer idea
+                            )
+                        }))
                     };
                 })
             );
 
-            // Filter out any null results
-            const validExplanations = explanations.filter(Boolean);
-
             return {
-                summary: `Processed PDF: ${chunks.length} chunks, embeddings generated for ${chunkEmbeddings.length} chunks, ${answerIdeas.length} answer ideas, and ${validExplanations.length} explanations generated.`,
-                finalAnswer: response,
-                answerIdeas: answerIdeas.map(a => a.idea),
-                coloredIdeas: coloredAnswerIdeas.map((idea, index) => ({
-                    text: idea.idea,
-                    color: idea.color,
-                    evidence: validExplanations[index]?.supporting_evidence[0] ? {
-                        text: validExplanations[index].supporting_evidence[0].source_text,
-                        page: validExplanations[index].supporting_evidence[0].highlight?.page,
-                        rect: validExplanations[index].supporting_evidence[0].highlight?.rect
-                    } : undefined
-                })),
-                explanations: validExplanations
+                summary: `Processed PDF: ${chunks.length} chunks, embeddings generated for ${chunkEmbeddings.length} chunks, ${answerIdeas.length} answer ideas, and ${ideaSources.length} idea sources found.`,
+                answer: response,
+                answerIdeas: coloredAnswerIdeas,
+                ideaSources: ideaSources.filter(Boolean)
             };
         } catch (error) {
             console.error('Error processing explanation:', error);

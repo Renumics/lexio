@@ -20,8 +20,7 @@ import './App.css';
 // This is a temporary mocked response for testing purposes
 // In the future, this will be replaced with a real response from the RAG system
 const MOCKED_RESPONSE = {
-    //final_answer: "DeepSeek-R1 enhances reasoning by starting with a small set of high-quality chain-of-thought examples (cold-start data) and then using reinforcement learning to refine its outputs. This multi-stage approach not only improves accuracy but also produces clearer and more coherent reasoning, outperfrming traditional supervised fine-tuning methods."
-    final_answer: "Deep learning improves traffic data imputation by automatically learning patterns without manual feature selection. The Denoising Stacked Autoencoder (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through layer-wise pre-training and fine-tuning. Compared to traditional methods like ARIMA and k-NN, it maintains higher accuracy and stable error rates across different missing data levels, as demonstrated on Caltrans PeMS traffic data."
+    answer: "Deep learning improves traffic data imputation by automatically learning patterns without manual feature selection. The Denoising Stacked Autoencoder (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through layer-wise pre-training and fine-tuning. Compared to traditional methods like ARIMA and k-NN, it maintains higher accuracy and stable error rates across different missing data levels, as demonstrated on Caltrans PeMS traffic data."
 };
 
 // Add type for source data
@@ -153,7 +152,7 @@ function App() {
 
             // For now, use the mocked response
             // Later this will be replaced with the actual RAG system response
-            const ragResponse = MOCKED_RESPONSE.final_answer;
+            const ragResponse = MOCKED_RESPONSE.answer;
 
             // Get the source data if available
             const sourceToProcess = selectedSource || defaultSource;
@@ -171,87 +170,21 @@ function App() {
                 .then(explanationResult => {
                     console.log('Explanation process completed successfully:', explanationResult);
                     
-                    // Log the extracted answer ideas
-                    console.log('Extracted answer ideas:');
-                    explanationResult.answerIdeas.forEach((idea, index) => {
-                        console.log(`Idea ${index + 1}: "${idea}"`);
-                    });
+                    // Create PDF highlights from the idea sources
+                    const pdfHighlights = explanationResult.ideaSources
+                        .map(source => source.supporting_evidence[0]?.highlight)
+                        .filter((highlight): highlight is NonNullable<typeof highlight> => !!highlight);
                     
-                    // Log the explanations with their supporting evidence
-                    // console.log('Explanations with supporting evidence:');
-                    // explanationResult.explanations.forEach((explanation, index) => {
-                    //     console.log(`Explanation ${index + 1}:`);
-                    //     console.log(`  Answer idea: "${explanation.answer_idea}"`);
-                    //     console.log(`  Key phrases: ${explanation.key_phrases.join(', ')}`);
-                    //     console.log(`  Supporting evidence (${explanation.supporting_evidence.length}):`);
-                    //     explanation.supporting_evidence.forEach((evidence, evidenceIndex) => {
-                    //         console.log(`    Evidence ${evidenceIndex + 1}: "${evidence.source_text}"`);
-                    //         console.log(`      Page: ${evidence.highlight?.page}`);
-                    //         console.log(`      Similarity score: ${evidence.similarity_score}`);
-                    //     });
-                    // });
-                    
-                    // Map the explanation results to highlights
-                    const coloredIdeas = explanationResult.explanations.map((explanation, index) => {
-                        // Get the first piece of supporting evidence
-                        const evidence = explanation.supporting_evidence[0];
-                        
-                        // Log the mapping of idea to color
-                        console.log(`Coloring idea: "${explanation.answer_idea}" with color: ${explanation.color}`);
-                        
-                        return {
-                            text: explanation.answer_idea,
-                            originalText: explanation.original_text,
-                            color: explanation.color, // Use the color from ExplanationProcessor
-                            evidence: {
-                                text: evidence.source_text,
-                                location: evidence.highlight,
-                                highlight: evidence.highlight?.rect ? {
-                                    page: evidence.highlight.page,
-                                    rect: evidence.highlight.rect,
-                                    color: explanation.color // Use the color from ExplanationProcessor
-                                } : {
-                                    page: 0,
-                                    rect: {
-                                        left: 0.1,
-                                        top: 0.1 + (index * 0.1),
-                                        width: 0.8,
-                                        height: 0.05
-                                    },
-                                    color: explanation.color // Use the color from ExplanationProcessor
-                                }
-                            }
-                        };
-                    });
-
-                    // Log the final colored ideas that will be used for highlighting
-                    console.log('Final colored ideas for highlighting:');
-                    coloredIdeas.forEach((idea, index) => {
-                        console.log(`Colored idea ${index + 1}:`);
-                        console.log(`  Text: "${idea.text}"`);
-                        console.log(`  Color: ${idea.color}`);
-                        console.log(`  Evidence text: "${idea.evidence.text}"`);
-                        console.log(`  Evidence location: Page ${idea.evidence.highlight?.page}`);
-                    });
-
-                    // Create PDF highlights from the evidence
-                    const pdfHighlights = coloredIdeas.map(idea => idea.evidence.highlight);
-                    
-                    // Log the PDF highlights
-                    console.log('PDF highlights:');
-                    pdfHighlights.forEach((highlight, index) => {
-                        console.log(`Highlight ${index + 1}:`);
-                        console.log(`  Page: ${highlight.page}`);
-                        console.log(`  Color: ${highlight.color}`);
-                        console.log(`  Position: left=${highlight.rect.left}, top=${highlight.rect.top}, width=${highlight.rect.width}, height=${highlight.rect.height}`);
-                    });
-
                     const updatedSource = {
                         ...sourceToProcess,
                         highlights: pdfHighlights,
                         metadata: {
                             ...sourceToProcess.metadata,
-                            coloredAnswerIdeas: coloredIdeas
+                            coloredIdeas: explanationResult.answerIdeas.map(idea => ({
+                                text: idea.text,
+                                color: idea.color,
+                                originalText: idea.text
+                            }))
                         }
                     };
 
@@ -259,12 +192,12 @@ function App() {
                     const assistantMessage: Message = {
                         id: crypto.randomUUID(),
                         role: 'assistant',
-                        content: explanationResult.finalAnswer,
+                        content: explanationResult.answer,
                         metadata: {
-                            coloredIdeas: coloredIdeas.map(idea => ({
+                            coloredIdeas: explanationResult.answerIdeas.map(idea => ({
                                 text: idea.text,
-                                originalText: idea.originalText,
-                                color: idea.color
+                                color: idea.color,
+                                originalText: idea.text
                             }))
                         }
                     };
@@ -274,7 +207,7 @@ function App() {
 
                     console.log('Returning action response with messages:', messages);
                     const response: ActionHandlerResponse = {
-                        response: Promise.resolve(explanationResult.finalAnswer),
+                        response: Promise.resolve(explanationResult.answer),
                         messages: messagesPromise,
                         sources: Promise.resolve([updatedSource]),
                         actionOptions: {
