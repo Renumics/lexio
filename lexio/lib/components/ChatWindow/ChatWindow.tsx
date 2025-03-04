@@ -3,8 +3,6 @@ import { ThemeContext } from '../../theme/ThemeContext';
 import { useLexio, useRAGMessages } from '../../hooks/hooks';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
-import { ColoredMessage, ColoredMessageProps } from './ColoredMessage';
-import { HighlightedMessage } from '../../../src/HighlightedMessage';
 import { Message, Source, UUID } from '../../types';
 
 // Define a type for the shape of the overrides
