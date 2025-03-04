@@ -117,6 +117,9 @@ export class ExplanationProcessor {
             
             console.log('Generated embeddings for chunks:', chunkEmbeddings.length);
 
+            // Store the original chunks for later reference
+            const originalChunks = chunks;
+
             const sentences = splitIntoSentences(response);
             const answerIdeas: Array<{ idea: string, originalText: string }> = [];
 
@@ -206,24 +209,47 @@ export class ExplanationProcessor {
                     return {
                         answer_idea: idea,
                         color: colors[ideaIndex],
-                        supporting_evidence: topSentences.map(match => ({
-                            source_sentence: match.sentence,
-                            similarity_score: match.similarity,
-                            context_chunk: match.originalChunk.text,
-                            highlight: {
-                                page: match.metadata?.page || 0,
-                                rect: {
-                                    top: 0.1 + (ideaIndex * 0.1),
-                                    left: 0.1,
-                                    width: 0.8,
-                                    height: 0.05
+                        supporting_evidence: topSentences.map(match => {
+                            // Find the original chunk that contains this sentence
+                            const originalChunk = originalChunks.find(c => c.text === match.originalChunk.text);
+                            
+                            // Find the matching sentence in the original chunk
+                            let matchingSentence = null;
+                            if (originalChunk && originalChunk.sentences) {
+                                // Try to find an exact match first
+                                matchingSentence = originalChunk.sentences.find(s => s.text === match.sentence);
+                                
+                                // If no exact match, try a fuzzy match (sentence might be slightly different)
+                                if (!matchingSentence) {
+                                    matchingSentence = originalChunk.sentences.find(s => 
+                                        match.sentence.includes(s.text) || s.text.includes(match.sentence)
+                                    );
+                                }
+                            }
+                            
+                            console.log('Original chunk found:', !!originalChunk);
+                            console.log('Matching sentence found:', !!matchingSentence);
+                            console.log('Page number:', matchingSentence?.metadata?.page);
+                            
+                            return {
+                                source_sentence: match.sentence,
+                                similarity_score: match.similarity,
+                                context_chunk: match.originalChunk.text,
+                                highlight: {
+                                    page: matchingSentence?.metadata?.page || 0,
+                                    rect: {
+                                        top: 0.1 + (ideaIndex * 0.1),
+                                        left: 0.1,
+                                        width: 0.8,
+                                        height: 0.05
+                                    },
+                                    color: colors[ideaIndex]
                                 },
-                                color: colors[ideaIndex]
-                            },
-                            overlapping_keywords: keyPhrases.filter(phrase =>
-                                match.sentence.toLowerCase().includes(phrase.toLowerCase())
-                            )
-                        }))
+                                overlapping_keywords: keyPhrases.filter(phrase =>
+                                    match.sentence.toLowerCase().includes(phrase.toLowerCase())
+                                )
+                            };
+                        })
                     };
                 })
             );
