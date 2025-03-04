@@ -21,8 +21,8 @@ const allowedPayloadKeys: Record<UserAction['type'], string[]> = {
     CLEAR_MESSAGES: ['actionOptions'],
     SEARCH_SOURCES: ['sources', 'actionOptions'],
     CLEAR_SOURCES: ['actionOptions'],
-    SET_ACTIVE_SOURCES: ['actionOptions'],
-    SET_SELECTED_SOURCE: ['sourceData', 'actionOptions'],
+    SET_ACTIVE_SOURCES: ['sources', 'activeSourceIds', 'actionOptions'],
+    SET_SELECTED_SOURCE: ['sourceData', 'actionOptions', 'activeSourceIds'],
     SET_FILTER_SOURCES: ['actionOptions'],
     RESET_FILTER_SOURCES: ['actionOptions']
 };
@@ -184,10 +184,23 @@ export const addUserMessageAtom = atom(
                 id: source.id || (crypto.randomUUID() as UUID),
             }));
 
-            // Update sources-related state.
+            // Get current active sources
+            const currentActiveSourceIds = get(activeSourcesIdsAtom);
+            const currentSelectedId = get(selectedSourceIdAtom);
+
+            // Update sources while preserving active state
             set(retrievedSourcesAtom, sourcesDataWithIds);
-            set(activeSourcesIdsAtom, []);
-            set(selectedSourceIdAtom, null);
+            
+            // Only clear active sources if we don't have any active sources
+            if (currentActiveSourceIds.length === 0) {
+                set(activeSourcesIdsAtom, []);
+            }
+            
+            // Only clear selected source if we don't have one
+            if (!currentSelectedId) {
+                set(selectedSourceIdAtom, null);
+            }
+            
             return sourcesDataWithIds;
         };
 
@@ -591,6 +604,14 @@ const isBlockingAction = (action: UserAction): boolean => {
               sourceData: sourceData,
             });
             promises.push(Promise.resolve(result));
+
+            // Add this block to handle activeSourceIds with proper type casting
+            if (payload?.activeSourceIds) {
+              const activeResult = set(setActiveSourcesAtom, {
+                sourceIds: payload.activeSourceIds as UUID[],
+              });
+              promises.push(Promise.resolve(activeResult));
+            }
             break;
           }
           case 'SET_FILTER_SOURCES': {

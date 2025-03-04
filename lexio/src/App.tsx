@@ -10,9 +10,7 @@ import {
     Message,
     Source,
     createRESTContentSource, 
-    createSSEConnector,
     ActionHandlerResponse,
-    PDFHighlight,
 } from '../lib/main';
 import { ExplanationProcessor } from '../lib/explanation';
 import './App.css';
@@ -85,7 +83,8 @@ function App() {
                 defaultSource
             );
             return {
-                sources: Promise.resolve(activeSourcesList)
+                sources: Promise.resolve(activeSourcesList),
+                activeSourceIds: action.sourceIds
             };
         }
 
@@ -113,6 +112,7 @@ function App() {
 
                         return {
                             sourceData: finalData,
+                            activeSourceIds: [sourceToLoad.id],
                             actionOptions: {
                                 followUp: {
                                     type: SET_ACTIVE_SOURCES,
@@ -280,7 +280,6 @@ function App() {
         return undefined;
     }, [contentSource]);
 
-    console.log('OpenAI Key exists:', !!import.meta.env.VITE_OPENAI_API_KEY);
     return (
         <div className="app-container">
             <RAGProvider

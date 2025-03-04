@@ -34,17 +34,6 @@ export const useRAGMessages = () => {
     const completedMessages = useAtomValue(completedMessagesAtom);
     const currentStream = useAtomValue(currentStreamAtom);
 
-    console.log('RAGMessages hook state:', {
-        messageCount: completedMessages.length,
-        messagesWithMetadata: completedMessages.filter(m => m.metadata).length,
-        messages: completedMessages.map(m => ({
-            id: m.id,
-            role: m.role,
-            hasMetadata: !!m.metadata,
-            coloredIdeas: m.metadata?.coloredIdeas
-        }))
-    });
-
     return {messages: completedMessages, currentStream};
 }
 

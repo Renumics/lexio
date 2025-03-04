@@ -77,12 +77,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   assistantLabel = 'Assistant: ',
 }) => {
   const { messages, currentStream } = useRAGMessages();
-  
-  console.log('ChatWindow received messages:', messages.map(msg => ({
-    role: msg.role,
-    content: msg.content,
-    metadata: msg.metadata
-  })));
 
   // Get the lexio methods we need
   const { clearMessages, setSelectedSource, setActiveSources } = useLexio(componentKey ? `ChatWindow-${componentKey}` : 'ChatWindow');
@@ -163,19 +157,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   }, [messages, setSelectedSource, setActiveSources]); // Include the functions in the dependency array
   
   const renderMessage = (message: Message) => {
-    console.log('Rendering message with full details:', {
-        id: message.id,
-        role: message.role,
-        content: message.content,
-        metadata: message.metadata,
-        coloredIdeas: message.metadata?.coloredIdeas
-    });
 
     if (message.role === 'assistant' && typeof message.content === 'string') {
         const coloredIdeas = message.metadata?.coloredIdeas;
         
         if (coloredIdeas && Array.isArray(coloredIdeas)) {
-            console.log('Processing colored ideas:', coloredIdeas);
             let htmlContent = message.content;
             let hasHighlights = false;
             
@@ -234,12 +220,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="px-4">
             {messages.map((msg, index) => {
-              console.log(`Message ${index} detailed:`, {
-                role: msg.role,
-                content: msg.content,
-                metadata: msg.metadata,
-                coloredIdeas: msg.metadata?.coloredIdeas
-              });
               return (
                 <div key={index} className={`mb-2 ${msg.role}`}>
                   {showRoleLabels && (

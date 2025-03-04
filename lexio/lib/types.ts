@@ -162,6 +162,7 @@ export type ActionHandlerResponse = {
     messages?: Promise<Message[]> | any;
     sources?: Promise<Source[]>;
     sourceData?: string | Uint8Array | null;
+    activeSourceIds?: string[];
     actionOptions?: {
         current?: UserActionModifier;
         followUp?: UserAction;
