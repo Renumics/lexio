@@ -34,7 +34,7 @@ export const useSources = (component: Component) => {
     };
 
     const setActiveSources = (sourceIds: string[] | UUID[]) => {
-        dispatch({type: 'SET_ACTIVE_SOURCES', sourceIds, source: component}, false);
+        dispatch({type: 'SET_ACTIVE_SOURCES', sourceIds: sourceIds, source: component}, false);
     };
 
     const setSelectedSource = (sourceId: string | UUID) => {

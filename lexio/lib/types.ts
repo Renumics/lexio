@@ -1,9 +1,51 @@
-export interface RAGConfig {
+// ---- Data types -----
+export interface ProviderConfig {
   timeouts?: {
-    stream?: number;  // Timeout between stream chunks in ms
-    request?: number; // Overall request timeout in ms
-  },
+      stream?: number; // Timeout between stream chunks in ms
+      request?: number; // Overall request timeout in ms
+  };
 }
+
+export type UUID = `${string}-${string}-${string}-${string}-${string}`;
+/**
+ * Represents a highlight annotation in a PDF document.
+ *
+ * @interface PDFHighlight
+ * @property {number} page - The page number where the highlight appears. Page numbers are 1-based.
+ * @property {object} rect - The rectangle coordinates of the highlight
+ * @property {number} rect.top - Top position of the highlight (relative to the page)
+ * @property {number} rect.left - Left position of the highlight (relative to the page)
+ * @property {number} rect.width - Width of the highlight (relative to the page width)
+ * @property {number} rect.height - Height of the highlight (relative to the page height)
+ */
+export interface PDFHighlight {
+    /**
+     * The page number where the highlight appears. Page numbers are 1-based.
+     */
+    page: number;
+    /**
+     * The rectangle coordinates of the highlight
+     */
+    rect: {
+        /**
+         * Top position of the highlight (relative to the page)
+         */
+        top: number;
+        /**
+         * Left position of the highlight (relative to the page)
+         */
+        left: number;
+        /**
+         * Width of the highlight (relative to the page width)
+         */
+        width: number;
+        /**
+         * Height of the highlight (relative to the page height)
+         */
+        height: number;
+    };
+}
+
 export interface Message {
     readonly id: UUID;
     role: "user" | "assistant";
@@ -14,9 +56,31 @@ export type MessageWithOptionalId = Partial<Pick<Message, 'id'>> & Omit<Message,
 
 export interface Source {
     readonly id: UUID;
+    /**
+     * Title of the source displayed in the SourcesDisplay component.
+     */
     title: string;
+    /**
+     * Type of the source, used to determine the type of data to display in the ContentDisplay component.
+     */
     type: "text" | "pdf" | "markdown" | "html";
+    /**
+     * Description of the source displayed in the SourcesDisplay component if provided.
+     */
+    description?: string;
+    /**
+     * Relevance score of the source. It is displayed in the SourcesDisplay component as bar chart.
+     */
     relevance?: number;
+    /**
+     * Optional href to display a link to the source in the SourcesDisplay component.
+     */
+    href?: string;
+    /**
+     * Optional data to display in the ContentDisplay component. This can be set initially
+     * or lazily loaded when the \`SET_SELECTED_SOURCE\` action is handled. Simply return the data 
+     * from your \`onAction()\` function as \`sourceData\` in the response.
+     */
     data?: string | Uint8Array;
     /**
      * key convention to hide from display _key
@@ -41,7 +105,9 @@ export interface Source {
      * Highlight annotations in the PDF document. Only applicable for PDF sources.
      */
     highlights?: PDFHighlight[];
-}// ---- central state management types -----
+}
+
+// ---- central state management types -----
 export type Component = 'LexioProvider' |
     'QueryField' |
     'ChatWindow' |
@@ -52,8 +118,11 @@ export type Component = 'LexioProvider' |
     `ChatWindow-${string}` |
     `ContentDisplay-${string}` |
     `SourcesDisplay-${string}` |
-    `AdvancedQueryField-${string}`; // Flow: action in component -> triggers wrapped user function with state props -> triggers dispatch -> manipulates state
+    `AdvancedQueryField-${string}` |
+    `CustomComponent` |
+    `CustomComponent-${string}`; 
 
+// Flow: action in component -> triggers wrapped user function with state props -> triggers dispatch -> manipulates state
 export type AddUserMessageAction = { 
   type: 'ADD_USER_MESSAGE'; 
   message: string; 
@@ -106,6 +175,7 @@ export type ResetFilterSourcesAction = {
   source: Component; 
 };
 
+// ---- UserAction types -----
 export type UserAction = 
   | AddUserMessageAction       // User message
   | SetActiveMessageAction     // Set active message -> can be used to rollback to a previous message
@@ -117,6 +187,7 @@ export type UserAction =
   | SetFilterSourcesAction     // Sets filter for sources
   | ResetFilterSourcesAction;  // Resets source filters
 
+// ---- UserActionResponse types -----
 export interface AddUserMessageActionResponse {
     response?: Promise<string> | AsyncIterable<StreamChunk>;
     sources?: Promise<Source[]>;
@@ -152,53 +223,7 @@ export interface SetFilterSourcesActionResponse {
 export interface ResetFilterSourcesActionResponse {
     followUpAction?: UserAction;
 }
-export type UUID = `${string}-${string}-${string}-${string}-${string}`;
-/**
- * Represents a highlight annotation in a PDF document.
- *
- * @interface PDFHighlight
- * @property {number} page - The page number where the highlight appears. Page numbers are 1-based.
- * @property {object} rect - The rectangle coordinates of the highlight
- * @property {number} rect.top - Top position of the highlight (relative to the page)
- * @property {number} rect.left - Left position of the highlight (relative to the page)
- * @property {number} rect.width - Width of the highlight (relative to the page width)
- * @property {number} rect.height - Height of the highlight (relative to the page height)
- */
-export interface PDFHighlight {
-    /**
-     * The page number where the highlight appears. Page numbers are 1-based.
-     */
-    page: number;
-    /**
-     * The rectangle coordinates of the highlight
-     */
-    rect: {
-        /**
-         * Top position of the highlight (relative to the page)
-         */
-        top: number;
-        /**
-         * Left position of the highlight (relative to the page)
-         */
-        left: number;
-        /**
-         * Width of the highlight (relative to the page width)
-         */
-        width: number;
-        /**
-         * Height of the highlight (relative to the page height)
-         */
-        height: number;
-    };
-}
-// ---- central data atoms -----
 
-export interface ProviderConfig {
-    timeouts?: {
-        stream?: number; // Timeout between stream chunks in ms
-        request?: number; // Overall request timeout in ms
-    };
-}
 // ---- ActionHandler Function types -----
 export type ActionHandlerResponse =
     AddUserMessageActionResponse |
@@ -211,13 +236,14 @@ export type ActionHandlerResponse =
     SetFilterSourcesActionResponse |
     ResetFilterSourcesActionResponse;
 
+// ---- ActionHandler Function types -----
 export type ActionHandler = {
     component: Component;
     handler: (
         actionHandlerFunction: UserAction,
         messages: Message[],
         sources: Source[],
-        activeSources: Source[],
+        activeSources: Source[] | null,
         selectedSource: Source | null
     ) => ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined | Promise<undefined>;
 };

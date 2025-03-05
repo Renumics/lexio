@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Provider, createStore } from 'jotai';
 import { configAtom, registeredActionHandlersAtom } from '../../state/rag-state';
-import { ActionHandler, RAGConfig } from '../../types';
+import { ActionHandler, ProviderConfig } from '../../types';
 
 
 import { ThemeProvider } from '../../theme/ThemeContext';
@@ -12,7 +12,7 @@ interface LexioProviderProps {
     children: React.ReactNode;
     onAction?: ActionHandler['handler'];
     theme?: Theme;
-    config?: RAGConfig;
+    config?: ProviderConfig;
 }
 
 

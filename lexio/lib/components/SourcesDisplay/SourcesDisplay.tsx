@@ -202,17 +202,17 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   style={{
                     backgroundColor: source.id === selectedSourceId
                       ? style.selectedSourceBackground
-                      : activeSources.includes(source)
+                      : activeSources && activeSources.includes(source)
                         ? style.activeSourceBackground
-                        : activeSources.length > 0
+                        : activeSources && activeSources.length > 0
                           ? style.inactiveSourceBackground
                           : style.inactiveSourceBackground,
                     borderColor: source.id === selectedSourceId
                       ? style.selectedSourceBorderColor
-                      : activeSources.includes(source)
+                      : activeSources && activeSources.includes(source)
                         ? style.selectedSourceBorderColor
                         : style.inactiveSourceBorderColor,
-                    opacity: activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
+                    opacity: activeSources && activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
                     borderRadius: style.borderRadius,
                     fontSize: style.fontSize,
                   }}
