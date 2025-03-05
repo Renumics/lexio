@@ -58,10 +58,18 @@ export const useSources = (component: Component) => {
         dispatch({type: 'CLEAR_SOURCES', source: component}, false);
     };
 
+    /**
+     * Set the active sources by their IDs.
+     * @param sourceIds - Array of source IDs to set as active, or null to clear active sources.
+     */
     const setActiveSources = (sourceIds: string[] | UUID[] | null) => {
         dispatch({type: 'SET_ACTIVE_SOURCES', sourceIds: sourceIds || [], source: component}, false);
     };
 
+    /**
+     * Set a single source as the selected source.
+     * @param sourceId - ID of the source to select, or null to clear selection.
+     */
     const setSelectedSource = (sourceId: string | UUID | null) => {
         dispatch({type: 'SET_SELECTED_SOURCE', sourceId: sourceId || '', source: component}, false);
     };
