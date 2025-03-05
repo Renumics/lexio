@@ -234,10 +234,13 @@ const onAction = (
 };
 \`\`\`
 
+### Try it out:
+
 Try the interactive example to see:
-1. Streaming responses with markdown formatting
-2. Source metadata display (with hidden properties)
-3. Lazy loading of source content when selected
+
+**1.** Streaming responses with markdown formatting  
+**2.** Source metadata display (with hidden properties)  
+**3.** Lazy loading of source content when selected  
         `
       }
     }

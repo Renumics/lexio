@@ -401,7 +401,7 @@ const App = () => (
 );
 \`\`\`
 
-### Interactive Example
+### Try it out:
 
 The example below demonstrates these custom components working together:
 `,

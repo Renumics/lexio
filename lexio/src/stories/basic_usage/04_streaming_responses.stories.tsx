@@ -1,47 +1,59 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { RAGProvider, ChatWindow, AdvancedQueryField, ErrorDisplay } from '../../../lib/main';
-import type { Message, RetrievalResult, GenerateStreamChunk } from '../../../lib/main';
+import { LexioProvider, ChatWindow, AdvancedQueryField, ErrorDisplay } from '../../../lib/main';
+import type { Message, Source, StreamChunk } from '../../../lib/main';
 
 const ExampleComponent = () => (
   <div style={{ width: '600px', height: '400px' }}>
-    <RAGProvider
-      retrieveAndGenerate={(messages: Message[]) => {
-        // Example implementation with streaming response
-        return {
-          sources: Promise.resolve([
-            {
-              sourceReference: "example-doc.pdf",
-              type: "pdf" as const,
-              metadata: {
-                title: "Example Document"
+    <LexioProvider
+      onAction={(action, messages, sources, activeSources, selectedSource) => {
+        // Handle user messages with streaming response
+        if (action.type === 'ADD_USER_MESSAGE') {
+          return {
+            // Return sources as a Promise that resolves to Source[]
+            sources: Promise.resolve([
+              {
+                id: crypto.randomUUID(),
+                title: "Example Document",
+                type: "pdf",
+                relevance: 0.95,
+                metadata: {
+                  author: "Documentation Team",
+                  page: 3,
+                  _internal: "Hidden metadata" // Hidden from display with underscore prefix
+                }
               }
-            }
-          ]),
-          // Return an async generator for streaming
-          response: (async function* () {
-            yield { content: "### Analysis Result\n\n" };
-            await new Promise(resolve => setTimeout(resolve, 500));
-            yield { content: "Based on the document, here are the key points:\n\n" };
-            await new Promise(resolve => setTimeout(resolve, 500));
-            yield { content: "1. First important finding\n" };
-            await new Promise(resolve => setTimeout(resolve, 500));
-            yield { content: "2. Second key insight\n\n" };
-            await new Promise(resolve => setTimeout(resolve, 500));
-            yield { content: "**Conclusion**: This demonstrates both streaming *and* markdown support!", done: true };
-          })()
-        };
-      }}
-      // Follow-up questions can also use streaming
-      generate={(messages: Message[], sources: RetrievalResult[]) => {
-        return (async function* () {
-          yield { content: "### Follow-up Analysis\n\n" };
-          await new Promise(resolve => setTimeout(resolve, 500));
-          yield { content: "Using the previous sources, I can tell you that:\n\n" };
-          await new Promise(resolve => setTimeout(resolve, 500));
-          yield { content: "- Point one\n- Point two\n\n" };
-          await new Promise(resolve => setTimeout(resolve, 500));
-          yield { content: "*This concludes the analysis.*", done: true };
-        })();
+            ]),
+            // Return an async generator for streaming responses
+            response: (async function* () {
+              yield { content: "### Analysis Result\n\n" };
+              await new Promise(resolve => setTimeout(resolve, 500));
+              yield { content: "Based on the document, here are the key points:\n\n" };
+              await new Promise(resolve => setTimeout(resolve, 500));
+              yield { content: "1. First important finding\n" };
+              await new Promise(resolve => setTimeout(resolve, 500));
+              yield { content: "2. Second key insight\n\n" };
+              await new Promise(resolve => setTimeout(resolve, 500));
+              yield { content: "**Conclusion**: This demonstrates streaming with markdown!", done: true };
+            })()
+          };
+        }
+        
+        // Handle source selection with lazy loading
+        if (action.type === 'SET_SELECTED_SOURCE' && action.sourceObject) {
+          console.log('Loading data for source:', action.sourceObject.title);
+          
+          // Return a Promise that resolves to the source data
+          return {
+            sourceData: new Promise(resolve => {
+              // Simulate fetching PDF data
+              setTimeout(() => {
+                // For PDF sources, return a Uint8Array
+                // For text/markdown/html, return a string
+                resolve("# Example Content\n\nThis is the content of the selected source.");
+              }, 1000);
+            })
+          };
+        }
       }}
     >
       <div className="flex flex-col gap-4 h-full">
@@ -53,90 +65,116 @@ const ExampleComponent = () => (
         </div>
       </div>
       <ErrorDisplay />
-    </RAGProvider>
+    </LexioProvider>
   </div>
 );
 
 const meta = {
-  title: 'Basic Usage/03. Streaming Responses',
+  title: 'Basic Usage/04. Streaming Responses',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',
     docs: {
       description: {
         component: `
-# Streaming Responses
+# Streaming Responses and Action Handlers
 
-Now that you understand sources, let's make the UI more interactive with streaming responses.
-This guide will show you how to:
-- Stream responses word by word
-- Handle streaming in both initial queries and follow-ups
-- Properly structure streaming chunks
-- Display markdown-formatted responses in the chat window
+This guide demonstrates how to implement streaming responses and handle different action types in Lexio.
 
-## Streaming Format
+## Understanding Action Handlers
 
-Instead of returning a Promise<string>, you can return an AsyncIterable that yields chunks of the response as they become available.
-Each chunk should have this shape:
+The \`onAction\` function is the central place to handle user interactions. It receives:
 
 \`\`\`typescript
-interface GenerateStreamChunk {
-  content: string;   // The text content to append
-  done?: boolean;    // Set to true for the final chunk
+onAction(
+  action: UserAction,           // The action that was triggered
+  messages: Message[],          // All messages in the chat
+  sources: Source[],            // All available sources
+  activeSources: Source[] | null, // Currently active sources (null by default)
+  selectedSource: Source | null // Currently selected source
+) => ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined
+\`\`\`
+
+## Implementing Streaming Responses
+
+For streaming responses, return an \`AsyncIterable\` that yields chunks of the response:
+
+\`\`\`typescript
+if (action.type === 'ADD_USER_MESSAGE') {
+  return {
+    response: (async function* () {
+      yield { content: "First part of the response" };
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay
+      yield { content: "Second part of the response" };
+      yield { content: "Final part", done: true }; // Mark as done
+    })()
+  };
 }
 \`\`\`
 
-### Markdown Support in Streaming Responses
+Each chunk should conform to the \`StreamChunk\` interface:
 
-The \`ChatWindow\` component supports markdown in streaming responses out of the box. It is enabled by default and can explicitly set with the \`markdown\` prop.
-In this example we will use headers, bold text, and lists in the streaming responses.  
+\`\`\`typescript
+interface StreamChunk {
+  content?: string;   // Text to append to the response
+  sources?: Source[]; // Optional sources to add
+  done?: boolean;     // Set to true for the final chunk
+}
+\`\`\`
 
-See the \`ChatWindow\` component documentation for more details.
+## Non-Streaming Responses
+
+For non-streaming responses, return a Promise that resolves to a string:
+
+\`\`\`typescript
+if (action.type === 'ADD_USER_MESSAGE') {
+  return {
+    response: Promise.resolve("This is a non-streaming response")
+  };
+}
+\`\`\`
 
 ## Example Implementation
 
 \`\`\`tsx
-<RAGProvider
-  retrieveAndGenerate={(messages) => {
-    return {
-      sources: Promise.resolve([
-        {
-          source: "example-doc.pdf",
-          type: "pdf",
-          metadata: {
-            title: "Example Document"
+<LexioProvider
+  onAction={(action, messages, sources, activeSources, selectedSource) => {
+    // Handle user messages
+    if (action.type === 'ADD_USER_MESSAGE') {
+      return {
+        sources: Promise.resolve([
+          {
+            id: crypto.randomUUID(),
+            title: "Example Document",
+            type: "pdf",
+            metadata: { author: "Documentation Team" }
           }
-        }
-      ]),
-      // Return an async generator for streaming. Text is automatically formatted as markdown.
-      response: (async function* () {
-        yield { content: "### Analysis Result\\n\\n" };
-        yield { content: "Based on the document, here are the key points:\\n\\n" };
-        yield { content: "1. First important finding\\n" };
-        yield { content: "2. Second key insight\\n\\n" };
-        yield { content: "**Conclusion**: This demonstrates both streaming *and* markdown!", done: true };
-      })()
-    };
-  }}
-  // Follow-up questions can also use streaming
-  generate={(messages, sources) => {
-    return (async function* () {
-      yield { content: "### Follow-up Analysis\\n\\n" };
-      yield { content: "Using the previous sources...\\n\\n" };
-      yield { content: "- Point one\\n- Point two", done: true };
-    })();
+        ]),
+        response: (async function* () {
+          yield { content: "### Analysis Result\\n\\n" };
+          yield { content: "Based on the document...\\n\\n" };
+          yield { content: "**Conclusion**: This works!", done: true };
+        })()
+      };
+    }
+    
+    // Handle source selection
+    if (action.type === 'SET_SELECTED_SOURCE' && action.sourceObject) {
+      return {
+        sourceData: fetchPdfData(action.sourceObject.id)
+      };
+    }
   }}
 >
   <ChatWindow markdown={true} />
   <AdvancedQueryField />
-</RAGProvider>
+</LexioProvider>
 \`\`\`
 
-Try it out:
-- Ask a question - notice how the response appears word by word with markdown formatting.
-- Then, ask a follow-up question - both initial and follow-up responses support streaming and markdown.
 
-Next, move on to "04. Follow-up Questions" to learn how to handle follow-up questions with existing context.
+### Try it out:
+- Ask a question - notice how the response appears word by word with markdown formatting
+- Select a source to see lazy loading in action
         `
       }
     }
