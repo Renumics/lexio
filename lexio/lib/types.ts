@@ -183,9 +183,18 @@ export type ActionHandler = {
 export type StreamChunk = { content?: string; sources?: Source[]; done?: boolean; };
 
 export interface ColoredIdea {
-  text: string;          // The LLM-generated idea text
-  originalText: string;  // The original text segment from the response
+  text: string;
   color: string;
+  evidence?: {
+    text: string;
+    page?: number;
+    rect?: {
+      top: number;
+      left: number;
+      width: number;
+      height: number;
+    };
+  };
 }
 
 export interface Message {

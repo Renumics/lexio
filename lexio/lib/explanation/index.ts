@@ -1,5 +1,5 @@
 import { parseAndCleanPdf, TextWithMetadata } from './preprocessing';
-import { groupSentenceObjectsIntoChunks, splitIntoSentences, Chunk, TextPosition, SentenceObject } from './chunking';
+import { groupSentenceObjectsIntoChunks, splitIntoSentences, Chunk, TextPosition } from './chunking';
 import { getEmbedding, generateEmbeddingsForChunks, ProcessedChunk } from './embedding';
 import {
     splitIntoIdeasHeuristic,
@@ -119,7 +119,7 @@ export class ExplanationProcessor {
         }, {} as Record<number, TextWithMetadata[]>);
         
         // Search within each page's sentences
-        for (const [page, pageSentences] of Object.entries(sentencesByPage)) {
+        for (const [_, pageSentences] of Object.entries(sentencesByPage)) {
             // Try exact match first
             let exactMatch = pageSentences.find(s => {
                 const normalizedText = s.text.trim().replace(/\s+/g, ' ');
@@ -250,7 +250,7 @@ export class ExplanationProcessor {
             }));
 
             const ideaSources = await Promise.all(
-                answerIdeas.map(async ({ idea, originalText }, ideaIndex) => {
+                answerIdeas.map(async ({ idea }, ideaIndex) => {
                     const keyPhrases = extractKeyPhrases(idea);
                     const ideaEmbedding = await getEmbedding(idea);
                     
@@ -280,7 +280,6 @@ export class ExplanationProcessor {
                     );
 
                     const topSentences = await findTopSentencesGlobally(
-                        idea,
                         ideaEmbedding,
                         topMatches,
                         {

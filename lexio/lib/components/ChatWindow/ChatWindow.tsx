@@ -3,7 +3,7 @@ import { ThemeContext } from '../../theme/ThemeContext';
 import { useLexio, useRAGMessages } from '../../hooks/hooks';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
-import { Message, Source, UUID } from '../../types';
+import { Message, ColoredIdea } from '../../types';
 
 // Define a type for the shape of the overrides
 export interface ChatWindowStyles extends React.CSSProperties {
@@ -13,12 +13,6 @@ export interface ChatWindowStyles extends React.CSSProperties {
   fontFamily?: string;
   fontSize?: string;
   borderRadius?: string;
-}
-
-// Add interface for colored idea
-interface ColoredIdea {
-  text: string;
-  color: string;
 }
 
 /**
@@ -157,7 +151,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   }, [messages, setSelectedSource, setActiveSources]); // Include the functions in the dependency array
   
   const renderMessage = (message: Message) => {
-
     if (message.role === 'assistant' && typeof message.content === 'string') {
         const coloredIdeas = message.metadata?.coloredIdeas;
         
@@ -165,7 +158,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             let htmlContent = message.content;
             let hasHighlights = false;
             
-            coloredIdeas.forEach((idea: { text: string; color: string }, index: number) => {
+            coloredIdeas.forEach((idea: ColoredIdea, index: number) => {
                 const escapedText = idea.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(`(${escapedText})`, 'gi');
                 
@@ -188,7 +181,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         }
     }
 
-    // Remove the JSON parsing attempt since we're not using that format
     return <div>{message.content}</div>;
   };
 

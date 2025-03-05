@@ -89,7 +89,7 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
     const Y_THRESHOLD = 5; // pixels threshold for considering items on the same line
     let currentPosition = 0;
 
-    content.items.forEach((item: any, index: number) => {
+    content.items.forEach((item: any) => {
       const [x, y] = applyTransform([item.transform[4], item.transform[5]], viewport.transform);
       
       const textItem: TextItem = {
@@ -143,26 +143,9 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
 }
 
 /**
- * Escape RegExp special characters.
- */
-function escapeRegExp(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Remove specified tokens and collapse whitespace.
- */
-function removeSpecialTokens(text: string, tokens: string[] = ["<EOS>", "<pad>"]): string {
-  const pattern = new RegExp(tokens.map(escapeRegExp).join('|'), 'g');
-  let cleanedText = text.replace(pattern, "");
-  cleanedText = cleanedText.replace(/\s+/g, " ").trim();
-  return cleanedText;
-}
-
-/**
  * Clean text and split into sentences.
  */
-function cleanAndSplitText(rawBlocks: ParseResult['blocks'], metadata: any): TextWithMetadata[] {
+function cleanAndSplitText(rawBlocks: ParseResult['blocks']): TextWithMetadata[] {
     let textsWithMetadata: TextWithMetadata[] = [];
     
     if (rawBlocks && rawBlocks.block_type === "Document") {
@@ -291,11 +274,10 @@ function cleanAndSplitText(rawBlocks: ParseResult['blocks'], metadata: any): Tex
  * Main function to parse a PDF file and then clean/split the text.
  */
 export async function parseAndCleanPdf(file: File): Promise<TextWithMetadata[]> {
-  const { blocks, metadata } = await parsePdfWithMarker(file);
+  const { blocks } = await parsePdfWithMarker(file);
   if (!blocks) {
     console.error("Parsed data is empty. Skipping cleaning.");
     return [];
   }
-  console.log('blocks metadata', metadata)
-  return cleanAndSplitText(blocks, metadata);
+  return cleanAndSplitText(blocks);
 }

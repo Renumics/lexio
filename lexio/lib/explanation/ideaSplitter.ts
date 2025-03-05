@@ -1,6 +1,5 @@
 // ideaSplitter.ts
 import OpenAI from 'openai';
-import nlp from 'compromise';
 import { extractClauses } from './clause_extractor';
 
 // Use Vite's environment variables for the API key.

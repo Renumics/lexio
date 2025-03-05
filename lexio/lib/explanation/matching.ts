@@ -168,7 +168,6 @@ export async function findTopKImproved(
  * Finds top sentences globally from the provided chunks that are semantically similar to the query.
  */
 export async function findTopSentencesGlobally(
-  querySegment: string,
   queryEmbedding: number[],
   topChunks: IMatch[],
   options: { topK?: number; minSimilarity?: number; minDistance?: number } = {}
