@@ -74,21 +74,37 @@ export interface SourcesDisplayProps {
 }
 
 /**
- * SourcesDisplay component shows a list of retrieved sources with search functionality
- *
+ * A component for displaying, searching, and selecting sources.
+ * 
+ * `SourcesDisplay` shows a list of available sources with search functionality,
+ * allowing users to browse, filter, and select sources for viewing or reference.
+ * 
+ * @component
+ * 
+ * Features:
+ * - Source listing with titles and metadata
+ * - Search functionality for filtering sources
+ * - Source selection for viewing content
+ * - Relevance score display
+ * - Metadata tag display
+ * - Clear sources functionality
+ * - Responsive design
+ * 
  * @example
- *
+ * 
  * ```tsx
- * <SourcesDisplay 
- *   title="Search Results"
+ * <SourcesDisplay
+ *   componentKey="main-sources"
+ *   title="Knowledge Base"
  *   searchPlaceholder="Search documents..."
  *   showSearch={true}
  *   showRelevanceScore={true}
  *   showMetadata={true}
  *   styleOverrides={{
- *     backgroundColor: '#f5f5f5',
- *     buttonBackground: '#0066cc',
- *     metadataTagBackground: '#e2e8f0'
+ *     backgroundColor: '#ffffff',
+ *     borderRadius: '8px',
+ *     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+ *     padding: '1rem',
  *   }}
  * />
  * ```
@@ -220,31 +236,12 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                 >
                   <div className="flex items-start justify-between">
                     <div className="overflow-hidden flex-1 mr-2">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium truncate" style={{ 
-                          color: style.color,
-                          fontSize: scaleFontSize(style.fontSize || '16px', 1.0)
-                        }}>
-                          {source.title}
-                        </p>
-                        {source.href && (
-                          <a 
-                            href={source.href} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex-shrink-0 p-1 rounded hover:bg-gray-100 transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                            title="Open source link"
-                            style={{
-                              color: style.buttonBackground,
-                            }}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                            </svg>
-                          </a>
-                        )}
-                      </div>
+                      <p className="font-medium truncate" style={{ 
+                        color: style.color,
+                        fontSize: scaleFontSize(style.fontSize || '16px', 1.0)
+                      }}>
+                        {source.title}
+                      </p>
                       {source.description && (
                         <p className="text-gray-500 line-clamp-2" style={{ 
                           color: addOpacity(style.color || colors.text, 0.6),

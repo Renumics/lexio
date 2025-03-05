@@ -35,6 +35,8 @@ interface LexioProviderProps {
  * @param props.theme - Optional custom theme object to override the default styling
  * @param props.config - Optional provider configuration object to customize behavior and settings
  * 
+ * @component
+ * 
  * This provider:
  * - Creates and provides a Jotai store for global state management
  * - Sets up theme context with either custom or default theme
@@ -45,16 +47,22 @@ interface LexioProviderProps {
  *
  * ```tsx
  * <LexioProvider
- *   onAction={(action) => console.log('Action triggered:', action)}
+ *   onAction={(action) => {
+ *     // Handle custom actions
+ *     if (action.type === 'SEARCH_SOURCES') {
+ *       return {
+ *         sources: fetchSources(action.query)
+ *       };
+ *     }
+ *     return undefined;
+ *   }}
  *   theme={customTheme}
  *   config={{
- *     timeouts: {
- *       stream: 10000,
- *       request: 30000,
- *     },
+ *     apiKey: 'your-api-key',
+ *     endpoint: 'https://your-api-endpoint.com'
  *   }}
  * >
- *   <YourApp />
+ *   <YourApplication />
  * </LexioProvider>
  * ```
  */
