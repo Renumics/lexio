@@ -19,10 +19,20 @@ interface MarkdownViewerProps {
 }
 
 /**
- * A component for rendering Markdown content with zoom controls and theme support.
- * Wraps the HtmlViewer component and uses react-markdown for markdown parsing.
+ * A component for rendering Markdown content with formatting and syntax highlighting.
+ * 
+ * MarkdownViewer converts Markdown text into formatted HTML with support for GitHub
+ * Flavored Markdown features like tables, task lists, and strikethrough. It uses
+ * HtmlViewer internally for display.
  * 
  * @component
+ * 
+ * Features:
+ * - GitHub Flavored Markdown support
+ * - Code syntax highlighting
+ * - Zoom controls inherited from HtmlViewer
+ * - Customizable styling
+ * 
  * @param {MarkdownViewerProps} props - The props for the MarkdownViewer
  * @returns {JSX.Element} A themed markdown viewer with zoom controls
  *
@@ -36,10 +46,11 @@ interface MarkdownViewerProps {
  *
  * ```tsx
  * <MarkdownViewer
- *   markdownContent="# Hello World\n\nThis is **markdown** content"
+ *   markdownContent="# Hello World\n\nThis is **bold** and this is *italic*."
  *   styleOverrides={{
  *     contentBackground: '#ffffff',
- *     contentPadding: '20px'
+ *     contentPadding: '20px',
+ *     viewerBorderRadius: '8px',
  *   }}
  * />
  * ```

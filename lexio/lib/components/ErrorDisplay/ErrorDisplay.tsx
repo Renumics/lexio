@@ -17,6 +17,34 @@ interface ErrorDisplayProps {
   styleOverrides?: ErrorDisplayStyles;
 }
 
+/**
+ * A component for displaying error notifications.
+ * 
+ * ErrorDisplay shows toast notifications for errors that occur within the Lexio
+ * application. It automatically listens to the error state and displays
+ * appropriate messages.
+ * 
+ * @component
+ * 
+ * Features:
+ * - Automatic error detection and display
+ * - Customizable styling
+ * - Timed auto-dismissal
+ * - Non-intrusive toast notifications
+ * 
+ * @example
+ * 
+ * ```tsx
+ * <ErrorDisplay
+ *   styleOverrides={{
+ *     backgroundColor: '#f8d7da',
+ *     textColor: '#721c24',
+ *     borderRadius: '4px',
+ *     progressBarColor: '#721c24',
+ *   }}
+ * />
+ * ```
+ */
 const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ styleOverrides = {} }) => {
   const { error } = useStatus();
   
