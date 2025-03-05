@@ -513,13 +513,9 @@ export const dispatchAtom = atom(
 
       const retrievedSources = get(retrievedSourcesAtom);
       
-      const activeSourcesIds = get(activeSourcesIdsAtom);
+      // const activeSourcesIds = get(activeSourcesIdsAtom);
 
-      // If activeSourcesIds is null, pass null as activeSources
-      // Otherwise use the filtered sources from activeSourcesAtom
-      const activeSources = activeSourcesIds === null
-          ? null
-          : get(activeSourcesAtom);
+      const activeSources = get(activeSourcesAtom);
           
       // ---- Call the handler
       const payload = await Promise.resolve(
