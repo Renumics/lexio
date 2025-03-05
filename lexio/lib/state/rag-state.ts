@@ -38,14 +38,20 @@ export const activeMessageAtom = atom(
 
 // sources, active sources, selected source
 export const retrievedSourcesAtom = atom<Source[]>([]);
-export const activeSourcesIdsAtom = atom<string[]>([]);
+export const activeSourcesIdsAtom = atom<string[] | null>(null);
 export const selectedSourceIdAtom = atom<string | null>(null);
 
 export const activeSourcesAtom = atom(
     (get) => {
         const retrievedSources = get(retrievedSourcesAtom);
         const activeIds = get(activeSourcesIdsAtom);
-        // Simply filter sources to only include those with IDs in the activeIds array
+        
+        // If activeIds is null, return null
+        if (activeIds === null) {
+            return null;
+        }
+        
+        // Otherwise filter sources to only include those with IDs in the activeIds array
         return retrievedSources.filter(source => activeIds.includes(source.id));
     }
 );
@@ -169,7 +175,7 @@ export const addUserMessageAtom = atom(
 
             // Update sources-related state.
             set(retrievedSourcesAtom, sourcesDataWithIds);
-            set(activeSourcesIdsAtom, []);
+            set(activeSourcesIdsAtom, null);
             set(selectedSourceIdAtom, null);
             return sourcesDataWithIds;
         };
@@ -265,7 +271,10 @@ const setActiveMessageAtom = atom(null, (_get, set, { action, response }: {
     response: SetActiveMessageActionResponse
 }) => {
     console.log('setActiveMessageAtom', action, response);
-    set(activeMessageIdAtom, response.messageId ?? null);
+    // Use response.messageId if provided, otherwise use action.messageId
+    // If messageId is null or empty string, set to null
+    const messageId = response.messageId ?? action.messageId;
+    set(activeMessageIdAtom, !messageId ? null : messageId);
 });
 
 // clear messages
@@ -324,7 +333,7 @@ const searchSourcesAtom = atom(
             set(retrievedSourcesAtom, sourcesDataWithIds);
 
             // Optionally reset related state associated with sources.
-            set(activeSourcesIdsAtom, []);
+            set(activeSourcesIdsAtom, null);
             set(selectedSourceIdAtom, null);
 
             return sourcesDataWithIds;
@@ -357,7 +366,7 @@ const clearSourcesAtom = atom(null, (_get, set, { action, response }: {
 }) => {
     console.log('clearSourcesAtom', action, response);
     set(retrievedSourcesAtom, []);
-    set(activeSourcesIdsAtom, []);
+    set(activeSourcesIdsAtom, null);
     set(selectedSourceIdAtom, null);
 });
 
@@ -367,10 +376,12 @@ const setActiveSourcesAtom = atom(null, (_get, set, { action, response }: {
     response: SetActiveSourcesActionResponse
 }) => {
     console.log('setActiveSourcesAtom', action, response);
+    // Use response.activeSourceIds if provided, otherwise use action.sourceIds
+    // Ensure we never set to null - empty array is used for reset
     const activeSourceIds = response.activeSourceIds ?? action.sourceIds;
-    if (activeSourceIds) {
-        set(activeSourcesIdsAtom, activeSourceIds);
-    }
+    
+    // Convert null to empty array to ensure we never set null directly
+    set(activeSourcesIdsAtom, activeSourceIds === null ? [] : activeSourceIds);
 });
 
 // set selected source
@@ -379,6 +390,13 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     response: SetSelectedSourceActionResponse
 }) => {
     console.log('setSelectedSourceAtom', action, response);
+    
+    // Explicit check for null or empty string
+    if (action.sourceId === null || action.sourceId === '') {
+        set(selectedSourceIdAtom, null);
+        return;
+    }
+    
     const currentSources = get(retrievedSourcesAtom);
     const targetSource = currentSources.find(source => source.id === action.sourceId);
     
@@ -495,13 +513,9 @@ export const dispatchAtom = atom(
 
       const retrievedSources = get(retrievedSourcesAtom);
       
-      const activeSourcesIds = get(activeSourcesIdsAtom);
+      // const activeSourcesIds = get(activeSourcesIdsAtom);
 
-      // If activeSourcesIds is empty, use all retrievedSources
-      // Otherwise use the filtered sources from activeSourcesAtom
-      const activeSources = activeSourcesIds.length === 0
-          ? retrievedSources
-          : get(activeSourcesAtom);
+      const activeSources = get(activeSourcesAtom);
           
       // ---- Call the handler
       const payload = await Promise.resolve(
