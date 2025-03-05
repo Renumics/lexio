@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { LexioProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay, ErrorDisplay } from '../../../lib/main';
 import type { UserAction, Source, StreamChunk } from '../../../lib/types';
 
+
 const ExampleComponent = () => (
   <div style={{ width: '1000px', height: '600px' }}>
     <LexioProvider
