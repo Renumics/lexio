@@ -1,7 +1,7 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import {
     ChatWindow,
-    RAGProvider,
+    LexioProvider,
     SourcesDisplay,
     ContentDisplay,
     Message,
@@ -66,7 +66,7 @@ const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[]
                             messages: messages,
                             // remove the data field from sources to avoid sending the data over the network
                             sources: sources.map(source => ({ ...source, data: undefined })), // todo: talk about this
-                            activeSources: activeSources.map(source => ({ ...source, data: undefined })), // todo: talk about this
+                            activeSources: activeSources ? activeSources.map(source => ({ ...source, data: undefined })) : [],
                             selectedSource: selectedSource ?  {...selectedSource, data: undefined} : undefined,
                         }),
                         signal: controller.signal,
@@ -196,7 +196,7 @@ function App() {
 
             {/* Main Content */}
             <div className="flex-1 h-full max-h-full overflow-y-hidden p-4">
-                <RAGProvider
+                <LexioProvider
                     onAction={myOnActionFn}
                     theme={demoTheme}
                 >
@@ -217,7 +217,7 @@ function App() {
                         </div>
                         <ErrorDisplay/>
                     </div>
-                </RAGProvider>
+                </LexioProvider>
             </div>
         </div>
     )
