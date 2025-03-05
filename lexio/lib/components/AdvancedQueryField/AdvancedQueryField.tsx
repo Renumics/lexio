@@ -177,7 +177,7 @@ interface AdvancedQueryFieldProps {
 /**
  * An advanced query input component with source mention capabilities
  * 
- * Features:
+ * **Features:**
  * - Rich text editing with source mentions
  * - Auto-expanding editor
  * - Source filtering and selection

@@ -91,7 +91,8 @@ export interface ChatWindowProps {
  * - **Copy Button:** Provides an easy-to-use copy-to-clipboard button for assistant messages and code blocks in markdown.
  *
  * @example
- * ```   
+ *
+ * ```tsx
  * <ChatWindow 
  *   userLabel="User"
  *   assistantIcon={<BotIcon className="w-6 h-6" />}
