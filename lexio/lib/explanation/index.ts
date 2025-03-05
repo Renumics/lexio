@@ -1,5 +1,5 @@
 import { parseAndCleanPdf } from './preprocessing';
-import { groupSentenceObjectsIntoChunks, splitIntoSentences } from './chunking';
+import { groupSentenceObjectsIntoChunks, splitIntoSentences, Chunk, TextPosition, SentenceObject } from './chunking';
 import { getEmbedding, generateEmbeddingsForChunks, ProcessedChunk } from './embedding';
 import {
     splitIntoIdeasHeuristic,
@@ -79,6 +79,17 @@ export interface ExplanationResult {
     }>;
 }
 
+export interface HighlightPosition {
+    page: number;
+    rect: {
+        top: number;
+        left: number;
+        width: number;
+        height: number;
+    };
+    color: string;
+}
+
 export class ExplanationProcessor {
     /**
      * Generates evenly distributed colors based on the number of ideas
@@ -88,6 +99,64 @@ export class ExplanationProcessor {
             const hue = (i * 360) / count;
             return `hsla(${hue}, 70%, 70%, 0.3)`;
         });
+    }
+
+    /**
+     * Finds the best position for highlighting a sentence within a chunk
+     */
+    private static findSentencePosition(
+        sentence: string,
+        chunk: Chunk
+    ): TextPosition[] | null {
+        const normalizedSearchSentence = sentence.trim().replace(/\s+/g, ' ');
+        
+        // Try exact match first
+        let exactMatch = chunk.sentences.find(s => {
+            const normalizedText = s.text.trim().replace(/\s+/g, ' ');
+            return normalizedText === normalizedSearchSentence;
+        });
+        
+        // If no exact match and sentence starts with "The", try without it
+        if (!exactMatch && normalizedSearchSentence.startsWith('The ')) {
+            const withoutThe = normalizedSearchSentence.slice(4);
+            exactMatch = chunk.sentences.find(s => {
+                const normalizedText = s.text.trim().replace(/\s+/g, ' ');
+                return normalizedText.endsWith(withoutThe) && 
+                       normalizedText.startsWith('The');
+            });
+        }
+        
+        if (exactMatch?.metadata?.linePositions) {
+            return exactMatch.metadata.linePositions;
+        }
+        
+        // If still no match, try finding a sentence that contains our search sentence
+        const containingMatch = chunk.sentences.find(s => {
+            const normalizedText = s.text.trim().replace(/\s+/g, ' ');
+            return normalizedText.includes(normalizedSearchSentence) &&
+                   // Ensure the match is at a word boundary
+                   (!normalizedText.startsWith(normalizedSearchSentence) || 
+                    normalizedText.length === normalizedSearchSentence.length);
+        });
+        
+        return containingMatch?.metadata?.linePositions || null;
+    }
+
+    /**
+     * Creates a bounding rectangle for a set of positions
+     */
+    private static createBoundingRect(positions: TextPosition[]): TextPosition {
+        const top = Math.min(...positions.map(p => p.top));
+        const bottom = Math.max(...positions.map(p => p.top + p.height));
+        const left = Math.min(...positions.map(p => p.left));
+        const right = Math.max(...positions.map(p => p.left + p.width));
+
+        return {
+            top,
+            left,
+            width: right - left,
+            height: bottom - top
+        };
     }
 
     static async processResponse(
@@ -210,39 +279,31 @@ export class ExplanationProcessor {
                         answer_idea: idea,
                         color: colors[ideaIndex],
                         supporting_evidence: topSentences.map(match => {
-                            // Find the original chunk that contains this sentence
+                            // Find the original chunk
                             const originalChunk = originalChunks.find(c => c.text === match.originalChunk.text);
                             
-                            // Find the matching sentence in the original chunk
-                            let matchingSentence = null;
-                            if (originalChunk && originalChunk.sentences) {
-                                // Try to find an exact match first
-                                matchingSentence = originalChunk.sentences.find(s => s.text === match.sentence);
-                                
-                                // If no exact match, try a fuzzy match (sentence might be slightly different)
-                                if (!matchingSentence) {
-                                    matchingSentence = originalChunk.sentences.find(s => 
-                                        match.sentence.includes(s.text) || s.text.includes(match.sentence)
-                                    );
+                            let highlight: HighlightPosition | undefined;
+                            
+                            if (originalChunk) {
+                                const positions = this.findSentencePosition(match.sentence, originalChunk);
+                                if (positions && positions.length > 0) {
+                                    const boundingRect = this.createBoundingRect(positions);
+                                    highlight = {
+                                        page: originalChunk.page || 0,
+                                        rect: boundingRect,
+                                        color: colors[ideaIndex]
+                                    };
+                                    console.log(`Created highlight for "${match.sentence.substring(0, 50)}..."`);
                                 }
                             }
-                            
-                            // console.log('Original chunk found:', !!originalChunk);
-                            // console.log('Matching sentence found:', !!matchingSentence);
-                            // console.log('Page number:', matchingSentence?.metadata?.page);
-                            
+
                             return {
                                 source_sentence: match.sentence,
                                 similarity_score: match.similarity,
                                 context_chunk: match.originalChunk.text,
-                                highlight: {
-                                    page: matchingSentence?.metadata?.page || 0,
-                                    rect: {
-                                        top: 0.1 + (ideaIndex * 0.1),
-                                        left: 0.1,
-                                        width: 0.8,
-                                        height: 0.05
-                                    },
+                                highlight: highlight || {
+                                    page: 0,
+                                    rect: { top: 0, left: 0, width: 0, height: 0 },
                                     color: colors[ideaIndex]
                                 },
                                 overlapping_keywords: keyPhrases.filter(phrase =>
