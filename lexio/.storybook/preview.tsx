@@ -14,7 +14,7 @@ const preview: Preview = {
     },
     options: {
       storySort: {
-        order: ['Welcome', 'Concepts', 'Components', "Basic Usage", "Additional Features", "*", "Gallery"],
+        order: ['Welcome', 'Concepts', "Basic Usage", "Additional Features", "Components", "*", "Gallery"],
       },
     },
     docs: {

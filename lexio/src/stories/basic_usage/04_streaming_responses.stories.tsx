@@ -70,7 +70,7 @@ const ExampleComponent = () => (
 );
 
 const meta = {
-  title: 'Basic Usage/04. Streaming Responses',
+  title: 'Basic Usage/Streaming Responses',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',

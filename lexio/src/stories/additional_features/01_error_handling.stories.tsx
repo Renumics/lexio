@@ -111,7 +111,7 @@ const ExampleComponent = ({ errorType }: ErrorDemoProps) => (
 );
 
 const meta = {
-  title: 'Additional Features/01. Error Handling',
+  title: 'Additional Features/Error Handling',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',

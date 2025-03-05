@@ -61,7 +61,7 @@ const SourceTypesExample = ({ variant }: ExampleProps) => {
 type Story = StoryObj<typeof SourceTypesExample>;
 
 const meta = {
-  title: 'Basic Usage/02. State Management',
+  title: 'Basic Usage/State Management',
   component: SourceTypesExample,
   parameters: {
     layout: 'centered',

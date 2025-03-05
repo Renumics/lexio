@@ -131,7 +131,7 @@ const ExampleNewUsageComponent = () => {
 
 // 4. Export Storybook configuration
 const meta = {
-  title: 'Basic Usage/01. The onAction() function',
+  title: 'Basic Usage/The onAction() function',
   component: ExampleNewUsageComponent,
   parameters: {
     layout: 'centered',

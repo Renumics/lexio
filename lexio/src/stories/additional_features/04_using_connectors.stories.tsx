@@ -19,7 +19,7 @@ import {
 const Placeholder = () => null;
 
 const meta: Meta<typeof Placeholder> = {
-  title: 'Additional Features/04. Data Connectors',
+  title: 'Additional Features/Data Connectors',
   component: Placeholder,
   parameters: {
     layout: 'centered',

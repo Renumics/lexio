@@ -253,7 +253,7 @@ const ThemingExample = ({customTheme}: ThemeStoryProps) => {
 type Story = StoryObj<typeof ThemingExample>;
 
 const meta = {
-    title: 'Additional Features/02. Global Theme',
+    title: 'Additional Features/Global Theme',
     component: ThemingExample,
     parameters: {
         layout: 'centered',

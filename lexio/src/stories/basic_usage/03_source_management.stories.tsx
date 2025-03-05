@@ -125,7 +125,7 @@ const ExampleComponent = () => (
 );
 
 const meta = {
-  title: 'Basic Usage/03. Source Management and Lazy Loading',
+  title: 'Basic Usage/Source Management and Lazy Loading',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',

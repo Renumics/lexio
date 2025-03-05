@@ -216,7 +216,7 @@ const CustomComponentsExample = () => (
 );
 
 const meta = {
-  title: 'Basic Usage/05. Hooks and Custom Components',
+  title: 'Basic Usage/Hooks and Custom Components',
   component: CustomComponentsExample,
   parameters: {
     layout: 'centered',
