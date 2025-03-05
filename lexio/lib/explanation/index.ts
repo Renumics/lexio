@@ -1,4 +1,4 @@
-import { parseAndCleanPdf } from './preprocessing';
+import { parseAndCleanPdf, TextWithMetadata } from './preprocessing';
 import { groupSentenceObjectsIntoChunks, splitIntoSentences, Chunk, TextPosition, SentenceObject } from './chunking';
 import { getEmbedding, generateEmbeddingsForChunks, ProcessedChunk } from './embedding';
 import {
@@ -110,36 +110,51 @@ export class ExplanationProcessor {
     ): TextPosition[] | null {
         const normalizedSearchSentence = sentence.trim().replace(/\s+/g, ' ');
         
-        // Try exact match first
-        let exactMatch = chunk.sentences.find(s => {
-            const normalizedText = s.text.trim().replace(/\s+/g, ' ');
-            return normalizedText === normalizedSearchSentence;
-        });
+        // Find all sentences that belong to this chunk, grouped by page
+        const sentencesByPage = chunk.sentences.reduce((acc, s) => {
+            const page = s.metadata.page;
+            if (!acc[page]) acc[page] = [];
+            acc[page].push(s);
+            return acc;
+        }, {} as Record<number, TextWithMetadata[]>);
         
-        // If no exact match and sentence starts with "The", try without it
-        if (!exactMatch && normalizedSearchSentence.startsWith('The ')) {
-            const withoutThe = normalizedSearchSentence.slice(4);
-            exactMatch = chunk.sentences.find(s => {
+        // Search within each page's sentences
+        for (const [page, pageSentences] of Object.entries(sentencesByPage)) {
+            // Try exact match first
+            let exactMatch = pageSentences.find(s => {
                 const normalizedText = s.text.trim().replace(/\s+/g, ' ');
-                return normalizedText.endsWith(withoutThe) && 
-                       normalizedText.startsWith('The');
+                return normalizedText === normalizedSearchSentence;
             });
+            
+            // If no exact match and sentence starts with "The", try without it
+            if (!exactMatch && normalizedSearchSentence.startsWith('The ')) {
+                const withoutThe = normalizedSearchSentence.slice(4);
+                exactMatch = pageSentences.find(s => {
+                    const normalizedText = s.text.trim().replace(/\s+/g, ' ');
+                    return normalizedText.endsWith(withoutThe) && 
+                           normalizedText.startsWith('The');
+                });
+            }
+            
+            if (exactMatch?.metadata?.linePositions) {
+                return exactMatch.metadata.linePositions;
+            }
+            
+            // If still no match, try finding a sentence that contains our search sentence
+            const containingMatch = pageSentences.find(s => {
+                const normalizedText = s.text.trim().replace(/\s+/g, ' ');
+                return normalizedText.includes(normalizedSearchSentence) &&
+                       // Ensure the match is at a word boundary
+                       (!normalizedText.startsWith(normalizedSearchSentence) || 
+                        normalizedText.length === normalizedSearchSentence.length);
+            });
+            
+            if (containingMatch?.metadata?.linePositions) {
+                return containingMatch.metadata.linePositions;
+            }
         }
         
-        if (exactMatch?.metadata?.linePositions) {
-            return exactMatch.metadata.linePositions;
-        }
-        
-        // If still no match, try finding a sentence that contains our search sentence
-        const containingMatch = chunk.sentences.find(s => {
-            const normalizedText = s.text.trim().replace(/\s+/g, ' ');
-            return normalizedText.includes(normalizedSearchSentence) &&
-                   // Ensure the match is at a word boundary
-                   (!normalizedText.startsWith(normalizedSearchSentence) || 
-                    normalizedText.length === normalizedSearchSentence.length);
-        });
-        
-        return containingMatch?.metadata?.linePositions || null;
+        return null;
     }
 
     /**

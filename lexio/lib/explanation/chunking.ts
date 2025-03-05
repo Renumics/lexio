@@ -69,37 +69,56 @@ export async function groupSentenceObjectsIntoChunks(
   const chunks: Chunk[] = [];
   let currentChunkSentences: TextWithMetadata[] = [];
   let currentTokenCount = 0;
+  let currentPage = sentences[0]?.metadata.page;
 
   for (let i = 0; i < sentences.length; i++) {
     const sentence = sentences[i];
     const sentenceTokenCount = countTokens([sentence.text])[0];
+    const nextSentence = sentences[i + 1];
 
-    if (currentTokenCount + sentenceTokenCount > maxTokens && currentChunkSentences.length > 0) {
+    // Create a new chunk if:
+    // 1. Adding this sentence would exceed maxTokens, OR
+    // 2. We're moving to a new page and current chunk has content
+    const shouldCreateNewChunk = (
+      (currentTokenCount + sentenceTokenCount > maxTokens && currentChunkSentences.length > 0) ||
+      (nextSentence && 
+       currentPage !== nextSentence.metadata.page && 
+       currentChunkSentences.length > 0)
+    );
+
+    if (shouldCreateNewChunk) {
+      // Get the page range for this chunk
+      const chunkPages = new Set(currentChunkSentences.map(s => s.metadata.page));
+      
       chunks.push({
         text: currentChunkSentences.map(s => s.text).join(" "),
         sentences: currentChunkSentences,
-        page: currentChunkSentences[0].metadata.page  // Keep track of the page
+        page: Math.min(...Array.from(chunkPages)) // Use the first page as reference
       });
 
-      console.log(`Created chunk with ${currentChunkSentences.length} sentences`);
+      console.log(`Created chunk with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
       
       currentChunkSentences = [];
       currentTokenCount = 0;
+      currentPage = sentence.metadata.page;
     }
 
     currentChunkSentences.push(sentence);
     currentTokenCount += sentenceTokenCount;
+    currentPage = sentence.metadata.page;
   }
 
   // Handle remaining sentences
   if (currentChunkSentences.length > 0) {
+    const chunkPages = new Set(currentChunkSentences.map(s => s.metadata.page));
+    
     chunks.push({
       text: currentChunkSentences.map(s => s.text).join(" "),
       sentences: currentChunkSentences,
-      page: currentChunkSentences[0].metadata.page
+      page: Math.min(...Array.from(chunkPages)) // Use the first page as reference
     });
 
-    console.log(`Created final chunk with ${currentChunkSentences.length} sentences`);
+    console.log(`Created final chunk with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
   }
 
   console.log(`Chunk grouping complete: ${chunks.length} chunks created`);
