@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { LexioProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay, ErrorDisplay } from '../../../lib/main';
 import type { UserAction, Source, StreamChunk } from '../../../lib/types';
+import { fetchSamplePDF } from './utils';
 
 
 const ExampleComponent = () => (
-  <div style={{ width: '1000px', height: '600px' }}>
+  <div style={{ width: '100%', height: '100%' }}>
     <LexioProvider
       onAction={(action, messages, sources, activeSources, selectedSource) => {
         // Handle user messages with streaming response
@@ -33,14 +34,28 @@ const ExampleComponent = () => (
                 metadata: {
                   author: "Documentation Team",
                   page: 3,
+                  _href: "https://arxiv.org/pdf/2005.11401",
                   _internal: "Hidden metadata with underscore prefix"
-                }
+                },
+                highlights: [
+                  {
+                    page: 3,
+                    rect: {
+                      top: 0.2,
+                      left: 0.1,
+                      width: 0.8,
+                      height: 0.05
+                    }
+                  }
+                ]
               },
               {
                 id: crypto.randomUUID(),
                 title: "Example Text Document",
                 type: "text",
+                description: "A sample text document for demonstration",
                 relevance: 0.82,
+                href: "https://renumics.com",
                 metadata: {
                   section: "Introduction",
                   _lastUpdated: "2023-05-15"
@@ -58,13 +73,7 @@ const ExampleComponent = () => (
           if (action.sourceObject.type === 'pdf') {
             // Return a PDF byte array (mock)
             return {
-              sourceData: new Promise(resolve => {
-                // Simulate network delay
-                setTimeout(() => {
-                  // This would be your actual PDF data in a real implementation
-                  resolve(new Uint8Array([37, 80, 68, 70, 45, 49, 46, 53, 10])); // "%PDF-1.5" header
-                }, 1000);
-              })
+              sourceData: fetchSamplePDF(action.sourceObject.metadata?._href ?? '')
             };
           } else {
             // Return text content
@@ -89,7 +98,7 @@ const ExampleComponent = () => (
         display: 'grid',
         height: '100%',
         gridTemplateColumns: '3fr 1fr',
-        gridTemplateRows: '1fr auto 300px',
+        gridTemplateRows: '1fr auto 200px',
         gap: '20px',
         gridTemplateAreas: `
           "chat sources"
@@ -104,9 +113,9 @@ const ExampleComponent = () => (
           <AdvancedQueryField />
         </div>
         <div style={{ gridArea: 'sources', minHeight: 0, overflow: 'auto' }}>
-          <SourcesDisplay />
+          <SourcesDisplay showSearch={false}/>
         </div>
-        <div style={{ gridArea: 'viewer', height: '300px' }}>
+        <div style={{ gridArea: 'viewer', height: '200px' }}>
           <ContentDisplay />
         </div>
       </div>
@@ -142,17 +151,43 @@ return {
     {
       title: "Example Document",
       type: "pdf",
+      description: "A sample document for demonstration", // Optional description will be shown below the title
+      href: "https://example.com/document.pdf",           // Optional link to source will be shown next to the title and opens in a new tab
       relevance: 0.95,
       // data is omitted initially to reduce payload size
       metadata: {
         author: "Documentation Team",
-        page: 3,                                             // Will be used from ContentDisplay when source is selected
+        page: 3,                                          // Will be used from ContentDisplay when source is selected
         _internal: "Hidden metadata with underscore prefix", // Hidden from display
-        _href: "https://example.com/document.pdf"            // Hidden from display -> use for lazy loading
+        _sourceId: "doc-123"                              // Hidden from display -> use for lazy loading
       }
     }
   ])
 };
+\`\`\`
+
+### Source Properties
+
+The \`Source\` object supports several properties to enhance the user experience:
+
+**1. Description**: The optional \`description\` property provides additional context about the source  
+**2. Href**: The optional \`href\` property creates a clickable link to the given URL  
+**3. Relevance**: The \`relevance\` property (0-1) indicates how relevant a source is to the query  
+**4. Highlights**: For PDF sources, the \`highlights\` array specifies regions to highlight  
+
+\`\`\`typescript
+{
+  title: "Example Document",
+  description: "A comprehensive analysis of the topic",  // Shown below the title
+  href: "https://example.com/document.pdf",             // Creates a clickable link
+  relevance: 0.95,                                      // Displayed as a relevance bar
+  highlights: [
+    {
+      page: 3,
+      rect: { top: 0.2, left: 0.1, width: 0.8, height: 0.05 }
+    }
+  ]
+}
 \`\`\`
 
 ### Source Metadata
@@ -169,7 +204,8 @@ The \`metadata\` property allows you to attach additional information to \`Sourc
     author: "Documentation Team",    // Displayed in UI
     page: 3,                         // Controls initial PDF page
     _page: 3,                        // Also controls initial PDF page!
-    _internal: "Hidden metadata"     // Hidden from UI (starts with _)
+    _internal: "Hidden metadata",    // Hidden from UI (starts with _)
+    _sourceId: "doc-123"             // Can be used for internal reference
   }
 }
 \`\`\`
@@ -193,7 +229,7 @@ To optimize performance, you can load source content only when needed using the 
 if (action.type === 'SET_SELECTED_SOURCE' && action.sourceObject) {
   // Return a Promise that resolves to the source data
   return {
-    sourceData: fetchDataForSource(action.sourceObject.metadata._href)  // Matches the _href property in the metadata
+    sourceData: fetchDataForSource(action.sourceObject.metadata._sourceId)  // Use metadata for lookup
   };
 }
 \`\`\`
@@ -242,6 +278,7 @@ Try the interactive example to see:
 **1.** Streaming responses with markdown formatting  
 **2.** Source metadata display (with hidden properties)  
 **3.** Lazy loading of source content when selected  
+**4.** Description and href properties in action
         `
       }
     }

@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { useEffect } from 'react';
-import { LexioProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay, ErrorDisplay, useMessages } from '../../../lib/main';
-import { UserAction, ActionHandlerResponse, Source, Message } from '../../../lib/types';
+import { LexioProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay, ErrorDisplay } from '../../../lib/main';
 import * as DocBlocks from "@storybook/blocks";
+import { UserAction } from '../../../lib/types';
 
 // todo: add an overview of the state management
 interface ExampleProps {
@@ -43,164 +42,15 @@ const SharedLayout = () => (
   </div>
 );
 
-// Helper component to initialize the demo with a message
-const DataInitializer = () => {
-  const { addUserMessage } = useMessages('LexioProvider');
-  
-  useEffect(() => {
-    // Add an initial message to trigger the demo
-    setTimeout(() => {
-      addUserMessage("Tell me about different source types");
-    }, 500);
-  }, []);
-  
-  return null;
-};
-
-// Sample PDF bytes (mock)
-const pdfBytes = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 53, 10]); // "%PDF-1.5" header
-
 const SourceTypesExample = ({ variant }: ExampleProps) => {
-  // Create different source examples based on the variant
-  const textSource: Source = {
-    id: crypto.randomUUID(),
-    title: "RAG Documentation",
-    type: "text",
-    relevance: 0.95,
-    data: `<div class="content">
-      <h2>Introduction to RAG Systems</h2>
-      <p>Retrieval Augmented Generation (RAG) is a technique that enhances large language models by providing them with relevant context from a knowledge base.</p>
-      <p>This approach combines the benefits of retrieval-based and generation-based methods.</p>
-    </div>`,
-    metadata: {
-      section: "Introduction",
-      author: "Technical Team",
-      _internal: "This metadata is hidden from display"
-    }
-  };
-
-  const pdfSource: Source = {
-    id: crypto.randomUUID(),
-    title: "RAG Whitepaper",
-    type: "pdf",
-    relevance: 0.95,
-    // Note: data is not provided initially - it will be loaded on demand
-    metadata: {
-      title: "Understanding RAG Systems",
-      page: 1,
-      author: "Research Team",
-      date: "2023-05-15"
-    },
-    highlights: [{
-      page: 1,
-      rect: { top: 100, left: 100, width: 400, height: 100 }
-    }]
-  };
-
-  const markdownSource: Source = {
-    id: crypto.randomUUID(),
-    title: "Implementation Guide",
-    type: "markdown",
-    relevance: 0.88,
-    data: `# RAG Implementation Guide
-    
-## Setup
-1. Prepare your document collection
-2. Index your documents
-3. Configure retrieval parameters
-    `,
-    metadata: {
-      section: "Setup",
-      difficulty: "Intermediate",
-      lastUpdated: "2024-01-10"
-    }
-  };
-
-  const htmlSource: Source = {
-    id: crypto.randomUUID(),
-    title: "Best Practices",
-    type: "html",
-    relevance: 0.82,
-    data: `<div class="content">
-      <h2>Quick Tips</h2>
-      <ul>
-        <li>Always validate your data sources</li>
-        <li>Monitor retrieval performance</li>
-        <li>Keep your knowledge base updated</li>
-      </ul>
-    </div>`,
-    metadata: {
-      type: "Tips",
-      lastUpdated: "2024-03-20",
-      category: "Best Practices"
-    }
-  };
-
-  // Action handler for the LexioProvider
-  const handleAction = (
-    action: UserAction,
-    messages: Message[],
-    sources: Source[],
-    activeSources: Source[],
-    selectedSource: Source | null
-  ): ActionHandlerResponse | undefined => {
-    // Handle user messages
-    if (action.type === 'ADD_USER_MESSAGE') {
-      // Return different sources based on the selected variant
-      switch (variant) {
-        case 'text':
-          return {
-            response: Promise.resolve("Here's some information about RAG systems from our documentation. The text source contains HTML content that can be displayed directly in the ContentDisplay component."),
-            sources: Promise.resolve([textSource])
-          };
-        case 'reference':
-          return {
-            response: Promise.resolve("I found a relevant section in our whitepaper. This PDF source will be loaded on demand when you select it. Notice how the metadata includes page information and the source has highlight annotations."),
-            sources: Promise.resolve([pdfSource])
-          };
-        case 'mixed':
-          return {
-            response: Promise.resolve("I've found relevant information from multiple sources. This example demonstrates how Lexio can handle different source types simultaneously. Try selecting each source to see how they're displayed differently."),
-            sources: Promise.resolve([pdfSource, markdownSource, htmlSource, textSource])
-          };
-      }
-    }
-    
-    // Handle source selection to load source data on demand
-    if (action.type === 'SET_SELECTED_SOURCE' && action.sourceObject) {
-      console.log("Loading source data for:", action.sourceObject.title, "of type:", action.sourceObject.type);
-      
-      // For PDF sources, return the PDF bytes
-      if (action.sourceObject.type === 'pdf') {
-        // In a real application, you would fetch the PDF data from a server
-        // For example: return { sourceData: fetchPdfFromServer(action.sourceObject.id) }
-        return { 
-          sourceData: Promise.resolve(pdfBytes) 
-        };
-      }
-      
-      // For other sources, return the data that's already in the source
-      // If the data wasn't included in the source, you would fetch it here
-      if (!action.sourceObject.data) {
-        // In a real application: return { sourceData: fetchSourceDataFromServer(action.sourceObject.id) }
-        return {
-          sourceData: Promise.resolve(`No data available for ${action.sourceObject.title}`)
-        };
-      }
-      
-      return { 
-        sourceData: Promise.resolve(action.sourceObject.data) 
-      };
-    }
-    
-    // Handle other action types as needed
-    return undefined;
+  // Define a simple onAction handler to fix the linter error
+  const handleAction = (action: UserAction) => {
+    return {};
   };
 
   return (
     <BaseLayout>
       <LexioProvider onAction={handleAction}>
-        <DataInitializer />
         <SharedLayout />
         <ErrorDisplay />
       </LexioProvider>
@@ -226,6 +76,23 @@ const meta = {
       },
       description: {
         component: `
+## Introduction
+
+This guide provides a comprehensive overview of Lexio's state management system, which is the foundation of the library's reactive UI and action handling capabilities. Understanding how state works in Lexio will help you build more effective and responsive RAG interfaces.
+
+### What You'll Learn
+
+In this guide, we cover:
+
+- **Core State Structure**: The key state elements managed by Lexio and how they relate to each other
+- **Component State Reflection**: How each Lexio component automatically reflects relevant parts of the state
+- **State Types**: Detailed information about Message and Source types that form the foundation of the state
+- **Action Handler Pattern**: How the onAction handler processes user interactions and updates state
+- **Blocking Actions**: Which actions block the UI during processing and how the loading state system works
+- **Follow-Up Actions**: How to chain multiple actions together to create sophisticated workflows
+
+Whether you're building a simple chat interface or a complex document-based RAG system, understanding these concepts will help you leverage Lexio's full capabilities.
+
 ## Lexio's State and interaction with UI components
 
 This guide explains how state is managed in the \`Lexio\` library and how components reflect and interact with this state.
@@ -349,43 +216,143 @@ const handleAction = (
 
 ## State Flow Example
 
-**1.** User sends a message via \`AdvancedQueryField\`.
+**1.** User sends a message via \`AdvancedQueryField\`.  
+**2.** \`ADD_USER_MESSAGE\` action is dispatched.  
+**3.** Your \`ActionHandler\` which is passed as \`onAction\` to \`LexioProvider\` processes the action. The \`ActionHandler\` is a function that takes the action and the current state and returns an \`ActionHandlerResponse\` object.  
+**4.** Handler returns a \`ActionHandlerResponse\` object which is used to update the state, in this case a \`AddUserMessageActionResponse\` object is returned.  
+**5.** Lexio updates internal state.  
+**6.** A re-render of the \`ChatWindow\` component is triggered since the state of messages has changed -> The \`ChatWindow\` component shows the new message.  
+**7.** A re-render of the \`SourcesDisplay\` component is triggered since the state of sources has changed -> The \`SourcesDisplay\` component shows the new sources.  
+## Blocking Actions and Loading State
 
-**2.** \`ADD_USER_MESSAGE\` action is dispatched.
+Lexio implements a sophisticated loading state system that prevents certain actions from being processed while others are in progress. This ensures a consistent user experience and prevents race conditions.
 
-**3.** Your \`ActionHandler\` which is passed as \`onAction\` to \`LexioProvider\` processes the action. The \`ActionHandler\` is a function that takes the action and the current state and returns an \`ActionHandlerResponse\` object.
+### Which Actions are Blocking?
 
-**4.** Handler returns a \`ActionHandlerResponse\` object which is used to update the state, in this case a \`AddUserMessageActionResponse\` object is returned.
+The following actions are considered "blocking" because they typically involve asynchronous operations that may take time to complete:
 
-**5.** Lexio updates internal state.
+\`\`\`typescript
+// Blocking actions
+'ADD_USER_MESSAGE'  // When a user sends a message (typically triggers AI generation)
+'SEARCH_SOURCES'    // When searching for sources (typically involves API calls)
+'CLEAR_MESSAGES'    // When clearing all messages (may involve cleanup operations)
+\`\`\`
 
-**6.** A re-render of the \`ChatWindow\` component is triggered since the state of messages has changed -> The \`ChatWindow\` component shows the new message.
+Non-blocking actions are typically UI-related and can be processed immediately:
 
-**7.** A re-render of the \`SourcesDisplay\` component is triggered since the state of sources has changed -> The \`SourcesDisplay\` component shows the new sources.
+\`\`\`typescript
+// Non-blocking actions
+'SET_SELECTED_SOURCE'   // Selecting a source to view
+'SET_ACTIVE_SOURCES'    // Changing which sources are active
+'SET_FILTER_SOURCES'    // Applying filters to sources
+'RESET_FILTER_SOURCES'  // Clearing source filters
+\`\`\`
+
+#### Accessing Loading State
+
+You can access the current loading state using the \`useStatus\` hook:
+
+\`\`\`typescript
+import { useStatus } from 'lexio';
+
+const MyComponent = () => {
+  const { loading, error } = useStatus();
+  
+  return (
+    <div>
+      {loading ? 'Processing...' : 'Ready'}
+      {error && <div className="error">{error}</div>}
+    </div>
+  );
+};
+\`\`\`
+
+This loading state is automatically used by Lexio components to provide appropriate feedback to users.
 
 ## Customizing the flow
 
 You can customize the effect of the user action by returning a custom response to any of the actions, e.g. returning \`{}\` to prevent any state updates at all.
 The logic of the \`ActionHandler\` is entirely up to you.
 
-You can also return a follow up action to be dispatched after the state has been updated. 
-This is useful for example to trigger a new search after the user has seen the answer.
+### Follow-Up Actions
 
-The \`followUpAction\` is a \`UserAction\` object that will be dispatched after the state has been updated.
+Follow-up actions are a powerful feature that allows you to chain multiple actions together in a controlled sequence. When you return a \`followUpAction\` in your response, Lexio will automatically dispatch this action after the current action has been fully processed.
+
+#### How Follow-Up Actions Work
+
+**1.** The initial action is dispatched and processed by your \`onAction\` handler  
+**2.** Your handler returns a response that includes a \`followUpAction\` property  
+**3.** Lexio completes processing the initial action (updating state, UI, etc.)  
+**4.** Once the initial action is complete, Lexio automatically dispatches the follow-up action  
+**5.** The follow-up action is processed by your \`onAction\` handler just like any other action  
+**6.** This process can continue with multiple chained actions
+
+#### When to Use Follow-Up Actions
+
+Follow-up actions are particularly useful in these scenarios:
+
+**1. Sequential Operations**: When one action must complete before another begins  
+**2. Conditional Workflows**: Triggering different actions based on the results of previous ones  
+**3. Multi-step Processes**: Breaking complex operations into discrete steps  
+**4. Cleanup Operations**: Performing cleanup after a main action completes  
+**5. UI Transitions**: Creating smooth transitions between different UI states  
+
+#### Examples of Follow-Up Actions
+
+**Example 1: Search after message response**
 
 \`\`\`typescript
-// Example of a custom response
-const handleAction = (action: UserAction): ActionHandlerResponse | undefined => {
-  return {
-    ... // Return a custom response as usual
-    followUpAction: {
-      type: 'SEARCH_SOURCES',  // See UserAction in types.ts for all possible actions
-      query: "Here's my answer..."
-    }
-  };  
+// After receiving a response to a user message, automatically search for related sources
+const handleAction = (action: UserAction) => {
+  if (action.type === 'ADD_USER_MESSAGE') {
+    const aiResponse = "Here's information about climate change...";
+    
+    return {
+      response: Promise.resolve(aiResponse),
+      // After the response is processed, automatically search for related sources
+      followUpAction: {
+        type: 'SEARCH_SOURCES',
+        query: 'climate change evidence',
+        source: 'ChatWindow'
+      }
+    };
+  }
+  
+  return {};
 };
 \`\`\`
 
+**Example 2: Multi-step source processing**
+
+\`\`\`typescript
+// Process sources in multiple steps
+const handleAction = (action: UserAction, messages: Message[], sources: Source[]) => {
+  if (action.type === 'SEARCH_SOURCES') {
+    return {
+      sources: fetchInitialSources(action.query),
+      // After sources are loaded, activate the most relevant ones
+      followUpAction: {
+        type: 'SET_ACTIVE_SOURCES',
+        sourceIds: ['source-1', 'source-2'],
+        source: 'SourcesDisplay'
+      }
+    };
+  }
+  
+  if (action.type === 'SET_ACTIVE_SOURCES') {
+    // After setting active sources, select the first one for viewing
+    return {
+      followUpAction: {
+        type: 'SET_SELECTED_SOURCE',
+        sourceId: action.sourceIds[0],
+        source: 'SourcesDisplay'
+      }
+    };
+  }
+  
+  return {};
+};
+\`\`\`
         `
       }
     }

@@ -3,7 +3,7 @@ import { LexioProvider, ChatWindow, AdvancedQueryField, ErrorDisplay } from '../
 import type { Message, Source, StreamChunk } from '../../../lib/main';
 
 const ExampleComponent = () => (
-  <div style={{ width: '600px', height: '400px' }}>
+  <div style={{ width: '100%', height: '100%' }}>
     <LexioProvider
       onAction={(action, messages, sources, activeSources, selectedSource) => {
         // Handle user messages with streaming response
@@ -56,7 +56,7 @@ const ExampleComponent = () => (
         }
       }}
     >
-      <div className="flex flex-col gap-4 h-full">
+      <div className="flex flex-col gap-4 h-full w-[600px]">
         <div className="flex-1">
           <ChatWindow markdown={true} />
         </div>
@@ -77,9 +77,9 @@ const meta = {
     docs: {
       description: {
         component: `
-# Streaming Responses and Action Handlers
+## Introduction
 
-This guide demonstrates how to implement streaming responses and handle different action types in Lexio.
+This guide demonstrates how to implement streaming responses and handle different action types in Lexio. Streaming allows you to provide real-time, incremental responses to users, creating a more engaging and responsive experience.
 
 ## Understanding Action Handlers
 
@@ -112,15 +112,27 @@ if (action.type === 'ADD_USER_MESSAGE') {
 }
 \`\`\`
 
+#### The StreamChunk Interface (for streaming responses)
+
 Each chunk should conform to the \`StreamChunk\` interface:
 
 \`\`\`typescript
 interface StreamChunk {
   content?: string;   // Text to append to the response
-  sources?: Source[]; // Optional sources to add
+  sources?: Source[]; // Optional sources to add during streaming
   done?: boolean;     // Set to true for the final chunk
 }
 \`\`\`
+
+Let's explore each property in detail:
+
+- **content**: Optional string that will be appended to the current response. This allows for incremental text generation, creating a typing-like effect. Markdown formatting is supported if you've enabled it in the ChatWindow component.
+
+- **sources**: Optional array of Source objects that can be added during streaming. **This property can only be handled once in the \`AsyncIterable\` response.** Updates are not supported.
+
+- **done**: Boolean flag that indicates the final chunk of the stream. When set to \`true\`, Lexio will:
+  - Add the sources to the state
+  - Mark the response as done
 
 ## Non-Streaming Responses
 
