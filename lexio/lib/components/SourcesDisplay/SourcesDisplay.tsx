@@ -1,9 +1,7 @@
 import { useState, useContext } from "react";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
-import {addOpacity} from "../../utils/scaleFontSize.tsx";
-
-import { useRAGSources, useLexio } from "../../hooks";
+import { useSources} from "../../hooks";
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
@@ -103,8 +101,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   showMetadata = true,
   styleOverrides = {},
 }) => {
-  const { sources, activeSources, selectedSourceId } = useRAGSources();
-  const { setSelectedSource, searchSources, clearSources } = useLexio(componentKey ? `SourcesDisplay-${componentKey}` : 'SourcesDisplay'); // todo: make use of new API
+  const { sources, activeSources, selectedSourceId, setSelectedSource, searchSources, clearSources } = useSources(componentKey ? `SourcesDisplay-${componentKey}` : 'SourcesDisplay'); // todo: make use of new API
   const [searchQuery, setSearchQuery] = useState("");
 
   // use theme
@@ -204,17 +201,17 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   style={{
                     backgroundColor: source.id === selectedSourceId
                       ? style.selectedSourceBackground
-                      : activeSources.includes(source)
+                      : activeSources && activeSources.includes(source)
                         ? style.activeSourceBackground
-                        : activeSources.length > 0
+                        : activeSources && activeSources.length > 0
                           ? style.inactiveSourceBackground
                           : style.inactiveSourceBackground,
                     borderColor: source.id === selectedSourceId
                       ? style.selectedSourceBorderColor
-                      : activeSources.includes(source)
+                      : activeSources && activeSources.includes(source)
                         ? style.selectedSourceBorderColor
                         : style.inactiveSourceBorderColor,
-                    opacity: activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
+                    opacity: activeSources && activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
                     borderRadius: style.borderRadius,
                     fontSize: style.fontSize,
                   }}

@@ -2,7 +2,7 @@ import { useEffect, useContext } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
-import { useLexioStatus } from "../../hooks";
+import {useStatus} from "../../hooks";
 
 export interface ErrorDisplayStyles {
   fontFamily?: string;
@@ -18,7 +18,7 @@ interface ErrorDisplayProps {
 }
 
 const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ styleOverrides = {} }) => {
-  const { error } = useLexioStatus();
+  const { error } = useStatus();
   
   // use theme
   const theme = useContext(ThemeContext);

@@ -1,3 +1,3 @@
-import { useLexioStatus, useRAGMessages, useRAGSources, useLexio } from './hooks';
+import { useMessages, useSources, useStatus } from './hooks';
 
-export { useLexioStatus, useRAGMessages, useRAGSources, useLexio };
+export { useMessages, useSources, useStatus };

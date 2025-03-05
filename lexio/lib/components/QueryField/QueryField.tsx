@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useContext } from 'react';
 import useResizeObserver from '@react-hook/resize-observer';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
-import { useLexio } from '../../hooks';
+import { useMessages} from '../../hooks';
 
 /**
  * Styles interface for the QueryField component
@@ -36,7 +36,7 @@ interface QueryFieldProps {
    * Unique key for the component which can be used to identify the source of UserAction's if multiple QueryField components are used.
    * The default is 'QueryField', if key is provided it will be appended to the default key as following 'QueryField-${key}'.
    */
-  key?: string;
+  componentKey?: string;
   /**
    * Custom placeholder text for the input field
    * @default "Type a message..."
@@ -66,12 +66,12 @@ interface QueryFieldProps {
  * - Responsive design
  */
 const QueryField: React.FC<QueryFieldProps> = ({
-  key,
+  componentKey = undefined,
   placeholder = 'Type a message...',
   disabled = false,
   styleOverrides = {},
 }) => {
-  const { addUserMessage } = useLexio(key ? `QueryField-${key}` : 'QueryField');
+  const { addUserMessage } = useMessages(componentKey ? `QueryField-${componentKey}` : 'QueryField');
 
   // Access theme from context
   const theme = useContext(ThemeContext);

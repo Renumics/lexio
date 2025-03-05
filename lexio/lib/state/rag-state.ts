@@ -38,14 +38,20 @@ export const activeMessageAtom = atom(
 
 // sources, active sources, selected source
 export const retrievedSourcesAtom = atom<Source[]>([]);
-export const activeSourcesIdsAtom = atom<string[]>([]);
+export const activeSourcesIdsAtom = atom<string[] | null>(null);
 export const selectedSourceIdAtom = atom<string | null>(null);
 
 export const activeSourcesAtom = atom(
     (get) => {
         const retrievedSources = get(retrievedSourcesAtom);
         const activeIds = get(activeSourcesIdsAtom);
-        // Simply filter sources to only include those with IDs in the activeIds array
+        
+        // If activeIds is null, return null
+        if (activeIds === null) {
+            return null;
+        }
+        
+        // Otherwise filter sources to only include those with IDs in the activeIds array
         return retrievedSources.filter(source => activeIds.includes(source.id));
     }
 );
@@ -169,7 +175,7 @@ export const addUserMessageAtom = atom(
 
             // Update sources-related state.
             set(retrievedSourcesAtom, sourcesDataWithIds);
-            set(activeSourcesIdsAtom, []);
+            set(activeSourcesIdsAtom, null);
             set(selectedSourceIdAtom, null);
             return sourcesDataWithIds;
         };
@@ -324,7 +330,7 @@ const searchSourcesAtom = atom(
             set(retrievedSourcesAtom, sourcesDataWithIds);
 
             // Optionally reset related state associated with sources.
-            set(activeSourcesIdsAtom, []);
+            set(activeSourcesIdsAtom, null);
             set(selectedSourceIdAtom, null);
 
             return sourcesDataWithIds;
@@ -357,7 +363,7 @@ const clearSourcesAtom = atom(null, (_get, set, { action, response }: {
 }) => {
     console.log('clearSourcesAtom', action, response);
     set(retrievedSourcesAtom, []);
-    set(activeSourcesIdsAtom, []);
+    set(activeSourcesIdsAtom, null);
     set(selectedSourceIdAtom, null);
 });
 
@@ -367,10 +373,12 @@ const setActiveSourcesAtom = atom(null, (_get, set, { action, response }: {
     response: SetActiveSourcesActionResponse
 }) => {
     console.log('setActiveSourcesAtom', action, response);
+    // Use response.activeSourceIds if provided, otherwise use action.sourceIds
+    // Ensure we never set to null - empty array is used for reset
     const activeSourceIds = response.activeSourceIds ?? action.sourceIds;
-    if (activeSourceIds) {
-        set(activeSourcesIdsAtom, activeSourceIds);
-    }
+    
+    // Convert null to empty array to ensure we never set null directly
+    set(activeSourcesIdsAtom, activeSourceIds === null ? [] : activeSourceIds);
 });
 
 // set selected source
@@ -475,7 +483,7 @@ export const dispatchAtom = atom(
     try {
       // ---- Handler resolution (unchanged)
       const handlers = get(registeredActionHandlersAtom);
-      const handler = handlers.find(h => h.component === 'RAGProvider');
+      const handler = handlers.find(h => h.component === 'LexioProvider');
       if (!handler) {
         console.warn(`Handler for component ${action.source} not found`);
 
@@ -497,10 +505,10 @@ export const dispatchAtom = atom(
       
       const activeSourcesIds = get(activeSourcesIdsAtom);
 
-      // If activeSourcesIds is empty, use all retrievedSources
+      // If activeSourcesIds is null, pass null as activeSources
       // Otherwise use the filtered sources from activeSourcesAtom
-      const activeSources = activeSourcesIds.length === 0
-          ? retrievedSources
+      const activeSources = activeSourcesIds === null
+          ? null
           : get(activeSourcesAtom);
           
       // ---- Call the handler
@@ -518,6 +526,7 @@ export const dispatchAtom = atom(
       const allowedKeys = allowedActionReturnValues[action.type] || [];
       if (payload) {
         const extraKeys = Object.keys(payload).filter(key => !allowedKeys.includes(key));
+        // we currently have no required keys, if we plan to add some in the future -> type guard is required -> throw error
         if (extraKeys.length > 0) {
           console.warn(
             `Handler for action "${action.type}" returned unused properties: ${extraKeys.join(', ')}`
@@ -532,11 +541,14 @@ export const dispatchAtom = atom(
         case 'ADD_USER_MESSAGE': {
           const typedAction = action as AddUserMessageAction;
           const typedResponse = payload as AddUserMessageActionResponse;
+          // set Atom returns either a value or a promise
           const result = set(addUserMessageAtom, {
             action: typedAction,
             response: typedResponse,
           });
-          promises.push(Promise.resolve(result));
+          // Promise.resolve is used to ensure that the result is a promise -> required for Promise.all
+          // This is not necessary if the result is already a promise but it allows sync and async ActionHandlerResponse values
+          promises.push(Promise.resolve(result));  // resolve(value) directly returns a promise
           break;
         }
         case 'SET_ACTIVE_MESSAGE': {

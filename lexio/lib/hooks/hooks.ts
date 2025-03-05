@@ -8,17 +8,46 @@ import {
     activeSourcesIdsAtom,
     selectedSourceAtom,
     selectedSourceIdAtom,
-    retrievedSourcesAtom, errorAtom} from "../state/rag-state";
+    retrievedSourcesAtom,
+    errorAtom
+} from "../state/rag-state";
 import { UUID } from "../types";
 import { Component } from "../types";
 
+// hooks for sources related stuff
+export const useSources = (component: Component) => {
+    const dispatch = useSetAtom(dispatchAtom);
 
-export const useRAGSources = () => {
     const sources = useAtomValue(retrievedSourcesAtom);
     const activeSources = useAtomValue(activeSourcesAtom);
     const activeSourcesIds = useAtomValue(activeSourcesIdsAtom);
     const selectedSource = useAtomValue(selectedSourceAtom);
     const selectedSourceId = useAtomValue(selectedSourceIdAtom);
+
+
+    const searchSources = (query: string) => {
+        dispatch({type: 'SEARCH_SOURCES', query: query, source: component}, false);
+    };
+
+    const clearSources = () => {
+        dispatch({type: 'CLEAR_SOURCES', source: component}, false);
+    };
+
+    const setActiveSources = (sourceIds: string[] | UUID[]) => {
+        dispatch({type: 'SET_ACTIVE_SOURCES', sourceIds: sourceIds, source: component}, false);
+    };
+
+    const setSelectedSource = (sourceId: string | UUID) => {
+        dispatch({type: 'SET_SELECTED_SOURCE', sourceId, source: component}, false);
+    };
+
+    const setFilterSources = (filter: any) => {
+        dispatch({type: 'SET_FILTER_SOURCES', filter, source: component}, false);
+    };
+
+    const resetFilterSources = () => {
+        dispatch({type: 'RESET_FILTER_SOURCES', source: component}, false);
+    };
 
     return {
         sources,
@@ -26,20 +55,21 @@ export const useRAGSources = () => {
         activeSourcesIds,
         selectedSource,
         selectedSourceId,
+        searchSources,
+        clearSources,
+        setActiveSources,
+        setSelectedSource,
+        setFilterSources,
+        resetFilterSources,
     };
 };
 
 // only data for now
-export const useRAGMessages = () => {
+export const useMessages = (component: Component) => {
+    const dispatch = useSetAtom(dispatchAtom);
+
     const completedMessages = useAtomValue(completedMessagesAtom);
     const currentStream = useAtomValue(currentStreamAtom);
-
-    return {messages: completedMessages, currentStream};
-}
-
-// all actions
-export const useLexio = (component: Component) => {
-    const dispatch = useSetAtom(dispatchAtom);
 
     const addUserMessage = (message: string) => {
         dispatch({type: 'ADD_USER_MESSAGE', message, source: component}, false);
@@ -57,44 +87,16 @@ export const useLexio = (component: Component) => {
         dispatch({type: 'CLEAR_MESSAGES', source: component}, false);
     };
 
-    const searchSources = (query: string) => {
-        dispatch({type: 'SEARCH_SOURCES', query: query, source: component}, false);
-    };
-
-    const clearSources = () => {
-        dispatch({type: 'CLEAR_SOURCES', source: component}, false);
-    };
-
-    const setActiveSources = (sourceIds: string[] | UUID[]) => {
-        dispatch({type: 'SET_ACTIVE_SOURCES', sourceIds, source: component}, false);
-    };
-
-    const setSelectedSource = (sourceId: string | UUID) => {
-        dispatch({type: 'SET_SELECTED_SOURCE', sourceId, source: component}, false);
-    };
-
-    const setFilterSources = (filter: any) => {
-        dispatch({type: 'SET_FILTER_SOURCES', filter, source: component}, false);
-    };
-
-    const resetFilterSources = () => {
-        dispatch({type: 'RESET_FILTER_SOURCES', source: component}, false);
-    };
-
     return {
+        messages: completedMessages,
+        currentStream,
         addUserMessage,
         setActiveMessage,
         clearMessages,
-        searchSources,
-        clearSources,
-        setActiveSources,
-        setSelectedSource,
-        setFilterSources,
-        resetFilterSources,
     };
-};
+}
 
-export const useLexioStatus = () => {
+export const useStatus = () => {
     const loading = useAtomValue(loadingAtom);
     const error = useAtomValue(errorAtom)
 

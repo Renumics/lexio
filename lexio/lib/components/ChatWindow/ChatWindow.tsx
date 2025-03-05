@@ -1,9 +1,6 @@
 import React, {useContext} from 'react';
 import {ThemeContext, removeUndefined} from '../../theme/ThemeContext';
-import {
-    useRAGMessages,
-    useLexio
-} from '../../hooks';
+import {useMessages} from '../../hooks';
 import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
 import {ResetWrapper} from '../../utils/ResetWrapper';
 import {ChatWindowUserMessage} from "./ChatWindowUserMessage";
@@ -124,7 +121,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                                    showCopy = true,
                                                    componentKey = undefined,
                                                }) => {
-    const {messages, currentStream} = useRAGMessages();
+    const {messages, currentStream, clearMessages} = useMessages(componentKey ? `ChatWindow-${componentKey}` : 'ChatWindow');
     // Add ref for scrolling
     const chatEndRef = React.useRef<HTMLDivElement>(null);
 
