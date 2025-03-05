@@ -227,9 +227,9 @@ export class ExplanationProcessor {
                                 }
                             }
                             
-                            console.log('Original chunk found:', !!originalChunk);
-                            console.log('Matching sentence found:', !!matchingSentence);
-                            console.log('Page number:', matchingSentence?.metadata?.page);
+                            // console.log('Original chunk found:', !!originalChunk);
+                            // console.log('Matching sentence found:', !!matchingSentence);
+                            // console.log('Page number:', matchingSentence?.metadata?.page);
                             
                             return {
                                 source_sentence: match.sentence,

@@ -134,5 +134,6 @@ export async function parseAndCleanPdf(file: File): Promise<TextWithMetadata[]> 
     console.error("Parsed data is empty. Skipping cleaning.");
     return [];
   }
+  console.log('blocks metadata', metadata)
   return cleanAndSplitText(blocks, metadata);
 }

@@ -87,7 +87,7 @@ export interface IdeaWithSnippet {
  * Uses the OpenAI API to split the sentence into distinct ideas.
  */
 export async function splitIntoIdeasUsingLLM(sentence: string): Promise<string[]> {
-  console.log('Input sentence:', sentence);
+  // console.log('Input sentence:', sentence);
   
   const prompt = `Extract key phrases from this text that represent complete, distinct ideas. Each phrase must be an exact word-for-word match from the original text.
 
@@ -122,7 +122,7 @@ Now extract phrases from the original text:`;
     });
 
     const outputText: string = response.choices[0].message?.content || '';
-    console.log('LLM raw output:', outputText);
+    // console.log('LLM raw output:', outputText);
 
     const ideas = outputText
       .split('\n')
@@ -135,7 +135,7 @@ Now extract phrases from the original text:`;
         return exists;
       });
 
-    console.log('Final extracted ideas:', ideas);
+    // console.log('Final extracted ideas:', ideas);
     return ideas;
   } catch (error) {
     console.error("Error calling LLM for idea splitting:", error);
