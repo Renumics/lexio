@@ -33,3 +33,5 @@ dist-ssr
 
 # ignore auto generated file
 scripts/types.json
+
+storybook-static
