@@ -1,31 +1,47 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { SourcesDisplay } from '../../../lib/components/SourcesDisplay/SourcesDisplay';
-import { RAGProvider } from '../../../lib/components/RAGProvider';
-import { useRAGSources } from '../../../lib/hooks/hooks.ts';
+import { LexioProvider } from '../../../lib/components/LexioProvider';
+import { useSources } from '../../../lib/hooks/hooks.ts';
 import { useEffect } from 'react';
 import 'tailwindcss/tailwind.css';
-import type { RetrievalResult } from '../../../lib/types';
+import type { Source } from '../../../lib/types';
 import {configureDocsRendering, extractComponentDescriptionHelper, renderDocsBlocks} from "./helper.tsx";
 
 // Sample data for the story
-const SAMPLE_RESULTS: RetrievalResult[] = [
+const SAMPLE_RESULTS: Source[] = [
   {
-    text: 'This document discusses the implementation of machine learning models...',
-    metadata: { type: 'technical_doc', fileName: 'guide.pdf' },
-    relevanceScore: 0.95,
+    id: crypto.randomUUID(),
+    title: 'Technical Documentation',
+    description: "This document discusses the technical documentation",
+    type: 'text',
+    data: 'This document discusses the implementation of machine learning models...',
+    href: 'https://www.renumics.com',
+    metadata: { 
+      type: 'technical_doc', 
+      fileName: 'guide.pdf',
+      _internal: 'Hidden metadata with underscore prefix' 
+    },
+    relevance: 0.95,
   },
   {
-    sourceReference: 'KB-2024-001',
-    sourceName: 'System Architecture Overview',
+    id: crypto.randomUUID(),
+    title: 'System Architecture Overview',
+    description: 'This is a description of the system architecture overview',
     type: 'pdf',
-    metadata: { author: 'Engineering Team' },
-    relevanceScore: 0.88,
+    href: 'https://www.renumics.com',
+    metadata: { 
+      author: 'Engineering Team',
+      page: 3,
+      _lastUpdated: '2023-05-15' 
+    },
+    relevance: 0.88,
   },
 ];
 
 // Component to load initial data
 const DataLoader = () => {
-  const { retrieveSources } = useRAGSources();
+  const { sources, searchSources } = useSources('DataLoader');
+  
   useEffect(() => {
     let mounted = true;
 
@@ -33,7 +49,7 @@ const DataLoader = () => {
       // Wait for next tick to ensure provider is ready
       await new Promise(resolve => setTimeout(resolve, 0));
       if (mounted) {
-        await retrieveSources("");
+        searchSources("");
       }
     };
 
@@ -42,7 +58,7 @@ const DataLoader = () => {
     return () => {
       mounted = false;
     };
-  }, [retrieveSources]);
+  }, [searchSources]);
   
   return null;
 };
@@ -60,16 +76,22 @@ const meta: Meta<typeof SourcesDisplay> = {
   decorators: [
     (Story) => (
       <div className="h-fit" style={{ width: '600px',  padding: '1rem' }}>
-        <RAGProvider 
-          retrieve={async () => {
-            // Add small delay to simulate network request
-            await new Promise(resolve => setTimeout(resolve, 100));
-            return SAMPLE_RESULTS;
+        <LexioProvider 
+          onAction={(action, messages, sources, activeSources, selectedSource) => {
+            // Handle search sources action
+            if (action.type === 'SEARCH_SOURCES') {
+              // Add small delay to simulate network request
+              return {
+                sources: new Promise(resolve => {
+                  setTimeout(() => resolve(SAMPLE_RESULTS), 100);
+                })
+              };
+            }
           }}
         >
           <DataLoader />
           <Story />
-        </RAGProvider>
+        </LexioProvider>
       </div>
     ),
   ],

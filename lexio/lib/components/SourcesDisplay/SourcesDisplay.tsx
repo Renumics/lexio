@@ -4,7 +4,7 @@ import { ResetWrapper } from "../../utils/ResetWrapper";
 import { useSources} from "../../hooks";
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import {addOpacity} from "../../utils/scaleFontSize.tsx";
+import {addOpacity, scaleFontSize} from "../../utils/scaleFontSize.tsx";
 
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
@@ -219,23 +219,52 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   onClick={() => setSelectedSource(source.id)}
                 >
                   <div className="flex items-start justify-between">
-                    <div className="overflow-hidden">
-                      <p className="font-medium truncate" style={{ color: style.color }}>
-                        {source.title}
-                      </p>
-                      {source.type && (
-                        <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
-                          backgroundColor: style.sourceTypeBackground,
-                          color: style.sourceTypeColor,
-                          fontSize: `calc(${style.fontSize} * 0.75)`  // todo: replace with utils func
+                    <div className="overflow-hidden flex-1 mr-2">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate" style={{ 
+                          color: style.color,
+                          fontSize: scaleFontSize(style.fontSize || '16px', 1.0)
                         }}>
-                          {source.type}
-                        </span>
+                          {source.title}
+                        </p>
+                        {source.href && (
+                          <a 
+                            href={source.href} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex-shrink-0 p-1 rounded hover:bg-gray-100 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Open source link"
+                            style={{
+                              color: style.buttonBackground,
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                            </svg>
+                          </a>
+                        )}
+                      </div>
+                      {source.description && (
+                        <p className="text-gray-500 line-clamp-2" style={{ 
+                          color: addOpacity(style.color || colors.text, 0.6),
+                          fontSize: scaleFontSize(style.fontSize || '14px', 0.95)
+                        }}>
+                            {source.description}
+                        </p>
                       )}
                       {showRelevanceScore && source.relevance !== undefined && (
-                        <div className="mt-2 flex items-center">
-                          <span style={{ color: addOpacity(style.color || colors.text, 0.6), fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
-                          <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
+                        <div className="mt-2 flex items-center group relative">
+                          <span style={{ 
+                            color: addOpacity(style.color || colors.text, 0.6), 
+                            fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
+                            }}>Relevance:</span>
+                          <div 
+                            className="ml-2 h-2 w-24 rounded-full" 
+                            style={{
+                              backgroundColor: style.metadataTagBackground,
+                            }}
+                          >
                             <div
                               className="h-2 rounded-full"
                               style={{
@@ -244,29 +273,49 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                               }}
                             />
                           </div>
+                          <div className="absolute bottom-full left-1/3 transform -translate-x-1 mb-1 px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200" 
+                            style={{
+                              backgroundColor: style.backgroundColor,
+                              color: style.color,
+                              border: `1px solid ${style.metadataTagBackground}`,
+                              fontSize: scaleFontSize(style.fontSize || '12px', 0.75),
+                            }}>
+                            {Math.round(source.relevance * 100)}%
+                          </div>
                         </div>
                       )}
                     </div>
+                    {source.type && (
+                      <span className="inline-block px-2 py-1 font-medium rounded-full flex-shrink-0" style={{
+                        backgroundColor: style.sourceTypeBackground,
+                        color: style.sourceTypeColor,
+                        fontSize: scaleFontSize(style.fontSize || '12px', 0.8)
+                      }}>
+                        {source.type}
+                      </span>
+                    )}
                   </div>
                   {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
-                    <div className="mt-2 pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
+                    <div className="pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(source.metadata).map(([key, value]) => (
-                          <span
-                            key={key}
-                            className="inline-flex items-center px-2 py-1 rounded-md"
-                            style={{
-                              backgroundColor: style.metadataTagBackground,
-                              color: style.metadataTagColor,
-                              fontSize: `calc(${style.fontSize} * 0.75)`,
-                              lineHeight: '1.2',
-                            }}
-                          >
-                            {key}: {value}
-                          </span>
-                        ))}
+                        {Object.entries(source.metadata)
+                            .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
+                            .map(([key, value]) => (
+                              <span
+                                key={key}
+                                className="inline-flex items-center px-2 py-1 rounded-md"
+                                style={{
+                                  backgroundColor: style.metadataTagBackground,
+                                  color: style.metadataTagColor,
+                                  fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
+                                  lineHeight: '1.2',
+                                }}
+                              >
+                                {key}: {value}
+                              </span>
+                            ))}
+                        </div>
                       </div>
-                    </div>
                   )}
                 </li>
               ))}
