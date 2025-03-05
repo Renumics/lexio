@@ -43,18 +43,18 @@
 
 /* Lists */
 .assistant-markdown-content ul {
-    white-space: nowrap;
+    white-space: normal;
     margin-top: 6px;
     margin-bottom: 6px;
-    list-style: disc inside;
+    list-style: disc outside;
     padding-left: 10px;
 }
 
 .assistant-markdown-content ol {
-    white-space: nowrap;
+    white-space: normal;
     margin-top: 6px;
     margin-bottom: 6px;
-    list-style: decimal inside;
+    list-style: decimal outside;
     padding-left: 10px;
 }
 
