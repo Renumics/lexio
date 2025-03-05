@@ -33,12 +33,12 @@ export const useSources = (component: Component) => {
         dispatch({type: 'CLEAR_SOURCES', source: component}, false);
     };
 
-    const setActiveSources = (sourceIds: string[] | UUID[]) => {
-        dispatch({type: 'SET_ACTIVE_SOURCES', sourceIds: sourceIds, source: component}, false);
+    const setActiveSources = (sourceIds: string[] | UUID[] | null) => {
+        dispatch({type: 'SET_ACTIVE_SOURCES', sourceIds: sourceIds || [], source: component}, false);
     };
 
-    const setSelectedSource = (sourceId: string | UUID) => {
-        dispatch({type: 'SET_SELECTED_SOURCE', sourceId, source: component}, false);
+    const setSelectedSource = (sourceId: string | UUID | null) => {
+        dispatch({type: 'SET_SELECTED_SOURCE', sourceId: sourceId || '', source: component}, false);
     };
 
     const setFilterSources = (filter: any) => {
@@ -79,8 +79,8 @@ export const useMessages = (component: Component) => {
      * Set the active message in the chat window
      * @param messageId
      */
-    const setActiveMessage = (messageId: string | UUID) => {
-        dispatch({type: 'SET_ACTIVE_MESSAGE', messageId, source: component}, false);
+    const setActiveMessage = (messageId: string | UUID | null) => {
+        dispatch({type: 'SET_ACTIVE_MESSAGE', messageId: messageId || '', source: component}, false);
     };
 
     const clearMessages = () => {

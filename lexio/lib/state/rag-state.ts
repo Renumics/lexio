@@ -271,7 +271,10 @@ const setActiveMessageAtom = atom(null, (_get, set, { action, response }: {
     response: SetActiveMessageActionResponse
 }) => {
     console.log('setActiveMessageAtom', action, response);
-    set(activeMessageIdAtom, response.messageId ?? null);
+    // Use response.messageId if provided, otherwise use action.messageId
+    // If messageId is null or empty string, set to null
+    const messageId = response.messageId ?? action.messageId;
+    set(activeMessageIdAtom, !messageId ? null : messageId);
 });
 
 // clear messages
@@ -387,6 +390,13 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     response: SetSelectedSourceActionResponse
 }) => {
     console.log('setSelectedSourceAtom', action, response);
+    
+    // Explicit check for null or empty string
+    if (action.sourceId === null || action.sourceId === '') {
+        set(selectedSourceIdAtom, null);
+        return;
+    }
+    
     const currentSources = get(retrievedSourcesAtom);
     const targetSource = currentSources.find(source => source.id === action.sourceId);
     
