@@ -96,7 +96,7 @@ const UserFeedbackComponent = () => {
           }
           
           // Handle feedback submission
-          if (action.type === 'SET_FEEDBACK') {
+          if (action.type === 'SET_MESSAGE_FEEDBACK') {
             console.log('Feedback received:', {
               messageId: action.messageId,
               feedback: action.feedback,
@@ -133,9 +133,38 @@ Lexio provides a built-in feedback system that allows users to rate AI responses
 
 - **Thumbs Up/Down**: Users can quickly indicate if a response was helpful or not
 - **Comments**: Users can add detailed feedback explaining why a response was or wasn't helpful
-- **Tags**: Predefined or custom tags can be added to categorize feedback
 
 This feedback system helps improve AI responses over time and provides valuable insights for developers.
+
+### Implementation Details
+
+The feedback system is implemented through:
+
+1. **Feedback Component**: A UI component that appears with each assistant message
+2. **SET_MESSAGE_FEEDBACK Action**: An action dispatched when users provide feedback
+3. **useMessageFeedback Hook**: A hook that components can use to submit feedback programmatically
+
+### Handling Feedback in onAction
+
+You can process feedback in your \`onAction\` handler:
+
+\`\`\`tsx
+const onAction = (action, messages) => {
+  if (action.type === 'SET_MESSAGE_FEEDBACK') {
+    // Log feedback to analytics
+    analytics.logFeedback({
+      messageId: action.messageId,
+      feedback: action.feedback,
+      comment: action.comment
+    });
+    
+    // Or store in database
+    saveFeedbackToDatabase(action.messageId, action.feedback, action.comment);
+    
+    return {};
+  }
+};
+\`\`\`
 
 Try interacting with the chat below and look for the feedback options that appear with each AI message.
         `,
