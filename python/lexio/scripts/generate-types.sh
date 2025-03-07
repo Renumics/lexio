@@ -12,8 +12,7 @@ datamodel-codegen \
   --use-annotated \
   --enum-field-as-literal all \
   --use-one-literal-as-default \
-  --target-python-version 3.9 \
-  --aliases '{"Uint8Array": "bytes", "ArrayBufferLike": "bytes"}'
+  --target-python-version 3.9
 
 # We use pydantic v2 and support from python 3.9 onwards
 # Use schema description to populate class description / docstring

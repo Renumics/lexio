@@ -37,12 +37,12 @@ def post_process_types(file_path):
     # 3. Replace Union[Data, str] with Union[bytes, str] in the Source class
     content = content.replace('Union[Data, str]', 'Union[bytes, str]')
     
-    # 4. Remove the import for ArrayBufferLike if it exists
-    array_buffer_class_pattern = re.compile(
-        r'class ArrayBufferLike\(RootModel\[Any\]\):.*?(?=class \w+\((?:BaseModel|RootModel))', 
-        re.DOTALL
+    # 4. Fix the data field type in Source class to be Union[str, bytes]
+    content = re.sub(
+        r'(data: Annotated\[Optional\[)Any(\], Field\(title=\'data\'\)\])',
+        r'\1Union[str, bytes]\2',
+        content
     )
-    content = array_buffer_class_pattern.sub('', content)
     
     # 5. Fix invalid escape sequences in docstrings
     content = content.replace('\\`', '`')
@@ -57,23 +57,12 @@ def post_process_types(file_path):
     # 7. Replace all references to UUID with str
     content = re.sub(r'Annotated\[UUID,', 'Annotated[str,', content)
     
-    # 8. Change Metadata class to allow extra fields
-    content = re.sub(
-        r'(model_config = ConfigDict\(\s*extra=)\'forbid\'',
-        r'\1\'allow\'',
-        content
-    )
-    
-    # Alternative approach if regex doesn't work
-    lines = content.split('\n')
-    for i, line in enumerate(lines):
-        if 'class Metadata(' in line:
-            # Look for model_config in the next few lines
-            for j in range(i, min(i + 20, len(lines))):
-                if 'model_config = ConfigDict(' in lines[j] and "'forbid'" in lines[j]:
-                    lines[j] = lines[j].replace("'forbid'", "'allow'")
-                    break
-    content = '\n'.join(lines)
+    # 8. Make sure Union is imported
+    if 'Union' not in content.split('from typing import ')[1].split('\n')[0]:
+        content = content.replace(
+            'from typing import Annotated, Any,', 
+            'from typing import Annotated, Any, Union,'
+        )
     
     # Write the modified content back to the file
     with open(file_path, 'w') as f:

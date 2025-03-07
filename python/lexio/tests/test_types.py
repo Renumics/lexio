@@ -7,7 +7,6 @@ from lexio.types import (
     PDFHighlight,
     Source,
     StreamChunk,
-    Metadata,
 )
 
 
@@ -121,8 +120,8 @@ def test_source_with_metadata():
     assert source.title == "Example Document"
     assert source.type == "pdf"
     assert source.metadata is not None
-    assert source.metadata.page == 5
-    assert source.metadata.field_page == 5  # Note the field name change in Pydantic
+    assert source.metadata["page"] == 5
+    assert source.metadata["_page"] == 5  # Direkter Zugriff auf Dict-Werte
 
 
 def test_stream_chunk_creation():
@@ -277,7 +276,7 @@ def test_complex_source_serialization_deserialization():
         description="A complex source with highlights and metadata",
         relevance=0.95,
         href="https://example.com/doc.pdf",
-        metadata=Metadata(page=5, field_page=5),  # Use Metadata class instead of dict
+        metadata={"page": 5, "_page": 5},  # Dict statt Metadata-Klasse
         highlights=[
             PDFHighlight(
                 page=1, 
@@ -306,8 +305,8 @@ def test_complex_source_serialization_deserialization():
     
     # Check metadata
     assert deserialized_source.metadata is not None
-    assert deserialized_source.metadata.page == 5
-    assert deserialized_source.metadata.field_page == 5
+    assert deserialized_source.metadata["page"] == 5
+    assert deserialized_source.metadata["_page"] == 5
     
     # Check highlights
     assert len(deserialized_source.highlights) == 2
@@ -417,17 +416,14 @@ def test_invalid_json_deserialization():
 
 
 def test_metadata_extra_fields():
-    """Test if extra fields are allowed in Metadata."""
-    # Try to create Metadata with an extra field
-    with pytest.raises(Exception):  # Should raise ValidationError because extra='forbid'
-        Metadata(page=1, _page=1, extra_field="value")
-    
+    """Test if extra fields are allowed in metadata dictionary."""
     # Create a Source with metadata that includes extra fields
-    # This should fail because Metadata has extra='forbid'
-    with pytest.raises(Exception):
-        Source(
-            id="12345678-1234-5678-1234-567812345678",
-            title="Test Source",
-            type="pdf",
-            metadata={"page": 1, "_page": 1, "extra_field": "value"}
-        )
+    source = Source(
+        id="12345678-1234-5678-1234-567812345678",
+        title="Test Source",
+        type="pdf",
+        metadata={"page": 1, "_page": 1, "extra_field": "value"}
+    )
+    
+    # Verify the extra field is present
+    assert source.metadata["extra_field"] == "value"

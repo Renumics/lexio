@@ -128,7 +128,13 @@ export interface Source {
     /**
      * key convention to hide from display _key
      *
-     * If type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the ContentDisplay component.
+     * If type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the SourcesDisplay component.
+     *  
+     * @remarks metadata is not used by the LexioProvider. It is shown as-is in the SourcesDisplay component. 
+     * 
+     * @TJS-type object
+     * @python-type Dict[str, any]
+     * @TJS-extra allow
      */
     metadata?: Record<string, any> & {
         /**
