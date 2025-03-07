@@ -1,12 +1,12 @@
 """Tests for the types module."""
 import pytest
+from typing import Union
 from lexio.types import (
     Message,
     Rect,
     PDFHighlight,
     Source,
     StreamChunk,
-    UUID,
 )
 
 
@@ -119,6 +119,7 @@ def test_source_with_metadata():
     assert source.id == "12345678-1234-5678-1234-567812345678"
     assert source.title == "Example Document"
     assert source.type == "pdf"
+    assert source.metadata is not None
     assert source.metadata.page == 5
     assert source.metadata.field_page == 5  # Note the field name change in Pydantic
 
@@ -143,13 +144,45 @@ def test_stream_chunk_creation():
     assert chunk.done is False
 
 
+def test_source_data_union_type():
+    """Test that Source.data can be either str or bytes."""
+    # Test with string
+    source1 = Source(
+        id="12345678-1234-5678-1234-567812345678",
+        title="Text Source",
+        type="text",
+        data="text data"
+    )
+    assert isinstance(source1.data, str)
+    
+    # Test with bytes
+    source2 = Source(
+        id="12345678-1234-5678-1234-567812345678",
+        title="Binary Source",
+        type="pdf",
+        data=b"binary data"
+    )
+    assert isinstance(source2.data, bytes)
+    
+    # Verify the type annotation
+    # This is a bit of a hack to check the type annotation at runtime
+    import inspect
+    from lexio.types import Source as SourceClass
+    
+    # Get the type annotation for the data field
+    annotations = getattr(SourceClass, "__annotations__", {})
+    data_type = annotations.get("data", None)
+    
+    # Check if it's a Union type with str and bytes
+    assert "Union" in str(data_type) and "str" in str(data_type) and "bytes" in str(data_type)
+
+
 def test_uuid_validation():
     """Test UUID validation."""
-    # This should pass with a valid UUID format
-    uuid = UUID(root="12345678-1234-5678-1234-567812345678")
-    assert uuid.root == "12345678-1234-5678-1234-567812345678"
+    # Since UUID is no longer exported, we test that IDs are accepted as strings
+    message = Message(id="12345678-1234-5678-1234-567812345678", role="assistant", content="test")
+    assert message.id == "12345678-1234-5678-1234-567812345678"
     
-    # This would fail in a real UUID validator, but our current implementation might not validate the format
-    # Uncomment if you implement strict UUID validation
-    # with pytest.raises(ValueError):
-    #     UUID(root="not-a-uuid") 
+    # Test with an invalid UUID format (should still work as we're using strings)
+    message2 = Message(id="not-a-uuid", role="assistant", content="test")
+    assert message2.id == "not-a-uuid" 

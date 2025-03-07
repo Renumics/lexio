@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Post-process the generated Pydantic models to fix type conversions.
-This script specifically replaces the complex Data model with a simple bytes type.
+This script specifically replaces the complex Data model with a simple bytes type
+and replaces UUID with str.
 """
 
 import re
@@ -10,7 +11,8 @@ from pathlib import Path
 
 def post_process_types(file_path):
     """
-    Post-process the generated types file to fix Uint8Array conversion.
+    Post-process the generated types file to fix Uint8Array conversion
+    and replace UUID with str.
     
     Args:
         file_path: Path to the generated __init__.py file
@@ -44,6 +46,16 @@ def post_process_types(file_path):
     
     # 5. Fix invalid escape sequences in docstrings
     content = content.replace('\\`', '`')
+    
+    # 6. Remove the UUID class definition
+    uuid_class_pattern = re.compile(
+        r'class UUID\(RootModel\[Any\]\):.*?(?=class \w+\((?:BaseModel|RootModel))', 
+        re.DOTALL
+    )
+    content = uuid_class_pattern.sub('', content)
+    
+    # 7. Replace all references to UUID with str
+    content = re.sub(r'Annotated\[UUID,', 'Annotated[str,', content)
     
     # Write the modified content back to the file
     with open(file_path, 'w') as f:
