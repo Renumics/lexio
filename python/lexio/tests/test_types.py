@@ -7,6 +7,7 @@ from lexio.types import (
     PDFHighlight,
     Source,
     StreamChunk,
+    Metadata,
 )
 
 
@@ -185,4 +186,248 @@ def test_uuid_validation():
     
     # Test with an invalid UUID format (should still work as we're using strings)
     message2 = Message(id="not-a-uuid", role="assistant", content="test")
-    assert message2.id == "not-a-uuid" 
+    assert message2.id == "not-a-uuid"
+
+
+def test_message_serialization_deserialization():
+    """Test serializing and deserializing a Message."""
+    # Create a message
+    original_message = Message(
+        id="12345678-1234-5678-1234-567812345678", 
+        role="assistant", 
+        content="Hello, how can I help you?"
+    )
+    
+    # Serialize to JSON
+    json_data = original_message.model_dump_json()
+    
+    # Deserialize from JSON
+    deserialized_message = Message.model_validate_json(json_data)
+    
+    # Verify the deserialized message matches the original
+    assert deserialized_message.id == original_message.id
+    assert deserialized_message.role == original_message.role
+    assert deserialized_message.content == original_message.content
+
+
+def test_source_serialization_deserialization():
+    """Test serializing and deserializing a Source with various data types."""
+    # Create a source with text data
+    source_with_text = Source(
+        id="12345678-1234-5678-1234-567812345678",
+        title="Text Source",
+        type="text",
+        data="This is text data"
+    )
+    
+    # Serialize to JSON
+    json_data = source_with_text.model_dump_json()
+    
+    # Deserialize from JSON
+    deserialized_source = Source.model_validate_json(json_data)
+    
+    # Verify the deserialized source matches the original
+    assert deserialized_source.id == source_with_text.id
+    assert deserialized_source.title == source_with_text.title
+    assert deserialized_source.type == source_with_text.type
+    # String data might be converted to bytes during serialization/deserialization
+    if isinstance(deserialized_source.data, bytes) and isinstance(source_with_text.data, str):
+        assert deserialized_source.data.decode('utf-8') == source_with_text.data
+    else:
+        assert deserialized_source.data == source_with_text.data
+    
+    # Test with binary data - this requires special handling
+    binary_data = b"Binary PDF data"
+    source_with_binary = Source(
+        id="12345678-1234-5678-1234-567812345678",
+        title="Binary Source",
+        type="pdf",
+        data=binary_data
+    )
+    
+    # For binary data, we need to use model_dump instead of model_dump_json
+    dict_data = source_with_binary.model_dump()
+    
+    # In a real scenario, you would encode the binary data for transmission
+    # For example, using base64
+    import base64
+    dict_data['data'] = base64.b64encode(dict_data['data']).decode('utf-8')
+    
+    # Then on the receiving end, you would decode it
+    received_data = dict_data.copy()
+    received_data['data'] = base64.b64decode(received_data['data'].encode('utf-8'))
+    
+    # Create a new Source from the received data
+    reconstructed_source = Source.model_validate(received_data)
+    
+    # Verify the reconstructed source matches the original
+    assert reconstructed_source.id == source_with_binary.id
+    assert reconstructed_source.title == source_with_binary.title
+    assert reconstructed_source.type == source_with_binary.type
+    assert reconstructed_source.data == source_with_binary.data
+
+
+def test_complex_source_serialization_deserialization():
+    """Test serializing and deserializing a Source with nested objects."""
+    # Create a source with highlights and metadata
+    source = Source(
+        id="12345678-1234-5678-1234-567812345678",
+        title="Complex Source",
+        type="pdf",
+        description="A complex source with highlights and metadata",
+        relevance=0.95,
+        href="https://example.com/doc.pdf",
+        metadata=Metadata(page=5, field_page=5),  # Use Metadata class instead of dict
+        highlights=[
+            PDFHighlight(
+                page=1, 
+                rect=Rect(top=10, left=20, width=100, height=50)
+            ),
+            PDFHighlight(
+                page=2, 
+                rect=Rect(top=30, left=40, width=200, height=60)
+            )
+        ]
+    )
+    
+    # Serialize to JSON
+    json_data = source.model_dump_json()
+    
+    # Deserialize from JSON
+    deserialized_source = Source.model_validate_json(json_data)
+    
+    # Verify the deserialized source matches the original
+    assert deserialized_source.id == source.id
+    assert deserialized_source.title == source.title
+    assert deserialized_source.type == source.type
+    assert deserialized_source.description == source.description
+    assert deserialized_source.relevance == source.relevance
+    assert deserialized_source.href == source.href
+    
+    # Check metadata
+    assert deserialized_source.metadata is not None
+    assert deserialized_source.metadata.page == 5
+    assert deserialized_source.metadata.field_page == 5
+    
+    # Check highlights
+    assert len(deserialized_source.highlights) == 2
+    
+    # Check first highlight
+    highlight1 = deserialized_source.highlights[0]
+    assert highlight1.page == 1
+    assert highlight1.rect.top == 10
+    assert highlight1.rect.left == 20
+    assert highlight1.rect.width == 100
+    assert highlight1.rect.height == 50
+    
+    # Check second highlight
+    highlight2 = deserialized_source.highlights[1]
+    assert highlight2.page == 2
+    assert highlight2.rect.top == 30
+    assert highlight2.rect.left == 40
+    assert highlight2.rect.width == 200
+    assert highlight2.rect.height == 60
+
+
+def test_stream_chunk_serialization_deserialization():
+    """Test serializing and deserializing a StreamChunk."""
+    # Create a stream chunk
+    chunk = StreamChunk(
+        content="Partial response",
+        sources=[
+            Source(
+                id="12345678-1234-5678-1234-567812345678",
+                title="Example Document",
+                type="text"
+            )
+        ],
+        done=False
+    )
+    
+    # Serialize to JSON
+    json_data = chunk.model_dump_json()
+    
+    # Deserialize from JSON
+    deserialized_chunk = StreamChunk.model_validate_json(json_data)
+    
+    # Verify the deserialized chunk matches the original
+    assert deserialized_chunk.content == chunk.content
+    assert len(deserialized_chunk.sources) == 1
+    assert deserialized_chunk.sources[0].id == chunk.sources[0].id
+    assert deserialized_chunk.sources[0].title == chunk.sources[0].title
+    assert deserialized_chunk.sources[0].type == chunk.sources[0].type
+    assert deserialized_chunk.done == chunk.done
+
+
+def test_frontend_backend_compatibility():
+    """Test compatibility with frontend JSON format."""
+    # This is an example of JSON that might come from the frontend
+    frontend_json = """
+    {
+        "id": "12345678-1234-5678-1234-567812345678",
+        "role": "user",
+        "content": "What is the capital of France?"
+    }
+    """
+    
+    # Parse the JSON into a Message
+    message = Message.model_validate_json(frontend_json)
+    
+    # Verify the parsed message has the expected values
+    assert message.id == "12345678-1234-5678-1234-567812345678"
+    assert message.role == "user"
+    assert message.content == "What is the capital of France?"
+    
+    # Convert back to JSON for sending to frontend
+    backend_json = message.model_dump_json()
+    
+    # The JSON should be compatible with the frontend's expectations
+    import json
+    parsed_json = json.loads(backend_json)
+    assert parsed_json["id"] == "12345678-1234-5678-1234-567812345678"
+    assert parsed_json["role"] == "user"
+    assert parsed_json["content"] == "What is the capital of France?"
+
+
+def test_invalid_json_deserialization():
+    """Test handling of invalid JSON during deserialization."""
+    # Invalid JSON missing required fields
+    invalid_json = """
+    {
+        "role": "user"
+    }
+    """
+    
+    # Attempting to parse invalid JSON should raise a validation error
+    with pytest.raises(Exception):  # Pydantic will raise ValidationError
+        Message.model_validate_json(invalid_json)
+    
+    # Invalid JSON with wrong field types
+    invalid_type_json = """
+    {
+        "id": "12345678-1234-5678-1234-567812345678",
+        "role": "invalid_role",
+        "content": "Test content"
+    }
+    """
+    
+    # Attempting to parse JSON with invalid role should raise a validation error
+    with pytest.raises(Exception):  # Pydantic will raise ValidationError
+        Message.model_validate_json(invalid_type_json)
+
+
+def test_metadata_extra_fields():
+    """Test if extra fields are allowed in Metadata."""
+    # Try to create Metadata with an extra field
+    with pytest.raises(Exception):  # Should raise ValidationError because extra='forbid'
+        Metadata(page=1, _page=1, extra_field="value")
+    
+    # Create a Source with metadata that includes extra fields
+    # This should fail because Metadata has extra='forbid'
+    with pytest.raises(Exception):
+        Source(
+            id="12345678-1234-5678-1234-567812345678",
+            title="Test Source",
+            type="pdf",
+            metadata={"page": 1, "_page": 1, "extra_field": "value"}
+        )

@@ -57,6 +57,24 @@ def post_process_types(file_path):
     # 7. Replace all references to UUID with str
     content = re.sub(r'Annotated\[UUID,', 'Annotated[str,', content)
     
+    # 8. Change Metadata class to allow extra fields
+    content = re.sub(
+        r'(model_config = ConfigDict\(\s*extra=)\'forbid\'',
+        r'\1\'allow\'',
+        content
+    )
+    
+    # Alternative approach if regex doesn't work
+    lines = content.split('\n')
+    for i, line in enumerate(lines):
+        if 'class Metadata(' in line:
+            # Look for model_config in the next few lines
+            for j in range(i, min(i + 20, len(lines))):
+                if 'model_config = ConfigDict(' in lines[j] and "'forbid'" in lines[j]:
+                    lines[j] = lines[j].replace("'forbid'", "'allow'")
+                    break
+    content = '\n'.join(lines)
+    
     # Write the modified content back to the file
     with open(file_path, 'w') as f:
         f.write(content)
