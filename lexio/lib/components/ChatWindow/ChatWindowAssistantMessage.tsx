@@ -7,7 +7,7 @@ import remarkGfm from "remark-gfm";
 import "./AssistantMarkdownContent.css";
 import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline";
 import {scaleFontSize} from "../../utils/scaleFontSize.tsx";
-
+import { Feedback } from "./Feedback.tsx";
 /**
  * Props for the AssistantMarkdownContent component.
  * @typedef {Object} AssistantMarkdownContentProps
@@ -199,37 +199,42 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                     </div>
                 </div>
             )}
-            <div className="py-1 px-3.5 shadow-sm w-fit max-w-full" style={{
-                backgroundColor: style.messageBackgroundColor,
-                borderRadius: style.messageBorderRadius,
-                fontSize: style.messageFontSize,
-            }}>
-                {markdown ? (
-                    <div className={"assistant-markdown-content"}
-                         style={assistantMarkdownContentStyling}>
-                        <AssistantMarkdownContent content={message} style={style}/>
-                    </div>
-                ) : (
-                    <div className="inline whitespace-pre-wrap">
-                        {message}
+            <div className="flex flex-col">
+                <div className="py-1 px-3.5 shadow-sm w-fit max-w-full" style={{
+                    backgroundColor: style.messageBackgroundColor,
+                    borderRadius: style.messageBorderRadius,
+                    fontSize: style.messageFontSize,
+                }}>
+                    {markdown ? (
+                        <div className={"assistant-markdown-content"}
+                             style={assistantMarkdownContentStyling}>
+                            <AssistantMarkdownContent content={message} style={style}/>
+                        </div>
+                    ) : (
+                        <div className="inline whitespace-pre-wrap">
+                            {message}
+                        </div>
+                    )}
+                </div>
+                {!isStreaming && showCopy && (
+                    <div
+                        className="mt-2 flex items-center gap-2 self-end mr-3.5"
+                        style={{
+                            fontSize: style.roleLabelFontSize,
+                            lineHeight: 'normal',
+                        }}
+                    >
+                        <Feedback />
+                        <button
+                            onClick={handleCopy}
+                            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-400"
+                            aria-label={copied ? "Copied" : "Copy"}
+                        >
+                            {copied ? <ClipboardDocumentIcon className="w-4 h-4" /> : <ClipboardIcon className="w-4 h-4" />}
+                        </button>
                     </div>
                 )}
             </div>
-            {!isStreaming && showCopy && (
-                <div
-                    className="mt-2 py-1 px-2 rounded-md place-self-end"
-                    style={{
-                        fontSize: style.roleLabelFontSize,
-                        lineHeight: 'normal',
-                    }}
-                >
-                    <button
-                        onClick={handleCopy}
-                    >
-                        {copied ? "Copied!" : "Copy"}
-                    </button>
-                </div>
-            )}
         </div>
     );
 }
