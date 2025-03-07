@@ -156,11 +156,13 @@ export type Component = 'LexioProvider' |
     'ContentDisplay' |
     'SourcesDisplay' |
     'AdvancedQueryField' |
+    'MessageFeedback' |
     `QueryField-${string}` |
     `ChatWindow-${string}` |
     `ContentDisplay-${string}` |
     `SourcesDisplay-${string}` |
     `AdvancedQueryField-${string}` |
+    `MessageFeedback-${string}` |
     `CustomComponent` |
     `CustomComponent-${string}`; 
 
@@ -279,6 +281,25 @@ export type ResetFilterSourcesAction = {
 };
 
 /**
+ * Action to submit feedback for a message.
+ * 
+ * @property {string} type - The action type identifier
+ * @property {string} messageId - ID of the message receiving feedback
+ * @property {'positive' | 'negative' | null} feedback - The feedback type
+ * @property {string} [comment] - Optional comment explaining the feedback
+ * @property {string} [messageContent] - The content of the message receiving feedback (for convenience)
+ * @property {Component} source - The component that triggered the action
+ */
+export type SetMessageFeedbackAction = { 
+  type: 'SET_MESSAGE_FEEDBACK'; 
+  messageId: string;
+  feedback: 'positive' | 'negative' | null;
+  comment?: string;
+  messageContent?: string;
+  source: Component; 
+};
+
+/**
  * Union type of all possible user actions in the system.
  */
 export type UserAction = 
@@ -290,7 +311,8 @@ export type UserAction =
   | SetActiveSourcesAction     // Sets active sources
   | SetSelectedSourceAction    // Sets selected source -> viewers
   | SetFilterSourcesAction     // Sets filter for sources
-  | ResetFilterSourcesAction;  // Resets source filters
+  | ResetFilterSourcesAction   // Resets source filters
+  | SetMessageFeedbackAction;  // Sets feedback for a message
 
 // ---- UserActionResponse types -----
 /**
@@ -402,6 +424,16 @@ export interface ResetFilterSourcesActionResponse {
 }
 
 /**
+ * Response for the SET_MESSAGE_FEEDBACK action.
+ * 
+ * @interface SetMessageFeedbackActionResponse
+ * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
+ */
+export interface SetMessageFeedbackActionResponse {
+    followUpAction?: UserAction;
+}
+
+/**
  * Union type of all possible action handler responses.
  */
 export type ActionHandlerResponse =
@@ -413,7 +445,8 @@ export type ActionHandlerResponse =
     SetActiveSourcesActionResponse |
     SetSelectedSourceActionResponse |
     SetFilterSourcesActionResponse |
-    ResetFilterSourcesActionResponse;
+    ResetFilterSourcesActionResponse |
+    SetMessageFeedbackActionResponse;
 
 /**
  * Defines an action handler for a specific component.

@@ -175,3 +175,39 @@ export const useStatus = () => {
         error,
     };
 }
+
+/**
+ * Hook to submit feedback for messages.
+ * @param component - The component name to identify the source of the action.
+ * @returns An object containing functions to submit feedback.
+ */
+export const useMessageFeedback = (component: Component) => {
+    const dispatch = useSetAtom(dispatchAtom);
+
+    /**
+     * Submit feedback for a message.
+     * @param messageId - ID of the message receiving feedback
+     * @param feedback - The feedback type (positive, negative, or null to clear)
+     * @param comment - Optional comment explaining the feedback
+     * @param messageContent - Optional message content for convenience
+     */
+    const submitFeedback = (
+        messageId: string | UUID, 
+        feedback: 'positive' | 'negative' | null, 
+        comment?: string,
+        messageContent?: string
+    ) => {
+        dispatch({
+            type: 'SET_MESSAGE_FEEDBACK', 
+            messageId: messageId || '', 
+            feedback, 
+            comment, 
+            messageContent,
+            source: component
+        }, false);
+    };
+
+    return {
+        submitFeedback
+    };
+};

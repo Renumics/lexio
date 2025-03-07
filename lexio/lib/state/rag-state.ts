@@ -1,5 +1,5 @@
 import { atom } from 'jotai'
-import { ActionHandler, AddUserMessageAction, AddUserMessageActionResponse, ClearMessagesAction, ClearMessagesActionResponse, ClearSourcesAction, ClearSourcesActionResponse, ProviderConfig, ResetFilterSourcesAction, ResetFilterSourcesActionResponse, SearchSourcesAction, SearchSourcesActionResponse, SetActiveMessageAction, SetActiveMessageActionResponse, SetActiveSourcesAction, SetActiveSourcesActionResponse, SetFilterSourcesAction, SetFilterSourcesActionResponse, SetSelectedSourceAction, SetSelectedSourceActionResponse, StreamChunk, UserAction, UUID } from "../types";
+import { ActionHandler, AddUserMessageAction, AddUserMessageActionResponse, ClearMessagesAction, ClearMessagesActionResponse, ClearSourcesAction, ClearSourcesActionResponse, ProviderConfig, ResetFilterSourcesAction, ResetFilterSourcesActionResponse, SearchSourcesAction, SearchSourcesActionResponse, SetActiveMessageAction, SetActiveMessageActionResponse, SetActiveSourcesAction, SetActiveSourcesActionResponse, SetFilterSourcesAction, SetFilterSourcesActionResponse, SetMessageFeedbackAction, SetMessageFeedbackActionResponse, SetSelectedSourceAction, SetSelectedSourceActionResponse, StreamChunk, UserAction, UUID } from "../types";
 import { Message, Source } from '../types';
 
 
@@ -12,7 +12,8 @@ const allowedActionReturnValues: Record<UserAction['type'], string[]> = {
     SET_ACTIVE_SOURCES: ['followUpAction'],
     SET_SELECTED_SOURCE: ['sourceData', 'followUpAction'],
     SET_FILTER_SOURCES: ['followUpAction'],
-    RESET_FILTER_SOURCES: ['followUpAction']
+    RESET_FILTER_SOURCES: ['followUpAction'],
+    SET_MESSAGE_FEEDBACK: ['followUpAction']
 };
 
 export const configAtom = atom<ProviderConfig>({
@@ -179,8 +180,6 @@ export const addUserMessageAtom = atom(
             set(selectedSourceIdAtom, null);
             return sourcesDataWithIds;
         };
-
-        console.log('response', response);
 
         // Process the user message or streaming response independently.
         const processMessage = async () => {
@@ -637,6 +636,16 @@ export const dispatchAtom = atom(
           promises.push(Promise.resolve(result));
           break;
         }
+        case 'SET_MESSAGE_FEEDBACK': {
+          const typedAction = action as SetMessageFeedbackAction;
+          const typedResponse = payload as SetMessageFeedbackActionResponse;
+          const result = set(setMessageFeedbackAtom, {
+            action: typedAction,
+            response: typedResponse,
+          });
+          promises.push(Promise.resolve(result));
+          break;
+        }
         default:
           console.warn(`Unhandled action type: ${(action as any).type}`);
       }
@@ -708,3 +717,14 @@ class StreamTimeout {
         this.lastCheck = now;
     }
 }
+
+// Add a simple handler for SET_MESSAGE_FEEDBACK action
+const setMessageFeedbackAtom = atom(null, (_get, _set, { action, response }: {
+    action: SetMessageFeedbackAction,
+    response: SetMessageFeedbackActionResponse
+}) => {
+    console.log('setMessageFeedbackAtom', action, response);
+    // This is just a pass-through handler that logs the action
+    // The feedback is stored locally in the component's state
+    // You could add API calls here if needed
+});
