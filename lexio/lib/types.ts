@@ -33,6 +33,8 @@ export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 export interface PDFHighlight {
     /**
      * The page number where the highlight appears. Page numbers are 1-based.
+     * @TJS-type integer
+     * @minimum 1
      */
     page: number;
     /**
@@ -116,8 +118,11 @@ export interface Source {
     href?: string;
     /**
      * Optional data to display in the ContentDisplay component. This can be set initially
-     * or lazily loaded when the \`SET_SELECTED_SOURCE\` action is handled. Simply return the data 
-     * from your \`onAction()\` function as \`sourceData\` in the response.
+     * or lazily loaded when the `SET_SELECTED_SOURCE` action is handled. Simply return the data 
+     * from your `onAction()` function as `sourceData\` in the response.
+     * 
+     * @TJS-type [string, bytes]
+     * @python-type Union[str, bytes]
      */
     data?: string | Uint8Array;
     /**

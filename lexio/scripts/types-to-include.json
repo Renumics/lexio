@@ -2,6 +2,8 @@
   "typesToInclude": [
     "Message",
     "Source",
-    "StreamChunk"
+    "StreamChunk",
+    "PDFHighlight",
+    "UUID"
   ]
 }
