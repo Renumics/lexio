@@ -6,12 +6,24 @@ import {
   useRole,
   useInteractions
 } from '@floating-ui/react';
+import { useMessageFeedback } from '../../hooks/hooks';
 
-const Feedback = () => {
+// Add props to receive the message ID and content
+interface MessageFeedbackProps {
+  messageId: string;
+  messageContent: string;
+  componentKey?: string;
+}
+
+const MessageFeedback = ({ messageId, messageContent, componentKey = undefined }: MessageFeedbackProps) => {
+
   const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null);
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [comment, setComment] = useState<string>('');
   const [submitted, setSubmitted] = useState(false);
+  
+  // Use the feedback hook
+  const { submitFeedback } = useMessageFeedback(componentKey ? `MessageFeedback-${componentKey}` : 'MessageFeedback');
   
   // Refs
   const commentButtonRef = useRef<HTMLButtonElement>(null);
@@ -33,29 +45,24 @@ const Feedback = () => {
 
   const handleFeedback = (type: 'positive' | 'negative') => {
     // Toggle feedback if clicking the same button again
-    if (feedback === type) {
-      setFeedback(null);
-    } else {
-      setFeedback(type);
-    }
-    // Here you could add API calls to submit initial feedback
+    const newFeedback = feedback === type ? null : type;
+    setFeedback(newFeedback);
+    
+    // Submit feedback through the hook
+    submitFeedback(messageId, newFeedback, submitted ? comment : undefined, messageContent);
   };
 
   const handleCommentSubmit = () => {
     // If updating with an empty comment, treat as deletion
     if (submitted && !comment.trim()) {
-      console.log('Deleting comment feedback');
       setSubmitted(false);
+      // Submit feedback without comment
+      submitFeedback(messageId, feedback, undefined, messageContent);
     } else {
       // Submit the comment feedback
-      console.log({
-        initialFeedback: feedback,
-        comment
-      });
+      submitFeedback(messageId, feedback, comment, messageContent);
       setSubmitted(true);
     }
-    
-    // API call would go here
     
     setShowCommentForm(false);
   };
@@ -168,4 +175,4 @@ const Feedback = () => {
   );
 };
 
-export { Feedback };
+export { MessageFeedback };

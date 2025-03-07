@@ -96,8 +96,15 @@ const UserFeedbackComponent = () => {
           }
           
           // Handle feedback submission
-          if (action.type === 'SUBMIT_FEEDBACK') {
-            console.log('Feedback submitted:', action.feedback);
+          if (action.type === 'SET_FEEDBACK') {
+            console.log('Feedback received:', {
+              messageId: action.messageId,
+              feedback: action.feedback,
+              comment: action.comment,
+              messageContent: action.messageContent
+            });
+            
+            // You could send this to an API, analytics service, etc.
             return {};
           }
         }}

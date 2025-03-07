@@ -191,10 +191,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                   </button>
                 </div>
                 {messages.map((msg, index) => (
-                    <>
+                    <React.Fragment key={msg.id || index}>
                         {msg.role == "user" && (
                             <ChatWindowUserMessage
-                                key={index}
                                 message={msg.content}
                                 style={style}
                                 showRoleIndicator={showRoleIndicator}
@@ -204,8 +203,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                         )}
                         {msg.role == "assistant" && (
                             <ChatWindowAssistantMessage
-                                key={index}
                                 message={msg.content}
+                                messageId={msg.id}
                                 style={style}
                                 showRoleIndicator={showRoleIndicator}
                                 roleLabel={assistantLabel}
@@ -214,11 +213,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                 showCopy={showCopy}
                             />
                         )}
-                    </>
+                    </React.Fragment>
                 ))}
                 {currentStream && (
                     <ChatWindowAssistantMessage
                         key={'stream'}
+                        messageId={null}
                         message={currentStream.content}
                         style={style}
                         showRoleIndicator={showRoleIndicator}

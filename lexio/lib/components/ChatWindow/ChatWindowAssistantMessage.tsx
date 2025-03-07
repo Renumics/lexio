@@ -7,7 +7,7 @@ import remarkGfm from "remark-gfm";
 import "./AssistantMarkdownContent.css";
 import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline";
 import {scaleFontSize} from "../../utils/scaleFontSize.tsx";
-import { Feedback } from "./Feedback.tsx";
+import { MessageFeedback } from "./MessageFeedback.tsx";
 /**
  * Props for the AssistantMarkdownContent component.
  * @typedef {Object} AssistantMarkdownContentProps
@@ -126,6 +126,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({cont
  */
 interface ChatWindowAssistantMessageProps {
     message: string;
+    messageId: string | null;
     style: ChatWindowStyles;
     roleLabel: string;
     showRoleIndicator: boolean;
@@ -143,6 +144,7 @@ interface ChatWindowAssistantMessageProps {
  */
 const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                                                                                    message,
+                                                                                   messageId,
                                                                                    style,
                                                                                    roleLabel,
                                                                                    showRoleIndicator,
@@ -216,7 +218,7 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                         </div>
                     )}
                 </div>
-                {!isStreaming && showCopy && (
+                {messageId && !isStreaming && showCopy && (
                     <div
                         className="mt-2 flex items-center gap-2 self-end mr-3.5"
                         style={{
@@ -224,7 +226,7 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                             lineHeight: 'normal',
                         }}
                     >
-                        <Feedback />
+                        <MessageFeedback messageId={messageId} messageContent={message} />
                         <button
                             onClick={handleCopy}
                             className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-400"
