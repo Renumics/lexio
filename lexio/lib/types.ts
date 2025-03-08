@@ -16,6 +16,7 @@ export interface ProviderConfig {
 
 /**
  * A UUID string in the format "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx".
+ * Used as unique identifiers for messages, sources, and other entities in the system.
  */
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -77,6 +78,7 @@ export interface Message {
 /**
  * A Message type where the id property is optional.
  * Used when creating new messages where the id may be generated later.
+ * This is useful when you need to create a message object before it's added to the state.
  */
 export type MessageWithOptionalId = Partial<Pick<Message, 'id'>> & Omit<Message, 'id'>;
 
@@ -88,7 +90,7 @@ export type MessageWithOptionalId = Partial<Pick<Message, 'id'>> & Omit<Message,
  * @property {string} title - Title of the source displayed in the SourcesDisplay component
  * @property {"text" | "pdf" | "markdown" | "html"} type - Type of the source, determines how the source is displayed in the ContentDisplay component
  * @property {string} [description] - Optional description of the source displayed in SourcesDisplay
- * @property {number} [relevance] - Optional relevance score displayed as a bar in SourcesDisplay
+ * @property {number} [relevance] - Optional relevance score displayed as a bar in SourcesDisplay. Should be a value between 0 and 1.
  * @property {string} [href] - Optional link to the source
  * @property {string | Uint8Array} [data] - Optional content data of the source
  * @property {object} [metadata] - Optional metadata for the source
@@ -110,6 +112,10 @@ export interface Source {
     description?: string;
     /**
      * Relevance score of the source. It is displayed in the SourcesDisplay component as bar chart.
+     * Should be a value between 0 and 1.
+     * 
+     * @minimum 0
+     * @maximum 1
      */
     relevance?: number;
     /**
@@ -121,14 +127,18 @@ export interface Source {
      * or lazily loaded when the `SET_SELECTED_SOURCE` action is handled. Simply return the data 
      * from your `onAction()` function as `sourceData\` in the response.
      * 
+     * For PDF sources, this should be a Uint8Array containing the binary PDF data.
+     * For text, markdown, and HTML sources, this should be a string.
+     * 
      * @TJS-type [string, bytes]
      * @python-type Union[str, bytes]
      */
     data?: string | Uint8Array;
     /**
-     * key convention to hide from display _key
+     * Optional metadata associated with the source.
      *
      * If type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the SourcesDisplay component.
+     * Properties with a leading underscore (e.g., '_page') are hidden from display in the UI.
      *  
      * @remarks metadata is not used by the LexioProvider. It is shown as-is in the SourcesDisplay component. 
      * 
@@ -152,6 +162,7 @@ export interface Source {
     };
     /**
      * Highlight annotations in the PDF document. Only applicable for PDF sources.
+     * These highlights will be visually displayed in the PDF viewer.
      */
     highlights?: PDFHighlight[];
 }
@@ -160,6 +171,8 @@ export interface Source {
 /**
  * Identifies a component in the Lexio system.
  * Can be a standard component or a custom component with an optional identifier suffix.
+ * The suffix allows multiple instances of the same component type to be used in the application
+ * while maintaining separate state and handlers.
  */
 export type Component = 'LexioProvider' |
     'QueryField' |
@@ -178,6 +191,7 @@ export type Component = 'LexioProvider' |
 // Flow: action in component -> triggers wrapped user function with state props -> triggers dispatch -> manipulates state
 /**
  * Action to add a user message to the chat.
+ * This is typically triggered when a user submits a message in the QueryField component.
  * 
  * @property {string} type - The action type identifier
  * @property {string} message - The message content to add
@@ -310,10 +324,10 @@ export type UserAction =
  * To handle a NO-OP, return an empty object -> {}.
  * 
  * @interface AddUserMessageActionResponse
- * @property {Promise<string> | AsyncIterable<StreamChunk>} [response] - The assistant's response
- * @property {Promise<Source[]>} [sources] - Sources related to the message
- * @property {string} [setUserMessage] - Updated user message
- * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
+ * @property {Promise<string> | AsyncIterable<StreamChunk>} [response] - The assistant's response. Can be a Promise resolving to a string or an AsyncIterable for streaming responses.
+ * @property {Promise<Source[]>} [sources] - Sources related to the message. These will be displayed in the SourcesDisplay component.
+ * @property {string} [setUserMessage] - Updated user message. Can be used to modify the user's message before it's added to the chat.
+ * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes. Useful for chaining actions.
  */
 export interface AddUserMessageActionResponse {
     response?: Promise<string> | AsyncIterable<StreamChunk>;
@@ -380,10 +394,11 @@ export interface SetActiveSourcesActionResponse {
 
 /**
  * Response for the SET_SELECTED_SOURCE action.
+ * This response is used when a source is selected in the SourcesDisplay component.
  * 
  * @interface SetSelectedSourceActionResponse
- * @property {string | null} [selectedSourceId] - ID of the selected source
- * @property {Promise<string | Uint8Array>} [sourceData] - Data for the selected source
+ * @property {string | null} [selectedSourceId] - ID of the selected source. Set to null to deselect.
+ * @property {Promise<string | Uint8Array>} [sourceData] - Data for the selected source. This will be displayed in the ContentDisplay component.
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface SetSelectedSourceActionResponse {
@@ -435,6 +450,16 @@ export type ActionHandlerResponse =
  */
 export type ActionHandler = {
     component: Component;
+    /**
+     * Handler function that processes actions and returns responses.
+     * 
+     * @param {UserAction} actionHandlerFunction - The action to handle
+     * @param {Message[]} messages - Current messages in the conversation
+     * @param {Source[]} sources - Available sources
+     * @param {Source[] | null} activeSources - Currently active sources, if any
+     * @param {Source | null} selectedSource - Currently selected source, if any
+     * @returns {ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined | Promise<undefined>} - Response to the action
+     */
     handler: (
         actionHandlerFunction: UserAction,
         messages: Message[],
@@ -446,10 +471,11 @@ export type ActionHandler = {
 
 /**
  * Represents a chunk of streamed content.
+ * Used for streaming responses from the assistant in real-time.
  * 
  * @interface StreamChunk
  * @property {string} [content] - Text content in this chunk
- * @property {Source[]} [sources] - Sources related to this chunk
- * @property {boolean} [done] - Indicates if this is the final chunk
+ * @property {Source[]} [sources] - Sources related to this chunk that can be displayed alongside the content
+ * @property {boolean} [done] - Indicates if this is the final chunk in the stream
  */
 export type StreamChunk = { content?: string; sources?: Source[]; done?: boolean; };

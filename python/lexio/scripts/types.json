@@ -67,7 +67,9 @@
           "title": "description"
         },
         "relevance": {
-          "description": "Relevance score of the source. It is displayed in the SourcesDisplay component as bar chart.",
+          "description": "Relevance score of the source. It is displayed in the SourcesDisplay component as bar chart.\nShould be a value between 0 and 1.",
+          "minimum": 0,
+          "maximum": 1,
           "type": "number",
           "title": "relevance"
         },
@@ -77,17 +79,17 @@
           "title": "href"
         },
         "data": {
-          "description": "Optional data to display in the ContentDisplay component. This can be set initially\nor lazily loaded when the `SET_SELECTED_SOURCE` action is handled. Simply return the data \nfrom your `onAction()` function as `sourceData\\` in the response.",
+          "description": "Optional data to display in the ContentDisplay component. This can be set initially\nor lazily loaded when the `SET_SELECTED_SOURCE` action is handled. Simply return the data \nfrom your `onAction()` function as `sourceData\\` in the response.\n\nFor PDF sources, this should be a Uint8Array containing the binary PDF data.\nFor text, markdown, and HTML sources, this should be a string.",
           "type": "[string, bytes]",
           "title": "data"
         },
         "metadata": {
-          "description": "key convention to hide from display _key\n\nIf type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the SourcesDisplay component.",
+          "description": "Optional metadata associated with the source.\n\nIf type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the SourcesDisplay component.\nProperties with a leading underscore (e.g., '_page') are hidden from display in the UI.",
           "type": "object",
           "title": "metadata"
         },
         "highlights": {
-          "description": "Highlight annotations in the PDF document. Only applicable for PDF sources.",
+          "description": "Highlight annotations in the PDF document. Only applicable for PDF sources.\nThese highlights will be visually displayed in the PDF viewer.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/PDFHighlight"
@@ -115,7 +117,7 @@
       ]
     },
     "StreamChunk": {
-      "description": "Represents a chunk of streamed content.",
+      "description": "Represents a chunk of streamed content.\nUsed for streaming responses from the assistant in real-time.",
       "type": "object",
       "properties": {
         "content": {
@@ -207,7 +209,7 @@
       ]
     },
     "UUID": {
-      "description": "A UUID string in the format \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\".",
+      "description": "A UUID string in the format \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\".\nUsed as unique identifiers for messages, sources, and other entities in the system.",
       "title": "UUID",
       "type": "string",
       "pattern": "^.*-.*-.*-.*-.*$"
