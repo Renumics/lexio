@@ -4,7 +4,7 @@ This file is auto-generated. Do not edit directly.
 
 Generated from:
   source:    lexio.types
-  timestamp: 2025-03-08T12:02:39+00:00
+  timestamp: 2025-03-10T09:00:20+00:00
 """
 
 from lexio.types import (
