@@ -68,8 +68,13 @@ Please answer the query based on the reference documents above."""
     input_text = tokenizer.apply_chat_template(formatted_messages, tokenize=False)
     inputs = tokenizer.encode(input_text, return_tensors="pt").to(device)
 
-    # 2) Create the streamer (handles partial text as tokens arrive)
-    streamer = TextIteratorStreamer(tokenizer, skip_prompt=True)
+    # 2) Create the streamer with skip_prompt and skip_special_tokens
+    streamer = TextIteratorStreamer(
+        tokenizer, 
+        skip_prompt=True,
+        skip_special_tokens=True,
+        timeout=10.0
+    )
 
     # 3) Define a thread function that does generation
     def run_generation():

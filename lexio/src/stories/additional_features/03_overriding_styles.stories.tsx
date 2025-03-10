@@ -1,19 +1,21 @@
 import type {Meta, StoryObj} from '@storybook/react';
 import {useEffect} from 'react';
 import {
-    RAGProvider,
+    LexioProvider,
     ChatWindow,
     AdvancedQueryField,
     SourcesDisplay,
     ContentDisplay,
-    useRAGSources, Message, useRAGMessages
-} from '../../lib/main';
-import type {GetDataSourceResponse, SourceReference} from '../../lib/main';
-import {ChatWindowStyles} from "../../lib/components/ChatWindow/ChatWindow.tsx";
+    useSources, 
+    Message, 
+    useMessages,
+    Source,
+    UserAction
+} from '../../../lib/main';
 
 // Base layout component for consistent story presentation
 const BaseLayout = ({children}: { children: React.ReactNode }) => (
-    <div style={{width: '100%', maxWidth: '1200px', height: '800px', margin: '0 auto'}}>
+    <div style={{width: '100%', maxWidth: '1200px', height: '1000px', margin: '0 auto'}}>
         {children}
     </div>
 );
@@ -27,6 +29,7 @@ interface SharedLayoutProps {
         secondaryBackgroundColor?: string;
         metadataTagBackground?: string;
         sourceTypeBackground?: string;
+        fontSize?: string;
     };
 }
 
@@ -36,7 +39,7 @@ const SharedLayout = ({styleOverrides}: SharedLayoutProps) => (
         display: 'grid',
         height: '100%',
         gridTemplateColumns: '3fr 1fr',
-        gridTemplateRows: '1fr auto 300px',
+        gridTemplateRows: '1fr auto 400px',
         gap: '20px',
         gridTemplateAreas: `
       "chat sources"
@@ -53,7 +56,7 @@ const SharedLayout = ({styleOverrides}: SharedLayoutProps) => (
         <div style={{gridArea: 'sources', minHeight: 0, overflow: 'auto'}}>
             <SourcesDisplay styleOverrides={styleOverrides} />
         </div>
-        <div style={{gridArea: 'viewer', height: '300px'}}>
+        <div style={{gridArea: 'viewer', height: '400px'}}>
             <ContentDisplay/>
         </div>
     </div>
@@ -62,60 +65,79 @@ const SharedLayout = ({styleOverrides}: SharedLayoutProps) => (
 // Mock data and functions
 const SAMPLE_MESSAGES: Message[] = [
     {
+        id: crypto.randomUUID(),
         role: 'user',
         content: 'What is RAG?',
     },
 ];
 
+// Fetch a sample PDF from a URL
+const fetchSamplePDF = async (): Promise<Uint8Array> => {
+  try {
+    // URL to a sample PDF from GitHub (this worked before)
+    const pdfUrl = 'https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf';
+    
+    const response = await fetch(pdfUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
+  } catch (error) {
+    console.error('Error fetching PDF:', error);
+    // Fallback to minimal PDF header if fetch fails
+    return new Uint8Array([37, 80, 68, 70, 45, 49, 46, 53, 10]); // "%PDF-1.5" header
+  }
+};
+
+const SAMPLE_SOURCES: [] = [
+    {
+        title: "Example PDF",
+        type: "pdf",
+        relevance: 0.95,
+        metadata: {
+            title: "Understanding RAG Systems",
+            page: 2,
+        },
+    },
+    {
+        title: "Best Practices",
+        type: "html",
+        relevance: 0.82,
+        metadata: {
+            type: "Tips",
+            lastUpdated: "2024-03-20"
+        },
+        data: `<div class="content">
+      <h2>Quick Tips</h2>
+      <ul>
+        <li>Always validate your data sources</li>
+        <li>Monitor retrieval performance</li>
+        <li>Keep your knowledge base updated</li>
+      </ul>
+    </div>`
+    }
+];
+
 const DataLoader = () => {
-    const {addMessage} = useRAGMessages();
-    const {setActiveSourceIndex, sources} = useRAGSources();
+    const {addUserMessage} = useMessages('LexioProvider');
+    const {setActiveSources, sources} = useSources('LexioProvider');
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            addMessage(SAMPLE_MESSAGES[0]);
+            addUserMessage(SAMPLE_MESSAGES[0].content);
         }, 0);
         return () => clearTimeout(timer);
     }, []);
 
     useEffect(() => {
-        setActiveSourceIndex(0);
+        if (sources.length > 0) {
+            setActiveSources([sources[0].id]);
+        }
     }, [sources]);
 
     return null;
-};
-
-const getSourcesAndResponse = () => {
-    return {
-        sources: Promise.resolve([
-            {
-                sourceReference: "example.pdf",
-                sourceName: "RAG Whitepaper",
-                type: "pdf" as const,
-                relevanceScore: 0.95,
-                metadata: {
-                    title: "Understanding RAG Systems",
-                    page: 1,
-                    author: "Research Team"
-                },
-            }
-        ]),
-        response: Promise.resolve("I've found relevant information about RAG systems...")
-    };
-};
-
-const getDataSource = (source: SourceReference): GetDataSourceResponse => {
-    if (source.type === 'pdf') {
-        return fetch('https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf')
-            .then(response => response.arrayBuffer())
-            .then(buffer => ({
-                type: 'pdf',
-                content: new Uint8Array(buffer),
-                metadata: source.metadata,
-                highlights: source.highlights
-            }));
-    }
-    return Promise.reject(new Error('Unsupported type'));
 };
 
 interface StyleOverridesExampleProps {
@@ -125,10 +147,38 @@ interface StyleOverridesExampleProps {
 const StyleOverridesExample = ({ styleOverrides }: StyleOverridesExampleProps) => {
     return (
         <BaseLayout>
-            <RAGProvider retrieveAndGenerate={getSourcesAndResponse} getDataSource={getDataSource}>
+            <LexioProvider onAction={(
+                action: UserAction,
+                messages: Message[],
+                sources: Source[],
+                activeSources: Source[],
+                selectedSource: Source | null
+            ) => {
+                if (action.type === 'ADD_USER_MESSAGE' && messages.length === 0) {
+                    return {
+                        response: Promise.resolve("RAG is a technology that allows you to search for information in a database of documents."),
+                        sources: Promise.resolve(SAMPLE_SOURCES)
+                    }
+                } else if (action.type === 'ADD_USER_MESSAGE' && messages.length > 0) {
+                    return {
+                        response: Promise.resolve("I am sorry, I don't know the answer to that question."),
+                    }
+                }
+                if (action.type === 'SET_SELECTED_SOURCE') {
+                    if (action.sourceObject?.type === 'pdf') {
+                        return {
+                            sourceData: fetchSamplePDF()
+                        }
+                    } else {
+                        return {
+                            sourceData: Promise.resolve(action.sourceObject?.data)
+                        }
+                    }
+                }
+            }}>
                 <DataLoader />
                 <SharedLayout styleOverrides={styleOverrides} />
-            </RAGProvider>
+            </LexioProvider>
         </BaseLayout>
     );
 };
@@ -136,27 +186,27 @@ const StyleOverridesExample = ({ styleOverrides }: StyleOverridesExampleProps) =
 type Story = StoryObj<typeof StyleOverridesExample>;
 
 const meta = {
-    title: 'Tutorial/10. Style Overrides',
+    title: 'Additional Features/ Component Style Overrides',
     component: StyleOverridesExample,
     parameters: {
         layout: 'centered',
         docs: {
             description: {
                 component: `
-# Component Style Overrides
+## Introduction
 
 While theming provides a way to customize the global appearance of your UI components, sometimes you need more fine-grained control over individual components. Each component in the \`Lexio\` library accepts a \`styleOverrides\` prop that allows you to customize its appearance. 
 Each component has its own set of style properties that can be overridden. Refer to the interfaces of each component for available options.
 
 Components that support style overrides:
-- ChatWindow -> ChatWindowStyles
-- AdvancedQueryField -> AdvancedQueryFieldStyles
-- SourcesDisplay -> SourcesDisplayStyles
-- QueryField -> QueryFieldStyles
-- ContentDisplay -> ContentDisplayStyles
-- PDFViewer -> PdfViewerStyles
-- HTMLViewer -> HtmlViewerStyles
-- ViewerToolbar -> ViewerToolbarStyles
+- ChatWindow: ChatWindowStyles
+- QueryField: QueryFieldStyles
+- AdvancedQueryField: AdvancedQueryFieldStyles
+- SourcesDisplay: SourcesDisplayStyles
+- ContentDisplay: ContentDisplayStyles
+- PDFViewer: PdfViewerStyles
+- HTMLViewer: HtmlViewerStyles
+- ViewerToolbar: ViewerToolbarStyles
 
 #### Example: ChatWindow and ChatWindowStyles
 
@@ -188,6 +238,7 @@ const styleOverrides = {
     activeSourceBorderColor: '#4a90e2',
     metadataTagBackground: '#edf2f7',
     sourceTypeBackground: '#ebf5ff',
+    fontSize: '0.9rem',
 }
 
 // pass the styleOverrides object to the SourcesDisplay component
@@ -220,6 +271,7 @@ export const Docs: Story = {
             activeSourceBorderColor: '#00acc1',
             metadataTagBackground: '#b3e5fc',
             sourceTypeBackground: '#e1f5fe',
+            fontSize: '0.9rem',
         },
     },
 };

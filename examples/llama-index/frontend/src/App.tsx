@@ -1,175 +1,171 @@
 import './App.css'
 import {
-    QueryField,
     ChatWindow,
-    RAGProvider,
-    RetrieveAndGenerateResponse,
-    RetrievalResult,
-    SourceContent,
-    SourcesDisplay,
-    ErrorDisplay,
-    GetDataSourceResponse,
-    SourceReference,
-    ContentDisplay,
-    Message,
-    AdvancedQueryField
+    LexioProvider,
+    createTheme,
+    SourcesDisplay, ContentDisplay, AdvancedQueryField,
+    ErrorDisplay, AddUserMessageActionResponse,SetSelectedSourceActionResponse, UserAction, Message, Source
 } from 'lexio'
-import { GenerateInput, GenerateStreamChunk } from 'lexio'
+import React from 'react'
+
+const customTheme = createTheme({
+    colors: {
+        primary: '#1E88E5',
+        secondary: '#64B5F6'
+    }
+});
+
 
 function App() {
-    const retrieveAndGenerate = (input: GenerateInput): RetrieveAndGenerateResponse => {
-        const apiPromise = new Promise<{ sources: SourceReference[]; content: string }>(
-          async (resolve, reject) => {
-            try {
-              const question = input[input.length - 1].content
-              const response = await fetch(`http://localhost:8000/query?messages=${question}`)
-    
-              if (!response.ok) {
-                throw new Error(`Failed to fetch response: ${response.statusText}`)
-              }
-    
-              const data = await response.json()
-    
-              // Log the data to inspect its structure
-              console.log('Fetched data:', data)
-    
-              // Assuming `data` is structured to match SourceReference        
+    const [interactionCount, setInteractionCount] = React.useState(0);
 
-            const sources: SourceReference[] = data.source_nodes.map((doc: any) => ({
-                type: 'pdf', // or derive from doc if available
-                relevanceScore: doc.score,
-                sourceReference: doc.node.extra_info.file_name,
-                highlights: [{
-                    page: doc.node.extra_info.bounding_box.page_number,
-                    rect: {
-                        left: doc.node.extra_info.bounding_box.x0,
-                        top: doc.node.extra_info.bounding_box.top,
-                        width: doc.node.extra_info.bounding_box.x1 - doc.node.extra_info.bounding_box.x0,
-                        height: doc.node.extra_info.bounding_box.bottom - doc.node.extra_info.bounding_box.top
+    const handleAction = React.useCallback((
+        action: UserAction, 
+        _messages: Message[], 
+        sources: Source[], 
+        _activeSources: Source[], 
+        _selectedSource: Source | null
+    ): SetSelectedSourceActionResponse| AddUserMessageActionResponse| undefined => {
+        if (action.type === 'ADD_USER_MESSAGE') {
+            setInteractionCount(prev => prev + 1);
+            
+        
+
+            //////
+            const apiPromise = new Promise<{ sources: Source[]; content: string }>(
+                async (resolve, reject) => {
+                try {
+                    const question = action.message
+                    const response = await fetch(`http://localhost:8000/query?messages=${question}`)
+        
+                    if (!response.ok) {
+                    throw new Error(`Failed to fetch response: ${response.statusText}`)
                     }
-                }],
-                //metadata: doc.metadata,
-              }))
+        
+                    const data = await response.json()
+        
+                    // Log the data to inspect its structure
+                    console.log('Fetched data:', data)
+        
+                    // Assuming `data` is structured to match Source        
+        
+                const sources: Source[] = data.source_nodes.map((doc: any) => ({
+                    type: 'pdf', // or derive from doc if available
+                    title: doc.node.extra_info.file_name,
+                    relevanceScore: doc.score,
+                    Source: doc.node.extra_info.file_name,
+                    highlights: [{
+                        page: doc.node.extra_info.bounding_box.page_number,
+                        rect: {
+                            left: doc.node.extra_info.bounding_box.x0,
+                            top: doc.node.extra_info.bounding_box.top,
+                            width: doc.node.extra_info.bounding_box.x1 - doc.node.extra_info.bounding_box.x0,
+                            height: doc.node.extra_info.bounding_box.bottom - doc.node.extra_info.bounding_box.top
+                        }
+                    }],
+                    //metadata: doc.metadata,
+                    }))
+        
+                    console.log('sources', sources)
+        
+                    resolve({
+                    sources: sources,
+                    content: data.response,
+                    })
+                } catch (error) {
+                    reject(error)
+                }
+                }
+            )
+        
+            const sourcesPromise = apiPromise.then((result) => result.sources)
+            const responsePromise = apiPromise.then((result) => result.content)
+            
+            // log results of promises
+            console.log('sourcesPromise', sourcesPromise)
+            console.log('responsePromise', responsePromise)
 
-              console.log('sources', sources)
-    
-              resolve({
-                sources: sources,
-                content: data.response,
-              })
-            } catch (error) {
-              reject(error)
+
+            return {
+                response: responsePromise,
+                sources: sourcesPromise
+            } 
+        }    
+
+        if (action.type === 'SET_SELECTED_SOURCE') {
+            const source = sources.find(source => source.id === action.sourceId)
+            if (source) {
+                console.log('loading source', source)
+                let url: string;
+                url = `http://localhost:8000/getDataSource?source_reference=${source.title}`;
+        
+                const apiPromise = new Promise<Uint8Array>(
+                    async (resolve, reject) => {
+                        try {
+                            const response = await fetch(url);
+                            if (!response.ok) {
+                                throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
+                            }
+                            const data = await response.arrayBuffer()
+                            source.data = new Uint8Array(data)
+                            console.log('data', data)
+                            resolve(new Uint8Array(data))  
+                        } catch (error) {
+                            reject(error)
+                        }
+                    }
+                )
+
+                const sourcesPromise = apiPromise.then((result) => result)
+                // ensure promise is resolved
+                sourcesPromise.then(() => {
+                    console.log('source loaded', source)
+                })
+                return {
+                    sourceData: sourcesPromise
+                }
             }
-          }
-        )
-    
-        const sourcesPromise = apiPromise.then((result) => result.sources)
-        const responsePromise = apiPromise.then((result) => result.content)
-    
-        return {
-          sources: sourcesPromise,
-          response: responsePromise,
-        }
-      }
-    
-      const getDataSource = async (source: SourceReference): Promise<SourceContent> => {
-        let url: string;
-        url = `http://localhost:8000/getDataSource?source_reference=${source.sourceReference}`;
-
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to get data source. HTTP Status: ${response.status} ${response.statusText}`);
         }
 
-        if (source.type === "html") {
-            const text = await response.text();
-            const htmlContent: HTMLSourceContent = {
-                type: 'html',
-                content: `<div class="source-content">${text}</div>`,
-                metadata: source.metadata || {}
-            };
-            return htmlContent;
-        } else if (source.type === "markdown") {
-            const text = await response.text();
-            const markdownContent: MarkdownSourceContent = {
-                type: 'markdown',
-                content: text,
-                metadata: source.metadata || {}
-            };
-            return markdownContent
-        } else if (source.type === "pdf") {
-            const arrayBuffer = await response.arrayBuffer();
-            console.log('source.highlights', source.highlights)
-            const pdfContent: PDFSourceContent = {
-                type: 'pdf',
-                content: new Uint8Array(arrayBuffer),
-                metadata: source.metadata || {},
-                highlights: source.highlights || []
-            };
-            return pdfContent;
+
+
+        // Handle search sources action
+        if (action.type === 'SEARCH_SOURCES') {
+            return { sources: Promise.resolve<Source[]>(mockSources) }
         }
 
-        throw new Error("Invalid source type");
-    };
-
-
+        return undefined;
+    }, [interactionCount]);
 
     return (
-      <div style={{ 
-          width: '100%', 
-          height: '100vh', 
-          padding: '10px',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          margin: 0
-      }}>
-          <h1>RAG UI</h1>
-            <RAGProvider
-                retrieve={() => {}}
-                retrieveAndGenerate={retrieveAndGenerate}
-                generate={() => {}}
-                getDataSource={getDataSource}
-                config={{
-                    timeouts: {
-                        stream: 10000,
-                        request: 60000
-                    }
-                }}
-                // onAddMessage={() => {
-                //     return {
-                //         type: 'reretrieve',
-                //         preserveHistory: false
-                //     }
-                // }}
-            >
-                <div style={{ 
-                    display: 'grid',
-                    height: 'calc(100vh - 80px)',
-                    gridTemplateColumns: '2fr 1fr 2fr',
-                    gridTemplateRows: '1fr auto',
-                    gap: '20px',
-                    gridTemplateAreas: `
-                        "chat sources viewer"
-                        "input sources viewer"
-                    `
-                }}>
-                    <div style={{ gridArea: 'chat', minHeight: 0, overflow: 'auto' }}>
-                        <ChatWindow />
+        <div style={{width: '100%', height: '100vh'}}>
+            {/* Main Content */}
+            <div className="w-full h-full max-w-7xl mx-auto flex flex-row gap-4 p-5">
+                <LexioProvider
+                    onAction={handleAction}
+                    theme={customTheme}
+                >
+                    {/* Left side: Chat and Query */}
+                    <div className="flex flex-col h-full w-1/3">
+                        <div className="flex-none"> {/* Changed from shrink-0 */}
+                            <AdvancedQueryField />
+                        </div>
+                        <div className="flex-1 min-h-0"> {/* Added min-h-0 and flex-1 */}
+                            <ChatWindow />
+                        </div>
                     </div>
-                    <div style={{ gridArea: 'input' }}>
-                        <AdvancedQueryField />
+
+                    <div className="h-full w-1/3"> {/* Query field */}
+                       <SourcesDisplay />
                     </div>
-                    <div style={{ gridArea: 'sources', minHeight: 0, overflow: 'auto' }}>
-                        <SourcesDisplay />
-                    </div>
-                    <div style={{ gridArea: 'viewer', minHeight: 0, overflow: 'auto' }}>
+                    <div className={"h-full w-1/3"}>
                         <ContentDisplay />
                     </div>
-                </div>
-                <ErrorDisplay />
-            </RAGProvider>
+                    <ErrorDisplay />
+                </LexioProvider>
+            </div>
         </div>
-    );
+    )
 }
 
-export default App;
+export default App

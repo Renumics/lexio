@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import {
     ChatWindow,
-    RAGProvider,
+    LexioProvider,
     SourcesDisplay,
     ContentDisplay,
     AdvancedQueryField,
@@ -135,7 +135,7 @@ function App() {
     // 4) Provide the SSE connector and the REST content source to the RAGProvider
     return (
         <div className="app-container">
-            <RAGProvider
+            <LexioProvider
                 onAction={onAction}
                 config={{
                     timeouts: {
@@ -207,7 +207,7 @@ function App() {
                 </div>
                 {/* Handle any encountered errors */}
                 <ErrorDisplay />
-            </RAGProvider>
+            </LexioProvider>
         </div>
     );
 }

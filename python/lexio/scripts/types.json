@@ -1,82 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
-    "RetrievalResult": {
-      "title": "RetrievalResult",
-      "anyOf": [
-        {
-          "$ref": "#/definitions/SourceReference"
-        },
-        {
-          "$ref": "#/definitions/TextContent"
-        }
-      ]
-    },
-    "BaseSourceContent": {
-      "description": "Base interface for all source content types.",
-      "title": "BaseSourceContent",
-      "type": "object",
-      "properties": {
-        "metadata": {
-          "$ref": "#/definitions/Record",
-          "description": "Optional metadata associated with the content. Can be used to store additional information.",
-          "title": "metadata"
-        }
-      },
-      "defaultProperties": [],
-      "additionalProperties": false,
-      "propertyOrder": [
-        "metadata"
-      ]
-    },
-    "BaseRetrievalResult": {
-      "description": "Base interface for all retrieval results, providing common properties.",
-      "title": "BaseRetrievalResult",
-      "type": "object",
-      "properties": {
-        "sourceName": {
-          "description": "Optional name of the source document. If not provided, the source reference will be used.",
-          "type": "string",
-          "title": "sourceName"
-        },
-        "relevanceScore": {
-          "description": "Optional score indicating relevance to the query. Scores must be in the range [0, 1].",
-          "minimum": 0,
-          "maximum": 1,
-          "type": "number",
-          "title": "relevanceScore"
-        },
-        "metadata": {
-          "description": "Optional metadata associated with the result. Can be used to store additional information.",
-          "type": "object",
-          "additionalProperties": "{{ type: \"any\" }}",
-          "title": "metadata"
-        },
-        "highlights": {
-          "description": "Optional array of PDF highlights. Only used for PDF source references.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/PDFHighlight"
-          },
-          "title": "highlights"
-        }
-      },
-      "defaultProperties": [],
-      "additionalProperties": false,
-      "propertyOrder": [
-        "sourceName",
-        "relevanceScore",
-        "metadata",
-        "highlights"
-      ]
-    },
     "Message": {
-      "description": "Represents a single message in a conversation between a user and an assistant.",
+      "description": "Represents a chat message in the conversation.",
       "title": "Message",
       "type": "object",
       "properties": {
+        "id": {
+          "$ref": "#/definitions/UUID",
+          "title": "id"
+        },
         "role": {
-          "description": "The role of the message sender.\nCan be either \"user\" for user messages or \"assistant\" for AI responses.",
           "enum": [
             "assistant",
             "user"
@@ -85,7 +19,6 @@
           "title": "role"
         },
         "content": {
-          "description": "The actual text content of the message.",
           "type": "string",
           "title": "content"
         }
@@ -93,54 +26,70 @@
       "defaultProperties": [],
       "additionalProperties": false,
       "propertyOrder": [
+        "id",
         "role",
         "content"
       ],
       "required": [
         "content",
+        "id",
         "role"
       ]
     },
-    "SourceReference": {
-      "description": "Represents a reference to a source document.",
-      "title": "SourceReference",
+    "Source": {
+      "description": "Represents a source of information that can be displayed and referenced.",
+      "title": "Source",
       "type": "object",
       "properties": {
+        "id": {
+          "$ref": "#/definitions/UUID",
+          "title": "id"
+        },
+        "title": {
+          "description": "Title of the source displayed in the SourcesDisplay component.",
+          "type": "string",
+          "title": "title"
+        },
         "type": {
-          "description": "The type of the source document. Can be either \"pdf\", \"html\", or \"markdown\".",
+          "description": "Type of the source, used to determine the type of data to display in the ContentDisplay component.",
           "enum": [
             "html",
             "markdown",
-            "pdf"
+            "pdf",
+            "text"
           ],
           "type": "string",
           "title": "type"
         },
-        "sourceReference": {
-          "description": "Reference identifier for the source. This can be everything from a URL, over a unique identifier to a database key and must be handled by the user in the getDataSource function.",
+        "description": {
+          "description": "Description of the source displayed in the SourcesDisplay component if provided.",
           "type": "string",
-          "title": "sourceReference"
+          "title": "description"
         },
-        "metadata": {
-          "description": "Optional metadata associated with the result. Can be used to store additional information.\nFor PDF documents, you can provide a `page` property to make the PdfViewer display that specific page.\nPage numbers are 1-based.",
-          "type": "object",
-          "additionalProperties": "{{ type: \"any\" }}",
-          "title": "metadata"
-        },
-        "sourceName": {
-          "description": "Optional name of the source document. If not provided, the source reference will be used.",
-          "type": "string",
-          "title": "sourceName"
-        },
-        "relevanceScore": {
-          "description": "Optional score indicating relevance to the query. Scores must be in the range [0, 1].",
+        "relevance": {
+          "description": "Relevance score of the source. It is displayed in the SourcesDisplay component as bar chart.\nShould be a value between 0 and 1.",
           "minimum": 0,
           "maximum": 1,
           "type": "number",
-          "title": "relevanceScore"
+          "title": "relevance"
+        },
+        "href": {
+          "description": "Optional href to display a link to the source in the SourcesDisplay component.",
+          "type": "string",
+          "title": "href"
+        },
+        "data": {
+          "description": "Optional data to display in the ContentDisplay component. This can be set initially\nor lazily loaded when the `SET_SELECTED_SOURCE` action is handled. Simply return the data \nfrom your `onAction()` function as `sourceData\\` in the response.\n\nFor PDF sources, this should be a Uint8Array containing the binary PDF data.\nFor text, markdown, and HTML sources, this should be a string.",
+          "type": "[string, bytes]",
+          "title": "data"
+        },
+        "metadata": {
+          "description": "Optional metadata associated with the source.\n\nIf type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the SourcesDisplay component.\nProperties with a leading underscore (e.g., '_page') are hidden from display in the UI.",
+          "type": "object",
+          "title": "metadata"
         },
         "highlights": {
-          "description": "Optional array of PDF highlights. Only used for PDF source references.",
+          "description": "Highlight annotations in the PDF document. Only applicable for PDF sources.\nThese highlights will be visually displayed in the PDF viewer.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/PDFHighlight"
@@ -151,185 +100,48 @@
       "defaultProperties": [],
       "additionalProperties": false,
       "propertyOrder": [
+        "id",
+        "title",
         "type",
-        "sourceReference",
-        "metadata",
-        "sourceName",
-        "relevanceScore",
-        "highlights"
-      ],
-      "required": [
-        "sourceReference"
-      ]
-    },
-    "TextContent": {
-      "description": "Represents extracted text content from a source.",
-      "title": "TextContent",
-      "type": "object",
-      "properties": {
-        "text": {
-          "description": "The content of the RetrievalResult. If you are using the ComponentDisplay component, the text will be displayed with the **MarkdownViewer** component.",
-          "type": "string",
-          "title": "text"
-        },
-        "sourceName": {
-          "description": "Optional name of the source document. If not provided, the source reference will be used.",
-          "type": "string",
-          "title": "sourceName"
-        },
-        "relevanceScore": {
-          "description": "Optional score indicating relevance to the query. Scores must be in the range [0, 1].",
-          "minimum": 0,
-          "maximum": 1,
-          "type": "number",
-          "title": "relevanceScore"
-        },
-        "metadata": {
-          "description": "Optional metadata associated with the result. Can be used to store additional information.",
-          "type": "object",
-          "additionalProperties": "{{ type: \"any\" }}",
-          "title": "metadata"
-        },
-        "highlights": {
-          "description": "Optional array of PDF highlights. Only used for PDF source references.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/PDFHighlight"
-          },
-          "title": "highlights"
-        }
-      },
-      "defaultProperties": [],
-      "additionalProperties": false,
-      "propertyOrder": [
-        "text",
-        "sourceName",
-        "relevanceScore",
+        "description",
+        "relevance",
+        "href",
+        "data",
         "metadata",
         "highlights"
       ],
       "required": [
-        "text"
-      ]
-    },
-    "MarkdownSourceContent": {
-      "description": "Represents Markdown source content.",
-      "title": "MarkdownSourceContent",
-      "type": "object",
-      "properties": {
-        "content": {
-          "description": "The Markdown content as a string.",
-          "type": "string",
-          "title": "content"
-        },
-        "type": {
-          "description": "Must be \"markdown\". Indicates this is Markdown content.",
-          "default": "markdown",
-          "type": "string",
-          "const": "markdown",
-          "title": "type"
-        },
-        "metadata": {
-          "$ref": "#/definitions/Record",
-          "description": "Optional metadata associated with the content. Can be used to store additional information.",
-          "title": "metadata"
-        }
-      },
-      "defaultProperties": [],
-      "additionalProperties": false,
-      "propertyOrder": [
-        "content",
-        "type",
-        "metadata"
-      ],
-      "required": [
-        "content",
+        "id",
+        "title",
         "type"
       ]
     },
-    "HTMLSourceContent": {
-      "description": "Represents HTML source content.",
-      "title": "HTMLSourceContent",
+    "StreamChunk": {
+      "description": "Represents a chunk of streamed content.\nUsed for streaming responses from the assistant in real-time.",
       "type": "object",
       "properties": {
         "content": {
-          "description": "The HTML content as a string.",
           "type": "string",
           "title": "content"
         },
-        "type": {
-          "description": "Must be \"html\". Indicates this is HTML content.",
-          "default": "html",
-          "type": "string",
-          "const": "html",
-          "title": "type"
-        },
-        "metadata": {
-          "$ref": "#/definitions/Record",
-          "description": "Optional metadata associated with the content. Can be used to store additional information.",
-          "title": "metadata"
-        }
-      },
-      "defaultProperties": [],
-      "additionalProperties": false,
-      "propertyOrder": [
-        "content",
-        "type",
-        "metadata"
-      ],
-      "required": [
-        "content",
-        "type"
-      ]
-    },
-    "PDFSourceContent": {
-      "description": "Represents PDF source content.",
-      "title": "PDFSourceContent",
-      "type": "object",
-      "properties": {
-        "content": {
-          "$ref": "#/definitions/Uint8Array",
-          "description": "The binary PDF content.",
-          "title": "content"
-        },
-        "type": {
-          "description": "Must be \"pdf\". Indicates this is PDF content.",
-          "default": "pdf",
-          "type": "string",
-          "const": "pdf",
-          "title": "type"
-        },
-        "highlights": {
-          "description": "Optional array of highlights in the PDF.",
+        "sources": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/PDFHighlight"
+            "$ref": "#/definitions/Source"
           },
-          "title": "highlights"
+          "title": "sources"
         },
-        "page": {
-          "description": "The page number to display when rendering the PDF. Page numbers are 1-based. If not provided, the PdfViewer will set the default page number based on the highlights (if no highlights are provided, the first page will be displayed).",
-          "type": "number",
-          "title": "page"
-        },
-        "metadata": {
-          "$ref": "#/definitions/Record",
-          "description": "Optional metadata associated with the content. Can be used to store additional information.",
-          "title": "metadata"
+        "done": {
+          "type": "boolean",
+          "title": "done"
         }
       },
       "defaultProperties": [],
       "additionalProperties": false,
       "propertyOrder": [
         "content",
-        "type",
-        "highlights",
-        "page",
-        "metadata"
-      ],
-      "required": [
-        "content",
-        "type"
+        "sources",
+        "done"
       ]
     },
     "PDFHighlight": {
@@ -339,7 +151,8 @@
       "properties": {
         "page": {
           "description": "The page number where the highlight appears. Page numbers are 1-based.",
-          "type": "number",
+          "type": "integer",
+          "minimum": 1,
           "title": "page"
         },
         "rect": {
@@ -395,57 +208,11 @@
         "rect"
       ]
     },
-    "SourceContent": {
-      "title": "SourceContent",
-      "anyOf": [
-        {
-          "$ref": "#/definitions/MarkdownSourceContent"
-        },
-        {
-          "$ref": "#/definitions/HTMLSourceContent"
-        },
-        {
-          "$ref": "#/definitions/PDFSourceContent"
-        }
-      ]
-    },
-    "RetrieveResponse": {
-      "title": "RetrieveResponse",
-      "type": "object",
-      "properties": {
-        "__@toStringTag@23": {
-          "type": "string",
-          "title": "__@toStringTag@23"
-        }
-      },
-      "defaultProperties": [],
-      "additionalProperties": false,
-      "propertyOrder": [
-        "then",
-        "catch",
-        "finally",
-        "__@toStringTag@23"
-      ],
-      "required": [
-        "__@toStringTag@23"
-      ]
-    },
-    "GenerateInput": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Message"
-      }
-    },
-    "GenerateResponse": {
-      "title": "GenerateResponse",
-      "anyOf": [
-        {
-          "$ref": "#/definitions/Promise<string>"
-        },
-        {
-          "$ref": "#/definitions/AsyncIterable<GenerateStreamChunk>"
-        }
-      ]
+    "UUID": {
+      "description": "A UUID string in the format \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\".\nUsed as unique identifiers for messages, sources, and other entities in the system.",
+      "title": "UUID",
+      "type": "string",
+      "pattern": "^.*-.*-.*-.*-.*$"
     }
   }
 }

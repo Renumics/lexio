@@ -5,7 +5,7 @@ import { AdvancedQueryField } from './components/AdvancedQueryField'
 import { ChatWindow } from './components/ChatWindow'
 import { PdfViewer } from './components/Viewers/PdfViewer'
 import { LexioProvider } from './components/LexioProvider'
-import { useMessages, useSources, useStatus } from './hooks'
+import { useMessages, useSources, useStatus, useMessageFeedback } from './hooks'
 import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
@@ -41,7 +41,7 @@ export {
     useMessages,
     useSources,
     useStatus,
-
+    useMessageFeedback,
     // Theme
     createTheme,
     defaultTheme,

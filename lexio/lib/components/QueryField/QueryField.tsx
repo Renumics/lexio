@@ -56,7 +56,12 @@ interface QueryFieldProps {
 }
 
 /**
- * A textarea-based input component for submitting queries with workflow status indication
+ * A textarea-based input component for submitting queries with workflow status indication.
+ * 
+ * `QueryField` provides a simple yet powerful interface for users to input and submit
+ * queries. It features auto-expanding behavior and keyboard shortcuts for submission.
+ * 
+ * @component
  * 
  * Features:
  * - Auto-expanding textarea
@@ -64,6 +69,22 @@ interface QueryFieldProps {
  * - Visual workflow status indicator
  * - Customizable styling
  * - Responsive design
+ * 
+ * @example
+ * 
+ * ```tsx
+ * <QueryField
+ *   componentKey="search-query"
+ *   placeholder="Ask a question..."
+ *   disabled={false}
+ *   styleOverrides={{
+ *     backgroundColor: '#f5f5f5',
+ *     color: '#333333',
+ *     borderRadius: '8px',
+ *     padding: '12px',
+ *   }}
+ * />
+ * ```
  */
 const QueryField: React.FC<QueryFieldProps> = ({
   componentKey = undefined,

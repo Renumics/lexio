@@ -71,28 +71,29 @@ interface HTMLViewerProps {
 }
 
 /**
- * A component for displaying HTML content with zoom controls and theme support.
- * Used in the RAG UI system to display HTML source content retrieved from the data source.
+ * A component for displaying HTML content with zoom and navigation controls.
+ * 
+ * HtmlViewer renders HTML content with proper sanitization, styling, and interactive
+ * controls for zooming and navigation. It's used internally by ContentDisplay when
+ * displaying HTML source content.
  * 
  * @component
- * @param {HTMLViewerProps} props - The props for the HtmlViewer
- * @returns {JSX.Element} A themed HTML viewer with zoom controls
- *
- * @remarks
- * **Features:**
- * - Supports both HTML strings (sanitized with DOMPurify) and React elements (unsafe)
- * - Includes zoom controls via toolbar and keyboard shortcuts (Ctrl/Cmd + Up/Down)
- * - Integrates with the theme system for consistent styling
- * - Used internally by ContentDisplay when displaying HTML source content
- *
+ * 
+ * Features:
+ * - Secure HTML rendering with DOMPurify sanitization
+ * - Zoom controls with keyboard shortcuts
+ * - Customizable styling
+ * - Support for both HTML strings and React elements
+ * 
  * @example
- *
+ * 
  * ```tsx
  * <HtmlViewer
  *   htmlContent="<div>Your HTML content here</div>"
  *   styleOverrides={{
  *     contentBackground: '#ffffff',
- *     contentPadding: '20px'
+ *     contentPadding: '20px',
+ *     viewerBorderRadius: '8px',
  *   }}
  * />
  * ```
