@@ -8,9 +8,8 @@ import {
     CellValue,
     ValueType,
 } from "exceljs";
-import moment from "moment";
 import {CSSProperties} from "react";
-import {Range} from "./useSpreadsheetStore";
+import {Range} from "./useSpreadsheetStore.tsx";
 
 export type CellContent = Readonly<string | number>;
 
@@ -98,8 +97,27 @@ export const resolveCellFormat = (value: CellValue, type: ValueType, numberForma
     }
 }
 
+type DateFormaterKey = "YYYY" | "MM" | "DD" | "HH" | "hh" | "mm" | "ss" | "SSS";
+
 const formatDate = (rawDate: Date, format: string): string => {
-    return moment.utc((rawDate as Date).toISOString()).format(format);
+    const utcDate = new Date(rawDate.toISOString());
+
+    const formatters: Record<DateFormaterKey, string> = {
+        "YYYY": String(utcDate.getUTCFullYear()),
+        "MM": String(utcDate.getUTCMonth() + 1).padStart(2, "0"),
+        "DD": String(utcDate.getUTCDate()).padStart(2, "0"),
+        "HH": String(utcDate.getUTCHours()).padStart(2, "0"),
+        "hh": String(utcDate.getUTCHours() % 12 || 12).padStart(2, "0"),
+        "mm": String(utcDate.getUTCMinutes()).padStart(2, "0"),
+        "ss": String(utcDate.getUTCSeconds()).padStart(2, "0"),
+        "SSS": String(utcDate.getUTCMilliseconds()).padStart(3, "0")
+    };
+
+    return format
+        .replace(
+            /\b(?:YYYY|MM|DD|HH|hh|mm|ss|SSS)\b/g,
+            (match) => formatters[(match as DateFormaterKey)]
+        );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -157,18 +175,21 @@ export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSPropertie
             // In case the cell html element has display: flex as css attribute set.
             cssAlignment.justifyItems = "flex-start";
             cssAlignment.justifyContent = "flex-start";
+            // In case the cell html element has display: grid as css attribute set.
+            cssAlignment.justifyItems = "start";
+            cssAlignment.justifyContent = "start";
             break;
         case "center":
             // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
             cssAlignment.textAlign = "center";
-            // In case the cell html element has display: flex as css attribute set.
+            // In case the cell html element has display: flex or display: grid as css attribute set.
             cssAlignment.justifyItems = "center";
             cssAlignment.justifyContent = "center";
             break;
         case "centerContinuous":
             // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
             cssAlignment.textAlign = "center";
-            // In case the cell html element has display: flex as css attribute set.
+            // In case the cell html element has display: flex or display: grid as css attribute set.
             cssAlignment.justifyItems = "center";
             cssAlignment.justifyContent = "center";
             break;
@@ -178,11 +199,14 @@ export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSPropertie
             // In case the cell html element has display: flex as css attribute set.
             cssAlignment.justifyItems = "flex-end";
             cssAlignment.justifyContent = "flex-end";
+            // In case the cell html element has display: grid as css attribute set.
+            cssAlignment.justifyItems = "end";
+            cssAlignment.justifyContent = "end";
             break;
         case "justify":
             // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
             cssAlignment.textAlign = "justify";
-            // In case the cell html element has display: flex as css attribute set.
+            // In case the cell html element has display: flex or display: grid as css attribute set.
             cssAlignment.justifyItems = "center";
             cssAlignment.justifyContent = "center";
             break;
@@ -192,6 +216,9 @@ export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSPropertie
             // In case the cell html element has display: flex as css attribute set.
             cssAlignment.justifyItems = "flex-start";
             cssAlignment.justifyContent = "flex-start";
+            // In case the cell html element has display: grid as css attribute set.
+            cssAlignment.justifyItems = "start";
+            cssAlignment.justifyContent = "start";
             break;
         case "fill":
             // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
@@ -199,6 +226,9 @@ export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSPropertie
             // In case the cell html element has display: flex as css attribute set.
             cssAlignment.justifyItems = "flex-start";
             cssAlignment.justifyContent = "flex-start";
+            // In case the cell html element has display: grid as css attribute set.
+            cssAlignment.justifyItems = "start";
+            cssAlignment.justifyContent = "start";
             break;
         default:
             // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
@@ -206,6 +236,9 @@ export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSPropertie
             // In case the cell html element has display: flex as css attribute set.
             cssAlignment.justifyItems = "flex-start";
             cssAlignment.justifyContent = "flex-start";
+            // In case the cell html element has display: grid as css attribute set.
+            cssAlignment.justifyItems = "start";
+            cssAlignment.justifyContent = "start";
             break;
     }
 
@@ -215,11 +248,13 @@ export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSPropertie
             cssAlignment.verticalAlign = "top";
             // In case the cell html element has display: flex as css attribute set.
             cssAlignment.alignItems = "flex-start";
+            // In case the cell html element has display: grid as css attribute set.
+            cssAlignment.alignItems = "start";
             break;
         case "middle":
             // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
             cssAlignment.verticalAlign = "middle";
-            // In case the cell html element has display: flex as css attribute set.
+            // In case the cell html element has display: flex or display: grid as css attribute set.
             cssAlignment.alignItems = "center";
             break;
         case "bottom":
@@ -227,11 +262,13 @@ export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSPropertie
             cssAlignment.verticalAlign = "bottom";
             // In case the cell html element has display: flex as css attribute set.
             cssAlignment.alignItems = "flex-end";
+            // In case the cell html element has display: grid as css attribute set.
+            cssAlignment.alignItems = "end";
             break;
         case "justify":
             // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
             cssAlignment.verticalAlign = "middle";
-            // In case the cell html element has display: flex as css attribute set.
+            // In case the cell html element has display: flex or display: flex display: grid as css attribute set.
             cssAlignment.alignItems = "center";
             break;
         default:
@@ -239,6 +276,8 @@ export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSPropertie
             cssAlignment.verticalAlign = "bottom";
             // In case the cell html element has display: flex as css attribute set.
             cssAlignment.alignItems = "flex-end";
+            // In case the cell html element has display: grid as css attribute set.
+            cssAlignment.alignItems = "end";
             break;
     }
 

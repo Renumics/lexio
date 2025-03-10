@@ -1,5 +1,4 @@
 import {FC} from "react";
-import {Tabs, TabsList, TabsTrigger} from "./ui/tabs";
 
 type Tab = {
     value: string,
@@ -23,33 +22,35 @@ const SpreadsheetSelection: FC<PropsSpreadsheetSelection> = (props) => {
     }));
 
     return (
-        <Tabs
-            value={selectedSpreadsheet}
-            defaultValue={selectedSpreadsheet}
+        <div
             className="w-full bg-gray-100 rounded-md"
         >
-            <TabsList
-                className={"w-full"}
+            <div
                 style={{
                     display: "grid",
                     gridTemplateColumns: `repeat(${tabs.length},1fr)`,
                 }}
+                className={"w-full p-1"}
             >
                 {tabs.map((tab) =>
-                    <TabsTrigger
+                    <div
                         key={tab.value}
-                        value={tab.value}
                         onClick={tab.onClick}
-                        className={`${selectedSpreadsheet === tab.value ? "bg-white" : "bg-transparent"}`}
+                        style={{
+                            backgroundColor: tab.value === selectedSpreadsheet ? "white" : "transparent",
+                            cursor: tab.value === selectedSpreadsheet ? "unset" : "pointer",
+                            color: tab.value === selectedSpreadsheet ? "black" : "gray",
+                        }}
+                        className="text-center text-xs p-1.5 rounded-md drop-shadow-md"
                     >
                         {tab.value}
-                    </TabsTrigger>
+                    </div>
                 )}
-            </TabsList>
-        </Tabs>
+            </div>
+        </div>
 
     );
 };
 SpreadsheetSelection.displayName = "SpreadsheetSelectionComponent";
 
-export { SpreadsheetSelection };
+export {SpreadsheetSelection};

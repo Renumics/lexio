@@ -45,7 +45,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) 
   }
 
   return (
-      <div className="w-full h-full" style={style}>
+      <div className="w-full h-full overflow-hidden" style={style}>
         <FileViewerRenderer
             fileName={filename}
             selectedSource={selectedSource}
