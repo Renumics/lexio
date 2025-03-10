@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import {
     ChatWindow,
-    RAGProvider,
+    LexioProvider,
     SourcesDisplay,
     ContentDisplay,
     AdvancedQueryField,
@@ -11,9 +11,9 @@ import {
     Source,
     createRESTContentSource, 
     createSSEConnector,
+    MessageWithOptionalId
 } from '../lib/main';
 import './App.css';
-import { MessageWithOptionalId } from '../lib/types';
 
 function App() {
 
@@ -123,9 +123,11 @@ function App() {
                 return undefined;
             }
 
-            return contentSource(action.sourceObject).then(sourceWithData => ({
-                sourceData: sourceWithData.data
-            }));
+            // Return a SetSelectedSourceActionResponse object
+            return {
+                // The sourceData should be a Promise<string | Uint8Array>
+                sourceData: contentSource(action.sourceObject).then(sourceWithData => sourceWithData.data)
+            };
         }
         return undefined;
     }, [chatConnector, contentSource]);
@@ -133,7 +135,7 @@ function App() {
     // 4) Provide the SSE connector and the REST content source to the RAGProvider
     return (
         <div className="app-container">
-            <RAGProvider
+            <LexioProvider
                 onAction={onAction}
                 config={{
                     timeouts: {
@@ -205,7 +207,7 @@ function App() {
                 </div>
                 {/* Handle any encountered errors */}
                 <ErrorDisplay />
-            </RAGProvider>
+            </LexioProvider>
         </div>
     );
 }

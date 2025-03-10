@@ -14,8 +14,14 @@ datamodel-codegen \
   --use-one-literal-as-default \
   --target-python-version 3.9
 
-echo "✅ Generated types in $OUTPUT_FILE"
-
 # We use pydantic v2 and support from python 3.9 onwards
 # Use schema description to populate class description / docstring
 # Use field description to populate field description / docstring
+
+echo "✅ Generated types in $OUTPUT_FILE"
+
+# Run post-processing script to fix type conversions
+python3 $(dirname "$0")/post_process_types.py "$OUTPUT_FILE"
+
+echo "✅ Post-processed types in $OUTPUT_FILE"
+

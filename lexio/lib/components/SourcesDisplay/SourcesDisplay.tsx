@@ -1,9 +1,10 @@
 import { useState, useContext } from "react";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
-import { useRAGSources, useLexio } from "../../hooks";
+import { useSources} from "../../hooks";
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import {addOpacity, scaleFontSize} from "../../utils/scaleFontSize.tsx";
 
 export interface SourcesDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
@@ -73,21 +74,37 @@ export interface SourcesDisplayProps {
 }
 
 /**
- * SourcesDisplay component shows a list of retrieved sources with search functionality
- *
+ * A component for displaying, searching, and selecting sources.
+ * 
+ * `SourcesDisplay` shows a list of available sources with search functionality,
+ * allowing users to browse, filter, and select sources for viewing or reference.
+ * 
+ * @component
+ * 
+ * Features:
+ * - Source listing with titles and metadata
+ * - Search functionality for filtering sources
+ * - Source selection for viewing content
+ * - Relevance score display
+ * - Metadata tag display
+ * - Clear sources functionality
+ * - Responsive design
+ * 
  * @example
- *
+ * 
  * ```tsx
- * <SourcesDisplay 
- *   title="Search Results"
+ * <SourcesDisplay
+ *   componentKey="main-sources"
+ *   title="Knowledge Base"
  *   searchPlaceholder="Search documents..."
  *   showSearch={true}
  *   showRelevanceScore={true}
  *   showMetadata={true}
  *   styleOverrides={{
- *     backgroundColor: '#f5f5f5',
- *     buttonBackground: '#0066cc',
- *     metadataTagBackground: '#e2e8f0'
+ *     backgroundColor: '#ffffff',
+ *     borderRadius: '8px',
+ *     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+ *     padding: '1rem',
  *   }}
  * />
  * ```
@@ -101,8 +118,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   showMetadata = true,
   styleOverrides = {},
 }) => {
-  const { sources, activeSources, selectedSourceId } = useRAGSources();
-  const { setSelectedSource, searchSources, clearSources } = useLexio(componentKey ? `SourcesDisplay-${componentKey}` : 'SourcesDisplay'); // todo: make use of new API
+  const { sources, activeSources, selectedSourceId, setSelectedSource, searchSources, clearSources } = useSources(componentKey ? `SourcesDisplay-${componentKey}` : 'SourcesDisplay'); // todo: make use of new API
   const [searchQuery, setSearchQuery] = useState("");
 
   // use theme
@@ -141,7 +157,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
     metadataTagColor: colors.secondaryText,
     relevanceScoreColor: colors.primary,
 
-    sourceTypeBackground: colors.secondary + '30',
+    sourceTypeBackground: addOpacity(colors.secondary, 0.17),
     sourceTypeColor: colors.secondary,
     ...removeUndefined(styleOverrides),
   };
@@ -202,40 +218,50 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   style={{
                     backgroundColor: source.id === selectedSourceId
                       ? style.selectedSourceBackground
-                      : activeSources.includes(source)
+                      : activeSources && activeSources.includes(source)
                         ? style.activeSourceBackground
-                        : activeSources.length > 0
+                        : activeSources && activeSources.length > 0
                           ? style.inactiveSourceBackground
                           : style.inactiveSourceBackground,
                     borderColor: source.id === selectedSourceId
                       ? style.selectedSourceBorderColor
-                      : activeSources.includes(source)
+                      : activeSources && activeSources.includes(source)
                         ? style.selectedSourceBorderColor
                         : style.inactiveSourceBorderColor,
-                    opacity: activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
+                    opacity: activeSources && activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
                     borderRadius: style.borderRadius,
                     fontSize: style.fontSize,
                   }}
                   onClick={() => setSelectedSource(source.id)}
                 >
                   <div className="flex items-start justify-between">
-                    <div className="overflow-hidden">
-                      <p className="font-medium truncate" style={{ color: style.color }}>
+                    <div className="overflow-hidden flex-1 mr-2">
+                      <p className="font-medium truncate" style={{ 
+                        color: style.color,
+                        fontSize: scaleFontSize(style.fontSize || '16px', 1.0)
+                      }}>
                         {source.title}
                       </p>
-                      {source.type && (
-                        <span className="inline-block px-2 py-1 font-medium rounded-full mt-1" style={{
-                          backgroundColor: style.sourceTypeBackground,
-                          color: style.sourceTypeColor,
-                          fontSize: `calc(${style.fontSize} * 0.75)`  // todo: replace with utils func
+                      {source.description && (
+                        <p className="text-gray-500 line-clamp-2" style={{ 
+                          color: addOpacity(style.color || colors.text, 0.6),
+                          fontSize: scaleFontSize(style.fontSize || '14px', 0.95)
                         }}>
-                          {source.type}
-                        </span>
+                            {source.description}
+                        </p>
                       )}
                       {showRelevanceScore && source.relevance !== undefined && (
-                        <div className="mt-2 flex items-center">
-                          <span style={{ color: style.color + '90', fontSize: `calc(${style.fontSize} * 0.9)` }}>Relevance:</span>
-                          <div className="ml-2 h-2 w-24 rounded-full" style={{ backgroundColor: style.metadataTagBackground }}>
+                        <div className="mt-2 flex items-center group relative">
+                          <span style={{ 
+                            color: addOpacity(style.color || colors.text, 0.6), 
+                            fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
+                            }}>Relevance:</span>
+                          <div 
+                            className="ml-2 h-2 w-24 rounded-full" 
+                            style={{
+                              backgroundColor: style.metadataTagBackground,
+                            }}
+                          >
                             <div
                               className="h-2 rounded-full"
                               style={{
@@ -244,29 +270,49 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                               }}
                             />
                           </div>
+                          <div className="absolute bottom-full left-1/3 transform -translate-x-1 mb-1 px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200" 
+                            style={{
+                              backgroundColor: style.backgroundColor,
+                              color: style.color,
+                              border: `1px solid ${style.metadataTagBackground}`,
+                              fontSize: scaleFontSize(style.fontSize || '12px', 0.75),
+                            }}>
+                            {Math.round(source.relevance * 100)}%
+                          </div>
                         </div>
                       )}
                     </div>
+                    {source.type && (
+                      <span className="inline-block px-2 py-1 font-medium rounded-full flex-shrink-0" style={{
+                        backgroundColor: style.sourceTypeBackground,
+                        color: style.sourceTypeColor,
+                        fontSize: scaleFontSize(style.fontSize || '12px', 0.8)
+                      }}>
+                        {source.type}
+                      </span>
+                    )}
                   </div>
                   {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
-                    <div className="mt-2 pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
+                    <div className="pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(source.metadata).map(([key, value]) => (
-                          <span
-                            key={key}
-                            className="inline-flex items-center px-2 py-1 rounded-md"
-                            style={{
-                              backgroundColor: style.metadataTagBackground,
-                              color: style.metadataTagColor,
-                              fontSize: `calc(${style.fontSize} * 0.75)`,
-                              lineHeight: '1.2',
-                            }}
-                          >
-                            {key}: {value}
-                          </span>
-                        ))}
+                        {Object.entries(source.metadata)
+                            .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
+                            .map(([key, value]) => (
+                              <span
+                                key={key}
+                                className="inline-flex items-center px-2 py-1 rounded-md"
+                                style={{
+                                  backgroundColor: style.metadataTagBackground,
+                                  color: style.metadataTagColor,
+                                  fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
+                                  lineHeight: '1.2',
+                                }}
+                              >
+                                {key}: {value}
+                              </span>
+                            ))}
+                        </div>
                       </div>
-                    </div>
                   )}
                 </li>
               ))}
