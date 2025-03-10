@@ -143,6 +143,8 @@ function App() {
         if (action.type === 'ADD_USER_MESSAGE') {
             console.log('ADD_USER_MESSAGE action started');
 
+
+
             // Create messages
             const userMessage: Message = {
                 id: crypto.randomUUID(),
@@ -209,6 +211,10 @@ function App() {
                     const response: ActionHandlerResponse = {
                         response: Promise.resolve(explanationResult.answer),
                         messages: messagesPromise,
+                        citations: [
+
+                            
+                        ],
                         sources: Promise.resolve([updatedSource]),
                         actionOptions: {
                             followUp: {
