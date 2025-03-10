@@ -4,8 +4,8 @@ import { QueryField } from './components/QueryField'
 import { AdvancedQueryField } from './components/AdvancedQueryField'
 import { ChatWindow } from './components/ChatWindow'
 import { PdfViewer } from './components/Viewers/PdfViewer'
-import { RAGProvider } from './components/RAGProvider'
-import { useRAGMessages, useRAGSources, useLexioStatus, useLexio } from './hooks'
+import { LexioProvider } from './components/LexioProvider'
+import { useMessages, useSources, useStatus, useMessageFeedback } from './hooks'
 import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
@@ -16,7 +16,12 @@ import { createRESTContentSource } from './connectors/createRESTContentSource'
 import { createSSEConnector } from './connectors/createSSEConnector'
 import { createRESTConnector } from './connectors/createRESTConnector'
 
+
+import { MessageWithOptionalId } from './types'
+export type { MessageWithOptionalId }
+
 export {
+
     // Components
     AdvancedQueryField,
     ChatWindow,
@@ -24,7 +29,7 @@ export {
     ErrorDisplay,
     PdfViewer,
     QueryField,
-    RAGProvider,
+    LexioProvider,
     SourcesDisplay,
 
     // Connectors
@@ -33,11 +38,10 @@ export {
     createRESTConnector,
 
     // Hooks
-    useRAGMessages,
-    useRAGSources,
-    useLexioStatus,
-    useLexio,
-
+    useMessages,
+    useSources,
+    useStatus,
+    useMessageFeedback,
     // Theme
     createTheme,
     defaultTheme,

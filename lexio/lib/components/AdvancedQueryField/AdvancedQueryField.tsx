@@ -18,8 +18,8 @@ import ReactDOM from 'react-dom';
 import useResizeObserver from '@react-hook/resize-observer';
 
 import {
-  useRAGSources,
-  useLexio,
+  useSources,
+  useMessages
 } from '../../hooks';
 
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
@@ -175,25 +175,35 @@ interface AdvancedQueryFieldProps {
 }
 
 /**
- * An advanced query input component with source mention capabilities
+ * A rich text editor component that allows users to mention and reference sources within their queries.
+ * 
+ * The AdvancedQueryField provides a more sophisticated input experience than the standard QueryField,
+ * with support for source mentions that appear as interactive chips within the text.
+ * 
+ * @component
  * 
  * Features:
- * - Rich text editing with source mentions
- * - Auto-expanding editor
- * - Source filtering and selection
- * - Visual workflow status indicator
+ * - Source mentions with @ symbol trigger
+ * - Interactive source chips that can be deleted
+ * - Keyboard navigation between source chips
  * - Customizable styling
  * - Responsive design
- *
+ * 
  * @example
- *
+ * 
  * ```tsx
  * <AdvancedQueryField
- *   onSubmit={(message, mentions) => {
- *     console.log('Message:', message);
- *     console.log('Mentioned sources:', mentions);
- *   }}
+ *   componentKey="my-query-field"
+ *   onSubmit={(text, sources) => console.log(text, sources)}
+ *   onSourceAdded={(source) => console.log('Source added:', source)}
+ *   onSourceDeleted={(source) => console.log('Source deleted:', source)}
+ *   onChange={(text) => console.log('Text changed:', text)}
  *   placeholder="Type @ to mention a source..."
+ *   styleOverrides={{
+ *     backgroundColor: '#f5f5f5',
+ *     borderRadius: '8px',
+ *     padding: '12px',
+ *   }}
  * />
  * ```
  */
@@ -257,8 +267,8 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   const filterInputRef = useRef<HTMLInputElement>(null);
 
   // Lexio Hooks
-  const { addUserMessage, setActiveSources } = useLexio(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
-  const { sources } = useRAGSources();
+  const { sources, setActiveSources } = useSources(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
+  const { addUserMessage } = useMessages(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
 
   // Floating UI
   const { refs, context } = useFloating({

@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { MarkdownViewer } from "../Viewers/MarkdownViewer";
-import { useRAGSources } from "../../hooks/hooks";
+import { useSources } from "../../hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
@@ -14,10 +14,44 @@ export interface ContentDisplayStyles extends React.CSSProperties {
 
 interface ContentDisplayProps {
   styleOverrides?: ContentDisplayStyles;
+  componentKey?: string;
 }
 
-const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) => {
-  const { selectedSource } = useRAGSources();
+/**
+ * A component for displaying various content types from selected sources.
+ * 
+ * ContentDisplay renders the content of the currently selected source, automatically
+ * choosing the appropriate viewer based on the source type (PDF, HTML, or Markdown).
+ * 
+ * @component
+ * 
+ * Features:
+ * - Automatic content type detection
+ * - PDF viewer with navigation, zoom, and highlight support
+ * - HTML viewer with sanitization and styling
+ * - Markdown viewer with formatting
+ * - Loading state indication
+ * - Responsive design
+ * 
+ * @example
+ * 
+ * ```tsx
+ * <ContentDisplay
+ *   componentKey="main-content"
+ *   styleOverrides={{
+ *     backgroundColor: '#ffffff',
+ *     padding: '1rem',
+ *     borderRadius: '8px',
+ *     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+ *   }}
+ * />
+ * ```
+ */
+const ContentDisplay: React.FC<ContentDisplayProps> = ({
+                                                   styleOverrides = {},
+                                                   componentKey = undefined,
+}) => {
+  const { selectedSource } = useSources(componentKey ? `ContentDisplay-${componentKey}` : 'ContentDisplay');
   
   // use theme
   const theme = useContext(ThemeContext);

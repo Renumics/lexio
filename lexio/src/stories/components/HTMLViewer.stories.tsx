@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import 'tailwindcss/tailwind.css';
-import {RAGProvider} from "../../../lib/components/RAGProvider";
-import {HtmlViewer} from "../../../lib/components/Viewers";
-import {extractComponentDescriptionHelper, configureDocsRendering, renderDocsBlocks} from "./helper.tsx"
+import { LexioProvider } from "../../../lib/components/LexioProvider";
+import { HtmlViewer } from "../../../lib/components/Viewers";
+import { extractComponentDescriptionHelper, renderDocsBlocks } from "./helper.tsx";
+import type { UserAction } from "../../../lib/types";
 
 const testContent = `<div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; color: #333;">
   <h1 style="color: #4A90E2;">Test HTML Content</h1>
@@ -36,6 +37,12 @@ const testContent = `<div style="font-family: Arial, sans-serif; padding: 20px; 
 </div>
 `;
 
+// Sample action handler for the story
+const sampleActionHandler = (action: UserAction) => {
+  // Return undefined for all actions as this story doesn't need to handle any specific actions
+  return undefined;
+};
+
 const meta: Meta<typeof HtmlViewer> = {
   title: 'Components/HtmlViewer',
   component: HtmlViewer,
@@ -49,9 +56,9 @@ const meta: Meta<typeof HtmlViewer> = {
   decorators: [
     (Story) => (
       <div className="h-fit" style={{ width: '600px', padding: '1rem' }}>
-        <RAGProvider>
+        <LexioProvider onAction={sampleActionHandler}>
           <Story />
-          </RAGProvider>
+        </LexioProvider>
       </div>
     ),
   ],

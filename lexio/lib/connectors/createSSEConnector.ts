@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import type { Message, Source, StreamChunk } from '../types';
+import type { Message, Source, StreamChunk, MessageWithOptionalId } from '../types';
+
 
 /**
  * The connector options, including a parseEvent function (once).
@@ -26,7 +27,7 @@ export interface SSEConnectorOptions<TData = any> {
    * If you need to build a request body differently, override this.
    */
   buildRequestBody?: (
-    messages: Omit<Message, 'id'>[],
+    messages: MessageWithOptionalId[],
     sources: Source[],
     metadata?: Record<string, any>
   ) => any;
@@ -38,7 +39,7 @@ export interface SSEConnectorOptions<TData = any> {
 }
 
 export interface SSEConnectorRequest {
-  messages: Omit<Message, 'id'>[];
+  messages: MessageWithOptionalId[];
   sources: Source[];
   metadata?: Record<string, any>;
 

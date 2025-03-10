@@ -1,6 +1,6 @@
 {
   "name": "lexio",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "type": "module",
   "license": "GPL-3.0-or-later",
   "module": "dist/lexio.es.js",
@@ -36,7 +36,7 @@
     "@microsoft/fetch-event-source": "^2.0.1",
     "@react-hook/resize-observer": "^2.0.2",
     "compromise": "^14.14.4",
-    "dompurify": "^3.2.3",
+    "dompurify": "^3.2.4",
     "jotai": "^2.10.3",
     "js-tiktoken": "^1.0.19",
     "openai": "^4.85.4",
@@ -45,6 +45,7 @@
     "react-hotkeys-hook": "^4.6.1",
     "react-markdown": "^9.0.3",
     "react-pdf": "^9.1.1",
+    "react-syntax-highlighter": "^15.6.1",
     "react-toastify": "^10.0.6",
     "remark-gfm": "^4.0.0",
     "sbd": "^1.0.19"
@@ -69,8 +70,9 @@
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^4.3.4",
-    "@vitest/coverage-v8": "^2.1.8",
+    "@vitest/coverage-v8": "^3.0.8",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.15.0",
     "eslint-plugin-react-hooks": "^5.0.0",
@@ -88,7 +90,7 @@
     "vite-plugin-css-injected-by-js": "^3.5.2",
     "vite-plugin-dts": "^4.3.0",
     "vite-plugin-static-copy": "^2.2.0",
-    "vitest": "^2.1.8"
+    "vitest": "^3.0.8"
   },
   "eslintConfig": {
     "extends": [

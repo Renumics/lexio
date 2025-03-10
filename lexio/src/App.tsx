@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import {
     ChatWindow,
-    RAGProvider,
+    LexioProvider,
     SourcesDisplay,
     ContentDisplay,
     AdvancedQueryField,
@@ -282,7 +282,7 @@ function App() {
 
     return (
         <div className="app-container">
-            <RAGProvider
+            <LexioProvider
                 onAction={onAction}
                 config={{
                     timeouts: {
@@ -303,53 +303,44 @@ function App() {
                             "input viewer"
                         `,
                         maxHeight: '100vh',
-                        overflow: 'hidden',
-                        padding: '20px',
-                        boxSizing: 'border-box',
+                        overflow: 'auto',
+                        minWidth: 0,
+                        maxWidth: '100%',
                     }}
                 >
-                    <div
-                        style={{
-                            gridArea: 'chat',
-                            overflow: 'auto',
-                            minWidth: 0,
-                            maxWidth: '100%',
-                        }}
-                    >
-                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
-                                <SourcesDisplay />
-                            </div>
-                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
-                                <ChatWindow />
-                            </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                        <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                            <SourcesDisplay />
+                        </div>
+                        <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                            <ChatWindow />
                         </div>
                     </div>
-
-                    <div
-                        style={{
-                            gridArea: 'input',
-                            height: '100px',
-                            minWidth: 0,
-                            maxWidth: '100%',
-                        }}
-                    >
-                        <AdvancedQueryField />
-                    </div>
-
-                    <div
-                        style={{
-                            gridArea: 'viewer',
-                            overflow: 'hidden',
-                            width: '100%',
-                            height: '100%',
-                        }}
-                    >
-                        <ContentDisplay />
-                    </div>
                 </div>
-                <ErrorDisplay />
-            </RAGProvider>
+
+                <div
+                    style={{
+                        gridArea: 'input',
+                        height: '100px',
+                        minWidth: 0,
+                        maxWidth: '100%',
+                    }}
+                >
+                    <AdvancedQueryField />
+                </div>
+
+                <div
+                    style={{
+                        gridArea: 'viewer',
+                        overflow: 'hidden',
+                        width: '100%',
+                        height: '100%',
+                    }}
+                >
+                    <ContentDisplay />
+                </div>
+            </LexioProvider>
+            <ErrorDisplay />
         </div>
     );
 }
