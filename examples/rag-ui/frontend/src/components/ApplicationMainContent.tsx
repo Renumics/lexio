@@ -6,7 +6,12 @@ const ApplicationMainContent: FunctionComponent = () => {
     const gridColumns = "grid-cols-[1fr_max-content_1fr]";
 
     return (
-        <div className={`grid gap-4 ${gridColumns} h-full max-w-[1700px]`}>
+        <div
+            className={`grid gap-4 ${gridColumns} h-full`}
+            style={{
+                maxWidth: "var(--app-main-content-max-width)",
+            }}
+        >
             <CardContainer className={"p-1 border-none overflow-hidden gap-0"}>
                 <div className={"overflow-auto pt-4"}>
                     <ChatWindow />
