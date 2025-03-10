@@ -117,7 +117,7 @@ function App() {
                                 followUp: {
                                     type: SET_ACTIVE_SOURCES,
                                     sourceIds: [sourceToLoad.id],
-                                    source: 'RAGProvider' as const
+                                    source: 'LexioProvider' as const
                                 }
                             }
                         } as ActionHandlerResponse;
@@ -214,7 +214,7 @@ function App() {
                             followUp: {
                                 type: SET_ACTIVE_SOURCES,
                                 sourceIds: [sourceToProcess.id],
-                                source: 'RAGProvider' as const
+                                source: 'LexioProvider' as const
                             }
                         }
                     };
@@ -244,7 +244,7 @@ function App() {
                             followUp: {
                                 type: SET_ACTIVE_SOURCES,
                                 sourceIds: [sourceToProcess.id],
-                                source: 'RAGProvider' as const
+                                source: 'LexioProvider' as const
                             }
                         }
                     };
@@ -270,7 +270,7 @@ function App() {
                         followUp: {
                             type: SET_ACTIVE_SOURCES,
                             sourceIds: [sourceToProcess.id],
-                            source: 'RAGProvider' as const
+                            source: 'LexioProvider' as const
                         }
                     }
                 };
@@ -303,44 +303,53 @@ function App() {
                             "input viewer"
                         `,
                         maxHeight: '100vh',
-                        overflow: 'auto',
-                        minWidth: 0,
-                        maxWidth: '100%',
+                        overflow: 'hidden',
+                        padding: '20px',
+                        boxSizing: 'border-box',
                     }}
                 >
-                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                        <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
-                            <SourcesDisplay />
-                        </div>
-                        <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
-                            <ChatWindow />
+                    <div
+                        style={{
+                            gridArea: 'chat',
+                            overflow: 'auto',
+                            minWidth: 0,
+                            maxWidth: '100%',
+                        }}
+                    >
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                <SourcesDisplay />
+                            </div>
+                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                <ChatWindow />
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div
-                    style={{
-                        gridArea: 'input',
-                        height: '100px',
-                        minWidth: 0,
-                        maxWidth: '100%',
-                    }}
-                >
-                    <AdvancedQueryField />
-                </div>
+                    <div
+                        style={{
+                            gridArea: 'input',
+                            height: '100px',
+                            minWidth: 0,
+                            maxWidth: '100%',
+                        }}
+                    >
+                        <AdvancedQueryField />
+                    </div>
 
-                <div
-                    style={{
-                        gridArea: 'viewer',
-                        overflow: 'hidden',
-                        width: '100%',
-                        height: '100%',
-                    }}
-                >
-                    <ContentDisplay />
+                    <div
+                        style={{
+                            gridArea: 'viewer',
+                            overflow: 'hidden',
+                            width: '100%',
+                            height: '100%',
+                        }}
+                    >
+                        <ContentDisplay />
+                    </div>
                 </div>
+                <ErrorDisplay />
             </LexioProvider>
-            <ErrorDisplay />
         </div>
     );
 }

@@ -84,6 +84,14 @@ export interface ColoredIdea {
   };
 }
 
+export interface Citation {
+  sourceId: string;
+  highlight: PDFHighlight;
+  messageStartChar: number;
+  messageEndChar: number;
+  colorRgba?: string;
+}
+
 /**
  * Represents a chat message in the conversation.
  * 
@@ -96,6 +104,7 @@ export interface Message {
     readonly id: UUID;
     role: "user" | "assistant";
     content: string;
+    citations?: Citation[];
 }
 
 /**
@@ -377,6 +386,7 @@ export type UserAction =
 export interface AddUserMessageActionResponse {
     response?: Promise<string> | AsyncIterable<StreamChunk>;
     sources?: Promise<Source[]>;
+    citations?: Citation[];
     setUserMessage?: string;
     followUpAction?: UserAction;
 }
