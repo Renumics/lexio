@@ -1,7 +1,7 @@
 import ApplicationLayout from "./components/ApplicationLayout.tsx";
 import ApplicationMainContent from "./components/ApplicationMainContent.tsx";
 import {FC, useEffect, useState} from "react"
-import {ActionHandlerResponse, createTheme, ErrorDisplay, Message, RAGProvider, Source, UserAction} from "lexio";
+import {ActionHandlerResponse, createTheme, ErrorDisplay, Message, LexioProvider, Source, UserAction} from "lexio";
 import {v4 as uuid} from "uuid";
 
 const customTheme = createTheme({
@@ -16,7 +16,6 @@ const App: FC = () => {
 
     const mockActionResult: ActionHandlerResponse = {
         response: Promise.resolve("This is what jarvis is about"),
-        messages: [""],
         sources: Promise.resolve<Source[]>(mockSources),
     }
     // @ts-ignore
@@ -25,7 +24,7 @@ const App: FC = () => {
     }
 
     return (
-        <RAGProvider
+        <LexioProvider
             onAction={handleAction}
             config={undefined}
             theme={customTheme}
@@ -34,7 +33,7 @@ const App: FC = () => {
                 <ApplicationMainContent />
                 <ErrorDisplay />
             </ApplicationLayout>
-        </RAGProvider>
+        </LexioProvider>
     );
 }
 

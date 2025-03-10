@@ -23,7 +23,7 @@ interface ContentDisplayProps {
  * A component for displaying various content types from selected sources.
  *
  * ContentDisplay renders the content of the currently selected source, automatically
- * choosing the appropriate viewer based on the source type (PDF, HTML, or Markdown).
+ * choosing the appropriate viewer based on the source type (PDF, HTML, Markdown or Excel spreadsheet).
  *
  * @component
  *
@@ -32,6 +32,7 @@ interface ContentDisplayProps {
  * - PDF viewer with navigation, zoom, and highlight support
  * - HTML viewer with sanitization and styling
  * - Markdown viewer with formatting
+ * - Excel spreadsheet viewer with range highlighting
  * - Loading state indication
  * - Responsive design
  *
@@ -53,9 +54,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
                                                    styleOverrides = {},
                                                    componentKey = undefined,
 }) => {
-  const { selectedSource } = useSources(componentKey ? `ContentDisplay-${componentKey}` : 'ContentDisplay');
-const ContentDisplay: React.FC<ContentDisplayProps> = ({ styleOverrides = {} }) => {
-  const { selectedSource, sources, selectedSourceId } = useRAGSources();
+  const { selectedSource, sources, selectedSourceId } = useSources(componentKey ? `ContentDisplay-${componentKey}` : 'ContentDisplay');
 
   // use theme
   const theme = useContext(ThemeContext);

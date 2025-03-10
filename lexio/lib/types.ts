@@ -105,7 +105,7 @@ export interface Source {
     /**
      * Type of the source, used to determine the type of data to display in the ContentDisplay component.
      */
-    type: "text" | "pdf" | "markdown" | "html";
+    type: "text" | "pdf" | "markdown" | "html" | "xlsx";
     /**
      * Description of the source displayed in the SourcesDisplay component if provided.
      */
@@ -117,7 +117,6 @@ export interface Source {
      * @minimum 0
      * @maximum 1
      */
-    type: "text" | "pdf" | "markdown" | "html" | "xlsx";
     relevance?: number;
     /**
      * Optional href to display a link to the source in the SourcesDisplay component.
@@ -130,11 +129,11 @@ export interface Source {
      *
      * For PDF sources, this should be a Uint8Array containing the binary PDF data.
      * For text, markdown, and HTML sources, this should be a string.
+     * For spreadsheet sources, this should be a ArrayBuffer containing the binary data of the file.
      *
      * @TJS-type [string, bytes]
      * @python-type Union[str, bytes]
      */
-    data?: string | Uint8Array;
     data?: string | Uint8Array | ArrayBuffer;
     /**
      * Optional metadata associated with the source.
@@ -173,8 +172,6 @@ export interface Source {
      */
     rangesHighlights?: SpreadsheetHighlight[];
 
-}// ---- central state management types -----
-export type Component = 'RAGProvider' |
 }
 
 // ---- central state management types -----
