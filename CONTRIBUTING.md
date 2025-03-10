@@ -28,20 +28,40 @@ We're excited about your interest in contributing to Lexio!
 
 The python package is located in the [lexio](python/lexio) directory. The Python package is auto-generated from the frontend library. It contains API types for the lexio frontend library as pydantic models.  
 
-Follow these steps to create the package:
+### Python Package Structure
+
+The core types are defined in `python/lexio/lexio/types/__init__.py` and are generated from the frontend library's TypeScript definitions. These models include:
+
+- `Source`: Represents a source of information that can be displayed and referenced
+- `Message`: Represents a chat message in the conversation
+- `StreamChunk`: Represents a chunk of streamed content
+- Other utility types like `Rect`, `PDFHighlight`, etc.
+
+### Working with the Python Package
 
 1. Update the frontend library with the latest changes.
-2. If you want to add new types to the python package, update the [types-to-include.json](scripts%2Ftypes-to-include.json) file.
-3. Run `npm run build-python-package` to (1) generate the python package, (2) run tests and (3) build the package in the `python/lexio` folder.
-   1. How? The pydantic classes are generated with `datamodel-codegen` from a json schema file. The schema file is generated from the types in the frontend library.
-   2. The tests are run with `pytest` to ensure the package is working as expected.
-   3. The version of the package is set automatically from the frontend library's `package.json` file.
-4. Commit the changes to the python package.
+2. If you want to add new types to the Python package, update the [types-to-include.json](scripts/types-to-include.json) file.
+3. Run `npm run build-python-package` to:
+   1. Generate the Python package with Pydantic models from the TypeScript types
+   2. Run tests to ensure the package is working as expected
+   3. Build the package in the `python/lexio` folder
+4. Commit the changes to the Python package.
 
 > Note: We use the version from the frontend library's `package.json` file as the version for the Python package.
 
-To publish the package to PyPI: 
+### Using the Python Models in Your Backend
+
+The Pydantic models can be imported directly in your backend code:
+
+```python
+from lexio.types import Source, Message, StreamChunk
 ```
+
+These models provide type safety and validation for data exchanged between your backend and the Lexio frontend.
+
+### Publishing the Package to PyPI
+
+```bash
 # cd to the python/lexio directory from the root of the project
 cd python/lexio
 
@@ -58,8 +78,11 @@ twine check dist/*
 twine upload dist/*
 ```
 
-Since we are creating the `lexio` python package automatically we run several test with 'pytest' to ensure the package is working as expected. The tests are located in the [tests](tests)[tests](..%2Fpython%2Flexio%2Ftests) folder.
-If you add new types which are exported to the python package, you should also add tests for them.
+### Testing the Python Package
+
+Since we are creating the `lexio` Python package automatically, we run several tests with 'pytest' to ensure the package is working as expected. The tests are located in the [python/lexio/tests](python/lexio/tests) folder.
+
+If you add new types which are exported to the Python package, you should also add tests for them to ensure they work correctly.
 
 ## Code Style
 
@@ -86,6 +109,37 @@ If you add new types which are exported to the python package, you should also a
 ## License
 
 By contributing, you agree that your contributions will be licensed under the project's license.
+
+## Coding Standards
+
+### TypeScript
+- Use TypeScript for all new code
+- Provide comprehensive type definitions
+- Document public APIs with JSDoc comments
+
+### Component Guidelines
+- Components should be well-documented with JSDoc comments
+- Follow the existing pattern of separating component logic from presentation
+- Use the ThemeContext for styling to maintain consistency
+- Ensure components are accessible
+
+### Testing
+- Write tests for new functionality
+- Update tests when modifying existing functionality
+- Aim for good test coverage
+
+## Storybook Documentation
+When adding new components, please include Storybook stories that demonstrate:
+- Basic usage
+- Different configurations/props
+- Edge cases
+
+## Commit Guidelines
+- Use clear, descriptive commit messages
+- Reference issue numbers in commit messages when applicable
+
+## Code Review
+All submissions require review. We use GitHub pull requests for this purpose.
 
 ---
 

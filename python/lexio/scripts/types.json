@@ -67,7 +67,9 @@
           "title": "description"
         },
         "relevance": {
-          "description": "Relevance score of the source. It is displayed in the SourcesDisplay component as bar chart.",
+          "description": "Relevance score of the source. It is displayed in the SourcesDisplay component as bar chart.\nShould be a value between 0 and 1.",
+          "minimum": 0,
+          "maximum": 1,
           "type": "number",
           "title": "relevance"
         },
@@ -77,117 +79,17 @@
           "title": "href"
         },
         "data": {
-          "description": "Optional data to display in the ContentDisplay component. This can be set initially\nor lazily loaded when the \\`SET_SELECTED_SOURCE\\` action is handled. Simply return the data \nfrom your \\`onAction()\\` function as \\`sourceData\\` in the response.",
-          "anyOf": [
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "patternProperties": {
-                "^[0-9]+$": {
-                  "type": "number"
-                }
-              },
-              "properties": {
-                "BYTES_PER_ELEMENT": {
-                  "type": "number",
-                  "title": "BYTES_PER_ELEMENT"
-                },
-                "buffer": {
-                  "$ref": "#/definitions/ArrayBufferLike",
-                  "title": "buffer"
-                },
-                "byteLength": {
-                  "type": "number",
-                  "title": "byteLength"
-                },
-                "byteOffset": {
-                  "type": "number",
-                  "title": "byteOffset"
-                },
-                "length": {
-                  "type": "number",
-                  "title": "length"
-                },
-                "__@toStringTag@23": {
-                  "type": "string",
-                  "const": "Uint8Array",
-                  "title": "__@toStringTag@23"
-                }
-              },
-              "defaultProperties": [],
-              "propertyOrder": [
-                "BYTES_PER_ELEMENT",
-                "buffer",
-                "byteLength",
-                "byteOffset",
-                "copyWithin",
-                "every",
-                "fill",
-                "filter",
-                "find",
-                "findIndex",
-                "forEach",
-                "indexOf",
-                "join",
-                "lastIndexOf",
-                "length",
-                "map",
-                "reduce",
-                "reduceRight",
-                "reverse",
-                "set",
-                "slice",
-                "some",
-                "sort",
-                "subarray",
-                "toLocaleString",
-                "toString",
-                "valueOf",
-                "entries",
-                "keys",
-                "values",
-                "includes",
-                "__@iterator@83",
-                "__@toStringTag@23",
-                "at"
-              ],
-              "required": [
-                "BYTES_PER_ELEMENT",
-                "__@toStringTag@23",
-                "buffer",
-                "byteLength",
-                "byteOffset",
-                "length"
-              ]
-            },
-            {
-              "type": "string"
-            }
-          ],
+          "description": "Optional data to display in the ContentDisplay component. This can be set initially\nor lazily loaded when the `SET_SELECTED_SOURCE` action is handled. Simply return the data \nfrom your `onAction()` function as `sourceData\\` in the response.\n\nFor PDF sources, this should be a Uint8Array containing the binary PDF data.\nFor text, markdown, and HTML sources, this should be a string.",
+          "type": "[string, bytes]",
           "title": "data"
         },
         "metadata": {
-          "description": "key convention to hide from display _key\n\nIf type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the ContentDisplay component.",
-          "additionalProperties": false,
+          "description": "Optional metadata associated with the source.\n\nIf type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the SourcesDisplay component.\nProperties with a leading underscore (e.g., '_page') are hidden from display in the UI.",
           "type": "object",
-          "properties": {
-            "page": {
-              "description": "The page number to display for PDF documents. Page numbers are 1-based.",
-              "type": "integer",
-              "minimum": 1,
-              "title": "page"
-            },
-            "_page": {
-              "description": "Hidden from display. The page number to display for PDF documents. Page numbers are 1-based.",
-              "type": "integer",
-              "minimum": 1,
-              "title": "_page"
-            }
-          },
           "title": "metadata"
         },
         "highlights": {
-          "description": "Highlight annotations in the PDF document. Only applicable for PDF sources.",
+          "description": "Highlight annotations in the PDF document. Only applicable for PDF sources.\nThese highlights will be visually displayed in the PDF viewer.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/PDFHighlight"
@@ -215,7 +117,7 @@
       ]
     },
     "StreamChunk": {
-      "description": "Represents a chunk of streamed content.",
+      "description": "Represents a chunk of streamed content.\nUsed for streaming responses from the assistant in real-time.",
       "type": "object",
       "properties": {
         "content": {
@@ -241,6 +143,76 @@
         "sources",
         "done"
       ]
+    },
+    "PDFHighlight": {
+      "description": "Represents a highlight annotation in a PDF document.",
+      "title": "PDFHighlight",
+      "type": "object",
+      "properties": {
+        "page": {
+          "description": "The page number where the highlight appears. Page numbers are 1-based.",
+          "type": "integer",
+          "minimum": 1,
+          "title": "page"
+        },
+        "rect": {
+          "description": "The rectangle coordinates of the highlight",
+          "type": "object",
+          "properties": {
+            "top": {
+              "description": "Top position of the highlight (relative to the page)",
+              "type": "number",
+              "title": "top"
+            },
+            "left": {
+              "description": "Left position of the highlight (relative to the page)",
+              "type": "number",
+              "title": "left"
+            },
+            "width": {
+              "description": "Width of the highlight (relative to the page width)",
+              "type": "number",
+              "title": "width"
+            },
+            "height": {
+              "description": "Height of the highlight (relative to the page height)",
+              "type": "number",
+              "title": "height"
+            }
+          },
+          "defaultProperties": [],
+          "additionalProperties": false,
+          "propertyOrder": [
+            "top",
+            "left",
+            "width",
+            "height"
+          ],
+          "required": [
+            "height",
+            "left",
+            "top",
+            "width"
+          ],
+          "title": "rect"
+        }
+      },
+      "defaultProperties": [],
+      "additionalProperties": false,
+      "propertyOrder": [
+        "page",
+        "rect"
+      ],
+      "required": [
+        "page",
+        "rect"
+      ]
+    },
+    "UUID": {
+      "description": "A UUID string in the format \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\".\nUsed as unique identifiers for messages, sources, and other entities in the system.",
+      "title": "UUID",
+      "type": "string",
+      "pattern": "^.*-.*-.*-.*-.*$"
     }
   }
 }
