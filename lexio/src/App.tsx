@@ -11,6 +11,8 @@ import {
     Source,
     createRESTContentSource, 
     ActionHandlerResponse,
+    Citation,
+    UUID,
 } from '../lib/main';
 import { ExplanationProcessor } from '../lib/explanation';
 import './App.css';
@@ -60,7 +62,7 @@ function App() {
         action: UserAction, 
         _messages: Message[], // Add underscore to indicate intentionally unused
         sources: Source[], 
-        activeSources: Source[], 
+        activeSources: Source[] | null, 
         selectedSource: Source | null
     ): ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined => {
         console.log('Action received:', action.type);
@@ -113,12 +115,10 @@ function App() {
                         return {
                             sourceData: finalData,
                             activeSourceIds: [sourceToLoad.id],
-                            actionOptions: {
-                                followUp: {
-                                    type: SET_ACTIVE_SOURCES,
-                                    sourceIds: [sourceToLoad.id],
-                                    source: 'LexioProvider' as const
-                                }
+                            followUpAction: {
+                                type: SET_ACTIVE_SOURCES,
+                                sourceIds: [sourceToLoad.id],
+                                source: 'LexioProvider' as const
                             }
                         } as ActionHandlerResponse;
                     } catch (error) {
@@ -143,8 +143,6 @@ function App() {
         if (action.type === 'ADD_USER_MESSAGE') {
             console.log('ADD_USER_MESSAGE action started');
 
-
-
             // Create messages
             const userMessage: Message = {
                 id: crypto.randomUUID(),
@@ -153,7 +151,6 @@ function App() {
             };
 
             // For now, use the mocked response
-            // Later this will be replaced with the actual RAG system response
             const ragResponse = MOCKED_RESPONSE.answer;
 
             // Get the source data if available
@@ -164,7 +161,6 @@ function App() {
                 console.log('Source data available, triggering actual explanation process...');
                 
                 // Send the RAG response to the ExplanationProcessor
-                // This will remain the same when we switch to real RAG responses
                 return ExplanationProcessor.processResponse(
                     ragResponse,
                     sourceToProcess.data as Uint8Array
@@ -172,59 +168,54 @@ function App() {
                 .then(explanationResult => {
                     console.log('Explanation process completed successfully:', explanationResult);
                     
-                    // Create PDF highlights from the idea sources
-                    const pdfHighlights = explanationResult.ideaSources
-                        .map(source => source.supporting_evidence[0]?.highlight)
-                        .filter((highlight): highlight is NonNullable<typeof highlight> => !!highlight);
-                    
-                    const updatedSource = {
-                        ...sourceToProcess,
-                        highlights: pdfHighlights,
-                        metadata: {
-                            ...sourceToProcess.metadata,
-                            coloredIdeas: explanationResult.answerIdeas.map(idea => ({
-                                text: idea.text,
-                                color: idea.color,
-                                originalText: idea.text
-                            }))
-                        }
-                    };
+                    // Create citations from ideaSources
+                    const citations = explanationResult.ideaSources
+                        .map((source) => {
+                            const evidence = source.supporting_evidence[0];
+                            if (!evidence?.highlight) return undefined;
+                            
+                            const citation: Citation = {
+                                sourceId: sourceToProcess.id as UUID,
+                                highlight: {
+                                    page: evidence.highlight.page,
+                                    rect: evidence.highlight.rect,
+                                    color: source.color
+                                },
+                                messageStartChar: explanationResult.answer.indexOf(source.answer_idea),
+                                messageEndChar: explanationResult.answer.indexOf(source.answer_idea) + source.answer_idea.length,
+                                colorRgba: source.color
+                            };
+                            
+                            return citation;
+                        })
+                        .filter((citation): citation is Citation => citation !== undefined);
 
-                    // Create the assistant message with the RAG response
+                    // Create the assistant message
                     const assistantMessage: Message = {
-                        id: crypto.randomUUID(),
+                        id: crypto.randomUUID() as UUID,
                         role: 'assistant',
                         content: explanationResult.answer,
-                        metadata: {
-                            coloredIdeas: explanationResult.answerIdeas.map(idea => ({
-                                text: idea.text,
-                                color: idea.color,
-                                originalText: idea.text
-                            }))
-                        }
+                        citations: citations
                     };
 
                     const messages = [userMessage, assistantMessage];
-                    const messagesPromise = Promise.resolve(messages);
 
                     console.log('Returning action response with messages:', messages);
+                    
                     const response: ActionHandlerResponse = {
                         response: Promise.resolve(explanationResult.answer),
-                        messages: messagesPromise,
-                        citations: [
-
-                            
-                        ],
-                        sources: Promise.resolve([updatedSource]),
-                        actionOptions: {
-                            followUp: {
-                                type: SET_ACTIVE_SOURCES,
-                                sourceIds: [sourceToProcess.id],
-                                source: 'LexioProvider' as const
-                            }
+                        sources: Promise.resolve([{
+                            ...sourceToProcess,
+                            highlights: citations.map(c => c.highlight)
+                        }]),
+                        citations,
+                        followUpAction: {
+                            type: SET_ACTIVE_SOURCES,
+                            sourceIds: [sourceToProcess.id],
+                            source: 'LexioProvider' as const
                         }
                     };
-
+                    
                     return response;
                 })
                 .catch(error => {
@@ -240,20 +231,18 @@ function App() {
                     };
 
                     const messages = [userMessage, assistantMessage];
-                    const messagesPromise = Promise.resolve(messages);
-
-                    return {
+                    
+                    const response: ActionHandlerResponse = {
                         response: Promise.resolve(ragResponse),
-                        messages: messagesPromise,
                         sources: Promise.resolve([sourceToProcess]),
-                        actionOptions: {
-                            followUp: {
-                                type: SET_ACTIVE_SOURCES,
-                                sourceIds: [sourceToProcess.id],
-                                source: 'LexioProvider' as const
-                            }
+                        followUpAction: {
+                            type: SET_ACTIVE_SOURCES,
+                            sourceIds: [sourceToProcess.id],
+                            source: 'LexioProvider' as const
                         }
                     };
+                    
+                    return response;
                 });
             } else {
                 console.log('No source data available, using simple response');
@@ -266,20 +255,18 @@ function App() {
                 };
 
                 const messages = [userMessage, assistantMessage];
-                const messagesPromise = Promise.resolve(messages);
-
-                return {
+                
+                const response: ActionHandlerResponse = {
                     response: Promise.resolve(ragResponse),
-                    messages: messagesPromise,
                     sources: Promise.resolve([sourceToProcess]),
-                    actionOptions: {
-                        followUp: {
-                            type: SET_ACTIVE_SOURCES,
-                            sourceIds: [sourceToProcess.id],
-                            source: 'LexioProvider' as const
-                        }
+                    followUpAction: {
+                        type: SET_ACTIVE_SOURCES,
+                        sourceIds: [sourceToProcess.id],
+                        source: 'LexioProvider' as const
                     }
                 };
+                
+                return response;
             }
         }
 

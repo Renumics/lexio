@@ -31,40 +31,14 @@ export type UUID = `${string}-${string}-${string}-${string}-${string}`;
  * @property {number} rect.width - Width of the highlight (relative to the page width)
  * @property {number} rect.height - Height of the highlight (relative to the page height)
  */
+
 export interface PDFHighlight {
-    /**
-     * The page number where the highlight appears. Page numbers are 1-based.
-     * @TJS-type integer
-     * @minimum 1
-     */
     page: number;
-
-
-    /**
-     * The color of the highlight.
-     * @TJS-type string
-     */
     color: string;
-
-    /**
-     * The rectangle coordinates of the highlight
-     */
     rect: {
-        /**
-         * Top position of the highlight (relative to the page)
-         */
         top: number;
-        /**
-         * Left position of the highlight (relative to the page)
-         */
         left: number;
-        /**
-         * Width of the highlight (relative to the page width)
-         */
         width: number;
-        /**
-         * Height of the highlight (relative to the page height)
-         */
         height: number;
     };
 }
