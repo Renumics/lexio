@@ -4,15 +4,15 @@ import RAGUIExample from "./assets/shot_lexio_llama_index.png";
 
 <Meta title="Welcome" />
 
-# 🚀 Welcome
+# 🚀 Welcome to Lexio
 
-Lexio is a robust React library for Retrieval-Augmented Generation (RAG) document QA interfaces, handling complex workflows out of the box while remaining simple to use. 
+Lexio is a powerful React library for building Retrieval-Augmented Generation (RAG) interfaces. It handles complex workflows out of the box while remaining simple to use and highly customizable.
 
-It supports multiple document types (PDF, HTML, Markdown) with advanced features like streaming responses and source highlighting. 
+It supports multiple document types (PDF, HTML, Markdown, Text) with advanced features like streaming responses, source highlighting, and a comprehensive state management system.
 
-Developers can use ready-made components or easily build custom ones using React hooks.
+Developers can use ready-made components or easily build custom ones using React hooks and the flexible action handler pattern.
 
-<img src={RAGUIExample} alt="RAG UI Example" />
+<img src={RAGUIExample} alt="Lexio UI Example" />
 
 ## Quick Start
 
@@ -22,47 +22,87 @@ You can install the library with npm or yarn:
 npm install lexio
 ```
 
-To use the GUI components, you need to provide retrieval and generation functions to the `RAGProvider` context:
+To use the GUI components, you need to provide an action handler to the `LexioProvider` context:
 
 ```tsx
-import { RAGProvider, ChatWindow, AdvancedQueryField, SourcesDisplay, ContentDisplay, ErrorDisplay } from 'lexio';
+import { 
+  LexioProvider, 
+  ChatWindow, 
+  AdvancedQueryField, 
+  SourcesDisplay, 
+  ContentDisplay, 
+  ErrorDisplay 
+} from 'lexio';
 
 const App = () => (
-<RAGProvider
-  retrieveAndGenerate={(messages) => {
-    return {
-      sources: Promise.resolve([
-        {
-          source: "example-doc.pdf",
-        },
-          relevanceScore: 0.95
-        }
-      ]),
-      response: Promise.resolve("This is a sample response based on the retrieved documents.")
-    };
-  }}
->
-  <ChatWindow />
-  <AdvancedQueryField />
-  <SourcesDisplay />
-  <ContentDisplay />
-  <ErrorDisplay />
-</RAGProvider>
+  <LexioProvider
+    onAction={(action, messages, sources, activeSources, selectedSource) => {
+      // Handle user messages
+      if (action.type === 'ADD_USER_MESSAGE') {
+        return {
+          // Return sources as a Promise that resolves to Source[]
+          sources: Promise.resolve([
+            {
+              id: crypto.randomUUID(),
+              title: "Example Document",
+              type: "pdf",
+              relevance: 0.95,
+              metadata: {
+                author: "Documentation Team",
+                page: 3
+              }
+            }
+          ]),
+          // Return a response as a Promise or use streaming
+          response: Promise.resolve("This is a sample response based on the retrieved documents.")
+        };
+      }
+      
+      // Handle source selection
+      if (action.type === 'SET_SELECTED_SOURCE' && action.sourceObject) {
+        return {
+          sourceData: fetchSourceContent(action.sourceObject.id)
+        };
+      }
+      
+      return undefined;
+    }}
+  >
+    <div className="flex flex-col h-screen">
+      <div className="flex-1">
+        <ChatWindow markdown={true} />
+      </div>
+      <div>
+        <AdvancedQueryField />
+      </div>
+      <div className="flex">
+        <SourcesDisplay />
+        <ContentDisplay />
+      </div>
+    </div>
+    <ErrorDisplay />
+  </LexioProvider>
 );
 ```
-Follow the [Tutorial](../?path=/docs/tutorial-01-basic-usage--docs) to learn more about the library.
+
+Follow the [Basic Usage](../?path=/docs/basic-usage-01-action-handler-pattern--docs) guides to learn more about the library.
 
 ## Key Features
-- **Powerful Viewers**: Pre-built components for chat interfaces, source selection and viewing with source highlighting
-- **Integrated State Management**: Transparent state handling for interaction between components
-- **Opinionated Architecture**: Implements RAG best practices out of the box
-- **Highly Customizable**: Theming and component customization options through ...
+
+- **Action Handler Pattern**: A flexible pattern for handling user interactions and state updates
+- **Powerful Components**: Pre-built components for chat interfaces, source selection, and document viewing with highlighting
+- **Integrated State Management**: Transparent state handling for seamless interaction between components
+- **Streaming Responses**: Support for real-time, incremental responses with source updates
+- **Comprehensive Error Handling**: Built-in error handling and timeout management
+- **Highly Customizable**: Theming and component customization options
 
 ## Advantages
+
 - **Quick Implementation**: Get your RAG interface running with just a few lines of code
 - **Production Ready**: Built for integration into mature web applications
 - **Best Practices Built-in**: Follows RAG implementation patterns from real-world applications
-- **Framework Agnostic**: Works with any backend RAG implementation
+- **Framework Agnostic Backend**: Works with any backend RAG implementation (LangChain, LlamaIndex, custom solutions)
+- **Flexible Architecture**: Adapt to various use cases from simple chat to complex document analysis
 
 ## Target Groups
 

@@ -17,7 +17,6 @@ const settings = {
   titles: true,
   defaultNumberType: 'float',
   description: true,
-
   annotations: true,     // Includes @annotations from JSDoc
   examples: true,        // Includes @example from JSDoc
   propOrder: true,       // Preserves property order from the interface
@@ -104,9 +103,76 @@ if (referencedTypes.size > 0) {
   referencedTypes.forEach(type => console.error(`- ${type}`));
 }
 
+// Process the schema to handle special type mappings for Python
+function processSchemaForPython(schema) {
+  // Deep clone the schema to avoid modifying the original
+  const processedSchema = JSON.parse(JSON.stringify(schema));
+  
+  // Function to recursively process all properties in the schema
+  function processObject(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      obj.forEach(item => processObject(item));
+      return;
+    }
+    
+    // Process each property
+    for (const key in obj) {
+      const value = obj[key];
+      
+      // Handle Uint8Array type
+      if (key === 'type' && value === 'Uint8Array') {
+        obj[key] = 'bytes';
+      }
+      
+      // Handle special case for union types that include Uint8Array
+      if (key === 'anyOf' && Array.isArray(value)) {
+        value.forEach(typeObj => {
+          if (typeObj.type === 'Uint8Array') {
+            typeObj.type = 'bytes';
+          }
+        });
+      }
+      
+      // Handle special JSDoc annotations
+      if (key === 'description' && value && typeof value === 'string') {
+        // Extract Python type information from JSDoc
+        const pythonTypeMatch = value.match(/@python-type\s+([^\n]+)/);
+        if (pythonTypeMatch) {
+          obj['x-python-type'] = pythonTypeMatch[1].trim();
+        }
+        
+        // Look for TJS-type annotation that might indicate a special type
+        const tjsTypeMatch = value.match(/@TJS-type\s+([^\n]+)/);
+        if (tjsTypeMatch) {
+          const tjsType = tjsTypeMatch[1].trim();
+          // Handle special case for [string, bytes]
+          if (tjsType === '[string, bytes]') {
+            // This indicates a union type of string | bytes in Python
+            obj['x-python-type'] = 'Union[str, bytes]';
+          }
+        }
+      }
+      
+      // Recursively process nested objects
+      if (value && typeof value === 'object') {
+        processObject(value);
+      }
+    }
+  }
+  
+  processObject(processedSchema);
+  return processedSchema;
+}
+
+// Process the schema for Python compatibility
+const pythonCompatibleSchema = processSchemaForPython(filteredSchema);
+
 // Write the filtered schema to file
 try {
-  fs.writeFileSync(outputJsonPath, JSON.stringify(filteredSchema, null, 2));
+  fs.writeFileSync(outputJsonPath, JSON.stringify(pythonCompatibleSchema, null, 2));
   console.log(`✅ Schema successfully written to ${outputJsonPath}`);
 } catch (error) {
   console.error('Error writing schema to file:', error);

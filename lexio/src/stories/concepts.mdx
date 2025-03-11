@@ -1,47 +1,185 @@
 import { Meta, Markdown } from '@storybook/blocks';
 
 <Meta title="Concepts" />
-# 🚀 Concepts
 
-# Concepts: Core Principles and building blocks
+# 🚀 Core Concepts
+
+This page explains the fundamental concepts and building blocks of Lexio, providing a foundation for understanding how to use the library effectively.
 
 ## Basic Components
 
-### RAGProvider
-The `RAGProvider` is the core component that provides the context for the Lexio UI components]
- - It is responsible for managing the shared state for the UI components.
- - It is initialized with the retrieval and generating functions.
+### 🧠 LexioProvider
 
+The `LexioProvider` is the core component that provides the context for all Lexio UI components:
+- It manages the shared state for all UI components
+- It processes user actions through the `onAction` ActionHandler
+- It handles error states and loading indicators
+- It provides configuration options for timeouts and other settings
 
-### Lexio UI components
-- **ChatWindow**: Interactive chat interface.
-- **AdvancedQueryField**: Enhancing user input with advanced query capabilities.
-- **ErrorDisplay**: Handling and displaying errors gracefully.
-- **SourcesDisplay**: Displaying an overview of the retrieved sources.
-- **ContentDisplay**: Displaying the documents where the sources were taken from (with highlights if available)
+```tsx
+<LexioProvider
+  onAction={(action, messages, sources, activeSources, selectedSource) => {
+    // Handle different action types
+    if (action.type === 'ADD_USER_MESSAGE') {
+      // Process user message and return response
+    }
+    // Return undefined for actions you don't need to handle
+  }}
+  config={{
+    timeouts: {
+      request: 30000,  // 30 seconds for entire operations
+      stream: 5000     // 5 seconds between stream chunks
+    }
+  }}
+>
+  {/* Your Lexio components here */}
+</LexioProvider>
+```
 
-### Retrieval and Generation functions
-At least one of these functions must be provided to the `RAGProvider`
-- **retrieveAndGenerate**: Gets the query and chat history => should return a response and sources of your RAG implementation. 
-- **retrieve**: Retrieving content: Gets the query and chat history =>  should return only sources.
-- **generate**: Generating content: Gets query, chat history and source of the last retrival => should return only a response.
-- **getDataSource**: Retrieving data from a data source. E.g. a PDF, HTML, or other file format.
+### 🖥️ UI Components
 
+Lexio provides several ready-to-use UI components:
+
+- **ChatWindow**: Displays the conversation history and AI responses with markdown support
+- **AdvancedQueryField**: Input field for user messages with optional advanced features
+- **SourcesDisplay**: Shows retrieved sources with metadata and selection capabilities
+- **ContentDisplay**: Renders the content of selected sources with highlighting
+- **ErrorDisplay**: Shows error messages and loading states
+
+### 🪝 React Hooks
+
+Lexio provides a set of React hooks that allow you to interact with the state and trigger actions from your custom components:
+
+- **useSources**: Access and manipulate source-related state
+- **useMessages**: Access and manipulate message-related state
+- **useStatus**: Access loading and error states
+
+These hooks enable you to:
+1. Trigger user actions programmatically from your React code
+2. Access the current state of the application
+3. Build custom components that integrate with Lexio's state management
+
+```tsx
+// Example of using hooks in a custom component
+import { useSources, useMessages, useStatus } from 'lexio';
+
+const MyCustomComponent = () => {
+  // Access source-related functionality
+  const { 
+    sources, 
+    activeSources, 
+    selectedSource,
+    searchSources,
+    setSelectedSource,
+    setActiveSources,
+    clearSources
+  } = useSources('MyCustomComponent');
+  
+  // Access message-related functionality
+  const {
+    messages,
+    activeMessage,
+    addUserMessage,
+    clearMessages
+  } = useMessages('MyCustomComponent');
+  
+  // Access loading and error states
+  const { loading, error } = useStatus();
+  
+  // Example: Trigger a user message programmatically
+  const handleSubmit = () => {
+    addUserMessage('My programmatic message');
+  };
+  
+  return (
+    <div>
+      {/* Your custom UI */}
+      <button onClick={handleSubmit} disabled={loading}>
+        Send Message
+      </button>
+      {/* Display sources, messages, etc. */}
+    </div>
+  );
+};
+```
+
+All built-in Lexio UI components use these same hooks internally, ensuring consistent behavior across the application. The component name parameter (e.g., 'MyCustomComponent') helps with debugging by identifying which component triggered an action.
+
+## Action Handler Pattern
+
+The action handler pattern is central to Lexio's architecture:
+
+1. **User Interactions** trigger actions (e.g., sending a message, selecting a source)
+2. These actions are passed to the `onAction` handler in the `LexioProvider`
+3. The handler processes the action and returns an appropriate response
+4. Lexio updates its internal state based on the response
+5. UI components automatically reflect the updated state
+
+```tsx
+onAction(
+  action: UserAction,           // The action that was triggered
+  messages: Message[],          // All messages in the chat
+  sources: Source[],            // All available sources
+  activeSources: Source[] | null, // Currently active sources
+  selectedSource: Source | null // Currently selected source
+) => ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined
+```
+
+### 📋 Common Action Types
+
+Lexio provides a set of predefined action types that cover most common user interactions:
+
+#### Message Actions
+- `ADD_USER_MESSAGE`: User sends a new message (requires response handling)
+- `CLEAR_MESSAGES`: Conversation history is cleared
+- `SET_ACTIVE_MESSAGE`: A specific message is highlighted or focused
+
+#### Source Actions
+- `SEARCH_SOURCES`: User initiates a source search (requires source retrieval)
+- `CLEAR_SOURCES`: All sources are removed from the state
+- `SET_SELECTED_SOURCE`: User selects a specific source for detailed viewing
+- `SET_ACTIVE_SOURCES`: Multiple sources are activated for context
+- `SET_FILTER_SOURCES`: Sources are filtered based on criteria
+- `RESET_FILTER_SOURCES`: Source filters are cleared
+
+Each action type has a specific structure and expected response format. For example, `ADD_USER_MESSAGE` typically returns both a response and sources, while `SET_SELECTED_SOURCE` might return source data for the selected document.
+
+## State Management
+
+Lexio manages several key state elements:
+
+- **Messages**: The conversation history between user and AI
+- **Sources**: Retrieved documents or text snippets
+- **Selected Source**: Currently focused source for detailed viewing
+- **Active Sources**: Sources currently being used for context
+- **Loading State**: Indicates ongoing operations
+- **Error State**: Captures and displays errors
 
 ## Advanced Concepts
 
-### Source Management
-- **Source Types**: Different source types are available:
-    -  Simple plain text as source - with the content nested 
-    -  References to source documents: A reference to a document (pdf, mdx, html), that can include metadata and highlights that will be shown it deticated Viewers
+### 💬 Response Handling
 
+- **Streaming Responses**: Real-time, incremental responses using AsyncIterable
+- **Source Updates During Streaming**: Adding or updating sources during streaming
+- **Error Handling**: Comprehensive error handling for various failure scenarios
+- **Timeouts**: Configurable timeouts for requests and streaming
 
-### Response Handling
-- **Streaming Responses**: There are stream interface available to implement streaming responses.
-- **Follow-up Questions**: The generate function of the RAGProvider can be used to handle follow-up questions.
+### ⚙️ Action Flow Customization
 
-### Customization and Theming
-- **Global Theme**: All components can be styled with a global theme that can be set in the `RAGProvider`.
-    - You can either define a custom theme that implements the `Theme` interface or override the default theme (partially) with the `createTheme` function.
-- **Component Styling**: Components can be styled individually with the `styleOverrides` prop.
-    - Each components has a set of styles that can be overridden. See the component documentation for more information.
+- **Blocking vs. Non-blocking Actions**: Some actions block the UI during processing
+- **Lazy Loading**: Lazy loading of sources and data
+- **Follow-up Actions**: Chain multiple actions together for complex workflows
+- **Custom Action Types**: Define your own action types for specialized behavior
+
+### 🎨 Customization and Theming
+
+- **Component Customization**: Override styles for individual components
+- **Global Theme**: Apply consistent styling across all components
+- **Custom Components**: Build your own components using Lexio's hooks
+
+## 🔌 Integration Patterns
+
+- **Backend Integration**: Connect to any RAG backend (LangChain, LlamaIndex, custom)
+- **Authentication**: Pass authentication tokens through your action handler
+- **Stateful vs. Stateless**: Choose between maintaining state on client or server
+- **Progressive Enhancement**: Start simple and add advanced features as needed

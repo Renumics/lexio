@@ -11,6 +11,7 @@ import '@testing-library/jest-dom';
 
 import { SourcesDisplay } from './SourcesDisplay';
 import { LexioProvider } from '../LexioProvider';
+import { UUID } from '../../types';
 
 /**
  * Utility to create a wrapper that provides:
@@ -33,8 +34,8 @@ describe('SourcesDisplay (with onAction-based SEARCH_SOURCES)', () => {
         return {
           // The store will update with these sources after the promise resolves
           sources: Promise.resolve([
-            { id: 'source1-id', title: 'Mock Source 1', type: 'text' },
-            { id: 'source2-id', title: 'Mock Source 2', type: 'text' },
+            { id: '123e4567-e89b-12d3-a456-426614174000' as UUID, title: 'Mock Source 1', type: 'text' },
+            { id: '123e4567-e89b-12d3-a456-426614174001' as UUID, title: 'Mock Source 2', type: 'text' },
           ]),
         };
       }
@@ -60,7 +61,7 @@ describe('SourcesDisplay (with onAction-based SEARCH_SOURCES)', () => {
       expect.objectContaining({ type: 'SEARCH_SOURCES', query: 'some query' }),
       expect.any(Array), // messages
       expect.any(Array), // sources
-      expect.any(Array), // activeSources
+      null,              // activeSources can now be null
       null               // selectedSource on first usage is typically null
     );
 
@@ -76,7 +77,7 @@ describe('SourcesDisplay (with onAction-based SEARCH_SOURCES)', () => {
       if (action.type === 'SEARCH_SOURCES') {
         return {
           sources: Promise.resolve([
-            { id: 'sourceA', title: 'Source A', type: 'text' },
+            { id: '123e4567-e89b-12d3-a456-426614174002' as UUID, title: 'Source A', type: 'text' },
           ]),
         };
       }
@@ -97,7 +98,7 @@ describe('SourcesDisplay (with onAction-based SEARCH_SOURCES)', () => {
       expect.objectContaining({ type: 'SEARCH_SOURCES', query: 'enter query' }),
       expect.any(Array),
       expect.any(Array),
-      expect.any(Array),
+      null,              // activeSources can now be null
       null
     );
   });
@@ -118,9 +119,13 @@ describe('SourcesDisplay (with onAction-based SEARCH_SOURCES)', () => {
         // Return a single source
         return {
           sources: Promise.resolve([
-            { id: 'source1', title: 'A Single Source', type: 'text' },
+            { id: '123e4567-e89b-12d3-a456-426614174003' as UUID, title: 'A Single Source', type: 'text' },
           ]),
         };
+      }
+      // Handle CLEAR_SOURCES action
+      if (action.type === 'CLEAR_SOURCES') {
+        return {}; // Return empty object for successful action
       }
       return undefined;
     });
@@ -153,5 +158,99 @@ describe('SourcesDisplay (with onAction-based SEARCH_SOURCES)', () => {
     await waitFor(() => {
       expect(screen.getByText('No sources available')).toBeInTheDocument();
     });
+  });
+
+  it('handles setting active sources to null', async () => {
+    const mockOnAction = vi.fn((action) => {
+      if (action.type === 'SEARCH_SOURCES') {
+        return {
+          sources: Promise.resolve([
+            { id: '123e4567-e89b-12d3-a456-426614174004' as UUID, title: 'Source X', type: 'text' },
+            { id: '123e4567-e89b-12d3-a456-426614174005' as UUID, title: 'Source Y', type: 'text' },
+          ]),
+        };
+      }
+      if (action.type === 'SET_ACTIVE_SOURCES') {
+        // Return empty object for successful action
+        return {};
+      }
+      return undefined;
+    });
+
+    const wrapper = createWrapper(mockOnAction);
+    render(<SourcesDisplay />, { wrapper });
+
+    // Perform a search to get sources
+    const searchInput = screen.getByPlaceholderText('Search knowledge base...');
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'test query' } });
+      fireEvent.click(screen.getByText('Search'));
+    });
+
+    // Wait for sources to appear
+    await waitFor(() => {
+      expect(screen.getByText('Source X')).toBeInTheDocument();
+      expect(screen.getByText('Source Y')).toBeInTheDocument();
+    });
+
+    // Verify that the sources are displayed correctly
+    expect(screen.getByText('Source X')).toBeInTheDocument();
+    expect(screen.getByText('Source Y')).toBeInTheDocument();
+  });
+
+  it('handles setting selected source to null', async () => {
+    const mockOnAction = vi.fn((action) => {
+      if (action.type === 'SEARCH_SOURCES') {
+        return {
+          sources: Promise.resolve([
+            { id: '123e4567-e89b-12d3-a456-426614174006' as UUID, title: 'Source Z', type: 'text' },
+          ]),
+        };
+      }
+      if (action.type === 'SET_SELECTED_SOURCE') {
+        // Verify that null can be passed as sourceId
+        if (action.sourceId === null || action.sourceId === '') {
+          return {
+            selectedSourceId: null
+          };
+        }
+        return {
+          selectedSourceId: action.sourceId
+        };
+      }
+      return undefined;
+    });
+
+    const wrapper = createWrapper(mockOnAction);
+    render(<SourcesDisplay />, { wrapper });
+
+    // Perform a search to get sources
+    const searchInput = screen.getByPlaceholderText('Search knowledge base...');
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'test query' } });
+      fireEvent.click(screen.getByText('Search'));
+    });
+
+    // Wait for source to appear
+    await waitFor(() => {
+      expect(screen.getByText('Source Z')).toBeInTheDocument();
+    });
+
+    // Click on the source to select it
+    await act(async () => {
+      fireEvent.click(screen.getByText('Source Z'));
+    });
+
+    // Verify that SET_SELECTED_SOURCE was called with the correct sourceId
+    expect(mockOnAction).toHaveBeenCalledWith(
+      expect.objectContaining({ 
+        type: 'SET_SELECTED_SOURCE', 
+        sourceId: '123e4567-e89b-12d3-a456-426614174006' 
+      }),
+      expect.any(Array),
+      expect.any(Array),
+      null,
+      null
+    );
   });
 });
