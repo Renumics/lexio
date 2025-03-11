@@ -33,15 +33,6 @@ npm install lexio
 To use the GUI components, you need to provide an action handler to the `LexioProvider` context:
 
 ```tsx
-import { 
-  LexioProvider, 
-  ChatWindow, 
-  AdvancedQueryField, 
-  SourcesDisplay, 
-  ContentDisplay, 
-  ErrorDisplay 
-} from 'lexio';
-
 const App = () => (
   <LexioProvider
     onAction={(action, messages, sources, activeSources, selectedSource) => {
@@ -49,51 +40,24 @@ const App = () => (
       if (action.type === 'ADD_USER_MESSAGE') {
         return {
           // Return sources as a Promise that resolves to Source[]
-          sources: Promise.resolve([
-            {
-              title: "Example Document",
-              type: "pdf",
-              relevance: 0.95,
-              metadata: {
-                author: "Documentation Team",
-                page: 3
-              }
-            }
-          ]),
+          sources: fetchSources(),
           // Return a response as a Promise or use streaming
           response: Promise.resolve("This is a sample response based on the retrieved documents.")
         };
       }
-      
       // Handle source selection
       if (action.type === 'SET_SELECTED_SOURCE' && action.sourceObject) {
         return {
           sourceData: fetchSourceContent(action.sourceObject.id)
         };
       }
-      
       return undefined;
     }}
-    config={{
-      timeouts: {
-        request: 30000,  // 30 seconds for entire operations
-        stream: 5000     // 5 seconds between stream chunks
-      }
-    }}
   >
-    <div className="flex flex-col h-screen">
-      <div className="flex-1">
-        <ChatWindow markdown={true} />
-      </div>
-      <div>
-        <AdvancedQueryField />
-      </div>
-      <div className="flex">
-        <SourcesDisplay />
-        <ContentDisplay />
-      </div>
-    </div>
-    <ErrorDisplay />
+    <ChatWindow markdown={true} />
+    <AdvancedQueryField />
+    <SourcesDisplay />
+    <ContentDisplay />
   </LexioProvider>
 );
 ```
