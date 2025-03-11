@@ -424,6 +424,7 @@ export interface SetActiveSourcesActionResponse {
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface SetSelectedSourceActionResponse {
+    selectedSourceId?: string | null;
     sourceData?: Promise<string | Uint8Array>;
     followUpAction?: UserAction;
 }

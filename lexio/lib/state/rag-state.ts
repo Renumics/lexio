@@ -522,8 +522,8 @@ export const dispatchAtom = atom(
           action,
           get(completedMessagesAtom),
           retrievedSources,
-          activeSources,  // todo: why return all sources twice? why return the whole source -> big, why no Ids only
-          get(selectedSourceAtom)  // todo: same, why no Id
+          activeSources,
+          get(selectedSourceAtom)
         )
       );
 
