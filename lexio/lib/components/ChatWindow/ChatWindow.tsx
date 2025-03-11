@@ -130,8 +130,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     // Add ref for scrolling
     const chatEndRef = React.useRef<HTMLDivElement>(null);
 
-    const { clearMessages } = useLexio(componentKey ? `ChatWindow-${componentKey}` : 'ChatWindow');
-
     // Scroll to bottom whenever messages or currentStream changes
     React.useEffect(() => {
         // If there are no messages and no currentStream, don't scroll
