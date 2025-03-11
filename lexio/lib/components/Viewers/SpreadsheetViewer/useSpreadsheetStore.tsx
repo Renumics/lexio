@@ -171,12 +171,20 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
             return;
         }
 
-        let rows: RowList = [];
+        const rows: RowList = [];
         const headerStylesForUpdate: Record<string, CSSProperties> = {};
         const rowStyleForUpdate: Record<number, CSSProperties> = {};
         const cellStylesForUpdate: Record<string, CSSProperties> = {};
 
         worksheet.eachRow({ includeEmpty: true }, (row: WorksheetRow, rowIndex: number) => {
+            // If a row is empty exceljs won't iterate row.eachCell() below causing the row to be missing in the custom row object above. This is row with a single column(A) is added here manually to fix this.
+            if (row.cellCount === 0) {
+                rows[rowIndex] = {
+                    ...rows[rowIndex],
+                    ["A"]: "",
+                }
+            }
+
             row.eachCell({ includeEmpty: true }, (cell: WorksheetCell) => {
                 const columnId = extractCellComponent(cell.address)?.column;
                 if (!columnId) return;
@@ -230,18 +238,12 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
 
         const sortedColumns = rowWithMostColumns.sort((a, b) => sortSpreadsheetColumnsComparator(a[0], b[0]));
 
-        rows = rows.map((r) => {
-            if (r !== null) return r;
-            return Object.fromEntries(sortedColumns.map(([key]) => [key, ""]));
-        })
-
         setRowData(rows.map((row, index) => ({ rowNo: `${index}`, ...row })));
 
         setColumns(
             [
                 { header: "", accessorKey: "rowNo" },
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                ...sortedColumns.map(([key, _]) => ({
+                ...sortedColumns.map(([key,]) => ({
                     header: key,
                     accessorKey: key,
                     enableGrouping: true,
