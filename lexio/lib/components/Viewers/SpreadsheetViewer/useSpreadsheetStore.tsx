@@ -13,7 +13,7 @@ import {
     ptToPixel,
     resolveCellFormat,
     Row,
-    RowList,
+    RowList, sortSpreadsheetColumnsComparator,
     validateExcelRange
 } from "./utils.ts";
 import {cn} from "./ui/utils.ts";
@@ -228,9 +228,11 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
 
         const rowWithMostColumns = getRowEntryWitMostColumns(rows);
 
+        const sortedColumns = rowWithMostColumns.sort((a, b) => sortSpreadsheetColumnsComparator(a[0], b[0]));
+
         rows = rows.map((r) => {
             if (r !== null) return r;
-            return Object.fromEntries(rowWithMostColumns.map(([key]) => [key, ""]));
+            return Object.fromEntries(sortedColumns.map(([key]) => [key, ""]));
         })
 
         setRowData(rows.map((row, index) => ({ rowNo: `${index}`, ...row })));
@@ -239,7 +241,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
             [
                 { header: "", accessorKey: "rowNo" },
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                ...rowWithMostColumns.map(([key, _]) => ({
+                ...sortedColumns.map(([key, _]) => ({
                     header: key,
                     accessorKey: key,
                     enableGrouping: true,

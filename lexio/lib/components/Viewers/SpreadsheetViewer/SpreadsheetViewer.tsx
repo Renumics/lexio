@@ -60,7 +60,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
     if (error) console.error(error);
 
     return (
-        <div className="grid grid-rows-[max-content_1fr_auto] h-full relative">
+        <div className="grid grid-rows-[max-content_90%_auto] h-full relative">
             <div className="flex p-1 justify-end">
                 <div
                     onClick={() => setShowStyles((prev) => !prev)}
@@ -94,12 +94,17 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                    }
                </ParentSizeObserver>
            </div>
-            <div className="whitespace-nowrap mt-0.5 p-1 z-[10] sticky left-0 right-0 bottom-0 border-t bg-white">
-                <SpreadsheetSelection
-                    spreadsheets={sheetNames}
-                    selectedSpreadsheet={selectedSpreadsheet}
-                    setSelectedSpreadsheet={switchSpreadsheet}
-                />
+            <div className="whitespace-nowrap p-2 z-[10] w-full border-t overflow-x-auto">
+                <ParentSizeObserver className="h-full w-full">
+                    {(parentSize) =>
+                        <SpreadsheetSelection
+                            spreadsheets={sheetNames}
+                            selectedSpreadsheet={selectedSpreadsheet}
+                            setSelectedSpreadsheet={switchSpreadsheet}
+                            parentWidth={parentSize.width}
+                        />
+                    }
+                </ParentSizeObserver>
             </div>
         </div>
     );

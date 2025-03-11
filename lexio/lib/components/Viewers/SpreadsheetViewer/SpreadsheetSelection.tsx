@@ -8,6 +8,7 @@ type PropsSpreadsheetSelection = {
     spreadsheets: string[];
     selectedSpreadsheet: string
     setSelectedSpreadsheet: (spreadsheet: string) => void;
+    parentWidth?: number | undefined;
 }
 const SpreadsheetSelection: FC<PropsSpreadsheetSelection> = (props) => {
     const {
@@ -23,7 +24,8 @@ const SpreadsheetSelection: FC<PropsSpreadsheetSelection> = (props) => {
 
     return (
         <div
-            className="w-full bg-gray-100 rounded-md"
+            className="bg-gray-100 rounded-md"
+            style={{ width: props.parentWidth ? `${props.parentWidth}px` : "100%" }}
         >
             <div
                 style={{

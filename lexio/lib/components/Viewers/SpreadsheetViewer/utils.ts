@@ -70,6 +70,13 @@ export const getRowEntryWitMostColumns = (data: RowList): CellContentEntry[] => 
     }, []);
 };
 
+export const sortSpreadsheetColumnsComparator = (current: string, next: string): number => {
+    if (current.length !== next.length) {
+        return current.length - next.length;
+    }
+    return current.localeCompare(next);
+}
+
 export const resolveCellFormat = (value: CellValue, type: ValueType, numberFormat: string): CellContent => {
     switch (type) {
         case ValueType.Null: return "";
