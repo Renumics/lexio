@@ -275,6 +275,27 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                           </div>
                         </div>
                       )}
+                      {source.highlights && source.highlights.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {source.highlights.map((highlight, idx) => (
+                            <div 
+                              key={idx}
+                              className="flex items-center gap-2"
+                            >
+                              <div 
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: highlight.color }}
+                              />
+                              <span style={{ 
+                                color: addOpacity(style.color || colors.text, 0.7),
+                                fontSize: scaleFontSize(style.fontSize || '12px', 0.85)
+                              }}>
+                                Page {highlight.page}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {source.type && (
                       <span className="inline-block px-2 py-1 font-medium rounded-full flex-shrink-0" style={{
@@ -290,8 +311,17 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                     <div className="pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
                       <div className="flex flex-wrap gap-2">
                         {Object.entries(source.metadata)
-                            .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
-                            .map(([key, value]) => (
+                          .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
+                          .map(([key, value]) => {
+                            // Skip rendering coloredIdeas directly
+                            if (key === 'coloredIdeas') return null;
+                            
+                            // Handle non-primitive values
+                            const displayValue = typeof value === 'object' 
+                              ? JSON.stringify(value)
+                              : String(value);
+
+                            return (
                               <span
                                 key={key}
                                 className="inline-flex items-center px-2 py-1 rounded-md"
@@ -302,11 +332,12 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                                   lineHeight: '1.2',
                                 }}
                               >
-                                {key}: {value}
+                                {key}: {displayValue}
                               </span>
-                            ))}
-                        </div>
+                            );
+                          })}
                       </div>
+                    </div>
                   )}
                 </li>
               ))}

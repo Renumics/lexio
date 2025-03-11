@@ -2,7 +2,7 @@ import React, {useContext} from 'react';
 import {ThemeContext, removeUndefined} from '../../theme/ThemeContext';
 import {useMessages} from '../../hooks';
 import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
-import { Message, ColoredIdea } from '../../types';
+import { Message, HighlightedIdea } from '../../types';
 import {ResetWrapper} from '../../utils/ResetWrapper';
 import {ChatWindowUserMessage} from "./ChatWindowUserMessage";
 import {ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage";
@@ -128,7 +128,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                                    componentKey = undefined,
                                                }) => {
     const {messages, currentStream, clearMessages} = useMessages(componentKey ? `ChatWindow-${componentKey}` : 'ChatWindow');
-    // Add ref for scrolling
+        // Add ref for scrolling
     const chatEndRef = React.useRef<HTMLDivElement>(null);
 
     // Scroll to bottom whenever messages or currentStream changes
@@ -212,6 +212,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                 icon={assistantIcon || undefined}
                                 markdown={markdown}
                                 showCopy={showCopy}
+                                ideas={msg.ideas || []}
                             />
                         )}
                     </React.Fragment>
@@ -227,6 +228,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                         icon={assistantIcon || undefined}
                         markdown={markdown}
                         isStreaming={true}
+                        ideas={currentStream.ideas || []}
                     />
                 )}
                 <div ref={chatEndRef}/>

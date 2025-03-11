@@ -13,6 +13,9 @@ import {
     ActionHandlerResponse,
     Citation,
     UUID,
+    HighlightedIdea,
+    PDFHighlight,
+    StreamChunk,
 } from '../lib/main';
 import { ExplanationProcessor } from '../lib/explanation';
 import './App.css';
@@ -145,7 +148,7 @@ function App() {
 
             // Create messages
             const userMessage: Message = {
-                id: crypto.randomUUID(),
+                id: crypto.randomUUID() as UUID,
                 role: 'user',
                 content: action.message
             };
@@ -167,55 +170,59 @@ function App() {
                 )
                 .then(explanationResult => {
                     console.log('Explanation process completed successfully:', explanationResult);
-                    
-                    // Create citations from ideaSources
-                    const citations = explanationResult.ideaSources
-                        .map((source) => {
-                            const evidence = source.supporting_evidence[0];
-                            if (!evidence?.highlight) return undefined;
-                            
-                            const citation: Citation = {
-                                sourceId: sourceToProcess.id as UUID,
-                                highlight: {
-                                    page: evidence.highlight.page,
-                                    rect: evidence.highlight.rect,
-                                    color: source.color
-                                },
-                                messageStartChar: explanationResult.answer.indexOf(source.answer_idea),
-                                messageEndChar: explanationResult.answer.indexOf(source.answer_idea) + source.answer_idea.length,
-                                colorRgba: source.color
-                            };
-                            
-                            return citation;
-                        })
-                        .filter((citation): citation is Citation => citation !== undefined);
 
-                    // Create the assistant message
+                    // Process ideas and their evidence
+                    const ideas = explanationResult.ideaSources.map((source, index) => ({
+                        text: source.answer_idea,
+                        color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
+                        startChar: explanationResult.answer.indexOf(source.answer_idea),
+                        endChar: explanationResult.answer.indexOf(source.answer_idea) + source.answer_idea.length
+                    }));
+
+                    // Create the assistant message with ideas
                     const assistantMessage: Message = {
                         id: crypto.randomUUID() as UUID,
                         role: 'assistant',
                         content: explanationResult.answer,
-                        citations: citations
+                        ideas: ideas
                     };
 
-                    const messages = [userMessage, assistantMessage];
+                    // Process PDF highlights
+                    const pdfHighlights = explanationResult.ideaSources
+                        .map((source, index) => {
+                            const evidence = source.supporting_evidence[0];
+                            if (!evidence?.highlight) return null;
 
-                    console.log('Returning action response with messages:', messages);
-                    
+                            return {
+                                page: evidence.highlight.page,
+                                rect: evidence.highlight.rect,
+                                color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
+                                ideaText: source.answer_idea,
+                                evidenceText: evidence.source_sentence
+                            };
+                        })
+                        .filter((h): h is NonNullable<typeof h> => h !== null);
+
+                    // Update source with highlights
+                    const updatedSource = {
+                        ...sourceToProcess,
+                        highlights: pdfHighlights
+                    };
+
                     const response: ActionHandlerResponse = {
-                        response: Promise.resolve(explanationResult.answer),
-                        sources: Promise.resolve([{
-                            ...sourceToProcess,
-                            highlights: citations.map(c => c.highlight)
-                        }]),
-                        citations,
+                        response: Promise.resolve({
+                            content: explanationResult.answer,
+                            ideas: ideas,
+                            done: true
+                        } as StreamChunk),
+                        sources: Promise.resolve([updatedSource]),
                         followUpAction: {
                             type: SET_ACTIVE_SOURCES,
                             sourceIds: [sourceToProcess.id],
                             source: 'LexioProvider' as const
                         }
                     };
-                    
+
                     return response;
                 })
                 .catch(error => {
@@ -224,16 +231,19 @@ function App() {
                     // Fall back to a simple response if there's an error
                     console.log('Falling back to simple response due to error');
                     
+                    // Create fallback assistant message
                     const assistantMessage: Message = {
-                        id: crypto.randomUUID(),
+                        id: crypto.randomUUID() as UUID,
                         role: 'assistant',
                         content: ragResponse
                     };
 
-                    const messages = [userMessage, assistantMessage];
-                    
                     const response: ActionHandlerResponse = {
-                        response: Promise.resolve(ragResponse),
+                        response: Promise.resolve({
+                            content: ragResponse,
+                            ideas: [],
+                            done: true
+                        } as StreamChunk),
                         sources: Promise.resolve([sourceToProcess]),
                         followUpAction: {
                             type: SET_ACTIVE_SOURCES,
@@ -241,23 +251,25 @@ function App() {
                             source: 'LexioProvider' as const
                         }
                     };
-                    
+
                     return response;
                 });
             } else {
                 console.log('No source data available, using simple response');
                 
-                // If we don't have source data, just return the RAG response without explanations
+                // Create simple assistant message
                 const assistantMessage: Message = {
-                    id: crypto.randomUUID(),
+                    id: crypto.randomUUID() as UUID,
                     role: 'assistant',
                     content: ragResponse
                 };
 
-                const messages = [userMessage, assistantMessage];
-                
                 const response: ActionHandlerResponse = {
-                    response: Promise.resolve(ragResponse),
+                    response: Promise.resolve({
+                        content: ragResponse,
+                        ideas: [],
+                        done: true
+                    } as StreamChunk),
                     sources: Promise.resolve([sourceToProcess]),
                     followUpAction: {
                         type: SET_ACTIVE_SOURCES,
@@ -265,7 +277,7 @@ function App() {
                         source: 'LexioProvider' as const
                     }
                 };
-                
+
                 return response;
             }
         }

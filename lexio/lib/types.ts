@@ -32,38 +32,34 @@ export type UUID = `${string}-${string}-${string}-${string}-${string}`;
  * @property {number} rect.height - Height of the highlight (relative to the page height)
  */
 
+// For highlighting ideas in the assistant's message
+export interface HighlightedIdea {
+  text: string;         // The idea text from answer
+  color: string;        // Color for this idea
+  startChar: number;    // Position in message where idea starts
+  endChar: number;      // Position in message where idea ends
+}
+
+// For PDF highlights that correspond to ideas
 export interface PDFHighlight {
-    page: number;
-    color: string;
-    rect: {
-        top: number;
-        left: number;
-        width: number;
-        height: number;
-    };
-}
-
-export interface ColoredIdea {
-  text: string;
-  color: string;
-  evidence?: {
-    text: string;
-    page?: number;
-    rect?: {
-      top: number;
-      left: number;
-      width: number;
-      height: number;
-    };
+  page: number;
+  rect: {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
   };
+  color: string;         // Color for this highlight
+  ideaText: string;      // Reference to which idea this supports
+  evidenceText: string;  // The actual text from source that supports the idea
 }
 
+// For linking message text to source highlights
 export interface Citation {
   sourceId: string;
   highlight: PDFHighlight;
-  messageStartChar: number;
-  messageEndChar: number;
-  colorRgba?: string;
+  messageStartChar: number;  // Where citation starts in message
+  messageEndChar: number;    // Where citation ends in message
 }
 
 /**
@@ -78,7 +74,11 @@ export interface Message {
     readonly id: UUID;
     role: "user" | "assistant";
     content: string;
-    citations?: Citation[];
+    citations?: Citation[];     // For jumping to references
+    metadata?: {
+        [key: string]: any;
+    };
+    ideas?: HighlightedIdea[];  // For highlighting ideas in message
 }
 
 /**
@@ -100,7 +100,7 @@ export type MessageWithOptionalId = Partial<Pick<Message, 'id'>> & Omit<Message,
  * @property {string} [href] - Optional link to the source
  * @property {string | Uint8Array} [data] - Optional content data of the source
  * @property {object} [metadata] - Optional metadata for the source
- * @property {PDFHighlight[]} [highlights] - Optional highlight annotations for PDF sources
+ * @property {SourceHighlight[]} [highlights] - Optional highlight annotations for PDF sources
  */
 export interface Source {
     readonly id: UUID;
@@ -170,7 +170,7 @@ export interface Source {
      * Highlight annotations in the PDF document. Only applicable for PDF sources.
      * These highlights will be visually displayed in the PDF viewer.
      */
-    highlights?: PDFHighlight[];
+    highlights?: PDFHighlight[];  // Evidence highlights with idea references
 }
 
 // ---- central state management types -----
@@ -352,13 +352,13 @@ export type UserAction =
  * To handle a NO-OP, return an empty object -> {}.
  * 
  * @interface AddUserMessageActionResponse
- * @property {Promise<string> | AsyncIterable<StreamChunk>} [response] - The assistant's response. Can be a Promise resolving to a string or an AsyncIterable for streaming responses.
+ * @property {Promise<string | StreamChunk> | AsyncIterable<StreamChunk>} [response] - The assistant's response. Can be a Promise resolving to a string or an AsyncIterable for streaming responses.
  * @property {Promise<Source[]>} [sources] - Sources related to the message. These will be displayed in the SourcesDisplay component.
  * @property {string} [setUserMessage] - Updated user message. Can be used to modify the user's message before it's added to the chat.
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes. Useful for chaining actions.
  */
 export interface AddUserMessageActionResponse {
-    response?: Promise<string> | AsyncIterable<StreamChunk>;
+    response?: Promise<string | StreamChunk> | AsyncIterable<StreamChunk>;
     sources?: Promise<Source[]>;
     citations?: Citation[];
     setUserMessage?: string;
@@ -518,4 +518,9 @@ export type ActionHandler = {
  * @property {Source[]} [sources] - Sources related to this chunk that can be displayed alongside the content
  * @property {boolean} [done] - Indicates if this is the final chunk in the stream
  */
-export type StreamChunk = { content?: string; sources?: Source[]; done?: boolean; };
+export type StreamChunk = { 
+    content?: string; 
+    sources?: Source[]; 
+    ideas?: HighlightedIdea[];
+    done?: boolean; 
+};
