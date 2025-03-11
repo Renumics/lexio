@@ -1,19 +1,9 @@
 {
   "typesToInclude": [
-    "RetrievalResult",
-    "BaseSourceContent",
-    "BaseRetrievalResult",
     "Message",
-    "SourceReference",
-    "TextContent",
-    "MarkdownSourceContent",
-    "HTMLSourceContent",
-    "PDFSourceContent",
+    "Source",
+    "StreamChunk",
     "PDFHighlight",
-    "SourceContent",
-    "RetrievalResult",
-    "RetrieveResponse",
-    "GenerateInput",
-    "GenerateResponse"
+    "UUID"
   ]
 }

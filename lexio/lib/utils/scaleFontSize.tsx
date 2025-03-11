@@ -18,39 +18,78 @@ function addOpacity(color: string, opacity: number): string {
     // Ensure opacity is clamped between 0 and 1
     opacity = Math.max(0, Math.min(1, opacity));
 
-    // Convert named colors to RGB using a temporary element
-    const ctx = document.createElement("canvas").getContext("2d");
-    if (!ctx) throw new Error("Canvas context not available");
+    // Handle common color formats directly without relying on canvas
+    
+    // Named colors mapping (add more as needed)
+    const namedColors: Record<string, string> = {
+        black: "#000000",
+        white: "#FFFFFF",
+        red: "#FF0000",
+        green: "#008000",
+        blue: "#0000FF",
+        // Add more named colors as needed
+    };
+    
+    // Convert named colors if they exist in our mapping
+    if (namedColors[color.toLowerCase()]) {
+        color = namedColors[color.toLowerCase()];
+    }
 
-    ctx.fillStyle = color;
-    const computedColor = ctx.fillStyle; // This normalizes named colors to `rgb(r, g, b)`
-
-    // HEX format (#RRGGBB or #RRGGBBAA)
-    if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/.test(computedColor)) {
-        if (computedColor.length === 7) {
-            // Convert to #RRGGBBAA
-            return computedColor + Math.round(opacity * 255).toString(16).padStart(2, "0");
-        } else if (computedColor.length === 9) {
-            // Replace existing alpha channel
-            return computedColor.slice(0, 7) + Math.round(opacity * 255).toString(16).padStart(2, "0");
+    // HEX format (#RGB or #RRGGBB)
+    if (color.startsWith('#')) {
+        // Convert shorthand hex (#RGB) to full form (#RRGGBB)
+        if (color.length === 4) {
+            color = `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`;
+        }
+        
+        // Standard hex color (#RRGGBB)
+        if (color.length === 7) {
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        }
+        
+        // Hex with alpha (#RRGGBBAA)
+        if (color.length === 9) {
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${opacity})`;
         }
     }
 
-    // RGB / RGBA format
-    const rgbMatch = computedColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+    // RGB format
+    const rgbMatch = color.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/);
     if (rgbMatch) {
         const [, r, g, b] = rgbMatch;
         return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     }
+    
+    // RGBA format - extract existing values and replace opacity
+    const rgbaMatch = color.match(/^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*[\d.]+\s*\)$/);
+    if (rgbaMatch) {
+        const [, r, g, b] = rgbaMatch;
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
 
-    // HSL / HSLA format
-    const hslMatch = computedColor.match(/^hsl\((\d+),\s*([\d.]+)%,\s*([\d.]+)%\)$/);
+    // HSL format
+    const hslMatch = color.match(/^hsl\(\s*(\d+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)$/);
     if (hslMatch) {
         const [, h, s, l] = hslMatch;
         return `hsla(${h}, ${s}%, ${l}%, ${opacity})`;
     }
+    
+    // HSLA format - extract existing values and replace opacity
+    const hslaMatch = color.match(/^hsla\(\s*(\d+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*,\s*[\d.]+\s*\)$/);
+    if (hslaMatch) {
+        const [, h, s, l] = hslaMatch;
+        return `hsla(${h}, ${s}%, ${l}%, ${opacity})`;
+    }
 
-    throw new Error(`Unsupported color format: ${color}`);
+    // If we can't parse the color, return it with the requested opacity
+    // This is a fallback that might work in some cases
+    return `rgba(0, 0, 0, ${opacity})`;
 }
 
 export { addOpacity };

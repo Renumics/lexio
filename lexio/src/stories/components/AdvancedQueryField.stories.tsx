@@ -1,14 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { AdvancedQueryField } from '../../../lib/components/AdvancedQueryField/AdvancedQueryField';
-import { RAGProvider } from '../../../lib/components/RAGProvider';
+import { LexioProvider } from '../../../lib/components/LexioProvider';
 import 'tailwindcss/tailwind.css';
-import {configureDocsRendering, extractComponentDescriptionHelper, renderDocsBlocks} from './helper';
-
-// Sample message handler for the story
-const SAMPLE_HANDLER = async (message: string, mentions: any[]) => {
-  console.log('Message submitted:', message);
-  console.log('With mentions:', mentions);
-};
+import {extractComponentDescriptionHelper, renderDocsBlocks} from './helper';
 
 const meta: Meta<typeof AdvancedQueryField> = {
   title: 'Components/AdvancedQueryField',
@@ -23,9 +17,9 @@ const meta: Meta<typeof AdvancedQueryField> = {
   decorators: [
     (Story) => (
       <div className="h-fit"  style={{ width: '600px', padding: '1rem' }}>
-        <RAGProvider retrieve={async () => []}>
+        <LexioProvider onAction={() => {}}>
           <Story />
-        </RAGProvider>
+        </LexioProvider>
       </div>
     ),
   ],
@@ -36,6 +30,5 @@ type Story = StoryObj<typeof AdvancedQueryField>;
 
 export const Docs: Story = {
   args: {
-    onSubmit: SAMPLE_HANDLER,
   },
 }; 

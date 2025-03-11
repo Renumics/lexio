@@ -1,8 +1,9 @@
 import type {Meta, StoryObj} from '@storybook/react';
 import 'tailwindcss/tailwind.css';
-import {RAGProvider} from "../../../lib/components/RAGProvider";
+import {LexioProvider} from "../../../lib/components/LexioProvider";
 import {MarkdownViewer} from "../../../lib/components/Viewers";
 import {extractComponentDescriptionHelper, renderDocsBlocks} from "./helper.tsx";
+import type {UserAction} from "../../../lib/types";
 
 const testContent = `# Test Markdown Content
 
@@ -22,6 +23,12 @@ This is a **test paragraph** to showcase Markdown rendering in the \`MarkdownVie
 | Jane Doe  | 28  | Los Angeles  |
 `;
 
+// Sample action handler for the story
+const sampleActionHandler = (action: UserAction) => {
+  // Return undefined for all actions as this story doesn't need to handle any specific actions
+  return undefined;
+};
+
 const meta: Meta<typeof MarkdownViewer> = {
     title: 'Components/MarkDownViewer',
     component: MarkdownViewer,
@@ -35,9 +42,9 @@ const meta: Meta<typeof MarkdownViewer> = {
     decorators: [
         (Story) => (
             <div className="h-fit" style={{width: '600px', padding: '1rem'}}>
-                <RAGProvider>
+                <LexioProvider onAction={sampleActionHandler}>
                     <Story/>
-                </RAGProvider>
+                </LexioProvider>
             </div>
         ),
     ],

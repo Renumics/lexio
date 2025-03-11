@@ -102,7 +102,8 @@ interface PdfViewerProps {
  *   page={1}
  *   styleOverrides={{
  *     contentBackground: '#ffffff',
- *     contentPadding: '20px'
+ *     contentPadding: '20px',
+ *     viewerBorderRadius: '8px',
  *   }}
  * />
  * ```
