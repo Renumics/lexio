@@ -16,6 +16,7 @@ import {
 } from '@floating-ui/react';
 import ReactDOM from 'react-dom';
 import useResizeObserver from '@react-hook/resize-observer';
+import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
 
 import {
   useSources,
@@ -172,6 +173,12 @@ interface AdvancedQueryFieldProps {
    * Style overrides for the component
    */
   styleOverrides?: AdvancedQueryFieldStyles;
+  
+  /**
+   * Whether to show the "New Chat" button
+   * @default true
+   */
+  showNewChatButton?: boolean;
 }
 
 /**
@@ -215,7 +222,8 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   onChange,
   placeholder = 'Type @ to mention a source...',
   disabled = false,
-  styleOverrides = {}
+  styleOverrides = {},
+  showNewChatButton = true
 }) => {
   // Theme-based styling
   const theme = React.useContext(ThemeContext);
@@ -268,7 +276,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
 
   // Lexio Hooks
   const { sources, setActiveSources } = useSources(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
-  const { addUserMessage } = useMessages(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
+  const { addUserMessage, clearMessages } = useMessages(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
 
   // Floating UI
   const { refs, context } = useFloating({
@@ -290,20 +298,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
 
   const getDisplayName = (source: Source): string => {
     return source.title;
-    // todo: maybe enable this again?
-    // if (source.sourceName) return source.sourceName;
-    // if (isSourceReference(source)) {
-    //   const metadataStr = source.metadata
-    //     ? Object.entries(source.metadata)
-    //         .map(([k, v]) => `${k}: ${v}`)
-    //         .join(', ')
-    //     : '';
-    //   return metadataStr
-    //     ? `${source.sourceReference} (${metadataStr})`
-    //     : source.sourceReference;
-    // }
-    // // For text-based results
-    // return source.text.slice(0, 20) + '...';
   };
 
   // Adjust editor height
@@ -358,12 +352,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   const filteredSources = (sources ?? []).filter(source => {
     if (!source) return false;
     const textVal = source.title;
-    // let textVal: string;
-    // if (isSourceReference(source)) {
-    //   textVal = source.sourceName ?? source.sourceReference ?? '';
-    // } else {
-    //   textVal = source.sourceName ?? source.text ?? '';
-    // }
     return textVal.toLowerCase().includes(filterValue.toLowerCase());
   });
 
@@ -880,19 +868,25 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-2">
-        <div className="flex items-center gap-2">
-          {/*/!* Instead of tailwind classes for color, use inline style from our merged theme *!/*/}
-          {/*<div*/}
-          {/*  className="h-2.5 w-2.5 rounded-full animate-pulse"*/}
-          {/*  style={{ backgroundColor: workflowStatus[workflowMode].color }}*/}
-          {/*/>*/}
-          {/*<span className="font-medium" style={{*/}
-          {/*    fontFamily: style.fontFamily,*/}
-          {/*    fontSize: `calc(${style.fontSize} * 0.85)`*/}
-          {/*}}>*/}
-          {/*  {workflowStatus[workflowMode].label}*/}
-          {/*</span>*/}
+      <div className="flex items-center justify-end gap-2 mt-2">
+        <div className="flex items-center">
+          {showNewChatButton && (
+            <button
+              type="button"
+              onClick={clearMessages}
+              className="p-2 rounded-full hover:opacity-90 transition-colors"
+              style={{
+                color: style.buttonTextColor,
+                backgroundColor: style.buttonBackground,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              title="New conversation"
+              aria-label="New conversation"
+            >
+              <DocumentPlusIcon className="size-5" />
+            </button>
+          )}
         </div>
         <button
           type="submit"

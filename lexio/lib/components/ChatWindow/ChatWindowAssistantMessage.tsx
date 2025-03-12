@@ -126,6 +126,7 @@ export const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> =
  * @property {boolean} [markdown] - Flag indicating if the message content is markdown.
  * @property {boolean} [isStreaming] - Flag indicating if the message is being streamed.
  * @property {boolean} [showCopy] - Flag to show or hide the copy button.
+ * @property {boolean} [showFeedback] - Flag to show or hide the feedback buttons.
  * @property {HighlightedIdea[]} [ideas] - Ideas to highlight in the message, used for completed messages
  */
 interface ChatWindowAssistantMessageProps {
@@ -138,6 +139,7 @@ interface ChatWindowAssistantMessageProps {
     markdown?: boolean;
     isStreaming?: boolean;
     showCopy?: boolean;
+    showFeedback?: boolean;
     ideas?: HighlightedIdea[];
 }
 
@@ -157,6 +159,7 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                                                                                    markdown,
                                                                                    isStreaming,
                                                                                    showCopy,
+                                                                                   showFeedback,
                                                                                    ideas
                                                                                }) => {
     const [copied, setCopied] = useState(false);
@@ -231,7 +234,7 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                         )}
                     </div>
                 </div>
-                {messageId && !isStreaming && showCopy && (
+                {messageId && !isStreaming && (
                     <div
                         className="mt-2 flex items-center gap-2 self-end mr-3.5"
                         style={{
@@ -239,14 +242,16 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                             lineHeight: 'normal',
                         }}
                     >
-                        <MessageFeedback messageId={messageId} messageContent={message} />
-                        <button
-                            onClick={handleCopy}
-                            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-400"
-                            aria-label={copied ? "Copied" : "Copy"}
-                        >
-                            {copied ? <ClipboardDocumentIcon className="w-4 h-4" /> : <ClipboardIcon className="w-4 h-4" />}
-                        </button>
+                        {showFeedback && <MessageFeedback messageId={messageId} messageContent={message} />}
+                        {showCopy && (
+                            <button
+                                onClick={handleCopy}
+                                className="p-1.5 rounded-full transition-colors bg-gray-100 text-gray-400 hover:bg-gray-50"
+                                aria-label={copied ? "Copied" : "Copy"}
+                            >
+                                {copied ? <ClipboardDocumentIcon className="w-4 h-4" /> : <ClipboardIcon className="w-4 h-4" />}
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

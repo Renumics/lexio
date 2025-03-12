@@ -3,6 +3,7 @@ import useResizeObserver from '@react-hook/resize-observer';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import { useMessages} from '../../hooks';
+import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
 
 /**
  * Styles interface for the QueryField component
@@ -53,6 +54,12 @@ interface QueryFieldProps {
    * Style overrides for the component
    */
   styleOverrides?: QueryFieldStyles;
+  
+  /**
+   * Whether to show the "New Chat" button
+   * @default true
+   */
+  showNewChatButton?: boolean;
 }
 
 /**
@@ -91,8 +98,9 @@ const QueryField: React.FC<QueryFieldProps> = ({
   placeholder = 'Type a message...',
   disabled = false,
   styleOverrides = {},
+  showNewChatButton = true,
 }) => {
-  const { addUserMessage } = useMessages(componentKey ? `QueryField-${componentKey}` : 'QueryField');
+  const { addUserMessage, clearMessages } = useMessages(componentKey ? `QueryField-${componentKey}` : 'QueryField');
 
   // Access theme from context
   const theme = useContext(ThemeContext);
@@ -181,7 +189,7 @@ const QueryField: React.FC<QueryFieldProps> = ({
     <form
       ref={formRef}
       onSubmit={handleSubmit}
-      className="w-full h-full flex flex-col"
+      className="w-full h-full flex flex-col relative"
       style={{
         backgroundColor: style.backgroundColor,
         color: style.color,
@@ -216,8 +224,25 @@ const QueryField: React.FC<QueryFieldProps> = ({
         }}
       />
       {/* Footer with workflow status + send button */}
-      <div className="flex items-center justify-between mt-2">
+      <div className="flex items-center justify-end gap-2 mt-2">
         <div className="flex items-center gap-2">
+          {showNewChatButton && (
+            <button
+              type="button"
+              onClick={clearMessages}
+              className="p-2 rounded-full hover:opacity-90 transition-colors"
+              style={{
+                color: style.buttonTextColor,
+                backgroundColor: style.buttonBackground,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              title="New conversation"
+              aria-label="New conversation"
+            >
+              <DocumentPlusIcon className="size-5" />
+            </button>
+          )}
         </div>
         <button
           type="submit"
