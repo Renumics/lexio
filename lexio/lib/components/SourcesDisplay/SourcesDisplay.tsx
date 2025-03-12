@@ -276,24 +276,13 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                         </div>
                       )}
                       {source.highlights && source.highlights.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {source.highlights.map((highlight, idx) => (
-                            <div 
-                              key={idx}
-                              className="flex items-center gap-2"
-                            >
-                              <div 
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: highlight.color }}
-                              />
-                              <span style={{ 
-                                color: addOpacity(style.color || colors.text, 0.7),
-                                fontSize: scaleFontSize(style.fontSize || '12px', 0.85)
-                              }}>
-                                Page {highlight.page}
-                              </span>
-                            </div>
-                          ))}
+                        <div className="mt-2">
+                          <span style={{ 
+                            color: addOpacity(style.color || colors.text, 0.7),
+                            fontSize: scaleFontSize(style.fontSize || '12px', 0.85)
+                          }}>
+                            Contains {source.highlights.length} highlighted section{source.highlights.length > 1 ? 's' : ''}
+                          </span>
                         </div>
                       )}
                     </div>
