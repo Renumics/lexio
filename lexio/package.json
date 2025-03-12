@@ -92,5 +92,21 @@
     "extends": [
       "plugin:storybook/recommended"
     ]
-  }
+  },
+  "keywords": [
+    "lexio",
+    "react",
+    "ui",
+    "component-library",
+    "ui-components",
+    "ui-library",
+    "chat",
+    "chatbot",
+    "chatbot-ui",
+    "chatbot-framework",
+    "rag",
+    "rag-ui",
+    "rag-pipeline",
+    "renumics"
+  ]
 }
