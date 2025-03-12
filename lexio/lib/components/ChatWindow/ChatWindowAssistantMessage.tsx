@@ -8,7 +8,8 @@ import "./AssistantMarkdownContent.css";
 import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline";
 import {scaleFontSize} from "../../utils/scaleFontSize.tsx";
 import { MessageFeedback } from "./MessageFeedback.tsx";
-import { HighlightedIdea, StreamChunk } from '../../types';
+import { HighlightedIdea } from '../../types';
+import { useHighlightClickHandler, renderHighlightedContent } from './MessageHighlighting';
 /**
  * Props for the AssistantMarkdownContent component.
  * @typedef {Object} AssistantMarkdownContentProps
@@ -28,7 +29,7 @@ interface AssistantMarkdownContentProps {
  *
  * @internal
  */
-const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({content, style}) => {
+export const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({content, style}) => {
     return (
         <Markdown
             components={{
@@ -117,6 +118,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({cont
  * Props for the ChatWindowAssistantMessage component.
  * @typedef {Object} ChatWindowAssistantMessageProps
  * @property {string} message - The assistant message content.
+ * @property {string | null} messageId - ID of the message, null for streaming messages
  * @property {ChatWindowStyles} style - Styling options for the chat window / assistant message
  * @property {string} roleLabel - Label indicating the role of the assistant.
  * @property {boolean} showRoleIndicator - Flag to show or hide the role indicator.
@@ -124,7 +126,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({cont
  * @property {boolean} [markdown] - Flag indicating if the message content is markdown.
  * @property {boolean} [isStreaming] - Flag indicating if the message is being streamed.
  * @property {boolean} [showCopy] - Flag to show or hide the copy button.
- * @property {object} [metadata] - Additional metadata for the message.
+ * @property {HighlightedIdea[]} [ideas] - Ideas to highlight in the message, used for completed messages
  */
 interface ChatWindowAssistantMessageProps {
     message: string;
@@ -163,35 +165,13 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
     // show label if showRoleIndicator is true and roleLabel is not null and icon is not shown
     const showLabel = showRoleIndicator && !!roleLabel && !showIcon;
 
-    // Add ref for highlighted content
     const highlightedContentRef = React.useRef<HTMLDivElement>(null);
-
-    // Add effect for handling highlight clicks
-    React.useEffect(() => {
-        if (highlightedContentRef.current) {
-            const highlights = highlightedContentRef.current.querySelectorAll('.idea-highlight');
-            
-            const handleHighlightClick = (e: Event) => {
-                const target = e.target as HTMLElement;
-                const ideaIndex = target.getAttribute('data-idea-index');
-                
-                if (ideaIndex !== null) {
-                    console.log(`Clicked on idea ${ideaIndex}`);
-                    // Additional click handling logic can be added here
-                }
-            };
-            
-            highlights.forEach(highlight => {
-                highlight.addEventListener('click', handleHighlightClick);
-            });
-            
-            return () => {
-                highlights.forEach(highlight => {
-                    highlight.removeEventListener('click', handleHighlightClick);
-                });
-            };
-        }
-    }, [message]);
+    
+    // Use the highlighting hook
+    useHighlightClickHandler(highlightedContentRef, (ideaIndex) => {
+        console.log(`Clicked on idea ${ideaIndex}`);
+        // Additional click handling logic can be added here
+    });
 
     /**
      * Handles copying the message content to the clipboard.
@@ -220,71 +200,6 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
         } as React.CSSProperties;
     }, [style.messageFontSize, style.color]);
 
-    const renderHighlightedContent = (content: string | StreamChunk) => {
-        // If content is a StreamChunk, extract the actual content and ideas
-        if (typeof content === 'object' && content !== null) {
-            const textContent = content.content || '';
-            const streamIdeas = content.ideas || [];
-            // Use stream ideas if available, otherwise fall back to props ideas
-            const ideasToUse = streamIdeas.length > 0 ? streamIdeas : (ideas || []);
-            
-            return renderHighlightedContentWithIdeas(textContent, ideasToUse);
-        }
-
-        return renderHighlightedContentWithIdeas(content, ideas || []);
-    };
-
-    // Separate function to handle the actual highlighting
-    const renderHighlightedContentWithIdeas = (content: string, ideasToUse: HighlightedIdea[]) => {
-        if (ideasToUse && ideasToUse.length > 0) {
-            let htmlContent = content;
-            let hasHighlights = false;
-            
-            ideasToUse.forEach((idea: HighlightedIdea, index: number) => {
-                const escapedText = idea.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`(${escapedText})`, 'gi');
-                
-                if (regex.test(htmlContent)) {
-                    hasHighlights = true;
-                    htmlContent = htmlContent.replace(
-                        regex, 
-                        `<span 
-                            style="background-color:${idea.color}; cursor: pointer;" 
-                            class="idea-highlight" 
-                            data-idea-index="${index}"
-                        >$1</span>`
-                    );
-                }
-            });
-
-            if (hasHighlights) {
-                return (
-                    <div 
-                        ref={highlightedContentRef} 
-                        dangerouslySetInnerHTML={{ __html: htmlContent }}
-                        className="whitespace-pre-wrap"
-                    />
-                );
-            }
-        }
-
-        // If no highlights or markdown is enabled, use existing rendering
-        return markdown ? (
-            <div className="assistant-markdown-content" style={assistantMarkdownContentStyling}>
-                <AssistantMarkdownContent 
-                    content={typeof content === 'object' && content !== null && 'content' in content 
-                        ? (content as StreamChunk).content || '' 
-                        : String(content)} 
-                    style={style}
-                />
-            </div>
-        ) : (
-            <div className="inline whitespace-pre-wrap">
-                {content}
-            </div>
-        );
-    };
-
     return (
         <div className={`w-full flex ${showIcon ? 'justify-start' : 'flex-col items-start'} pe-10`}>
             {showLabel && <strong className="inline-block ml-2 mb-1" style={{
@@ -306,7 +221,15 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                     borderRadius: style.messageBorderRadius,
                     fontSize: style.messageFontSize,
                 }}>
-                    {renderHighlightedContent(message)}
+                    <div ref={highlightedContentRef}>
+                        {renderHighlightedContent(
+                            message,
+                            ideas,
+                            markdown || false,
+                            style,
+                            assistantMarkdownContentStyling
+                        )}
+                    </div>
                 </div>
                 {messageId && !isStreaming && showCopy && (
                     <div
