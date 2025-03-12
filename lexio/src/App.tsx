@@ -12,7 +12,6 @@ import {
     createRESTContentSource, 
     ActionHandlerResponse,
     Citation,
-    UUID,
     HighlightedIdea,
     PDFHighlight,
     StreamChunk,
@@ -146,13 +145,6 @@ function App() {
         if (action.type === 'ADD_USER_MESSAGE') {
             console.log('ADD_USER_MESSAGE action started');
 
-            // Create messages
-            const userMessage: Message = {
-                id: crypto.randomUUID() as UUID,
-                role: 'user',
-                content: action.message
-            };
-
             // For now, use the mocked response
             const ragResponse = MOCKED_RESPONSE.answer;
 
@@ -209,15 +201,6 @@ function App() {
                         highlights: pdfHighlights  // These will be shown in the PDF
                     };
 
-                    // Create the assistant message with both highlighting and linking
-                    const assistantMessage: Message = {
-                        id: crypto.randomUUID() as UUID,
-                        role: 'assistant',
-                        content: explanationResult.answer,
-                        ideas,      // For colored concept highlighting in message
-                        citations   // For jumping to evidence in PDF
-                    };
-
                     const response: ActionHandlerResponse = {
                         response: Promise.resolve({
                             content: explanationResult.answer,
@@ -237,17 +220,8 @@ function App() {
                 })
                 .catch(error => {
                     console.error('Error in explanation process:', error);
-                    
-                    // Fall back to a simple response if there's an error
                     console.log('Falling back to simple response due to error');
                     
-                    // Create fallback assistant message
-                    const assistantMessage: Message = {
-                        id: crypto.randomUUID() as UUID,
-                        role: 'assistant',
-                        content: ragResponse
-                    };
-
                     const response: ActionHandlerResponse = {
                         response: Promise.resolve({
                             content: ragResponse,
@@ -267,13 +241,6 @@ function App() {
             } else {
                 console.log('No source data available, using simple response');
                 
-                // Create simple assistant message
-                const assistantMessage: Message = {
-                    id: crypto.randomUUID() as UUID,
-                    role: 'assistant',
-                    content: ragResponse
-                };
-
                 const response: ActionHandlerResponse = {
                     response: Promise.resolve({
                         content: ragResponse,
