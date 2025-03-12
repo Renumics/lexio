@@ -223,7 +223,6 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
     const renderHighlightedContent = (content: string | StreamChunk) => {
         // If content is a StreamChunk, extract the actual content and ideas
         if (typeof content === 'object' && content !== null) {
-            console.log('Content is a StreamChunk:', content);
             const textContent = content.content || '';
             const streamIdeas = content.ideas || [];
             // Use stream ideas if available, otherwise fall back to props ideas
@@ -237,19 +236,13 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
 
     // Separate function to handle the actual highlighting
     const renderHighlightedContentWithIdeas = (content: string, ideasToUse: HighlightedIdea[]) => {
-        console.log('Rendering content:', content);
-        console.log('With ideas:', ideasToUse);
-        
         if (ideasToUse && ideasToUse.length > 0) {
             let htmlContent = content;
             let hasHighlights = false;
             
             ideasToUse.forEach((idea: HighlightedIdea, index: number) => {
-                console.log('Processing idea:', idea);
                 const escapedText = idea.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                console.log('Escaped text:', escapedText);
                 const regex = new RegExp(`(${escapedText})`, 'gi');
-                console.log('Looking for matches with regex:', regex);
                 
                 if (regex.test(htmlContent)) {
                     hasHighlights = true;
@@ -261,14 +254,10 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                             data-idea-index="${index}"
                         >$1</span>`
                     );
-                    console.log('Added highlight for idea:', idea.text);
-                } else {
-                    console.log('No matches found for idea:', idea.text);
                 }
             });
-            
+
             if (hasHighlights) {
-                console.log('Final HTML content with highlights:', htmlContent);
                 return (
                     <div 
                         ref={highlightedContentRef} 

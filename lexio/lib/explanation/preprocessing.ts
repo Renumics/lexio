@@ -74,13 +74,13 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
 
   // Process each page
   for (let i = 1; i <= numPages; i++) {
-    console.log(`Processing page ${i}/${numPages}`);
+    // console.log(`Processing page ${i}/${numPages}`);
     
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const viewport = page.getViewport({ scale: 1.0 });
 
-    console.log(`Page ${i}: Found ${content.items.length} text items`);
+    // console.log(`Page ${i}: Found ${content.items.length} text items`);
 
     // Group text items by their vertical position to form lines
     const lines: TextItem[][] = [];
@@ -121,7 +121,7 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
       lines.push(currentLine);
     }
 
-    console.log(`Page ${i}: Formed ${lines.length} lines from text items`);
+    // console.log(`Page ${i}: Formed ${lines.length} lines from text items`);
 
     // Create a block for the page
     blocks.children.push({

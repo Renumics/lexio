@@ -2,7 +2,6 @@ import React, {useContext} from 'react';
 import {ThemeContext, removeUndefined} from '../../theme/ThemeContext';
 import {useMessages} from '../../hooks';
 import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
-import { Message, HighlightedIdea } from '../../types';
 import {ResetWrapper} from '../../utils/ResetWrapper';
 import {ChatWindowUserMessage} from "./ChatWindowUserMessage";
 import {ChatWindowAssistantMessage} from "./ChatWindowAssistantMessage";

@@ -307,7 +307,7 @@ export class ExplanationProcessor {
                                         rect: boundingRect,
                                         color: colors[ideaIndex]
                                     };
-                                    console.log(`Created highlight for "${match.sentence.substring(0, 50)}..."`);
+                                    // console.log(`Created highlight for "${match.sentence.substring(0, 50)}..."`);
                                 }
                             }
 
