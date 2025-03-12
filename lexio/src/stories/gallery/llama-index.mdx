@@ -62,8 +62,9 @@ Note: There is an advanced example of a backend with highlighting in the `exampl
 The frontend is a React application configured with Vite. It provides GUI to interact with the backend and display query results together with the original PDF file and sources. The main components are:
 
 
-- **RAG UI Components**: The application uses `lexio` components only:
-  -  `AdvancedQueryField` for inputting queries.
+- **Lexio UI Components**: The application uses `lexio` components only:
+  - `RAGProvider` for providing the RAG context to the UI components.
+  - `AdvancedQueryField` for inputting queries.
   - `ChatWindow` for displaying conversation history.
   - `SourcesDisplay` and `ContentDisplay` for showing retrieved documents and their content with highlighting.
 
