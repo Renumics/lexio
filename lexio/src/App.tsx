@@ -178,22 +178,29 @@ function App() {
                             if (!evidence?.highlight) return null;
 
                             return {
-                                sourceId: sourceToProcess.id,
                                 page: evidence.highlight.page,
                                 rect: evidence.highlight.rect,
                                 color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
-                                evidenceText: evidence.source_sentence
                             };
                         })
                         .filter((h): h is NonNullable<typeof h> => h !== null);
 
                     // 3. Create citations that link message parts to PDF highlights
-                    const citations: Citation[] = pdfHighlights.map(highlight => ({
-                        sourceId: highlight.sourceId,
-                        highlight, // Reference to the PDF highlight
-                        messageStartChar: explanationResult.answer.indexOf(highlight.evidenceText),
-                        messageEndChar: explanationResult.answer.indexOf(highlight.evidenceText) + highlight.evidenceText.length
-                    }));
+                    const citations: Citation[] = explanationResult.ideaSources.map((source, index) => {
+                        const evidence = source.supporting_evidence[0];
+                        if (!evidence?.highlight) return null;
+
+                        return {
+                            sourceId: sourceToProcess.id,
+                            highlight: {
+                                page: evidence.highlight.page,
+                                rect: evidence.highlight.rect,
+                                color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
+                            },
+                            messageStartChar: explanationResult.answer.indexOf(evidence.source_sentence),
+                            messageEndChar: explanationResult.answer.indexOf(evidence.source_sentence) + evidence.source_sentence.length
+                        };
+                    }).filter((c): c is NonNullable<typeof c> => c !== null);
 
                     // Update source with highlights for PDF viewer
                     const updatedSource: Source = {
