@@ -97,7 +97,7 @@ const MessageFeedback = ({ messageId, messageContent, componentKey = undefined }
         {...getReferenceProps()}
         onClick={handleCommentClick}
         className={`p-1.5 rounded-full transition-colors ${
-          submitted ? 'bg-blue-100 text-blue-600 hover:bg-blue-100' : 'bg-gray-100 text-gray-400 hover:bg-gray-100'
+          submitted ? 'bg-blue-100 text-blue-600 hover:bg-blue-50' : 'bg-gray-100 text-gray-400 hover:bg-gray-50'
         }`}
         aria-label={submitted ? "Edit comment" : "Add comment"}
       >
@@ -107,8 +107,8 @@ const MessageFeedback = ({ messageId, messageContent, componentKey = undefined }
         onClick={() => handleFeedback('positive')}
         className={`p-1.5 rounded-full transition-colors ${
           feedback === 'positive' 
-            ? 'bg-green-100 text-green-600 hover:bg-green-100' 
-            : 'bg-gray-100 text-gray-400 hover:bg-gray-100'
+            ? 'bg-green-100 text-green-600 hover:bg-green-50' 
+            : 'bg-gray-100 text-gray-400 hover:bg-gray-50'
         }`}
         aria-label="Thumbs up"
       >
@@ -118,8 +118,8 @@ const MessageFeedback = ({ messageId, messageContent, componentKey = undefined }
         onClick={() => handleFeedback('negative')}
         className={`p-1.5 rounded-full transition-colors ${
           feedback === 'negative' 
-            ? 'bg-red-100 text-red-600 hover:bg-red-100' 
-            : 'bg-gray-100 text-gray-400 hover:bg-gray-100'
+            ? 'bg-red-100 text-red-600 hover:bg-red-50' 
+            : 'bg-gray-100 text-gray-400 hover:bg-gray-50'
         }`}
         aria-label="Thumbs down"
       >
