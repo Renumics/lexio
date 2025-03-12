@@ -171,48 +171,58 @@ function App() {
                 .then(explanationResult => {
                     console.log('Explanation process completed successfully:', explanationResult);
 
-                    // Process ideas and their evidence
-                    const ideas = explanationResult.ideaSources.map((source, index) => ({
+                    // 1. Process ideas for message highlighting
+                    const ideas: HighlightedIdea[] = explanationResult.ideaSources.map((source, index) => ({
                         text: source.answer_idea,
                         color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
                         startChar: explanationResult.answer.indexOf(source.answer_idea),
                         endChar: explanationResult.answer.indexOf(source.answer_idea) + source.answer_idea.length
                     }));
 
-                    // Create the assistant message with ideas
-                    const assistantMessage: Message = {
-                        id: crypto.randomUUID() as UUID,
-                        role: 'assistant',
-                        content: explanationResult.answer,
-                        ideas: ideas
-                    };
-
-                    // Process PDF highlights
-                    const pdfHighlights = explanationResult.ideaSources
+                    // 2. Process highlights for the PDF viewer
+                    const pdfHighlights: PDFHighlight[] = explanationResult.ideaSources
                         .map((source, index) => {
                             const evidence = source.supporting_evidence[0];
                             if (!evidence?.highlight) return null;
 
                             return {
+                                sourceId: sourceToProcess.id,
                                 page: evidence.highlight.page,
                                 rect: evidence.highlight.rect,
                                 color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
-                                ideaText: source.answer_idea,
                                 evidenceText: evidence.source_sentence
                             };
                         })
                         .filter((h): h is NonNullable<typeof h> => h !== null);
 
-                    // Update source with highlights
-                    const updatedSource = {
+                    // 3. Create citations that link message parts to PDF highlights
+                    const citations: Citation[] = pdfHighlights.map(highlight => ({
+                        sourceId: highlight.sourceId,
+                        highlight, // Reference to the PDF highlight
+                        messageStartChar: explanationResult.answer.indexOf(highlight.evidenceText),
+                        messageEndChar: explanationResult.answer.indexOf(highlight.evidenceText) + highlight.evidenceText.length
+                    }));
+
+                    // Update source with highlights for PDF viewer
+                    const updatedSource: Source = {
                         ...sourceToProcess,
-                        highlights: pdfHighlights
+                        highlights: pdfHighlights  // These will be shown in the PDF
+                    };
+
+                    // Create the assistant message with both highlighting and linking
+                    const assistantMessage: Message = {
+                        id: crypto.randomUUID() as UUID,
+                        role: 'assistant',
+                        content: explanationResult.answer,
+                        ideas,      // For colored concept highlighting in message
+                        citations   // For jumping to evidence in PDF
                     };
 
                     const response: ActionHandlerResponse = {
                         response: Promise.resolve({
                             content: explanationResult.answer,
-                            ideas: ideas,
+                            ideas,      // For concept highlighting
+                            citations,  // For source jumping
                             done: true
                         } as StreamChunk),
                         sources: Promise.resolve([updatedSource]),

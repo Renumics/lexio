@@ -40,26 +40,26 @@ export interface HighlightedIdea {
   endChar: number;      // Position in message where idea ends
 }
 
-// For PDF highlights that correspond to ideas
-export interface PDFHighlight {
-  page: number;
-  rect: {
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-  };
-  color: string;         // Color for this highlight
-  ideaText: string;      // Reference to which idea this supports
-  evidenceText: string;  // The actual text from source that supports the idea
-}
-
 // For linking message text to source highlights
 export interface Citation {
   sourceId: string;
   highlight: PDFHighlight;
   messageStartChar: number;  // Where citation starts in message
   messageEndChar: number;    // Where citation ends in message
+}
+
+// For PDF highlights that correspond to ideas
+export interface PDFHighlight {
+  sourceId: string;      // Which PDF this highlight belongs to
+  page: number;         // Page number in the PDF
+  rect: {              // Rectangle coordinates for the highlight
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  };
+  color: string;        // Color for this highlight
+  evidenceText: string; // The actual text being highlighted (needed for citations)
 }
 
 /**
