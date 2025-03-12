@@ -20,7 +20,7 @@ It supports multiple document types (PDF, HTML, Markdown, Text) with advanced fe
 
 Developers can use ready-made components or easily build custom ones using React hooks and the flexible action handler pattern.
 
-![RAG UI Example](https://raw.githubusercontent.com/Renumics/lexio/main/lexio/src/stories/assets/shot_lexio_llama_index.png)
+![RAG UI Example](https://raw.githubusercontent.com/Renumics/lexio/main/lexio/src/assets/lexio_screenshot_el_nino.png)
 
 ## Quick Start
 
