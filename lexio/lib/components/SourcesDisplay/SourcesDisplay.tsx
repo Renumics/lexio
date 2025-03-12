@@ -249,7 +249,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                           <span style={{ 
                             color: addOpacity(style.color || colors.text, 0.6), 
                             fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
-                            }}>Relevance:</span>
+                          }}>Relevance:</span>
                           <div 
                             className="ml-2 h-2 w-24 rounded-full" 
                             style={{
@@ -273,16 +273,6 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                             }}>
                             {Math.round(source.relevance * 100)}%
                           </div>
-                        </div>
-                      )}
-                      {source.highlights && source.highlights.length > 0 && (
-                        <div className="mt-2">
-                          <span style={{ 
-                            color: addOpacity(style.color || colors.text, 0.7),
-                            fontSize: scaleFontSize(style.fontSize || '12px', 0.85)
-                          }}>
-                            Contains {source.highlights.length} highlighted section{source.highlights.length > 1 ? 's' : ''}
-                          </span>
                         </div>
                       )}
                     </div>
