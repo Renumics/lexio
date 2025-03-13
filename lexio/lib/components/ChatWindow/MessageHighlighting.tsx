@@ -1,7 +1,7 @@
 import React from 'react';
 import { MessageHighlight, StreamChunk } from '../../types';
 import { ChatWindowStyles } from './ChatWindow';
-import { AssistantMarkdownContent } from './ChatWindowAssistantMessage';
+import { AssistantMarkdownContent } from './AssistantMarkdownContent';
 
 /**
  * Hook to handle highlight click interactions
