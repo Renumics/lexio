@@ -1,5 +1,5 @@
 import React from 'react';
-import { HighlightedIdea, StreamChunk } from '../../types';
+import { MessageHighlight, StreamChunk } from '../../types';
 import { ChatWindowStyles } from './ChatWindow';
 import { AssistantMarkdownContent } from './ChatWindowAssistantMessage';
 
@@ -10,18 +10,18 @@ import { AssistantMarkdownContent } from './ChatWindowAssistantMessage';
  */
 export const useHighlightClickHandler = (
     contentRef: React.RefObject<HTMLDivElement>,
-    onHighlightClick?: (ideaIndex: string) => void
+    onHighlightClick?: (highlightIndex: string) => void
 ) => {
     React.useEffect(() => {
         if (contentRef.current) {
-            const highlights = contentRef.current.querySelectorAll('.idea-highlight');
+            const highlights = contentRef.current.querySelectorAll('.highlight-element');
             
             const handleHighlightClick = (e: Event) => {
                 const target = e.target as HTMLElement;
-                const ideaIndex = target.getAttribute('data-idea-index');
+                const highlightIndex = target.getAttribute('data-highlight-index');
                 
-                if (ideaIndex !== null) {
-                    onHighlightClick?.(ideaIndex);
+                if (highlightIndex !== null) {
+                    onHighlightClick?.(highlightIndex);
                 }
             };
             
@@ -39,24 +39,24 @@ export const useHighlightClickHandler = (
 };
 
 /**
- * Renders content with highlighted ideas
+ * Renders content with highlights
  * @param content - The content to render
- * @param ideas - Ideas to highlight
+ * @param highlights - Highlights to apply
  * @returns Rendered content with highlights
  */
-const renderHighlightedContentWithIdeas = (
+const renderHighlightedContentWithHighlights = (
     content: string, 
-    ideasToUse: HighlightedIdea[],
+    highlightsToUse: MessageHighlight[],
     markdown: boolean,
     style: ChatWindowStyles,
     markdownStyling: React.CSSProperties
 ) => {
-    if (ideasToUse && ideasToUse.length > 0) {
+    if (highlightsToUse && highlightsToUse.length > 0) {
         let htmlContent = content;
         let hasHighlights = false;
         
-        ideasToUse.forEach((idea: HighlightedIdea, index: number) => {
-            const escapedText = idea.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        highlightsToUse.forEach((highlight: MessageHighlight, index: number) => {
+            const escapedText = highlight.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(`(${escapedText})`, 'gi');
             
             if (regex.test(htmlContent)) {
@@ -64,9 +64,9 @@ const renderHighlightedContentWithIdeas = (
                 htmlContent = htmlContent.replace(
                     regex, 
                     `<span 
-                        style="background-color:${idea.color}; cursor: pointer;" 
-                        class="idea-highlight" 
-                        data-idea-index="${index}"
+                        style="background-color:${highlight.color}; cursor: pointer;" 
+                        class="highlight-element" 
+                        data-highlight-index="${index}"
                     >$1</span>`
                 );
             }
@@ -104,20 +104,20 @@ const renderHighlightedContentWithIdeas = (
  */
 export const renderHighlightedContent = (
     content: string | StreamChunk,
-    ideas: HighlightedIdea[] | undefined,
+    highlights: MessageHighlight[] | undefined,
     markdown: boolean,
     style: ChatWindowStyles,
     markdownStyling: React.CSSProperties
 ) => {
-    // If content is a StreamChunk, extract the actual content and ideas
+    // If content is a StreamChunk, extract the actual content and highlights
     if (typeof content === 'object' && content !== null) {
         const textContent = content.content || '';
-        const streamIdeas = content.ideas || [];
-        // Use stream ideas if available, otherwise fall back to props ideas
-        const ideasToUse = streamIdeas.length > 0 ? streamIdeas : (ideas || []);
+        const streamHighlights = content.highlights || [];
+        // Use stream highlights if available, otherwise fall back to props highlights
+        const highlightsToUse = streamHighlights.length > 0 ? streamHighlights : (highlights || []);
         
-        return renderHighlightedContentWithIdeas(textContent, ideasToUse, markdown, style, markdownStyling);
+        return renderHighlightedContentWithHighlights(textContent, highlightsToUse, markdown, style, markdownStyling);
     }
 
-    return renderHighlightedContentWithIdeas(content, ideas || [], markdown, style, markdownStyling);
+    return renderHighlightedContentWithHighlights(content, highlights || [], markdown, style, markdownStyling);
 };

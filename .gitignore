@@ -13,7 +13,3 @@ dummy-package/
 .vscode/
 
 examples/llama-index/frontend/rag-ui/
-
-pdfs/
-
-.env.local

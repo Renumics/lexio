@@ -8,7 +8,7 @@ import "./AssistantMarkdownContent.css";
 import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline";
 import {scaleFontSize} from "../../utils/scaleFontSize.tsx";
 import { MessageFeedback } from "./MessageFeedback.tsx";
-import { HighlightedIdea } from '../../types';
+import { MessageHighlight } from '../../types';
 import { useHighlightClickHandler, renderHighlightedContent } from './MessageHighlighting';
 /**
  * Props for the AssistantMarkdownContent component.
@@ -127,7 +127,7 @@ export const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> =
  * @property {boolean} [isStreaming] - Flag indicating if the message is being streamed.
  * @property {boolean} [showCopy] - Flag to show or hide the copy button.
  * @property {boolean} [showFeedback] - Flag to show or hide the feedback buttons.
- * @property {HighlightedIdea[]} [ideas] - Ideas to highlight in the message, used for completed messages
+ * @property {MessageHighlight[]} [highlights] - Highlights to highlight in the message, used for completed messages
  */
 interface ChatWindowAssistantMessageProps {
     message: string;
@@ -140,7 +140,7 @@ interface ChatWindowAssistantMessageProps {
     isStreaming?: boolean;
     showCopy?: boolean;
     showFeedback?: boolean;
-    ideas?: HighlightedIdea[];
+    highlights?: MessageHighlight[];
 }
 
 /**
@@ -160,7 +160,7 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                                                                                    isStreaming,
                                                                                    showCopy,
                                                                                    showFeedback,
-                                                                                   ideas
+                                                                                   highlights
                                                                                }) => {
     const [copied, setCopied] = useState(false);
     // show icon if showRoleIndicator is true and icon is not null
@@ -171,9 +171,8 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
     const highlightedContentRef = React.useRef<HTMLDivElement>(null);
     
     // Use the highlighting hook
-    useHighlightClickHandler(highlightedContentRef, (ideaIndex) => {
-        console.log(`Clicked on idea ${ideaIndex}`);
-        // Additional click handling logic can be added here
+    useHighlightClickHandler(highlightedContentRef, (highlightIndex) => {
+        console.log(`Clicked on highlight ${highlightIndex}`);
     });
 
     /**
@@ -227,7 +226,7 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                     <div ref={highlightedContentRef}>
                         {renderHighlightedContent(
                             message,
-                            ideas,
+                            highlights,
                             markdown || false,
                             style,
                             assistantMarkdownContentStyling

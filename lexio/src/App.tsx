@@ -12,9 +12,9 @@ import {
     createRESTContentSource, 
     ActionHandlerResponse,
     Citation,
-    HighlightedIdea,
     PDFHighlight,
     StreamChunk,
+    MessageHighlight,
 } from '../lib/main';
 import { ExplanationProcessor } from '../lib/explanation';
 import './App.css';
@@ -163,8 +163,8 @@ function App() {
                 .then(explanationResult => {
                     console.log('Explanation process completed successfully:', explanationResult);
 
-                    // 1. Process ideas for message highlighting
-                    const ideas: HighlightedIdea[] = explanationResult.ideaSources.map((source, index) => ({
+                    // 1. Process highlights for message highlighting
+                    const highlights: MessageHighlight[] = explanationResult.ideaSources.map((source, index) => ({
                         text: source.answer_idea,
                         color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
                         startChar: explanationResult.answer.indexOf(source.answer_idea),
@@ -211,8 +211,8 @@ function App() {
                     const response: ActionHandlerResponse = {
                         response: Promise.resolve({
                             content: explanationResult.answer,
-                            ideas,      // For concept highlighting
-                            citations,  // For source jumping
+                            highlights,      // Changed from ideas
+                            citations,  
                             done: true
                         } as StreamChunk),
                         sources: Promise.resolve([updatedSource]),
@@ -232,7 +232,7 @@ function App() {
                     const response: ActionHandlerResponse = {
                         response: Promise.resolve({
                             content: ragResponse,
-                            ideas: [],
+                            highlights: [],
                             done: true
                         } as StreamChunk),
                         sources: Promise.resolve([sourceToProcess]),
@@ -251,7 +251,7 @@ function App() {
                 const response: ActionHandlerResponse = {
                     response: Promise.resolve({
                         content: ragResponse,
-                        ideas: [],
+                        highlights: [],
                         done: true
                     } as StreamChunk),
                     sources: Promise.resolve([sourceToProcess]),

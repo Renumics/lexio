@@ -48,14 +48,14 @@ export interface PDFHighlight {
  * Represents an important idea or concept to be highlighted in the assistant's message.
  * Used for visual emphasis of key points in the final message (not during streaming).
  *
- * @interface HighlightedIdea
+ * @interface MessageHighlight
  * @property {string} text - The exact text to highlight in the message
  * @property {string} color - Color for the highlight in any valid CSS format
  * @property {number} startChar - Starting character position in the message where this idea appears
  * @property {number} endChar - Ending character position in the message where this idea appears
  */
-export interface HighlightedIdea {
-    text: string;         // The idea text to highlight
+export interface MessageHighlight {
+    text: string;         // The text to highlight in message
     color: string;        // Color for this highlight
     startChar: number;    // Starting position in message
     endChar: number;      // Ending position in message
@@ -85,14 +85,14 @@ export interface Citation {
  * @property {UUID} id - Unique identifier for the message
  * @property {"user" | "assistant"} role - Role of the message sender
  * @property {string} content - Text content of the message
- * @property {HighlightedIdea[]} [ideas] - Ideas to highlight in assistant messages
+ * @property {MessageHighlight[]} [highlights] - Highlights to highlight in assistant messages
  *                                         Only used for completed (non-streaming) messages
  */
 export interface Message {
     readonly id: UUID;
     role: "user" | "assistant";
     content: string;
-    ideas?: HighlightedIdea[];  // For highlighting ideas in completed messages
+    highlights?: MessageHighlight[];  // renamed from ideas
 }
 
 /**
@@ -530,14 +530,14 @@ export type ActionHandler = {
  * @interface StreamChunk
  * @property {string} [content] - Text content in this chunk
  * @property {Source[]} [sources] - Sources related to this chunk
- * @property {HighlightedIdea[]} [ideas] - Ideas to highlight in the final message
+ * @property {MessageHighlight[]} [highlights] - Highlights to highlight in the final message
  *                                         Only included in the final chunk (when done=true)
  * @property {boolean} [done] - Indicates if this is the final chunk in the stream
- *                             When true, ideas will be used for highlighting
+ *                             When true, highlights will be used for highlighting
  */
 export type StreamChunk = { 
     content?: string; 
     sources?: Source[]; 
-    ideas?: HighlightedIdea[];  // Only used in final chunk for message highlighting
+    highlights?: MessageHighlight[];  // renamed from ideas
     done?: boolean; 
 };
