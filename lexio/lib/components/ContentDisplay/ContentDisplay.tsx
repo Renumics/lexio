@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { MarkdownViewer } from "../Viewers/MarkdownViewer";
@@ -60,6 +60,17 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
   }
   const { componentDefaults } = theme.theme;
 
+  // Add logging
+  useEffect(() => {
+    if (selectedSource) {
+      console.log('ContentDisplay selectedSource:', {
+        metadata: selectedSource.metadata,
+        highlight: selectedSource.metadata?.highlight,
+        page: selectedSource.metadata?.highlight?.page
+      });
+    }
+  }, [selectedSource]);
+
   // Merge theme defaults + overrides
   const style: ContentDisplayStyles = {
     backgroundColor: 'transparent',
@@ -75,8 +86,12 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
 
   const renderContent = () => {
     if (selectedSource.type === 'pdf' && selectedSource.data && selectedSource.data instanceof Uint8Array) {
-      // Prefer 'page' over '_page' if both are defined
-      const page = selectedSource.metadata?.page ?? selectedSource.metadata?._page;
+      // Get page from metadata and log it
+      const page = selectedSource.metadata?.highlight?.page ?? 
+                  selectedSource.metadata?.page ?? 
+                  selectedSource.metadata?._page;
+      
+      console.log('ContentDisplay rendering PDF with page:', page);
       
       return (
         <PdfViewer 

@@ -14,6 +14,20 @@ import {
 import { UUID } from "../types";
 import { Component } from "../types";
 
+interface SourceMetadata {
+    page?: number;
+    highlight?: {
+        page: number;
+        rect: {
+            top: number;
+            left: number;
+            width: number;
+            height: number;
+        };
+        color: string;
+    };
+}
+
 /**
  * Hook to read and manipulate sources state.
  * @param component - The component name to identify the source of a action source.
@@ -69,9 +83,15 @@ export const useSources = (component: Component) => {
     /**
      * Set a single source as the selected source.
      * @param sourceId - ID of the source to select, or null to clear selection.
+     * @param metadata - Optional metadata for the source selection (e.g., page number, highlight)
      */
-    const setSelectedSource = (sourceId: string | UUID | null) => {
-        dispatch({type: 'SET_SELECTED_SOURCE', sourceId: sourceId || '', source: component}, false);
+    const setSelectedSource = (sourceId: string | UUID | null, metadata?: SourceMetadata) => {
+        dispatch({
+            type: 'SET_SELECTED_SOURCE', 
+            sourceId: sourceId || '', 
+            source: component,
+            sourceMetadata: metadata
+        }, false);
     };
 
     /**

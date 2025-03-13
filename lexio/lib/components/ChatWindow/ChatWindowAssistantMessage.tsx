@@ -1,11 +1,13 @@
-import React, {ReactNode, useMemo, useState} from "react";
+import React, {ReactNode, useMemo, useState, useContext, useEffect} from "react";
 import {ChatWindowStyles} from "./ChatWindow.tsx";
 import "./AssistantMarkdownContent.css";
 import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline";
 import {scaleFontSize} from "../../utils/scaleFontSize.tsx";
 import {MessageFeedback} from "./MessageFeedback.tsx";
-import {MessageHighlight} from '../../types';
-import {useHighlightClickHandler, renderHighlightedContent} from './MessageHighlighting';
+import {MessageHighlight, Citation} from '../../types';
+import {renderHighlightedContent} from './MessageHighlighting';
+import { useSources } from '../../hooks';
+import { ChatWindowContext } from './ChatWindowContext';
 
 /**
  * Props for the ChatWindowAssistantMessage component.
@@ -21,6 +23,7 @@ import {useHighlightClickHandler, renderHighlightedContent} from './MessageHighl
  * @property {boolean} [showCopy] - Flag to show or hide the copy button.
  * @property {boolean} [showFeedback] - Flag to show or hide the feedback buttons.
  * @property {MessageHighlight[]} [highlights] - Highlights to highlight in the message, used for completed messages
+ * @property {Citation[]} [citations] - Citations to link message portions to source documents
  */
 interface ChatWindowAssistantMessageProps {
     message: string;
@@ -34,6 +37,7 @@ interface ChatWindowAssistantMessageProps {
     showCopy?: boolean;
     showFeedback?: boolean;
     highlights?: MessageHighlight[];
+    citations?: Citation[];
 }
 
 /**
@@ -53,20 +57,24 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                                                                                    isStreaming,
                                                                                    showCopy,
                                                                                    showFeedback,
-                                                                                   highlights
+                                                                                   highlights = [],
+                                                                                   citations = []
                                                                                }) => {
+    const context = useContext(ChatWindowContext);
+    const { setSelectedSource } = useSources('ChatWindow');
     const [copied, setCopied] = useState(false);
     // show icon if showRoleIndicator is true and icon is not null
     const showIcon = showRoleIndicator && !!icon;
     // show label if showRoleIndicator is true and roleLabel is not null and icon is not shown
     const showLabel = showRoleIndicator && !!roleLabel && !showIcon;
 
-    const highlightedContentRef = React.useRef<HTMLDivElement>(null);
-    
-    // Use the highlighting hook
-    useHighlightClickHandler(highlightedContentRef, (highlightIndex) => {
-        console.log(`Clicked on highlight ${highlightIndex}`);
-    });
+    // Update context with highlights/citations from props
+    useEffect(() => {
+        if (highlights?.length > 0 || citations?.length > 0) {
+            context?.setHighlights(highlights);
+            context?.setCitations(citations);
+        }
+    }, [highlights, citations]);
 
     /**
      * Handles copying the message content to the clipboard.
@@ -95,6 +103,30 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
         } as React.CSSProperties;
     }, [style.messageFontSize, style.color]);
 
+    const handleHighlightClick = (positionKey: string) => {
+        const [startChar, endChar] = positionKey.split(':').map(Number);
+        
+        // Find matching citation by checking all types of overlaps
+        const citation = citations.find(c => 
+            (c.messageStartChar <= startChar && c.messageEndChar >= startChar) ||
+            (c.messageStartChar <= endChar && c.messageEndChar >= endChar) ||
+            (startChar <= c.messageStartChar && endChar >= c.messageEndChar)
+        );
+
+        if (citation) {
+            setSelectedSource(citation.sourceId, {
+                highlight: citation.highlight,
+                page: citation.highlight.page
+            });
+        }
+    };
+
+    console.log('ChatWindowAssistantMessage rendering with:', {
+        message,
+        highlights,
+        citations
+    });
+
     return (
         <div className={`w-full flex ${showIcon ? 'justify-start' : 'flex-col items-start'} pe-10`}>
             {showLabel && <strong className="inline-block ml-2 mb-1" style={{
@@ -116,15 +148,17 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                     borderRadius: style.messageBorderRadius,
                     fontSize: style.messageFontSize,
                 }}>
-                    <div ref={highlightedContentRef}>
-                        {renderHighlightedContent(
-                            message,
-                            highlights,
-                            markdown || false,
-                            style,
-                            assistantMarkdownContentStyling
-                        )}
-                    </div>
+                    {renderHighlightedContent(
+                        {
+                            content: message,
+                            highlights: highlights,
+                            citations: citations
+                        },
+                        markdown || false,
+                        style,
+                        assistantMarkdownContentStyling,
+                        handleHighlightClick
+                    )}
                 </div>
                 {messageId && !isStreaming && (
                     <div

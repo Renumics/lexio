@@ -10,7 +10,7 @@ const allowedActionReturnValues: Record<UserAction['type'], string[]> = {
     SEARCH_SOURCES: ['sources', 'followUpAction'],
     CLEAR_SOURCES: ['followUpAction'],
     SET_ACTIVE_SOURCES: ['followUpAction'],
-    SET_SELECTED_SOURCE: ['sourceData', 'followUpAction'],
+    SET_SELECTED_SOURCE: ['sourceData', 'activeSourceIds', 'followUpAction'],
     SET_FILTER_SOURCES: ['followUpAction'],
     RESET_FILTER_SOURCES: ['followUpAction'],
     SET_MESSAGE_FEEDBACK: ['followUpAction']
@@ -197,31 +197,40 @@ export const addUserMessageAtom = atom(
         // Process the user message or streaming response independently.
         const processMessage = async () => {
             if (response.response) {
-                let accumulatedContent = '';
                 if (Symbol.asyncIterator in response.response) {
                     // Create a single consistent ID for the entire streaming message
                     const messageId = crypto.randomUUID() as UUID;
+                    let accumulatedContent = '';
+                    let lastChunk: StreamChunk | null = null; // Track the last chunk to get final citations/highlights
 
-                    // Streaming response: process each chunk.
+                    // Streaming response: process each chunk
                     const streamTimeout = new StreamTimeout(config.timeouts?.stream);
                     for await (const chunk of response.response as AsyncIterable<StreamChunk>) {
+
                         if (abortController.signal.aborted) break;
                         streamTimeout.check();
                         accumulatedContent += chunk.content ?? '';
-                        // Provide immediate feedback as streaming chunks arrive.
+                        lastChunk = chunk; // Save the last chunk
+                        
+                        // Update stream with all chunk data
                         set(currentStreamAtom, {
-                            id: messageId, // Use the same ID for all updates
+                            id: messageId,
                             role: 'assistant',
                             content: accumulatedContent,
+                            highlights: chunk.highlights,
+                            citations: chunk.citations,
                         });
                     }
-                    // Finalize streaming.
+
+                    // Finalize streaming with all data from last chunk
                     set(completedMessagesAtom, [
                         ...get(completedMessagesAtom),
                         {
-                            id: messageId, // Use the same ID for the final message
+                            id: messageId,
                             role: 'assistant',
                             content: accumulatedContent,
+                            highlights: lastChunk?.highlights,
+                            citations: lastChunk?.citations,
                         },
                     ]);
                     set(currentStreamAtom, null);
@@ -234,12 +243,18 @@ export const addUserMessageAtom = atom(
                         'Response timeout exceeded',
                         abortController.signal
                     );
+
+                    // Process citations if they exist in the response
+                    const citationsData = response.citations;
+
                     set(completedMessagesAtom, [
                         ...get(completedMessagesAtom),
                         {
                             id: crypto.randomUUID() as UUID,
                             role: 'assistant',
                             content: messageData,
+                            citations: citationsData,
+                            highlights: response.highlights,
                         } as Message,
                     ]);
                     return messageData;
@@ -436,18 +451,26 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     // Always set the selected source ID
     set(selectedSourceIdAtom, action.sourceId);
 
-    // Only validate and update data if sourceData is provided
-    if (response.sourceData) {
-        // Warn if trying to update a source that already has data
-        if (targetSource.data) {
-            console.warn(`Source ${action.sourceId} already has data but new data was provided`);
-            return;
-        }
+    // Update the source with new metadata if provided
+    if (action.sourceMetadata) {
+        const updatedSources = currentSources.map(source =>
+            source.id === action.sourceId
+                ? {
+                    ...source,
+                    metadata: {
+                        ...source.metadata,
+                        highlight: action.sourceMetadata?.highlight || source.metadata?.highlight
+                    }
+                }
+                : source
+        );
+        set(retrievedSourcesAtom, updatedSources);
+    }
 
+    // Only load new data if sourceData is provided and source doesn't have data
+    if (response.sourceData && !targetSource.data) {
         try {
-            // Await the Promise to get the actual data
             const resolvedData = await response.sourceData;
-
             const updatedSources = currentSources.map(source =>
                 source.id === action.sourceId
                     ? { ...source, data: resolvedData }

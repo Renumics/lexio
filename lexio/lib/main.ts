@@ -9,6 +9,7 @@ import { useMessages, useSources, useStatus, useMessageFeedback } from './hooks'
 import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
+import { ChatWindowProvider, ChatWindowContext } from './components/ChatWindow/ChatWindowContext'
 
 import { defaultTheme, createTheme } from './theme/index.ts'
 
@@ -31,6 +32,8 @@ export {
     QueryField,
     LexioProvider,
     SourcesDisplay,
+    ChatWindowProvider,
+    ChatWindowContext,
 
     // Connectors
     createRESTContentSource,

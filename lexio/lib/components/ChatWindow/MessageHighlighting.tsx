@@ -3,98 +3,108 @@ import { MessageHighlight, StreamChunk } from '../../types';
 import { ChatWindowStyles } from './ChatWindow';
 import { AssistantMarkdownContent } from './AssistantMarkdownContent';
 
-/**
- * Hook to handle highlight click interactions
- * @param contentRef - Reference to the content container
- * @param onHighlightClick - Optional callback for highlight clicks
- */
-export const useHighlightClickHandler = (
-    contentRef: React.RefObject<HTMLDivElement>,
-    onHighlightClick?: (highlightIndex: string) => void
-) => {
-    React.useEffect(() => {
-        if (contentRef.current) {
-            const highlights = contentRef.current.querySelectorAll('.highlight-element');
-            
-            const handleHighlightClick = (e: Event) => {
-                const target = e.target as HTMLElement;
-                const highlightIndex = target.getAttribute('data-highlight-index');
-                
-                if (highlightIndex !== null) {
-                    onHighlightClick?.(highlightIndex);
-                }
-            };
-            
-            highlights.forEach(highlight => {
-                highlight.addEventListener('click', handleHighlightClick);
-            });
-            
-            return () => {
-                highlights.forEach(highlight => {
-                    highlight.removeEventListener('click', handleHighlightClick);
-                });
-            };
-        }
-    }, [contentRef, onHighlightClick]);
+interface HighlightOverlayProps {
+    text: string;
+    highlight: MessageHighlight;
+    highlights: MessageHighlight[];
+    onHighlightClick?: (highlightIndex: string) => void;
+    startChar: number;
+    endChar: number;
+}
+
+const HighlightOverlay: React.FC<HighlightOverlayProps> = ({
+    text,
+    highlight,
+    highlights,
+    onHighlightClick,
+    startChar,
+    endChar
+}) => {
+    const handleClick = () => {
+        onHighlightClick?.(`${startChar}:${endChar}`);
+    };
+
+    return (
+        <span
+            onClick={handleClick}
+            style={{
+                backgroundColor: highlight.color,
+                cursor: 'pointer',
+            }}
+            className="highlight-element"
+        >
+            {text}
+        </span>
+    );
 };
 
-/**
- * Renders content with highlights
- * @param content - The content to render
- * @param highlights - Highlights to apply
- * @returns Rendered content with highlights
- */
-const renderHighlightedContentWithHighlights = (
-    content: string, 
-    highlightsToUse: MessageHighlight[],
-    markdown: boolean,
-    style: ChatWindowStyles,
-    markdownStyling: React.CSSProperties
-) => {
-    if (highlightsToUse && highlightsToUse.length > 0) {
-        let htmlContent = content;
-        let hasHighlights = false;
-        
-        highlightsToUse.forEach((highlight: MessageHighlight, index: number) => {
-            const escapedText = highlight.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(${escapedText})`, 'gi');
-            
-            if (regex.test(htmlContent)) {
-                hasHighlights = true;
-                htmlContent = htmlContent.replace(
-                    regex, 
-                    `<span 
-                        style="background-color:${highlight.color}; cursor: pointer;" 
-                        class="highlight-element" 
-                        data-highlight-index="${index}"
-                    >$1</span>`
-                );
-            }
-        });
-
-        if (hasHighlights) {
-            return (
-                <div 
-                    dangerouslySetInnerHTML={{ __html: htmlContent }}
-                    className="whitespace-pre-wrap"
+const HighlightedContent: React.FC<{
+    content: string;
+    highlights: MessageHighlight[];
+    markdown: boolean;
+    style: ChatWindowStyles;
+    markdownStyling: React.CSSProperties;
+    onHighlightClick?: (highlightIndex: string) => void;
+}> = ({ content, highlights, markdown, style, markdownStyling, onHighlightClick }) => {
+    if (!highlights.length) {
+        return markdown ? (
+            <div className="assistant-markdown-content" style={markdownStyling}>
+                <AssistantMarkdownContent 
+                    content={content} 
+                    style={style}
                 />
-            );
-        }
+            </div>
+        ) : (
+            <div className="inline whitespace-pre-wrap">
+                {content}
+            </div>
+        );
     }
 
-    // If no highlights or markdown is enabled, use existing rendering
-    return markdown ? (
-        <div className="assistant-markdown-content" style={markdownStyling}>
-            <AssistantMarkdownContent 
-                content={typeof content === 'object' && content !== null && 'content' in content 
-                    ? (content as StreamChunk).content || '' 
-                    : String(content)} 
-                style={style}
-            />
-        </div>
-    ) : (
-        <div className="inline whitespace-pre-wrap">
-            {content}
+    const segments: { text: string; highlight?: MessageHighlight; startChar?: number; endChar?: number }[] = [];
+    let currentPosition = 0;
+
+    const sortedHighlights = [...highlights].sort((a, b) => a.startChar - b.startChar);
+
+    sortedHighlights.forEach((highlight) => {
+        const beforeText = content.slice(currentPosition, highlight.startChar);
+        if (beforeText) {
+            segments.push({ text: beforeText });
+        }
+
+        segments.push({
+            text: content.slice(highlight.startChar, highlight.endChar),
+            highlight,
+            startChar: highlight.startChar,
+            endChar: highlight.endChar
+        });
+
+        currentPosition = highlight.endChar;
+    });
+
+    if (currentPosition < content.length) {
+        segments.push({
+            text: content.slice(currentPosition)
+        });
+    }
+
+    return (
+        <div className="whitespace-pre-wrap">
+            {segments.map((segment, idx) => 
+                segment.highlight ? (
+                    <HighlightOverlay
+                        key={idx}
+                        text={segment.text}
+                        highlight={segment.highlight}
+                        highlights={highlights}
+                        startChar={segment.startChar!}
+                        endChar={segment.endChar!}
+                        onHighlightClick={onHighlightClick}
+                    />
+                ) : (
+                    <span key={idx}>{segment.text}</span>
+                )
+            )}
         </div>
     );
 };
@@ -104,20 +114,51 @@ const renderHighlightedContentWithHighlights = (
  */
 export const renderHighlightedContent = (
     content: string | StreamChunk,
-    highlights: MessageHighlight[] | undefined,
     markdown: boolean,
     style: ChatWindowStyles,
-    markdownStyling: React.CSSProperties
+    markdownStyling: React.CSSProperties,
+    onHighlightClick?: (highlightIndex: string) => void
 ) => {
-    // If content is a StreamChunk, extract the actual content and highlights
+    // Add logging to see what content we receive
+    console.log('renderHighlightedContent received:', {
+        content,
+        isObject: typeof content === 'object',
+        isString: typeof content === 'string'
+    });
+
     if (typeof content === 'object' && content !== null) {
         const textContent = content.content || '';
         const streamHighlights = content.highlights || [];
-        // Use stream highlights if available, otherwise fall back to props highlights
-        const highlightsToUse = streamHighlights.length > 0 ? streamHighlights : (highlights || []);
+        const highlightsToUse = streamHighlights.length > 0 ? streamHighlights : [];
         
-        return renderHighlightedContentWithHighlights(textContent, highlightsToUse, markdown, style, markdownStyling);
+        console.log('StreamChunk highlights:', {
+            streamHighlights,
+            highlightsToUse
+        });
+
+        return (
+            <HighlightedContent
+                content={textContent}
+                highlights={highlightsToUse}
+                markdown={markdown}
+                style={style}
+                markdownStyling={markdownStyling}
+                onHighlightClick={onHighlightClick}
+            />
+        );
     }
 
-    return renderHighlightedContentWithHighlights(content, highlights || [], markdown, style, markdownStyling);
+    // Add logging for string content case
+    console.log('String content case, no highlights');
+
+    return (
+        <HighlightedContent
+            content={content}
+            highlights={[]}
+            markdown={markdown}
+            style={style}
+            markdownStyling={markdownStyling}
+            onHighlightClick={onHighlightClick}
+        />
+    );
 };

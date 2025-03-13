@@ -15,6 +15,7 @@ import {
     PDFHighlight,
     StreamChunk,
     MessageHighlight,
+    ChatWindowProvider,
 } from '../lib/main';
 import { ExplanationProcessor } from '../lib/explanation';
 import './App.css';
@@ -163,7 +164,7 @@ function App() {
                 .then(explanationResult => {
                     console.log('Explanation process completed successfully:', explanationResult);
 
-                    // 1. Process highlights for message highlighting
+                    // Create message highlights
                     const highlights: MessageHighlight[] = explanationResult.ideaSources.map((source, index) => ({
                         text: source.answer_idea,
                         color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
@@ -171,21 +172,19 @@ function App() {
                         endChar: explanationResult.answer.indexOf(source.answer_idea) + source.answer_idea.length
                     }));
 
-                    // 2. Process highlights for the PDF viewer
-                    const pdfHighlights: PDFHighlight[] = explanationResult.ideaSources
-                        .map((source, index) => {
-                            const evidence = source.supporting_evidence[0];
-                            if (!evidence?.highlight) return null;
+                    // Create PDF highlights
+                    const pdfHighlights = explanationResult.ideaSources.map((source, index) => {
+                        const evidence = source.supporting_evidence[0];
+                        if (!evidence?.highlight) return null;
 
-                            return {
-                                page: evidence.highlight.page,
-                                rect: evidence.highlight.rect,
-                                color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
-                            };
-                        })
-                        .filter((h): h is NonNullable<typeof h> => h !== null);
+                        return {
+                            page: evidence.highlight.page,
+                            rect: evidence.highlight.rect,
+                            color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
+                        };
+                    }).filter((h): h is NonNullable<typeof h> => h !== null);
 
-                    // 3. Create citations that link message parts to PDF highlights
+                    // Create citations
                     const citations: Citation[] = explanationResult.ideaSources.map((source, index) => {
                         const evidence = source.supporting_evidence[0];
                         if (!evidence?.highlight) return null;
@@ -197,29 +196,31 @@ function App() {
                                 rect: evidence.highlight.rect,
                                 color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
                             },
-                            messageStartChar: explanationResult.answer.indexOf(evidence.source_sentence),
-                            messageEndChar: explanationResult.answer.indexOf(evidence.source_sentence) + evidence.source_sentence.length
+                            messageStartChar: explanationResult.answer.indexOf(source.answer_idea),
+                            messageEndChar: explanationResult.answer.indexOf(source.answer_idea) + source.answer_idea.length
                         };
                     }).filter((c): c is NonNullable<typeof c> => c !== null);
 
-                    // Update source with highlights for PDF viewer
-                    const updatedSource: Source = {
+                    // Update source with PDF highlights
+                    const updatedSource = {
                         ...sourceToProcess,
-                        highlights: pdfHighlights  // These will be shown in the PDF
+                        highlights: pdfHighlights
                     };
 
                     const response: ActionHandlerResponse = {
-                        response: Promise.resolve({
-                            content: explanationResult.answer,
-                            highlights,      // Changed from ideas
-                            citations,  
-                            done: true
-                        } as StreamChunk),
+                        response: (async function* () {
+                            yield {
+                                content: explanationResult.answer,
+                                highlights,
+                                citations,
+                                done: true
+                            } as StreamChunk;
+                        })(),
                         sources: Promise.resolve([updatedSource]),
                         followUpAction: {
                             type: SET_ACTIVE_SOURCES,
                             sourceIds: [sourceToProcess.id],
-                            source: 'LexioProvider' as const
+                            source: 'LexioProvider'
                         }
                     };
 
@@ -230,11 +231,12 @@ function App() {
                     console.log('Falling back to simple response due to error');
                     
                     const response: ActionHandlerResponse = {
-                        response: Promise.resolve({
-                            content: ragResponse,
-                            highlights: [],
-                            done: true
-                        } as StreamChunk),
+                        response: (async function* () {
+                            yield {
+                                content: ragResponse,
+                                done: true
+                            } as StreamChunk;
+                        })(),
                         sources: Promise.resolve([sourceToProcess]),
                         followUpAction: {
                             type: SET_ACTIVE_SOURCES,
@@ -249,11 +251,12 @@ function App() {
                 console.log('No source data available, using simple response');
                 
                 const response: ActionHandlerResponse = {
-                    response: Promise.resolve({
-                        content: ragResponse,
-                        highlights: [],
-                        done: true
-                    } as StreamChunk),
+                    response: (async function* () {
+                        yield {
+                            content: ragResponse,
+                            done: true
+                        } as StreamChunk;
+                    })(),
                     sources: Promise.resolve([sourceToProcess]),
                     followUpAction: {
                         type: SET_ACTIVE_SOURCES,
@@ -271,72 +274,67 @@ function App() {
 
     return (
         <div className="app-container">
-            <LexioProvider
-                onAction={onAction}
-                config={{
-                    timeouts: {
-                        stream: 10000
-                    }
-                }}
-            >
-                <div
-                    style={{
-                        display: 'grid',
-                        height: '100vh',
-                        width: '100%',
-                        gridTemplateColumns: '1fr 2fr',
-                        gridTemplateRows: '1fr 100px',
-                        gap: '20px',
-                        gridTemplateAreas: `
-                            "chat viewer"
-                            "input viewer"
-                        `,
-                        maxHeight: '100vh',
-                        overflow: 'hidden',
-                        padding: '20px',
-                        boxSizing: 'border-box',
-                    }}
-                >
+            <LexioProvider onAction={onAction}>
+                <ChatWindowProvider>
                     <div
                         style={{
-                            gridArea: 'chat',
-                            overflow: 'auto',
-                            minWidth: 0,
-                            maxWidth: '100%',
+                            display: 'grid',
+                            height: '100vh',
+                            width: '100%',
+                            gridTemplateColumns: '1fr 2fr',
+                            gridTemplateRows: '1fr 100px',
+                            gap: '20px',
+                            gridTemplateAreas: `
+                                "chat viewer"
+                                "input viewer"
+                            `,
+                            maxHeight: '100vh',
+                            overflow: 'hidden',
+                            padding: '20px',
+                            boxSizing: 'border-box',
                         }}
                     >
-                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
-                                <SourcesDisplay />
-                            </div>
-                            <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
-                                <ChatWindow />
+                        <div
+                            style={{
+                                gridArea: 'chat',
+                                overflow: 'auto',
+                                minWidth: 0,
+                                maxWidth: '100%',
+                            }}
+                        >
+                            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                    <SourcesDisplay />
+                                </div>
+                                <div style={{ flex: '1', overflow: 'auto', height: '50%' }}>
+                                    <ChatWindow />
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div
-                        style={{
-                            gridArea: 'input',
-                            height: '100px',
-                            minWidth: 0,
-                            maxWidth: '100%',
-                        }}
-                    >
-                        <AdvancedQueryField />
-                    </div>
+                        <div
+                            style={{
+                                gridArea: 'input',
+                                height: '100px',
+                                minWidth: 0,
+                                maxWidth: '100%',
+                            }}
+                        >
+                            <AdvancedQueryField />
+                        </div>
 
-                    <div
-                        style={{
-                            gridArea: 'viewer',
-                            overflow: 'hidden',
-                            width: '100%',
-                            height: '100%',
-                        }}
-                    >
-                        <ContentDisplay />
+                        <div
+                            style={{
+                                gridArea: 'viewer',
+                                overflow: 'hidden',
+                                width: '100%',
+                                height: '100%',
+                            }}
+                        >
+                            <ContentDisplay />
+                        </div>
                     </div>
-                </div>
+                </ChatWindowProvider>
                 <ErrorDisplay />
             </LexioProvider>
         </div>

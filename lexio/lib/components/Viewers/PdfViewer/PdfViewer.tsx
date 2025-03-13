@@ -397,6 +397,19 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         }
     };
 
+    // Add effect to handle page prop changes
+    useEffect(() => {
+        console.log('PdfViewer received page:', page);
+        if (page && page !== pageNumber) {
+            setPageNumber(page);
+        }
+    }, [page]);
+
+    // Add logging to pageNumber changes
+    useEffect(() => {
+        console.log('PdfViewer current page:', pageNumber);
+    }, [pageNumber]);
+
     return (
         <div 
             className="h-full w-full flex flex-col focus:outline-none"

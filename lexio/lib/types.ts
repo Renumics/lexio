@@ -34,14 +34,14 @@ export type UUID = `${string}-${string}-${string}-${string}-${string}`;
  * @property {string} color - Color for this highlight in any valid CSS format
  */
 export interface PDFHighlight {
-    page: number;         // Page number in the PDF (1-based)
-    rect: {              // Rectangle coordinates for the highlight
+    page: number;
+    rect: {
         top: number;
         left: number;
         width: number;
         height: number;
     };
-    color: string;        // Color for this highlight
+    color: string;
 }
 
 /**
@@ -53,12 +53,14 @@ export interface PDFHighlight {
  * @property {string} color - Color for the highlight in any valid CSS format
  * @property {number} startChar - Starting character position in the message where this idea appears
  * @property {number} endChar - Ending character position in the message where this idea appears
+ * @property {string} sourceId - ID of the source document containing the evidence
  */
 export interface MessageHighlight {
     text: string;         // The text to highlight in message
     color: string;        // Color for this highlight
     startChar: number;    // Starting position in message
     endChar: number;      // Ending position in message
+    sourceId?: string;    // ID of the source document containing the evidence
 }
 
 /**
@@ -93,6 +95,7 @@ export interface Message {
     role: "user" | "assistant";
     content: string;
     highlights?: MessageHighlight[];  // renamed from ideas
+    citations?: Citation[];
 }
 
 /**
@@ -296,8 +299,12 @@ export type SetActiveSourcesAction = {
  */
 export type SetSelectedSourceAction = { 
   type: 'SET_SELECTED_SOURCE'; 
-  sourceId: string; 
-  sourceObject?: Source; 
+  sourceId: string | UUID; 
+  sourceObject?: Source;
+  sourceMetadata?: {
+    page?: number;
+    highlight?: PDFHighlight;
+  };
   source: Component; 
 };
 
@@ -372,9 +379,10 @@ export type UserAction =
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes. Useful for chaining actions.
  */
 export interface AddUserMessageActionResponse {
-    response?: Promise<string | StreamChunk> | AsyncIterable<StreamChunk>;
+    response?: Promise<string> | AsyncIterable<StreamChunk>;
     sources?: Promise<Source[]>;
     citations?: Citation[];
+    highlights?: MessageHighlight[];
     setUserMessage?: string;
     followUpAction?: UserAction;
 }
@@ -538,6 +546,7 @@ export type ActionHandler = {
 export type StreamChunk = { 
     content?: string; 
     sources?: Source[]; 
-    highlights?: MessageHighlight[];  // renamed from ideas
+    highlights?: MessageHighlight[];
+    citations?: Citation[];
     done?: boolean; 
 };

@@ -134,6 +134,26 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     // Add ref for scrolling
     const chatEndRef = React.useRef<HTMLDivElement>(null);
 
+    // Add logging for messages and currentStream
+    React.useEffect(() => {
+        console.log('Messages in ChatWindow:', messages.map(msg => ({
+            id: msg.id,
+            role: msg.role,
+            highlightsCount: msg.highlights?.length || 0,
+            citationsCount: msg.citations?.length || 0,
+            citations: msg.citations
+        })));
+        
+        if (currentStream) {
+            console.log('Current stream:', {
+                content: currentStream.content?.slice(0, 50) + '...',
+                highlightsCount: currentStream.highlights?.length || 0,
+                citationsCount: currentStream.citations?.length || 0,
+                citations: currentStream.citations
+            });
+        }
+    }, [messages, currentStream]);
+
     // Scroll to bottom whenever messages or currentStream changes
     React.useEffect(() => {
         // If there are no messages and no currentStream, don't scroll
@@ -177,34 +197,51 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 className="w-full h-full overflow-y-auto flex flex-col gap-y-6"
                 style={style}
             >
-                {messages.map((msg, index) => (
-                    <React.Fragment key={msg.id || index}>
-                        {msg.role == "user" && (
-                            <ChatWindowUserMessage
-                                message={msg.content}
-                                style={style}
-                                showRoleIndicator={showRoleIndicator}
-                                roleLabel={userLabel}
-                                icon={userIcon || undefined}
-                            />
-                        )}
-                        {msg.role == "assistant" && (
-                            <ChatWindowAssistantMessage
-                                message={msg.content}
-                                messageId={msg.id}
-                                style={style}
-                                showRoleIndicator={showRoleIndicator}
-                                roleLabel={assistantLabel}
-                                icon={assistantIcon || undefined}
-                                markdown={markdown}
-                                showCopy={showCopy}
-                                showFeedback={showFeedback}
-                                highlights={msg.highlights || []}
-                            />
-                        )}
-                    </React.Fragment>
-                ))}
+                {messages.map((msg, index) => {
+                    // Add logging for each message render
+                    if (msg.role === "assistant") {
+                        console.log(`Rendering assistant message ${msg.id}:`, {
+                            highlightsCount: msg.highlights?.length || 0,
+                            citationsCount: msg.citations?.length || 0,
+                            citations: msg.citations
+                        });
+                    }
+                    
+                    return (
+                        <React.Fragment key={msg.id || index}>
+                            {msg.role == "user" && (
+                                <ChatWindowUserMessage
+                                    message={msg.content}
+                                    style={style}
+                                    showRoleIndicator={showRoleIndicator}
+                                    roleLabel={userLabel}
+                                    icon={userIcon || undefined}
+                                />
+                            )}
+                            {msg.role == "assistant" && (
+                                <ChatWindowAssistantMessage
+                                    message={msg.content}
+                                    messageId={msg.id}
+                                    style={style}
+                                    showRoleIndicator={showRoleIndicator}
+                                    roleLabel={assistantLabel}
+                                    icon={assistantIcon || undefined}
+                                    markdown={markdown}
+                                    showCopy={showCopy}
+                                    showFeedback={showFeedback}
+                                    highlights={msg.highlights || []}
+                                    citations={msg.citations || []}
+                                />
+                            )}
+                        </React.Fragment>
+                    );
+                })}
                 {currentStream && (
+                    console.log('Rendering stream:', {
+                        highlightsCount: currentStream.highlights?.length || 0,
+                        citationsCount: currentStream.citations?.length || 0,
+                        citations: currentStream.citations
+                    }),
                     <ChatWindowAssistantMessage
                         key={'stream'}
                         messageId={null}
@@ -216,6 +253,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                         markdown={markdown}
                         isStreaming={true}
                         highlights={currentStream.highlights || []}
+                        citations={currentStream.citations || []}
                     />
                 )}
                 <div ref={chatEndRef}/>
