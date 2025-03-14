@@ -14,14 +14,13 @@
 <a href="https://renumics.com/blog/"><b>Blog</b></a>
 </h3>
 
-<p align="center"><a href="https://renumics.com/lexio-ui"><img src="lexio/src/assets/lexio-intro-video.gif" width="100%"/></a></p>
-
 Lexio is a powerful React library for building Retrieval-Augmented Generation (RAG) interfaces, handling complex workflows out of the box while remaining simple to use and highly customizable.
 
 It supports multiple document types (PDF, HTML, Markdown, Text) with advanced features like streaming responses, source highlighting, and a comprehensive state management system.
 
 Developers can use ready-made components or easily build custom ones using React hooks and the flexible action handler pattern.
 
+<p align="center"><a href="https://renumics.com/lexio-ui"><img src="lexio/src/assets/lexio-intro-video.gif" width="100%"/></a></p>
 
 ## Quick Start
 
