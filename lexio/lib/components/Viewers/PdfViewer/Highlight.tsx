@@ -25,12 +25,14 @@ const highlightStyleDefaults = {
  * @property {number} scale - Current zoom scale of the PDF viewer
  * @property {number} rotate - Current rotation of the PDF page in degrees. Allowed values are 0, 90, 180, and 270.
  * @property {CanvasDimensions} canvasDimensions - Current dimensions of the PDF page canvas
+ * @property {string} color - Optional custom color for the highlight
  */
 interface HighlightProps {
     rect: PDFHighlight["rect"];
     scale: number;
     rotate: number;
     canvasDimensions: CanvasDimensions;
+    color?: string;
 }
 
 /**
@@ -50,7 +52,8 @@ const Highlight = ({
     rect,
     scale,
     rotate,
-    canvasDimensions,   
+    canvasDimensions,
+    color = 'rgba(255, 255, 0, 0.3)'
 }: HighlightProps) => {
     const [highlightStyle, setHighlightStyle] = useState({});
 
@@ -112,6 +115,8 @@ const Highlight = ({
 
         const newStyle = {
             ...highlightStyleDefaults,
+            backgroundColor: color,
+            border: `1px solid ${color.replace('0.3', '0.6')}`,
             top: `${transformedRect.top * scale}px`,
             left: `${transformedRect.left * scale}px`,
             width: `${transformedRect.width * scale}px`,
@@ -119,7 +124,7 @@ const Highlight = ({
         };
         
         setHighlightStyle(newStyle);
-    }, [rect, scale, rotate, canvasDimensions]);
+    }, [rect, scale, rotate, canvasDimensions, color]);
 
     return <div style={highlightStyle}></div>;
 };

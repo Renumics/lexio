@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "compromise": "^14.14.4",
+    "openai": "^4.85.4",
+    "sbd": "^1.0.19"
+  }
+}
