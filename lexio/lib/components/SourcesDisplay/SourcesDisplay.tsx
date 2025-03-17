@@ -297,30 +297,20 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                       <div className="flex flex-wrap gap-2">
                         {Object.entries(source.metadata)
                           .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
-                          .map(([key, value]) => {
-                            // Skip rendering coloredIdeas directly
-                            if (key === 'coloredIdeas') return null;
-                            
-                            // Handle non-primitive values
-                            const displayValue = typeof value === 'object' 
-                              ? JSON.stringify(value)
-                              : String(value);
-
-                            return (
-                              <span
-                                key={key}
-                                className="inline-flex items-center px-2 py-1 rounded-md"
-                                style={{
-                                  backgroundColor: style.metadataTagBackground,
-                                  color: style.metadataTagColor,
-                                  fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
-                                  lineHeight: '1.2',
-                                }}
-                              >
-                                {key}: {displayValue}
-                              </span>
-                            );
-                          })}
+                          .map(([key, value]) => (
+                            <span
+                              key={key}
+                              className="inline-flex items-center px-2 py-1 rounded-md"
+                              style={{
+                                backgroundColor: style.metadataTagBackground,
+                                color: style.metadataTagColor,
+                                fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
+                                lineHeight: '1.2',
+                              }}
+                            >
+                              {key}: {value}
+                            </span>
+                          ))}
                       </div>
                     </div>
                   )}
