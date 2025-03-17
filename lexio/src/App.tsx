@@ -179,7 +179,7 @@ function App() {
                     // 1. Process highlights for message highlighting
                     const highlights: MessageHighlight[] = ideaSources.map(source => ({
                         text: source.answer_idea,
-                        color: source.color,  // No fallback needed
+                        color: source.color,
                         startChar: explanationResult.answer.indexOf(source.answer_idea),
                         endChar: explanationResult.answer.indexOf(source.answer_idea) + source.answer_idea.length
                     }));
@@ -193,25 +193,24 @@ function App() {
                             return {
                                 page: evidence.highlight.page,
                                 rect: evidence.highlight.rect,
-                                highlightColorRgba: source.color,  // No fallback needed
+                                highlightColorRgba: source.color,
                             };
                         })
                         .filter((h): h is NonNullable<typeof h> => h !== null);
 
-                    // 3. Create citations that link message parts to PDF highlights
-                    const citations: Citation[] = ideaSources.map((source) => {
+                    // 3. Create citations linking message highlights to source evidence
+                    const citations: Citation[] = ideaSources.map(source => {
                         const evidence = source.supporting_evidence[0];
                         if (!evidence?.highlight) return null;
 
                         return {
                             sourceId: sourceToProcess.id,
-                            highlight: {
+                            messageHighlight: highlights[ideaSources.indexOf(source)],
+                            sourceHighlight: {
                                 page: evidence.highlight.page,
                                 rect: evidence.highlight.rect,
                                 highlightColorRgba: source.color,
-                            },
-                            messageStartChar: explanationResult.answer.indexOf(evidence.source_sentence),
-                            messageEndChar: explanationResult.answer.indexOf(evidence.source_sentence) + evidence.source_sentence.length
+                            }
                         };
                     }).filter((c): c is NonNullable<typeof c> => c !== null);
 
@@ -224,8 +223,8 @@ function App() {
                     return {
                         response: Promise.resolve({
                             content: explanationResult.answer,
-                            highlights,      // Changed from ideas
-                            citations,  
+                            highlights,
+                            citations,
                             done: true
                         } as StreamChunk),
                         sources: Promise.resolve([updatedSource]),

@@ -46,36 +46,34 @@ export interface PDFHighlight {
 
 /**
  * Represents an important idea or concept to be highlighted in the assistant's message.
- * Used for visual emphasis of key points in the final message (not during streaming).
+ * Used for visual emphasis of key points in the final message.
  *
  * @interface MessageHighlight
- * @property {string} text - The exact text to highlight in the message
+ * @property {string} text - The exact text to highlight
  * @property {string} color - Color for the highlight in any valid CSS format
- * @property {number} startChar - Starting character position in the message where this idea appears
- * @property {number} endChar - Ending character position in the message where this idea appears
+ * @property {number} startChar - Starting character position in the message
+ * @property {number} endChar - Ending character position in the message
  */
 export interface MessageHighlight {
-    text: string;         // The text to highlight in message
-    color: string;        // Color for this highlight
-    startChar: number;    // Starting position in message
-    endChar: number;      // Ending position in message
+    text: string;         
+    color: string;        
+    startChar: number;    
+    endChar: number;
 }
 
 /**
- * Links portions of the assistant's message to specific highlights in source documents.
- * Used to connect message text with its supporting evidence in sources.
+ * Links message highlights to their supporting evidence in source documents.
+ * Used to connect highlighted message parts with their source evidence.
  *
  * @interface Citation
  * @property {string} sourceId - ID of the source document containing the evidence
- * @property {PDFHighlight} highlight - The highlight information in the source document
- * @property {number} messageStartChar - Starting character position of this citation in the message
- * @property {number} messageEndChar - Ending character position of this citation in the message
+ * @property {MessageHighlight} messageHighlight - The message highlight this citation supports
+ * @property {PDFHighlight} sourceHighlight - The highlight in the source document
  */
 export interface Citation {
     sourceId: string;
-    highlight: PDFHighlight;
-    messageStartChar: number;  // Where citation starts in message
-    messageEndChar: number;    // Where citation ends in message
+    messageHighlight: MessageHighlight;
+    sourceHighlight: PDFHighlight;
 }
 
 /**
@@ -534,10 +532,12 @@ export type ActionHandler = {
  *                                         Only included in the final chunk (when done=true)
  * @property {boolean} [done] - Indicates if this is the final chunk in the stream
  *                             When true, highlights will be used for highlighting
+ * @property {Citation[]} [citations] - Citations related to this chunk
  */
-export type StreamChunk = { 
-    content?: string; 
-    sources?: Source[]; 
-    highlights?: MessageHighlight[];  // renamed from ideas
-    done?: boolean; 
-};
+export interface StreamChunk {
+    content?: string;
+    sources?: Source[];
+    highlights?: MessageHighlight[];
+    citations?: Citation[];
+    done?: boolean;
+}
