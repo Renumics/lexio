@@ -199,7 +199,7 @@ function App() {
                         .filter((h): h is NonNullable<typeof h> => h !== null);
 
                     // 3. Create citations that link message parts to PDF highlights
-                    const citations: Citation[] = ideaSources.map((source, index) => {
+                    const citations: Citation[] = ideaSources.map((source) => {
                         const evidence = source.supporting_evidence[0];
                         if (!evidence?.highlight) return null;
 

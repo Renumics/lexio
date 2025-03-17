@@ -231,7 +231,7 @@ export class ExplanationProcessor {
             console.log('Answer ideas:', answerIdeas);
 
             const ideaSources = await Promise.all(
-                answerIdeas.map(async ({ idea }, ideaIndex) => {
+                answerIdeas.map(async ({ idea }) => {
                     const keyPhrases = extractKeyPhrases(idea);
                     const ideaEmbedding = await getEmbedding(idea);
                     
@@ -313,7 +313,7 @@ export class ExplanationProcessor {
             return {
                 summary: `Processed PDF: ${chunks.length} chunks, embeddings generated for ${chunkEmbeddings.length} chunks, ${answerIdeas.length} answer ideas, and ${ideaSources.length} idea sources found.`,
                 answer: response,
-                answerIdeas: answerIdeas.map((idea, index) => ({
+                answerIdeas: answerIdeas.map((idea) => ({
                     text: idea.idea,
                     color: ''
                 })),
