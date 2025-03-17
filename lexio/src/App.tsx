@@ -17,6 +17,7 @@ import {
     MessageHighlight,
 } from '../lib/main';
 import { ExplanationProcessor } from '../lib/explanation';
+import { generateHighlightColors } from '../lib/utils/highlightColors';
 import './App.css';
 
 // This is a temporary mocked response for testing purposes
@@ -60,27 +61,25 @@ function App() {
         }
     };
 
-    const onAction = useCallback((
+    const onAction = useCallback(async (
         action: UserAction, 
-        _messages: Message[], // Add underscore to indicate intentionally unused
+        _messages: Message[],
         sources: Source[], 
         activeSources: Source[] | null, 
         selectedSource: Source | null
-    ): ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined => {
+    ): Promise<ActionHandlerResponse> => {
         console.log('Action received:', action.type);
         console.log('Current sources:', sources);
         console.log('Active sources:', activeSources);
         console.log('Selected source:', selectedSource);
 
         if (action.type === 'SEARCH_SOURCES') {
-            console.log('Handling search sources action');
             return {
                 sources: Promise.resolve([defaultSource])
             };
         }
 
         if (action.type === 'SET_ACTIVE_SOURCES') {
-            console.log('Setting active sources:', action.sourceIds);
             const activeSourcesList = action.sourceIds.map(id => 
                 sources.find(s => s.id === id) || 
                 sources.find(s => s.metadata?.id === id) || 
@@ -155,38 +154,52 @@ function App() {
             if (sourceToProcess && sourceToProcess.data) {
                 console.log('Source data available, triggering actual explanation process...');
                 
-                // Send the RAG response to the ExplanationProcessor
-                return ExplanationProcessor.processResponse(
-                    ragResponse,
-                    sourceToProcess.data as Uint8Array
-                )
-                .then(explanationResult => {
-                    console.log('Explanation process completed successfully:', explanationResult);
+                try {
+                    // Process explanation and keep result for logging
+                    const explanationResult = await ExplanationProcessor.processResponse(
+                        ragResponse,
+                        sourceToProcess.data as Uint8Array
+                    );
+                    console.log('Explanation result:', {
+                        summary: explanationResult.summary,
+                        answerIdeasCount: explanationResult.answerIdeas.length,
+                        ideaSourcesCount: explanationResult.ideaSources.length,
+                        // Add any other relevant metrics you want to log
+                    });
+
+                    // Generate colors once for all highlights
+                    const colors = generateHighlightColors(explanationResult.ideaSources.length);
+
+                    // Apply colors to sources
+                    const ideaSources = explanationResult.ideaSources.map((source, index) => ({
+                        ...source,
+                        color: colors[index]
+                    }));
 
                     // 1. Process highlights for message highlighting
-                    const highlights: MessageHighlight[] = explanationResult.ideaSources.map((source, index) => ({
+                    const highlights: MessageHighlight[] = ideaSources.map(source => ({
                         text: source.answer_idea,
-                        color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
+                        color: source.color,  // No fallback needed
                         startChar: explanationResult.answer.indexOf(source.answer_idea),
                         endChar: explanationResult.answer.indexOf(source.answer_idea) + source.answer_idea.length
                     }));
 
                     // 2. Process highlights for the PDF viewer
-                    const pdfHighlights: PDFHighlight[] = explanationResult.ideaSources
-                        .map((source, index) => {
+                    const pdfHighlights: PDFHighlight[] = ideaSources
+                        .map(source => {
                             const evidence = source.supporting_evidence[0];
                             if (!evidence?.highlight) return null;
 
                             return {
                                 page: evidence.highlight.page,
                                 rect: evidence.highlight.rect,
-                                color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
+                                highlightColorRgba: source.color,  // No fallback needed
                             };
                         })
                         .filter((h): h is NonNullable<typeof h> => h !== null);
 
                     // 3. Create citations that link message parts to PDF highlights
-                    const citations: Citation[] = explanationResult.ideaSources.map((source, index) => {
+                    const citations: Citation[] = ideaSources.map((source, index) => {
                         const evidence = source.supporting_evidence[0];
                         if (!evidence?.highlight) return null;
 
@@ -195,7 +208,7 @@ function App() {
                             highlight: {
                                 page: evidence.highlight.page,
                                 rect: evidence.highlight.rect,
-                                color: source.color || `hsl(${(index * 40)}, 70%, 70%, 0.3)`,
+                                highlightColorRgba: source.color,
                             },
                             messageStartChar: explanationResult.answer.indexOf(evidence.source_sentence),
                             messageEndChar: explanationResult.answer.indexOf(evidence.source_sentence) + evidence.source_sentence.length
@@ -208,7 +221,7 @@ function App() {
                         highlights: pdfHighlights  // These will be shown in the PDF
                     };
 
-                    const response: ActionHandlerResponse = {
+                    return {
                         response: Promise.resolve({
                             content: explanationResult.answer,
                             highlights,      // Changed from ideas
@@ -222,29 +235,17 @@ function App() {
                             source: 'LexioProvider' as const
                         }
                     };
-
-                    return response;
-                })
-                .catch(error => {
-                    console.error('Error in explanation process:', error);
-                    console.log('Falling back to simple response due to error');
-                    
-                    const response: ActionHandlerResponse = {
+                } catch (error) {
+                    console.error('Error in explanation processing:', error);
+                    // Handle error appropriately
+                    return {
                         response: Promise.resolve({
-                            content: ragResponse,
+                            content: '',
                             highlights: [],
                             done: true
-                        } as StreamChunk),
-                        sources: Promise.resolve([sourceToProcess]),
-                        followUpAction: {
-                            type: SET_ACTIVE_SOURCES,
-                            sourceIds: [sourceToProcess.id],
-                            source: 'LexioProvider' as const
-                        }
+                        } as StreamChunk)
                     };
-
-                    return response;
-                });
+                }
             } else {
                 console.log('No source data available, using simple response');
                 
@@ -266,7 +267,13 @@ function App() {
             }
         }
 
-        return undefined;
+        return {
+            response: Promise.resolve({
+                content: '',
+                highlights: [],
+                done: true
+            } as StreamChunk)
+        };
     }, [contentSource]);
 
     return (

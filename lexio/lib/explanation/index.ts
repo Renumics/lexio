@@ -92,16 +92,6 @@ export interface HighlightPosition {
 
 export class ExplanationProcessor {
     /**
-     * Generates evenly distributed colors based on the number of ideas
-     */
-    private static generateColors(count: number): string[] {
-        return Array.from({ length: count }, (_, i) => {
-            const hue = (i * 360) / count;
-            return `hsla(${hue}, 70%, 70%, 0.3)`;
-        });
-    }
-
-    /**
      * Finds the best position for highlighting a sentence within a chunk
      */
     private static findSentencePosition(
@@ -240,15 +230,6 @@ export class ExplanationProcessor {
             console.log('Number of answer ideas:', answerIdeas.length);
             console.log('Answer ideas:', answerIdeas);
 
-            // Generate colors for the answer ideas
-            const colors = this.generateColors(answerIdeas.length);
-            
-            // Assign colors to answer ideas
-            const coloredAnswerIdeas = answerIdeas.map((idea, index) => ({
-                text: idea.idea,
-                color: colors[index]
-            }));
-
             const ideaSources = await Promise.all(
                 answerIdeas.map(async ({ idea }, ideaIndex) => {
                     const keyPhrases = extractKeyPhrases(idea);
@@ -258,7 +239,7 @@ export class ExplanationProcessor {
                         console.warn(`No embedding generated for idea: ${idea}`);
                         return {
                             answer_idea: idea,
-                            color: colors[ideaIndex],
+                            color: '',
                             supporting_evidence: []
                         };
                     }
@@ -267,7 +248,7 @@ export class ExplanationProcessor {
                         console.warn('No valid chunk embeddings available');
                         return {
                             answer_idea: idea,
-                            color: colors[ideaIndex],
+                            color: '',
                             supporting_evidence: []
                         };
                     }
@@ -291,7 +272,7 @@ export class ExplanationProcessor {
 
                     return {
                         answer_idea: idea,
-                        color: colors[ideaIndex],
+                        color: '',
                         supporting_evidence: topSentences.map(match => {
                             // Find the original chunk
                             const originalChunk = originalChunks.find(c => c.text === match.originalChunk.text);
@@ -305,7 +286,7 @@ export class ExplanationProcessor {
                                     highlight = {
                                         page: originalChunk.page || 0,
                                         rect: boundingRect,
-                                        color: colors[ideaIndex]
+                                        color: ''
                                     };
                                     // console.log(`Created highlight for "${match.sentence.substring(0, 50)}..."`);
                                 }
@@ -318,7 +299,7 @@ export class ExplanationProcessor {
                                 highlight: highlight || {
                                     page: 0,
                                     rect: { top: 0, left: 0, width: 0, height: 0 },
-                                    color: colors[ideaIndex]
+                                    color: ''
                                 },
                                 overlapping_keywords: keyPhrases.filter(phrase =>
                                     match.sentence.toLowerCase().includes(phrase.toLowerCase())
@@ -332,7 +313,10 @@ export class ExplanationProcessor {
             return {
                 summary: `Processed PDF: ${chunks.length} chunks, embeddings generated for ${chunkEmbeddings.length} chunks, ${answerIdeas.length} answer ideas, and ${ideaSources.length} idea sources found.`,
                 answer: response,
-                answerIdeas: coloredAnswerIdeas,
+                answerIdeas: answerIdeas.map((idea, index) => ({
+                    text: idea.idea,
+                    color: ''
+                })),
                 ideaSources: ideaSources.filter(Boolean)
             };
         } catch (error) {

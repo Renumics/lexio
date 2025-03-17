@@ -31,7 +31,7 @@ export type UUID = `${string}-${string}-${string}-${string}-${string}`;
  * @property {number} rect.left - Left position of the highlight (relative to the page)
  * @property {number} rect.width - Width of the highlight (relative to the page width)
  * @property {number} rect.height - Height of the highlight (relative to the page height)
- * @property {string} color - Color for this highlight in any valid CSS format
+ * @property {string} highlightColorRgba - RGBA color string for the highlight (e.g., 'rgba(255, 255, 0, 0.3)')
  */
 export interface PDFHighlight {
     page: number;         // Page number in the PDF (1-based)
@@ -41,7 +41,7 @@ export interface PDFHighlight {
         width: number;
         height: number;
     };
-    color: string;        // Color for this highlight
+    highlightColorRgba: string;  // RGBA color string (e.g., 'rgba(255, 255, 0, 0.3)')
 }
 
 /**

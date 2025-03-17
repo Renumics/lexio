@@ -25,14 +25,14 @@ const highlightStyleDefaults = {
  * @property {number} scale - Current zoom scale of the PDF viewer
  * @property {number} rotate - Current rotation of the PDF page in degrees. Allowed values are 0, 90, 180, and 270.
  * @property {CanvasDimensions} canvasDimensions - Current dimensions of the PDF page canvas
- * @property {string} color - Optional custom color for the highlight
+ * @property {string} [highlightColorRgba] - RGBA color string for the highlight (e.g., 'rgba(255, 255, 0, 0.3)'). Default is semi-transparent yellow.
  */
 interface HighlightProps {
     rect: PDFHighlight["rect"];
     scale: number;
     rotate: number;
     canvasDimensions: CanvasDimensions;
-    color?: string;
+    highlightColorRgba: string;  // Required, no default
 }
 
 /**
@@ -53,7 +53,7 @@ const Highlight = ({
     scale,
     rotate,
     canvasDimensions,
-    color = 'rgba(255, 255, 0, 0.3)'
+    highlightColorRgba
 }: HighlightProps) => {
     const [highlightStyle, setHighlightStyle] = useState({});
 
@@ -113,10 +113,21 @@ const Highlight = ({
     useEffect(() => {
         const transformedRect = transformCoordinates(rect, rotate);
 
+        // Parse the RGBA color to get its components
+        const rgbaMatch = highlightColorRgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+        let borderColor = highlightColorRgba;
+        
+        if (rgbaMatch) {
+            const [, r, g, b, a] = rgbaMatch;
+            // Double the opacity for border (capped at 1.0)
+            const borderOpacity = Math.min(parseFloat(a) * 2, 1.0);
+            borderColor = `rgba(${r}, ${g}, ${b}, ${borderOpacity})`;
+        }
+
         const newStyle = {
             ...highlightStyleDefaults,
-            backgroundColor: color,
-            border: `1px solid ${color.replace('0.3', '0.6')}`,
+            backgroundColor: highlightColorRgba,
+            border: `1px solid ${borderColor}`,
             top: `${transformedRect.top * scale}px`,
             left: `${transformedRect.left * scale}px`,
             width: `${transformedRect.width * scale}px`,
@@ -124,7 +135,7 @@ const Highlight = ({
         };
         
         setHighlightStyle(newStyle);
-    }, [rect, scale, rotate, canvasDimensions, color]);
+    }, [rect, scale, rotate, canvasDimensions, highlightColorRgba]);
 
     return <div style={highlightStyle}></div>;
 };
