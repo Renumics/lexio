@@ -14,36 +14,38 @@ const renderHighlightedContentWithHighlights = (
     markdownStyling: React.CSSProperties
 ) => {
     if (highlightsToUse && highlightsToUse.length > 0) {
-        // Split content into segments and create React elements
-        let segments: React.ReactNode[] = [content];
+        // Sort highlights by startChar to process them in order
+        const sortedHighlights = [...highlightsToUse].sort((a, b) => a.startChar - b.startChar);
         
-        highlightsToUse.forEach((highlight: MessageHighlight, index: number) => {
-            segments = segments.flatMap(segment => {
-                if (typeof segment !== 'string') return [segment];
-                
-                const escapedText = highlight.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`(${escapedText})`, 'gi');
-                const parts = segment.split(regex);
-                
-                return parts.map((part, i) => {
-                    if (part.toLowerCase() === highlight.text.toLowerCase()) {
-                        return (
-                            <span
-                                key={`${index}-${i}`}
-                                style={{ backgroundColor: highlight.color }}
-                            >
-                                {part}
-                            </span>
-                        );
-                    }
-                    return part;
-                });
-            });
+        let lastIndex = 0;
+        const segments: React.ReactNode[] = [];
+
+        // Process each highlight in order
+        sortedHighlights.forEach((highlight, index) => {
+            // Add non-highlighted text before this highlight
+            if (highlight.startChar > lastIndex) {
+                segments.push(content.slice(lastIndex, highlight.startChar));
+            }
+
+            // Add highlighted segment
+            segments.push(
+                <span
+                    key={`highlight-${index}`}
+                    style={{ backgroundColor: highlight.color }}
+                >
+                    {content.slice(highlight.startChar, highlight.endChar)}
+                </span>
+            );
+
+            lastIndex = highlight.endChar;
         });
 
-        if (segments.some(segment => React.isValidElement(segment))) {
-            return <div className="whitespace-pre-wrap">{segments}</div>;
+        // Add any remaining text after the last highlight
+        if (lastIndex < content.length) {
+            segments.push(content.slice(lastIndex));
         }
+
+        return <div className="whitespace-pre-wrap">{segments}</div>;
     }
 
     // If no highlights or markdown is enabled, use existing rendering
