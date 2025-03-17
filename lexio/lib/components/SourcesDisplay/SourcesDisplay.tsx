@@ -176,7 +176,13 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
 
   return (
     <ResetWrapper>
-      <div className="w-full h-full flex flex-col" style={style}>
+      <div className="w-full h-full flex flex-col" style={{
+        backgroundColor: style.backgroundColor,
+        color: style.color,
+        borderRadius: style.borderRadius,
+        fontFamily: style.fontFamily,
+        fontSize: style.fontSize,
+      }}>
         {/* Header */}
         <div className="flex justify-between items-center p-4">
           <h2 className="font-semibold" style={{ color: style.color, fontSize: `calc(${style.fontSize} * 1.15)` }}>
