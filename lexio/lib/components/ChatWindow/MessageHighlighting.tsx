@@ -4,45 +4,7 @@ import { ChatWindowStyles } from './ChatWindow';
 import { AssistantMarkdownContent } from './AssistantMarkdownContent';
 
 /**
- * Hook to handle highlight click interactions
- * @param contentRef - Reference to the content container
- * @param onHighlightClick - Optional callback for highlight clicks
- */
-export const useHighlightClickHandler = (
-    contentRef: React.RefObject<HTMLDivElement>,
-    onHighlightClick?: (highlightIndex: string) => void
-) => {
-    React.useEffect(() => {
-        if (contentRef.current) {
-            const highlights = contentRef.current.querySelectorAll('.highlight-element');
-            
-            const handleHighlightClick = (e: Event) => {
-                const target = e.target as HTMLElement;
-                const highlightIndex = target.getAttribute('data-highlight-index');
-                
-                if (highlightIndex !== null) {
-                    onHighlightClick?.(highlightIndex);
-                }
-            };
-            
-            highlights.forEach(highlight => {
-                highlight.addEventListener('click', handleHighlightClick);
-            });
-            
-            return () => {
-                highlights.forEach(highlight => {
-                    highlight.removeEventListener('click', handleHighlightClick);
-                });
-            };
-        }
-    }, [contentRef, onHighlightClick]);
-};
-
-/**
  * Renders content with highlights
- * @param content - The content to render
- * @param highlights - Highlights to apply
- * @returns Rendered content with highlights
  */
 const renderHighlightedContentWithHighlights = (
     content: string, 
@@ -52,33 +14,35 @@ const renderHighlightedContentWithHighlights = (
     markdownStyling: React.CSSProperties
 ) => {
     if (highlightsToUse && highlightsToUse.length > 0) {
-        let htmlContent = content;
-        let hasHighlights = false;
+        // Split content into segments and create React elements
+        let segments: React.ReactNode[] = [content];
         
         highlightsToUse.forEach((highlight: MessageHighlight, index: number) => {
-            const escapedText = highlight.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(${escapedText})`, 'gi');
-            
-            if (regex.test(htmlContent)) {
-                hasHighlights = true;
-                htmlContent = htmlContent.replace(
-                    regex, 
-                    `<span 
-                        style="background-color:${highlight.color}; cursor: pointer;" 
-                        class="highlight-element" 
-                        data-highlight-index="${index}"
-                    >$1</span>`
-                );
-            }
+            segments = segments.flatMap(segment => {
+                if (typeof segment !== 'string') return [segment];
+                
+                const escapedText = highlight.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(${escapedText})`, 'gi');
+                const parts = segment.split(regex);
+                
+                return parts.map((part, i) => {
+                    if (part.toLowerCase() === highlight.text.toLowerCase()) {
+                        return (
+                            <span
+                                key={`${index}-${i}`}
+                                style={{ backgroundColor: highlight.color }}
+                            >
+                                {part}
+                            </span>
+                        );
+                    }
+                    return part;
+                });
+            });
         });
 
-        if (hasHighlights) {
-            return (
-                <div 
-                    dangerouslySetInnerHTML={{ __html: htmlContent }}
-                    className="whitespace-pre-wrap"
-                />
-            );
+        if (segments.some(segment => React.isValidElement(segment))) {
+            return <div className="whitespace-pre-wrap">{segments}</div>;
         }
     }
 

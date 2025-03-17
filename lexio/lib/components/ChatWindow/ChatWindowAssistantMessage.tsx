@@ -5,7 +5,7 @@ import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline"
 import {scaleFontSize} from "../../utils/scaleFontSize.tsx";
 import {MessageFeedback} from "./MessageFeedback.tsx";
 import {MessageHighlight} from '../../types';
-import {useHighlightClickHandler, renderHighlightedContent} from './MessageHighlighting';
+import {renderHighlightedContent} from './MessageHighlighting';
 
 /**
  * Props for the ChatWindowAssistantMessage component.
@@ -63,11 +63,6 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
 
     const highlightedContentRef = React.useRef<HTMLDivElement>(null);
     
-    // Use the highlighting hook
-    useHighlightClickHandler(highlightedContentRef, (highlightIndex) => {
-        console.log(`Clicked on highlight ${highlightIndex}`);
-    });
-
     /**
      * Handles copying the message content to the clipboard.
      */
