@@ -8,6 +8,7 @@ import { LoaderCircle } from "lucide-react";
 import ParentSizeObserver from "./ParentSizeObserver.tsx";
 import { EyeOff, Eye } from "lucide-react";
 import {TableContainer} from "./RowAndColumnVirtualizer.tsx";
+import { Sigma } from "lucide-react";
 
 type Props = {
     fileName?: string | undefined;
@@ -34,6 +35,8 @@ const SpreadsheetViewer: FC<Props> = (props) => {
         cellStyles,
         rowStyles,
         headerStyles,
+        mergedRangesOfSelectedWorksheet,
+        getMetaDataOfSelectedCell,
     } = useSpreadsheetViewerStore({
         fileBufferArray,
         defaultSelectedSheet,
@@ -49,6 +52,13 @@ const SpreadsheetViewer: FC<Props> = (props) => {
         setSelectedCell(undefined);
     }
 
+    const computeMetadataOfSelectedCell = (): string => {
+        const metaData = getMetaDataOfSelectedCell();
+        if (metaData?.f) return `=${metaData?.f}`;
+        if (metaData?.v) return `${metaData?.v}`;
+        return "";
+    }
+
     if (isLoading) {
         return (
             <div className="grid m-[auto] justify-center content-center items-center">
@@ -62,7 +72,21 @@ const SpreadsheetViewer: FC<Props> = (props) => {
 
     return (
         <div className="grid grid-rows-[max-content_90%_auto] h-full relative">
-            <div className="flex p-1 justify-end">
+            <div className="grid grid-cols-[1fr_max-content] p-1 gap-2">
+                <div className="grid grid-cols-[max-content_1fr] gap-2">
+                    <div className="flex items-center content-center h-full w-[80px] py-1.5 px-2.5 border rounded-md text-xs text-neutral-600">
+                        {selectedCell?.column}{selectedCell?.row}
+                    </div>
+                    <div className="grid grid-cols-[max-content_1fr] gap-1.5 items-center content-center">
+                        <div className="flex items-center content-center gap-1 align-middle">
+                            <Sigma className="size-5 text-neutral-600" />
+                            <div className="text-neutral-600">=</div>
+                        </div>
+                        <div className="items-center content-center h-full min-h-4 py-1.5 px-2.5 border rounded-md text-xs text-neutral-600 truncate">
+                            {computeMetadataOfSelectedCell()}
+                        </div>
+                    </div>
+                </div>
                 <div
                     onClick={() => setShowStyles((prev) => !prev)}
                     className="flex gap-2 cursor-pointer z-[10] sticky top-0 right-0 left-0 text-xs border p-1.5 text-neutral-600 rounded-md"
@@ -102,6 +126,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                                 rangesToSelect={rangeToSelect}
                                 handleCellClick={handleCellClick}
                                 // parentContainerHeight={parentSize.height}
+                                mergedRangesOfSelectedWorksheet={mergedRangesOfSelectedWorksheet}
                             />
                        </div>
                    }

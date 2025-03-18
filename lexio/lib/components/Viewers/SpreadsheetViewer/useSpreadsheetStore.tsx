@@ -21,7 +21,7 @@ import {
     Row,
     RowList,
     sortSpreadsheetColumnsComparator,
-    validateExcelRange,
+    validateExcelRange, isCellInRange,
 } from "./utils.ts";
 import {
     ParsingOptions,
@@ -39,48 +39,83 @@ export type Range = [string, string];
 
 export type CellRange = Record<"top" | "right" | "bottom" | "left", string[]>;
 
+export type MergedRange = {
+    start: { row: number, column: string },
+    end: { row: number, column: string },
+}
+
+type CellMetaData = {
+    h?: string | undefined;
+    r?: string | number;
+    t?: string | undefined;
+    v?: string | number | undefined;
+    w?: string | undefined;
+    z?: string | undefined;
+    f?: string | undefined;
+}
+
 type ExcelOperationsStore = {
     isLoading: boolean;
     error: unknown;
-    workbook: SheetJsWorkbook | undefined;
+    sheetJsWorkbook: SheetJsWorkbook | undefined;
     // Important: used exclusively to load styles and not data !
     excelJsWorkbook: ExcelJsWorkbook | undefined;
     sheetNames: string[];
     setSheetNames: (spreadsheets: string[]) => void;
-    worksheets: Record<string, SheetJsWorkSheet> | undefined;
+    sheetJsWorksheets: Record<string, SheetJsWorkSheet> | undefined;
     selectedWorksheetName: string;
     setSelectedWorksheetName: (spreadsheet: string) => void;
-    selectedWorksheet: SheetJsWorkSheet | undefined;
-    setSelectedWorksheet: (worksheet: SheetJsWorkSheet | undefined) => void;
+    selectedSheetJsWorksheet: SheetJsWorkSheet | undefined;
+    setSelectedSheetJsWorksheet: (worksheet: SheetJsWorkSheet | undefined) => void;
     selectedCell?: SelectedCell  | undefined;
     setSelectedCell: (cell?: { row: number, column: string } | undefined) => void;
     rangeToSelect: Range[],
     setRangeToSelect: (range: Range[]) => void;
+    mergedRangesOfSelectedWorksheet: MergedRange[];
 };
-
 const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: string | undefined): ExcelOperationsStore => {
-    const [workbook, setWorkbook] = useState<SheetJsWorkbook | undefined>(undefined);
+    const [sheetJsWorkbook, setSheetJsWorkbook] = useState<SheetJsWorkbook | undefined>(undefined);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<unknown | undefined>(undefined);
-    const [worksheets, setWorksheets] = useState<Record<string, SheetJsWorkSheet> | undefined>(undefined);
+    const [sheetJsWorksheets, setSheetJsWorksheets] = useState<Record<string, SheetJsWorkSheet> | undefined>(undefined);
     const [sheetNames, setSheetNames] = useState<string[]>([]);
     const [selectedWorksheetName, setSelectedWorksheetName] = useState<string>("");
-    const [selectedWorksheet, setSelectedWorksheet] = useState<SheetJsWorkSheet | undefined>(undefined);
+    const [selectedSheetJsWorksheet, setSelectedSheetJsWorksheet] = useState<SheetJsWorkSheet | undefined>(undefined);
     const [selectedCell, setSelectedCell] = useState<SelectedCell | undefined>(undefined);
     const [rangeToSelect, setRangeToSelect] = useState<Range[]>([]);
+    const [mergedRangesOfSelectedWorksheet, setMergedRangesOfSelectedWorksheet] = useState<MergedRange[]>([]);
     // Important: used exclusively to load styles and not data !
     const [excelJsWorkbook, setExcelJsWorkbook] = useState<ExcelJsWorkbook | undefined>(undefined);
 
     useEffect(() => {
         const getExcelWorkbook = async (arrayBuffer: ArrayBuffer, selectedSpreadsheetName?: string | undefined): Promise<SheetJsWorkbook> => {
             const setWorkbookData = (workbook: SheetJsWorkbook, selectedSpreadsheet?: string | undefined) => {
-                setWorksheets(workbook.Sheets);
+                setSheetJsWorksheets(workbook.Sheets);
                 setSheetNames(workbook.SheetNames);
+
                 // Set the selected spreadsheet based on the input or the first available spreadsheet in the workbook as default.
                 const selectedSheetFromFile = workbook.SheetNames.find((name) => name === selectedSpreadsheet) ?? workbook.SheetNames[0];
                 setSelectedWorksheetName(selectedSheetFromFile);
+
                 // Set selected spreadsheet if provided.
-                setSelectedWorksheet(workbook.Sheets[selectedSheetFromFile]);
+                const selectedWorksheet = workbook.Sheets[selectedSheetFromFile];
+                setSelectedSheetJsWorksheet(selectedWorksheet);
+
+                const mergedRanges: MergedRange[] = selectedWorksheet["!merges"] ? selectedWorksheet["!merges"].map((range) => {
+                    const encodeStartColumn = utils.encode_col(range.s.c);
+                    const encodeEndColumn = utils.encode_col(range.e.c);
+                    return {
+                        start: {
+                            row: range.s.r + 1, // Because the row count is 0-based indexed
+                            column: encodeStartColumn,
+                        },
+                        end: {
+                            row: range.e.r + 1, // Because the row count is 0-based indexed
+                            column: encodeEndColumn,
+                        },
+                    };
+                }) : [];
+                setMergedRangesOfSelectedWorksheet(mergedRanges)
             }
 
             const readParsingOptions: ParsingOptions = {
@@ -112,7 +147,7 @@ const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: 
             setError(undefined);
             try {
                 const loadedWorkbook = await getExcelWorkbook(arrayBuffer, defaultSpreadsheetName);
-                setWorkbook(loadedWorkbook);
+                setSheetJsWorkbook(loadedWorkbook);
             } catch (e) {
                 setError(e);
             } finally {
@@ -123,28 +158,29 @@ const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: 
 
     // Switch worksheet when selectedWorksheetName gets updated.
     useEffect(() => {
-        if (isLoading && (!workbook || !worksheets)) return;
-        if (!workbook || !worksheets) return;
-        setSelectedWorksheet(worksheets[selectedWorksheetName]);
-    }, [selectedWorksheetName, workbook, worksheets]);
+        if (isLoading && (!sheetJsWorkbook || !sheetJsWorksheets)) return;
+        if (!sheetJsWorkbook || !sheetJsWorksheets) return;
+        setSelectedSheetJsWorksheet(sheetJsWorksheets[selectedWorksheetName]);
+    }, [selectedWorksheetName, sheetJsWorkbook, sheetJsWorksheets]);
 
     return {
         isLoading,
         error,
         // Important: used exclusively to load styles and not data !
         excelJsWorkbook,
-        workbook,
+        sheetJsWorkbook,
         sheetNames,
         setSheetNames,
-        worksheets,
+        sheetJsWorksheets,
         selectedWorksheetName,
         setSelectedWorksheetName,
-        selectedWorksheet,
-        setSelectedWorksheet,
+        selectedSheetJsWorksheet,
+        setSelectedSheetJsWorksheet,
         selectedCell,
         setSelectedCell,
         rangeToSelect,
         setRangeToSelect,
+        mergedRangesOfSelectedWorksheet,
     };
 };
 
@@ -161,6 +197,7 @@ type OutputSpreadsheetViewerStore = {
     selectedCell?: SelectedCell  | undefined;
     setSelectedCell: (cell?: { row: number, column: string } | undefined) => void;
     rangeToSelect: Range[];
+    mergedRangesOfSelectedWorksheet: MergedRange[];
     isLoading: boolean;
     error: unknown;
     columns: ColumnDef<Row, CellContent>[];
@@ -168,13 +205,14 @@ type OutputSpreadsheetViewerStore = {
     cellStyles?: Record<string, CSSProperties> | undefined;
     rowStyles?: Record<string, CSSProperties> | undefined;
     headerStyles?: Record<string, CSSProperties> | undefined;
+    getMetaDataOfSelectedCell: () => CellMetaData;
 }
 
 export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): OutputSpreadsheetViewerStore => {
     const {
         isLoading,
         error,
-        workbook,
+        sheetJsWorkbook,
         excelJsWorkbook,
         rangeToSelect,
         setRangeToSelect,
@@ -182,8 +220,9 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         setSelectedCell,
         selectedWorksheetName,
         setSelectedWorksheetName,
-        selectedWorksheet,
+        selectedSheetJsWorksheet,
         sheetNames,
+        mergedRangesOfSelectedWorksheet,
     } = useSpreadsheetStore(input.fileBufferArray, input.defaultSelectedSheet);
 
     const [columns, setColumns] = useState<ColumnDef<Row, CellContent>[]>([]);
@@ -216,12 +255,12 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
     }, [input.rangesToHighlight]);
 
     useEffect(() => {
-        if (isLoading && (!workbook || !selectedWorksheet)) return;
-        if (!workbook || !selectedWorksheet) {
+        if (isLoading && (!sheetJsWorkbook || !selectedSheetJsWorksheet)) return;
+        if (!sheetJsWorkbook || !selectedSheetJsWorksheet) {
             console.warn("No workbook or selected spreadsheet found.");
             return;
         }
-        if (!selectedWorksheet) {
+        if (!selectedSheetJsWorksheet) {
             console.error("No worksheet found.");
             return;
         }
@@ -235,10 +274,12 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
             rawNumbers: false,
         }
 
-        const sortedWorksheetColumns = generateSpreadsheetColumns(selectedWorksheet["!ref"] as string)
+        const sortedWorksheetColumns = generateSpreadsheetColumns(selectedSheetJsWorksheet["!ref"] as string)
             .sort((a, b) => sortSpreadsheetColumnsComparator(a, b));
 
-        const rows: RowList = utils.sheet_to_json(selectedWorksheet, sheetToJsonOptions);
+        console.log("selectedSheetJsWorksheet: ", selectedSheetJsWorksheet);
+
+        const rows: RowList = utils.sheet_to_json(selectedSheetJsWorksheet, sheetToJsonOptions);
 
         setColumns(
             [
@@ -261,7 +302,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
 
         // Property rowNo added to ease row identification.
         setRowData(rows.map((row, index) => ({ rowNo: `${index + 1}`, ...row })));
-    }, [selectedWorksheet, selectedWorksheetName, workbook]);
+    }, [selectedSheetJsWorksheet, selectedWorksheetName, sheetJsWorkbook]);
 
     // Sets styles of active worksheet.
     useEffect(() => {
@@ -285,6 +326,14 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         setCellStyles(cellStyles);
     }, [excelJsWorkbook, selectedWorksheetName]);
 
+    const getMetaDataOfSelectedCell = (): CellMetaData => {
+        if (!selectedCell) return {};
+        if (!selectedSheetJsWorksheet) {
+            throw new Error("No worksheet found. No metadata will be fetched.");
+        }
+        return selectedSheetJsWorksheet[`${selectedCell.column}${selectedCell.row + 1}`] as CellMetaData;
+    }
+
     return {
         selectedWorksheetName,
         setSelectedWorksheetName,
@@ -299,6 +348,8 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         cellStyles,
         rowStyles,
         headerStyles,
+        mergedRangesOfSelectedWorksheet,
+        getMetaDataOfSelectedCell,
     }
 }
 
@@ -361,5 +412,33 @@ const getStyleOfWorksheet = (worksheet: ExcelJsWorksheet): WorksheetStyle => {
         headerStyles,
         rowStyles,
         cellStyles,
+    }
+}
+
+
+export const applyMergesToCells = (merges: MergedRange[], cellRefs: Record<string, HTMLTableCellElement | null>) => {
+    if (merges.length === 0) return;
+
+    for (const merge of merges) {
+        const firstCell = `${merge.start.column}${merge.start.row}`;
+        const lastCell = `${merge.end.column}${merge.end.row}`;
+
+        if (!firstCell ||!lastCell) {
+            console.error("Invalid merge range. No cells found.");
+            return;
+        }
+
+        Object.entries(cellRefs).forEach(([cellAddress, cellRef]) => {
+            if (!cellRef) return;
+            const cellComponent = extractCellComponent(cellAddress);
+            if (!cellComponent) return;
+            isCellInRange(cellComponent?.row, cellComponent.column, [firstCell, lastCell]);
+
+            if (cellAddress === lastCell) {
+                // cellRef?.remove?.();
+            }
+        })
+
+        // cellRefs[lastCell]?.remove?.();
     }
 }

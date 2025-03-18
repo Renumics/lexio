@@ -1,5 +1,8 @@
 import {
-    CSSProperties, FC, forwardRef, Ref,
+    CSSProperties,
+    FC,
+    forwardRef,
+    Ref,
     RefObject,
     useEffect,
     useImperativeHandle,
@@ -18,15 +21,18 @@ import {
 } from "@tanstack/react-table";
 import {useVirtualizer, VirtualItem, Virtualizer,} from "@tanstack/react-virtual";
 import {
+    applyMergesToCells,
+    MergedRange,
     Range,
     SelectedCell,
 } from "./useSpreadsheetStore";
 import {cn} from "./ui/utils.ts";
 import {CellContent, highlightCells} from "./utils.ts";
+// import { utils } from "xlsx";
 
 // In pixel
-const DEFAULT_COLUMN_WIDTH = 180 as const;
-const DEFAULT_ROW_HEIGHT = 35 as const;
+const DEFAULT_COLUMN_WIDTH = 120 as const;
+const DEFAULT_ROW_HEIGHT = 25 as const;
 
 const Z_INDEX_OF_STICKY_HEADER_ROW = 10 as const;
 // const Z_INDEX_OF_STICKY_HEADER_COLUMN = 9 as const;
@@ -42,7 +48,7 @@ const calculateWidthOfColumn = (columnId: string, headerStyles: Record<string, C
     const minWidthInPixel = (styleOfHeader?.minWidth ?? "0px") as string;
     const minWidthInt = Number(minWidthInPixel.split("px")[0]);
 
-    const minWidthToWidthFactor = 5.2;
+    const minWidthToWidthFactor = 9;
 
     // If minWidth from styleOfHeader is 0 set it to a default value of 10px.
     const nonZeroMinWidthOfColumn = minWidthInt === 0 ? 10 : minWidthInt;
@@ -50,6 +56,23 @@ const calculateWidthOfColumn = (columnId: string, headerStyles: Record<string, C
     const result = nonZeroMinWidthOfColumn * minWidthToWidthFactor;
 
     if (result <= DEFAULT_COLUMN_WIDTH) return DEFAULT_COLUMN_WIDTH;
+
+    return result;
+}
+
+const calculateHeightOfRow = (rowIndex: number, rowStyles: Record<string, CSSProperties>): number => {
+    const styleOfRow = rowStyles[rowIndex];
+    const heightInPixel = (styleOfRow?.height ?? "0px") as string;
+    const heightInt = Number(heightInPixel.split("px")[0]);
+
+    const minHeightFactor = 1.5;
+
+    // If minWidth from styleOfHeader is 0 set it to a default value of 10px.
+    const nonZeroMinHeightOfRow = heightInt === 0 ? 10 : heightInt;
+
+    const result = nonZeroMinHeightOfRow * minHeightFactor;
+
+    if (result <= DEFAULT_ROW_HEIGHT) return DEFAULT_ROW_HEIGHT;
 
     return result;
 }
@@ -71,6 +94,7 @@ type Props<TData, TValue> = {
     handleCellClick?: ((cell: Cell<TData, TValue>) => void) | undefined;
     // The height of the parent in case the parent doesn't have a fix size (value in pixel).
     parentContainerHeight?: number | undefined;
+    mergedRangesOfSelectedWorksheet: MergedRange[];
 }
 
 export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
@@ -79,11 +103,10 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         columns,
         selectedCell,
         // parentContainerHeight,
+        mergedRangesOfSelectedWorksheet,
     } = props;
 
     const rangesToSelect = props?.rangesToSelect ?? [["A0", "A0"]];
-    //
-    // const rowStyles = props?.rowStyles ?? {};
 
     // Initialize the table instance
     const table = useReactTable<TData>({
@@ -99,7 +122,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         if (!cellAndInnerCellContainerRefs.current) return;
         console.log("cellAndInnerCellContainerRefs changed: ", cellAndInnerCellContainerRefs.current);
         console.log("Number of cell refs: ", Object.entries(cellAndInnerCellContainerRefs.current?.cellRefs).length);
-    }, [cellAndInnerCellContainerRefs, data, columns]);
+    }, [cellAndInnerCellContainerRefs]);
 
     // Set cell styles of ranges to highlight
     useEffect(() => {
@@ -111,6 +134,10 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
             cellAndInnerCellContainerRefs.current.cellRefs,
             cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
         );
+        applyMergesToCells(
+            mergedRangesOfSelectedWorksheet,
+            cellAndInnerCellContainerRefs.current.cellRefs,
+        )
     }, [data, rangesToSelect, selectedCell, cellAndInnerCellContainerRefs, table]);
 
     // The virtualizers need to know the scrollable container element
@@ -119,21 +146,22 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
     //we are using a slightly different virtualization strategy for columns (compared to virtual rows) in order to support dynamic row heights
     const columnVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableCellElement>({
         count: columns.length,
-        estimateSize: (index) => table.getVisibleLeafColumns()[index].getSize(), //estimate width of each column for accurate scrollbar dragging
+        // estimateSize: (index: number) => table.getVisibleLeafColumns()[index].getSize(), //estimate width of each column for accurate scrollbar dragging
+        estimateSize: () => DEFAULT_COLUMN_WIDTH,
         getScrollElement: () => tableContainerRef.current,
         horizontal: true,
-        overscan: 3, //how many columns to render on each side off screen each way (adjust this for performance)
+        overscan: 2, //how many columns to render on each side off screen each way (adjust this for performance)
         onChange: () => {
             // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
             // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
             if (!cellAndInnerCellContainerRefs.current) return;
-            highlightCells(
-                // @ts-ignore
-                table.getRowModel().rows,
-                rangesToSelect,
-                cellAndInnerCellContainerRefs.current.cellRefs,
-                cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
-            );
+            // highlightCells(
+            //     // @ts-ignore
+            //     table.getRowModel().rows,
+            //     rangesToSelect,
+            //     cellAndInnerCellContainerRefs.current.cellRefs,
+            //     cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
+            // );
         }
     });
 
@@ -148,17 +176,17 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
             navigator.userAgent.indexOf("Firefox") === -1
                 ? element => element?.getBoundingClientRect().height
                 : undefined,
-        overscan: 5,
+        overscan: 2,
         onChange: () => {
             // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
             // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
             if (!cellAndInnerCellContainerRefs.current) return;
-            highlightCells(
-                table.getRowModel().rows,
-                rangesToSelect,
-                cellAndInnerCellContainerRefs.current.cellRefs,
-                cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
-            );
+            // highlightCells(
+            //     table.getRowModel().rows,
+            //     rangesToSelect,
+            //     cellAndInnerCellContainerRefs.current.cellRefs,
+            //     cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
+            // );
         }
     })
 
@@ -224,8 +252,10 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                     virtualPaddingRight={virtualPaddingRight}
                     // @ts-ignore
                     handleCellSelection={handleCellSelection}
-                    cellsStyles={props.cellsStyles}
-                    headerStyles={props.headerStyles}
+                    cellsStyles={props.cellsStyles ?? {}}
+                    headerStyles={props.headerStyles ?? {}}
+                    rowStyles={props.rowStyles ?? {}}
+                    mergedRangesOfSelectedWorksheet={mergedRangesOfSelectedWorksheet}
                 />
             </table>
         </div>
@@ -397,8 +427,10 @@ type TableBodyProps<TData> = {
     tableContainerRef: RefObject<HTMLDivElement>;
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
-    cellsStyles?: Record<string, CSSProperties> | undefined;
-    headerStyles?: Record<string, CSSProperties> | undefined;
+    cellsStyles: Record<string, CSSProperties>;
+    headerStyles: Record<string, CSSProperties>;
+    rowStyles: Record<number, CSSProperties>;
+    mergedRangesOfSelectedWorksheet: MergedRange[];
 }
 
 const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCellContainerRefType> | undefined) => {
@@ -413,6 +445,8 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
         handleCellSelection,
         cellsStyles,
         headerStyles,
+        rowStyles,
+        mergedRangesOfSelectedWorksheet,
     } = props;
 
     const { rows } = table.getRowModel();
@@ -442,19 +476,19 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
 
             return (
                 <TableBodyRow
-                    ref={(el) => {
-                        if (!el) return;
-                        cellAndCellContainerRefsOfAllRows.current = {
-                            cellRefs: {
-                               ...cellAndCellContainerRefsOfAllRows.current.cellRefs,
-                                ...el.cellRefs,
-                            },
-                            cellInnerContainerRefs: {
-                               ...cellAndCellContainerRefsOfAllRows.current.cellInnerContainerRefs,
-                                ...el.cellInnerContainerRefs,
-                            },
-                        }
-                    }}
+                    // ref={(el) => {
+                    //     if (!el) return;
+                    //     cellAndCellContainerRefsOfAllRows.current = {
+                    //         cellRefs: {
+                    //            ...cellAndCellContainerRefsOfAllRows.current.cellRefs,
+                    //             ...el.cellRefs,
+                    //         },
+                    //         cellInnerContainerRefs: {
+                    //            ...cellAndCellContainerRefsOfAllRows.current.cellInnerContainerRefs,
+                    //             ...el.cellInnerContainerRefs,
+                    //         },
+                    //     }
+                    // }}
                     columnVirtualizer={columnVirtualizer}
                     key={row.id}
                     // @ts-ignore
@@ -469,8 +503,8 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
                     virtualRow={virtualRow}
                     cellsStyles={cellsStyles}
                     headerStyles={headerStyles}
-                    // cellRefs={cellRefs}
-                    // cellInnerContainerRefs={cellInnerContainerRefs}
+                    rowStyles={rowStyles}
+                    mergedRangesOfSelectedWorksheet={mergedRangesOfSelectedWorksheet}
                 />
             )
         })}
@@ -488,8 +522,10 @@ type TableBodyRowProps<TData> = {
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
     virtualRow: VirtualItem;
-    cellsStyles?: Record<string, CSSProperties> | undefined;
-    headerStyles?: Record<string, CSSProperties> | undefined;
+    cellsStyles: Record<string, CSSProperties>;
+    headerStyles: Record<string, CSSProperties>;
+    rowStyles: Record<number, CSSProperties>;
+    mergedRangesOfSelectedWorksheet: MergedRange[];
 }
 // @ts-ignore
 const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellAndCellContainerRefType> | undefined) => {
@@ -505,6 +541,8 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
         handleCellClick,
         cellsStyles,
         headerStyles,
+        rowStyles,
+        mergedRangesOfSelectedWorksheet,
     } = props;
 
     const visibleCells = row.getVisibleCells();
@@ -550,19 +588,19 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                 const cell = visibleCells[vc.index]
                 return (
                     <TableBodyCell
-                        ref={(el) => {
-                            if (!el) return;
-                            cellAndCellContainerRefsOfRow.current = {
-                                cellRefs: {
-                                    ...cellAndCellContainerRefsOfRow.current.cellRefs,
-                                    ...el.cellRefs,
-                                },
-                                cellInnerContainerRefs: {
-                                    ...cellAndCellContainerRefsOfRow.current.cellInnerContainerRefs,
-                                   ...el.cellInnerContainerRefs,
-                                }
-                            }
-                        }}
+                        // ref={(el) => {
+                        //     if (!el) return;
+                        //     cellAndCellContainerRefsOfRow.current = {
+                        //         cellRefs: {
+                        //             ...cellAndCellContainerRefsOfRow.current.cellRefs,
+                        //             ...el.cellRefs,
+                        //         },
+                        //         cellInnerContainerRefs: {
+                        //             ...cellAndCellContainerRefsOfRow.current.cellInnerContainerRefs,
+                        //            ...el.cellInnerContainerRefs,
+                        //         }
+                        //     }
+                        // }}
                         // @ts-ignore
                         cell={cell}
                         key={cell.id}
@@ -575,6 +613,8 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                         handleCellSelection={(cell) => handleCellClick(cell)}
                         cellsStyles={cellsStyles}
                         headerStyles={headerStyles}
+                        rowStyles={rowStyles}
+                        mergedRangesOfSelectedWorksheet={mergedRangesOfSelectedWorksheet}
                     />
                 )
             })}
@@ -593,9 +633,11 @@ type TableBodyCellProps<TData, TValue> = {
     isFirstCellOfSelectedRow : boolean;
     rowCount: number;
     isSelected: boolean;
-    cellsStyles?: Record<string, CSSProperties> | undefined;
-    headerStyles?: Record<string, CSSProperties> | undefined;
+    cellsStyles: Record<string, CSSProperties>;
+    headerStyles: Record<string, CSSProperties>;
+    rowStyles: Record<number, CSSProperties>;
     handleCellSelection: (cell: Cell<TData, TValue>) => void;
+    mergedRangesOfSelectedWorksheet: MergedRange[];
 }
 const TableBodyCell = forwardRef(
     <T, V>(
@@ -610,11 +652,11 @@ const TableBodyCell = forwardRef(
         rowCount,
         isFirstCellOfSelectedRow,
         handleCellSelection,
+        headerStyles,
+        cellsStyles,
+        rowStyles,
+        // mergedRangesOfSelectedWorksheet,
     } = props;
-
-    const cellsStyles = props?.cellsStyles ?? {};
-
-    const headerStyles = props?.headerStyles ?? {};
 
     const cellRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
 
@@ -626,11 +668,13 @@ const TableBodyCell = forwardRef(
         cellInnerContainerRefs: cellInnerContainerRefs.current,
     }));
 
-    const computeWidthOfFirstCell = (): number => {
-        if (isFirst) return calculateWidthOfFirstColumn(rowCount);
-        // return cell.column.getSize();
-        return calculateWidthOfColumn(cell.column.id, headerStyles);
-    }
+    useEffect(() => {
+        return () => {
+            // Clear cell reference and cell inner container reference when component unmounts to prevent unnecessary memory allocation
+            cellRefs.current = {};
+            cellInnerContainerRefs.current = {};
+        };
+    }, []);
 
     const getCellStyle = (row: number, column: string): CSSProperties => {
         if (!row || !column) return {};
@@ -654,25 +698,46 @@ const TableBodyCell = forwardRef(
         return Object.fromEntries(styleEntriesWithoutBorders) as CSSProperties;
     }
 
-    const cellId = `${cell.column.id}${cell.row.index + 1}`;
+    const computeCellWidth = (): number => {
+        if (isFirst) return calculateWidthOfFirstColumn(rowCount);
 
-    const cellInnerContainerId = `${cell.column.id}${cell.row.index + 1}-inner-container`;
+        // const isFirstCellOfAMergedRange = mergedRangesOfSelectedWorksheet
+        //     .find((m) => m.start.row === cell.row.index + 1 && m.start.column === cell.column.id);
+        // if (isFirstCellOfAMergedRange) {
+        //     return calculateWidthOfColumn(cell.column.id, headerStyles) +
+        //         calculateWidthOfColumn(utils.encode_col(utils.decode_col(cell.column.id) + 1), headerStyles);
+        // }
+        // return cell.column.getSize();
+        return calculateWidthOfColumn(cell.column.id, headerStyles);
+    }
+
+    const computeRowHeight = (): number => {
+        const rowIndex = cell.row.index + 1;
+        return calculateHeightOfRow(rowIndex, rowStyles);
+    }
+
+    // const cellId = `${cell.column.id}${cell.row.index + 1}`;
+    //
+    // const cellInnerContainerId = `${cell.column.id}${cell.row.index + 1}-inner-container`;
 
     return (
         <td
             key={cell.id}
-            ref={(el) => {
-                if (!el) return;
-                cellRefs.current[cellId] = el;
-            }}
+            // ref={(el) => {
+            //     if (el) {
+            //         cellRefs.current[cellId] = el;
+            //         return;
+            //     }
+            //     delete cellRefs.current[cellId];
+            // }}
             style={{
                 display: "flex",
-                width: computeWidthOfFirstCell(),
+                width: `${computeCellWidth()}px`,
                 borderTop: "unset",
                 borderRight: isLast ? "1px solid #e5e7eb" : "unset",
                 borderLeft: isFirst ? "unset" : "1px solid #e5e7eb",
                 borderBottom: isSelected ? "none" : "1px solid #e5e7eb",
-                height: `${DEFAULT_ROW_HEIGHT}px`,
+                height: `${computeRowHeight()}px`,
             }}
             data-label={cell.column.columnDef.header}
             className={cn("text-sm text-neutral-600 border-b border-r top-0 bottom-0 m-0 relative p-0", {
@@ -682,10 +747,13 @@ const TableBodyCell = forwardRef(
             onClick={!isFirst ? () => handleCellSelection(cell) : undefined}
         >
             <div
-                ref={(el) => {
-                    if (!el) return;
-                    cellInnerContainerRefs.current[cellInnerContainerId] = el;
-                }}
+                // ref={(el) => {
+                //     if (el) {
+                //         cellInnerContainerRefs.current[cellInnerContainerId] = el;
+                //         return;
+                //     }
+                //     delete cellInnerContainerRefs.current[cellInnerContainerId];
+                // }}
                 className={cn("h-full w-full m-0 p-0 absolute border-[2px] border-transparent", {
                     "border-[2px] !border-blue-500": isSelected,
                 })}
