@@ -34,14 +34,38 @@ export type UUID = `${string}-${string}-${string}-${string}-${string}`;
  * @property {string} highlightColorRgba - RGBA color string for the highlight (e.g., 'rgba(255, 255, 0, 0.3)')
  */
 export interface PDFHighlight {
-    page: number;         // Page number in the PDF (1-based)
-    rect: {              // Rectangle coordinates for the highlight
+    /**
+     * The page number where the highlight appears. Page numbers are 1-based.
+     * @TJS-type integer
+     * @minimum 1
+     */
+    page: number;
+    /**
+     * The rectangle coordinates of the highlight
+     */
+    rect: {
+        /**
+         * Top position of the highlight (relative to the page)
+         */
         top: number;
+        /**
+         * Left position of the highlight (relative to the page)
+         */
         left: number;
+        /**
+         * Width of the highlight (relative to the page width)
+         */
         width: number;
+        /**
+         * Height of the highlight (relative to the page height)
+         */
         height: number;
     };
-    highlightColorRgba: string;  // RGBA color string (e.g., 'rgba(255, 255, 0, 0.3)')
+    /**
+     * RGBA color string for the highlight
+     * @example 'rgba(255, 255, 0, 0.3)'
+     */
+    highlightColorRgba: string;
 }
 
 /**
@@ -527,7 +551,7 @@ export type ActionHandler = {
  * 
  * @interface StreamChunk
  * @property {string} [content] - Text content in this chunk
- * @property {Source[]} [sources] - Sources related to this chunk
+ * @property {Source[]} [sources] - Sources related to this chunk that can be displayed alongside the content
  * @property {MessageHighlight[]} [highlights] - Highlights to highlight in the final message
  *                                         Only included in the final chunk (when done=true)
  * @property {boolean} [done] - Indicates if this is the final chunk in the stream
