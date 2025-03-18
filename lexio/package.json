@@ -37,8 +37,8 @@
     "@react-hook/resize-observer": "^2.0.2",
     "@tanstack/react-table": "^8.21.2",
     "@tanstack/react-virtual": "^3.13.2",
-    "exceljs": "^4.4.0",
     "dompurify": "^3.2.4",
+    "exceljs": "^4.4.0",
     "jotai": "^2.10.3",
     "lucide-react": "^0.476.0",
     "react": "^18.3.1",
@@ -48,7 +48,8 @@
     "react-pdf": "^9.1.1",
     "react-syntax-highlighter": "^15.6.1",
     "react-toastify": "^10.0.6",
-    "remark-gfm": "^4.0.0"
+    "remark-gfm": "^4.0.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^3.2.3",

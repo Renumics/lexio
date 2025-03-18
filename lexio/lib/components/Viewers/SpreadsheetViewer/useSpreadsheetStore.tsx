@@ -1,22 +1,35 @@
-import {Cell as WorksheetCell, FillPattern, Row as WorksheetRow, Workbook as ExcelJsWorkbook, Worksheet} from "exceljs";
-import {CSSProperties, useCallback, useEffect, useState} from "react";
-import {ColumnDef, Row as ReactTableRow} from "@tanstack/react-table";
+import {
+    Cell as ExcelJsWorksheetCell,
+    FillPattern,
+    Row as ExelJsWorksheetRow,
+    Workbook as ExcelJsWorkbook,
+    Worksheet as ExcelJsWorksheet
+} from "exceljs";
+import {CSSProperties, useEffect, useState} from "react";
+import {ColumnDef} from "@tanstack/react-table";
 import {
     CellContent,
     convertArgbToHex,
     excelAlignmentToCss,
     excelBorderToCss,
     extractCellComponent,
-    getRowEntryWitMostColumns,
-    isCellInRange,
+    // getRowEntryWitMostColumns,
     ptFontSizeToPixel,
     ptToPixel,
-    resolveCellFormat,
+    // resolveCellFormat,
+    generateSpreadsheetColumns,
     Row,
-    RowList, sortSpreadsheetColumnsComparator,
-    validateExcelRange
+    RowList,
+    sortSpreadsheetColumnsComparator,
+    validateExcelRange,
 } from "./utils.ts";
-import {cn} from "./ui/utils.ts";
+import {
+    ParsingOptions,
+    read, Sheet2JSONOpts,
+    utils,
+    WorkBook as SheetJsWorkbook,
+    WorkSheet as SheetJsWorkSheet,
+} from "xlsx";
 
 export type SelectedCell = {
     row: number,
@@ -27,51 +40,107 @@ export type Range = [string, string];
 export type CellRange = Record<"top" | "right" | "bottom" | "left", string[]>;
 
 type ExcelOperationsStore = {
-    getExcelWorkbook: (buffer: ArrayBuffer, selectedSpreadsheet?: string | undefined) => Promise<ExcelJsWorkbook>;
+    isLoading: boolean;
+    error: unknown;
+    workbook: SheetJsWorkbook | undefined;
+    // Important: used exclusively to load styles and not data !
+    excelJsWorkbook: ExcelJsWorkbook | undefined;
     sheetNames: string[];
     setSheetNames: (spreadsheets: string[]) => void;
-    worksheets: Worksheet[];
-    selectedSpreadsheet: string;
-    setSelectedSpreadsheet: (spreadsheet: string) => void;
+    worksheets: Record<string, SheetJsWorkSheet> | undefined;
+    selectedWorksheetName: string;
+    setSelectedWorksheetName: (spreadsheet: string) => void;
+    selectedWorksheet: SheetJsWorkSheet | undefined;
+    setSelectedWorksheet: (worksheet: SheetJsWorkSheet | undefined) => void;
     selectedCell?: SelectedCell  | undefined;
     setSelectedCell: (cell?: { row: number, column: string } | undefined) => void;
     rangeToSelect: Range[],
     setRangeToSelect: (range: Range[]) => void;
 };
 
-export const useSpreadsheetStore = (): ExcelOperationsStore => {
-    const [worksheets, setWorksheets] = useState<Worksheet[]>([]);
+const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: string | undefined): ExcelOperationsStore => {
+    const [workbook, setWorkbook] = useState<SheetJsWorkbook | undefined>(undefined);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<unknown | undefined>(undefined);
+    const [worksheets, setWorksheets] = useState<Record<string, SheetJsWorkSheet> | undefined>(undefined);
     const [sheetNames, setSheetNames] = useState<string[]>([]);
-    const [selectedSpreadsheet, setSelectedSpreadsheet] = useState<string>("");
+    const [selectedWorksheetName, setSelectedWorksheetName] = useState<string>("");
+    const [selectedWorksheet, setSelectedWorksheet] = useState<SheetJsWorkSheet | undefined>(undefined);
     const [selectedCell, setSelectedCell] = useState<SelectedCell | undefined>(undefined);
     const [rangeToSelect, setRangeToSelect] = useState<Range[]>([]);
+    // Important: used exclusively to load styles and not data !
+    const [excelJsWorkbook, setExcelJsWorkbook] = useState<ExcelJsWorkbook | undefined>(undefined);
 
-    const setWorkbookData = useCallback((workbook: ExcelJsWorkbook, selectedSpreadsheet?: string | undefined) => {
-        setWorksheets(workbook.worksheets);
-        const spreadsheetsFromFile = workbook.worksheets.map((w) => w.name);
+    useEffect(() => {
+        const getExcelWorkbook = async (arrayBuffer: ArrayBuffer, selectedSpreadsheetName?: string | undefined): Promise<SheetJsWorkbook> => {
+            const setWorkbookData = (workbook: SheetJsWorkbook, selectedSpreadsheet?: string | undefined) => {
+                setWorksheets(workbook.Sheets);
+                setSheetNames(workbook.SheetNames);
+                // Set the selected spreadsheet based on the input or the first available spreadsheet in the workbook as default.
+                const selectedSheetFromFile = workbook.SheetNames.find((name) => name === selectedSpreadsheet) ?? workbook.SheetNames[0];
+                setSelectedWorksheetName(selectedSheetFromFile);
+                // Set selected spreadsheet if provided.
+                setSelectedWorksheet(workbook.Sheets[selectedSheetFromFile]);
+            }
 
-        setSheetNames(spreadsheetsFromFile);
+            const readParsingOptions: ParsingOptions = {
+                type: "file",
+                // cellFormula: true,
+                // cellHTML: true,
+                cellNF: true,
+                cellText: true,
+                // bookFiles: false,
+                sheetStubs: true,
+                nodim: false,
+                PRN: false,
+            }
 
-        let selectedSheetFromFile = "";
-        if (!workbook.worksheets.find((ws) => ws.name === selectedSpreadsheet)) return;
-        selectedSheetFromFile = selectedSpreadsheet ?? workbook.worksheets[0].name;
-        setSelectedSpreadsheet(selectedSheetFromFile);
-    }, []);
+            const workbook = read(arrayBuffer, readParsingOptions);
 
-    const getExcelWorkbook = useCallback(async (arrayBuffer: ArrayBuffer, selectedSpreadsheet?: string | undefined): Promise<ExcelJsWorkbook> => {
-        const wbJs = new ExcelJsWorkbook();
-        const wb = await wbJs.xlsx.load(arrayBuffer);
-        setWorkbookData(wb, selectedSpreadsheet);
-        return wb;
-    }, []);
+            // Important: used exclusively to load styles and not data !
+            const excelJsWorkbook = new ExcelJsWorkbook();
+            const excelJsWorkbookInstance = await excelJsWorkbook.xlsx.load(arrayBuffer);
+            setExcelJsWorkbook(excelJsWorkbookInstance);
+
+            setWorkbookData(workbook, selectedSpreadsheetName);
+            return workbook;
+        };
+
+        // Load the workbook when the component calling this hooks mounts.
+        (async () => {
+            setIsLoading(true);
+            setError(undefined);
+            try {
+                const loadedWorkbook = await getExcelWorkbook(arrayBuffer, defaultSpreadsheetName);
+                setWorkbook(loadedWorkbook);
+            } catch (e) {
+                setError(e);
+            } finally {
+                setIsLoading(false);
+            }
+        })();
+    }, [arrayBuffer, defaultSpreadsheetName]);
+
+    // Switch worksheet when selectedWorksheetName gets updated.
+    useEffect(() => {
+        if (isLoading && (!workbook || !worksheets)) return;
+        if (!workbook || !worksheets) return;
+        setSelectedWorksheet(worksheets[selectedWorksheetName]);
+    }, [selectedWorksheetName, workbook, worksheets]);
 
     return {
-        getExcelWorkbook,
+        isLoading,
+        error,
+        // Important: used exclusively to load styles and not data !
+        excelJsWorkbook,
+        workbook,
         sheetNames,
         setSheetNames,
         worksheets,
-        selectedSpreadsheet,
-        setSelectedSpreadsheet,
+        selectedWorksheetName,
+        setSelectedWorksheetName,
+        selectedWorksheet,
+        setSelectedWorksheet,
         selectedCell,
         setSelectedCell,
         rangeToSelect,
@@ -87,8 +156,8 @@ type InputSpreadsheetViewerStore = {
 
 type OutputSpreadsheetViewerStore = {
     sheetNames: string[];
-    selectedSpreadsheet: string;
-    setSelectedSpreadsheet: (spreadsheet: string) => void;
+    selectedWorksheetName: string;
+    setSelectedWorksheetName: (spreadsheet: string) => void;
     selectedCell?: SelectedCell  | undefined;
     setSelectedCell: (cell?: { row: number, column: string } | undefined) => void;
     rangeToSelect: Range[];
@@ -103,36 +172,19 @@ type OutputSpreadsheetViewerStore = {
 
 export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): OutputSpreadsheetViewerStore => {
     const {
-        getExcelWorkbook,
+        isLoading,
+        error,
+        workbook,
+        excelJsWorkbook,
         rangeToSelect,
         setRangeToSelect,
         selectedCell,
         setSelectedCell,
-        selectedSpreadsheet,
-        setSelectedSpreadsheet,
+        selectedWorksheetName,
+        setSelectedWorksheetName,
+        selectedWorksheet,
         sheetNames,
-        worksheets,
-    } = useSpreadsheetStore();
-
-    const [workbook, setWorkbook] = useState<ExcelJsWorkbook | undefined>(undefined);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<unknown | undefined>(undefined);
-
-    useEffect(() => {
-        const loadSpreadsheetData = async () => {
-            setIsLoading(true);
-            setError(undefined);
-            try {
-                const data = await getExcelWorkbook(input.fileBufferArray, input.defaultSelectedSheet);
-                setWorkbook(data);
-            } catch (e) {
-                setError(e);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        loadSpreadsheetData();
-    }, []);
+    } = useSpreadsheetStore(input.fileBufferArray, input.defaultSelectedSheet);
 
     const [columns, setColumns] = useState<ColumnDef<Row, CellContent>[]>([]);
 
@@ -164,86 +216,34 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
     }, [input.rangesToHighlight]);
 
     useEffect(() => {
-        if (!workbook) return;
-        const worksheet = worksheets.find((ws) => ws.name === selectedSpreadsheet);
-        if (!worksheet) {
+        if (isLoading && (!workbook || !selectedWorksheet)) return;
+        if (!workbook || !selectedWorksheet) {
+            console.warn("No workbook or selected spreadsheet found.");
+            return;
+        }
+        if (!selectedWorksheet) {
             console.error("No worksheet found.");
             return;
         }
 
-        const rows: RowList = [];
-        const headerStylesForUpdate: Record<string, CSSProperties> = {};
-        const rowStyleForUpdate: Record<number, CSSProperties> = {};
-        const cellStylesForUpdate: Record<string, CSSProperties> = {};
+        const sheetToJsonOptions: Sheet2JSONOpts = {
+            header: "A",
+            blankrows: true,
+            defval: "",
+            raw: false,
+            skipHidden: false,
+            rawNumbers: false,
+        }
 
-        worksheet.eachRow({ includeEmpty: true }, (row: WorksheetRow, rowIndex: number) => {
-            // If a row is empty exceljs won't iterate row.eachCell() below causing the row to be missing in the custom row object above. This is row with a single column(A) is added here manually to fix this.
-            if (row.cellCount === 0) {
-                rows[rowIndex] = {
-                    ...rows[rowIndex],
-                    ["A"]: "",
-                }
-            }
+        const sortedWorksheetColumns = generateSpreadsheetColumns(selectedWorksheet["!ref"] as string)
+            .sort((a, b) => sortSpreadsheetColumnsComparator(a, b));
 
-            row.eachCell({ includeEmpty: true }, (cell: WorksheetCell) => {
-                const columnId = extractCellComponent(cell.address)?.column;
-                if (!columnId) return;
-
-                const columnKey = extractCellComponent(cell.address)?.column ?? "";
-
-                const colWidth = columnKey.length === 0 ? "40px" : `${ptToPixel(worksheet.getColumn(columnKey).width)}px`;
-
-                headerStylesForUpdate[columnKey] = {
-                    minWidth: colWidth,
-                };
-
-                rowStyleForUpdate[`${rowIndex}`] = {
-                    //height: "100%",
-                    height: `${ptToPixel(row.height)}px`,
-                    // Borders
-                    borderTop: `${excelBorderToCss(row.border?.top?.style, row.border?.top?.color?.argb)}`,
-                    borderRight: `${excelBorderToCss(row.border?.right?.style, row.border?.right?.color?.argb)}`,
-                    borderBottom: `${excelBorderToCss(row.border?.bottom?.style, row.border?.bottom?.color?.argb)}`,
-                    borderLeft: `${excelBorderToCss(row.border?.left?.style, row.border?.left?.color?.argb)}`,
-                };
-
-                cellStylesForUpdate[`${cell.address}`] = {
-                    // colors
-                    backgroundColor: convertArgbToHex((cell.fill as FillPattern)?.fgColor?.argb),
-                    color: convertArgbToHex(cell.font?.color?.argb),
-                    // Font
-                    fontFamily: cell.font?.name,
-                    fontSize: `${ptFontSizeToPixel(cell.font?.size)}px`,
-                    fontWeight: cell.font?.bold ? "600" : undefined,
-                    fontStyle: cell.font?.italic ? "italic" : undefined,
-                    minWidth: colWidth,
-                    ...excelAlignmentToCss(cell.alignment),
-                    // Borders
-                    borderTop: `${excelBorderToCss(cell.border?.top?.style, cell.border?.top?.color?.argb)}`,
-                    borderRight: `${excelBorderToCss(cell.border?.right?.style, cell.border?.right?.color?.argb)}`,
-                    borderBottom: `${excelBorderToCss(cell.border?.bottom?.style, cell.border?.bottom?.color?.argb)}`,
-                    borderLeft: `${excelBorderToCss(cell.border?.left?.style, cell.border?.left?.color?.argb)}`,
-                    // Padding
-                    padding: "0px 3px",
-                };
-
-                rows[rowIndex] = {
-                    ...rows[rowIndex],
-                    [columnId.toUpperCase()]: resolveCellFormat(cell.value, cell.type, cell.numFmt),
-                }
-            });
-        });
-
-        const rowWithMostColumns = getRowEntryWitMostColumns(rows);
-
-        const sortedColumns = rowWithMostColumns.sort((a, b) => sortSpreadsheetColumnsComparator(a[0], b[0]));
-
-        setRowData(rows.map((row, index) => ({ rowNo: `${index}`, ...row })));
+        const rows: RowList = utils.sheet_to_json(selectedWorksheet, sheetToJsonOptions);
 
         setColumns(
             [
                 { header: "", accessorKey: "rowNo" },
-                ...sortedColumns.map(([key,]) => ({
+                ...sortedWorksheetColumns.map((key) => ({
                     header: key,
                     accessorKey: key,
                     enableGrouping: true,
@@ -259,17 +259,38 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
             ]
         );
 
-        setCellStyles(cellStylesForUpdate);
-        setRowStyles(rowStyleForUpdate);
-        setHeaderStyles(headerStylesForUpdate);
-    }, [selectedSpreadsheet, workbook]);
+        // Property rowNo added to ease row identification.
+        setRowData(rows.map((row, index) => ({ rowNo: `${index + 1}`, ...row })));
+    }, [selectedWorksheet, selectedWorksheetName, workbook]);
+
+    // Sets styles of active worksheet.
+    useEffect(() => {
+        if (isLoading && !excelJsWorkbook) return;
+        if (!excelJsWorkbook) return;
+
+        const excelJsSelectedWorksheet = excelJsWorkbook.worksheets.find((ws) => ws.name === selectedWorksheetName);
+
+        if (!excelJsSelectedWorksheet) {
+            console.error("No excelJs worksheet found. No styles will be applied on the active worksheet.");
+            return;
+        }
+        const {
+            headerStyles,
+            rowStyles,
+            cellStyles,
+        } = getStyleOfWorksheet(excelJsSelectedWorksheet);
+
+        setHeaderStyles(headerStyles);
+        setRowStyles(rowStyles);
+        setCellStyles(cellStyles);
+    }, [excelJsWorkbook, selectedWorksheetName]);
 
     return {
-        selectedSpreadsheet,
+        selectedWorksheetName,
+        setSelectedWorksheetName,
         rangeToSelect,
         selectedCell,
         setSelectedCell,
-        setSelectedSpreadsheet,
         sheetNames,
         isLoading,
         error,
@@ -281,88 +302,64 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
     }
 }
 
-type Output<TData> = {
-    highlightCells: (
-        rows:  ReactTableRow<TData>[],
-        rangesToSelect: Range[],
-        cellRefs: Record<string, (HTMLTableCellElement | null)>,
-        cellInnerContainerRefs: Record<string, (HTMLDivElement | null)>,
-    ) => void;
+type WorksheetStyle = {
+    headerStyles: Record<string, CSSProperties>;
+    rowStyles: Record<number, CSSProperties>;
+    cellStyles: Record<string, CSSProperties>;
 }
-export const useSpreadsheetStyles = <TData,>(): Output<TData> => {
-    const getTableRangeBorder = useCallback((range: Range): CellRange => {
-        const [startCell, endCell] = range;
+const getStyleOfWorksheet = (worksheet: ExcelJsWorksheet): WorksheetStyle => {
+    const headerStyles: Record<string, CSSProperties> = {};
+    const rowStyles: Record<number, CSSProperties> = {};
+    const cellStyles: Record<string, CSSProperties> = {};
 
-        // Convert cell references (e.g., "A1") to row and column indices
-        const startRowIndex = parseInt(startCell.slice(1)) - 1; // Row index (0-based)
-        const startColIndex = startCell.charCodeAt(0) - 65;     // Column index (0-based, 'A' -> 0)
-        const endRowIndex = parseInt(endCell.slice(1)) - 1;
-        const endColIndex = endCell.charCodeAt(0) - 65;
+    worksheet.eachRow({ includeEmpty: true }, (row: ExelJsWorksheetRow, rowIndex: number) => {
+        row.eachCell({ includeEmpty: true }, (cell: ExcelJsWorksheetCell) => {
+            const columnId = extractCellComponent(cell.address)?.column;
+            if (!columnId) return;
 
-        // Initialize border object
-        const border: CellRange = {
-            top: [],
-            right: [],
-            bottom: [],
-            left: []
-        };
+            const columnKey = extractCellComponent(cell.address)?.column ?? "";
 
-        // Calculate border positions
-        for (let col = startColIndex; col <= endColIndex; col++) {
-            border.top.push(`${String.fromCharCode(65 + col)}${startRowIndex + 1}`);
-            border.bottom.push(`${String.fromCharCode(65 + col)}${endRowIndex + 1}`);
-        }
+            const colWidth = columnKey.length === 0 ? "40px" : `${ptToPixel(worksheet.getColumn(columnKey).width)}px`;
 
-        for (let row = startRowIndex; row <= endRowIndex; row++) {
-            border.left.push(`${String.fromCharCode(65 + startColIndex)}${row + 1}`);
-            border.right.push(`${String.fromCharCode(65 + endColIndex)}${row + 1}`);
-        }
+            headerStyles[columnKey] = {
+                minWidth: colWidth,
+            };
 
-        return border;
-    }, []);
+            rowStyles[`${rowIndex}`] = {
+                //height: "100%",
+                height: `${ptToPixel(row.height)}px`,
+                // Borders
+                borderTop: `${excelBorderToCss(row.border?.top?.style, row.border?.top?.color?.argb)}`,
+                borderRight: `${excelBorderToCss(row.border?.right?.style, row.border?.right?.color?.argb)}`,
+                borderBottom: `${excelBorderToCss(row.border?.bottom?.style, row.border?.bottom?.color?.argb)}`,
+                borderLeft: `${excelBorderToCss(row.border?.left?.style, row.border?.left?.color?.argb)}`,
+            };
 
-    const highlightCells = (
-        rows:  ReactTableRow<TData>[],
-        rangesToSelect: Range[],
-        cellRefs: Record<string, (HTMLTableCellElement | null)>,
-        cellInnerContainerRefs: Record<string, (HTMLDivElement | null)>,
-    ) => {
-        if (rangesToSelect.length === 0) return;
-
-        rangesToSelect.forEach((range) => {
-            rows.forEach((row) => {
-                row.getVisibleCells().forEach((cell, index) => {
-                    const cellId = `${cell.column.id}${cell.row.index + 1}`;
-                    const cellRef = cellRefs[cellId];
-                    const cellContainerRef = cellInnerContainerRefs[`${cellId}-inner-container`];
-                    const isCellWithInRange = isCellInRange(cell.row.index + 1, cell.column.id, range);
-                    const rangeToApply = getTableRangeBorder(range);
-                    const rangeCheck = (borderSide: keyof CellRange) => rangeToApply[borderSide].includes(`${cell.column.id}${cell.row.index + 1}`);
-
-                    if (cellRef && isCellWithInRange) {
-                        const borderTop = rangeCheck("top") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
-                        const borderRight = rangeCheck("right") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
-                        const borderBottom = rangeCheck("bottom") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
-                        const borderLeft = rangeCheck("left") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
-
-                        cellRef.style.borderTop = borderTop;
-                        cellRef.style.borderRight = borderRight;
-                        cellRef.style.borderBottom = borderBottom;
-                        cellRef.style.borderLeft = borderLeft;
-                    }
-
-                    if (cellContainerRef) {
-                        cellContainerRef.className = cn(cellContainerRef.className, {
-                            "!opacity-[70%]": isCellInRange(row.index + 1, cell.column.id, range),
-                            "bg-blue-200": isCellInRange(row.index + 1, cell.column.id, range),
-                        });
-                    }
-                });
-            });
+            cellStyles[`${cell.address}`] = {
+                // colors
+                backgroundColor: convertArgbToHex((cell.fill as FillPattern)?.fgColor?.argb),
+                color: convertArgbToHex(cell.font?.color?.argb),
+                // Font
+                fontFamily: cell.font?.name,
+                fontSize: `${ptFontSizeToPixel(cell.font?.size)}px`,
+                fontWeight: cell.font?.bold ? "600" : undefined,
+                fontStyle: cell.font?.italic ? "italic" : undefined,
+                minWidth: colWidth,
+                ...excelAlignmentToCss(cell.alignment),
+                // Borders
+                borderTop: `${excelBorderToCss(cell.border?.top?.style, cell.border?.top?.color?.argb)}`,
+                borderRight: `${excelBorderToCss(cell.border?.right?.style, cell.border?.right?.color?.argb)}`,
+                borderBottom: `${excelBorderToCss(cell.border?.bottom?.style, cell.border?.bottom?.color?.argb)}`,
+                borderLeft: `${excelBorderToCss(cell.border?.left?.style, cell.border?.left?.color?.argb)}`,
+                // Padding
+                padding: "0px 3px",
+            };
         });
-    }
+    });
 
     return {
-        highlightCells,
+        headerStyles,
+        rowStyles,
+        cellStyles,
     }
 }

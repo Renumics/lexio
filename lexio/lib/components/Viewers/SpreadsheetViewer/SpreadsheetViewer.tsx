@@ -1,12 +1,13 @@
 import {FC, useState} from "react";
 import {useSpreadsheetViewerStore} from "./useSpreadsheetStore.tsx";
-import {SpreadsheetTable} from "./SpreadsheetTable.tsx";
+// import {SpreadsheetTable} from "./SpreadsheetTable.tsx";
 import {Cell} from "@tanstack/react-table";
 import {CellContent} from "./utils";
 import {SpreadsheetSelection} from "./SpreadsheetSelection";
 import { LoaderCircle } from "lucide-react";
 import ParentSizeObserver from "./ParentSizeObserver.tsx";
 import { EyeOff, Eye } from "lucide-react";
+import {TableContainer} from "./RowAndColumnVirtualizer.tsx";
 
 type Props = {
     fileName?: string | undefined;
@@ -20,11 +21,11 @@ const SpreadsheetViewer: FC<Props> = (props) => {
     const [showStyles, setShowStyles] = useState<boolean>(true);
 
     const {
-        selectedSpreadsheet,
+        selectedWorksheetName,
         rangeToSelect,
         selectedCell,
         setSelectedCell,
-        setSelectedSpreadsheet,
+        setSelectedWorksheetName,
         sheetNames,
         isLoading,
         error,
@@ -44,7 +45,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
     }
 
     const switchSpreadsheet = (spreadsheet: string) => {
-        setSelectedSpreadsheet(spreadsheet);
+        setSelectedWorksheetName(spreadsheet);
         setSelectedCell(undefined);
     }
 
@@ -78,18 +79,30 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                 <ParentSizeObserver className="h-full w-full">
                     {(parentSize) =>
                         <div className="grid" style={{height: `${parentSize.height}px`}}>
-                            <SpreadsheetTable
+                           {/* <SpreadsheetTable*/}
+                           {/*     columns={columns}*/}
+                           {/*     data={rowData.filter(r => r)}*/}
+                           {/*     showStyles={showStyles}*/}
+                           {/*    cellsStyles={showStyles ? cellStyles : undefined}*/}
+                           {/*    rowStyles={showStyles ? rowStyles : undefined}*/}
+                           {/*    headerStyles={showStyles ? headerStyles : undefined}*/}
+                           {/*    selectedCell={selectedCell}*/}
+                           {/*    rangesToSelect={rangeToSelect}*/}
+                           {/*    handleCellClick={handleCellClick}*/}
+                           {/*    parentContainerHeight={parentSize.height}*/}
+                           {/*/>*/}
+                            <TableContainer
                                 columns={columns}
                                 data={rowData.filter(r => r)}
                                 showStyles={showStyles}
-                               cellsStyles={showStyles ? cellStyles : undefined}
-                               rowStyles={showStyles ? rowStyles : undefined}
-                               headerStyles={showStyles ? headerStyles : undefined}
-                               selectedCell={selectedCell}
-                               rangesToSelect={rangeToSelect}
-                               handleCellClick={handleCellClick}
-                               parentContainerHeight={parentSize.height}
-                           />
+                                cellsStyles={showStyles ? cellStyles : undefined}
+                                rowStyles={showStyles ? rowStyles : undefined}
+                                headerStyles={showStyles ? headerStyles : undefined}
+                                selectedCell={selectedCell}
+                                rangesToSelect={rangeToSelect}
+                                handleCellClick={handleCellClick}
+                                // parentContainerHeight={parentSize.height}
+                            />
                        </div>
                    }
                </ParentSizeObserver>
@@ -99,7 +112,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                     {(parentSize) =>
                         <SpreadsheetSelection
                             spreadsheets={sheetNames}
-                            selectedSpreadsheet={selectedSpreadsheet}
+                            selectedSpreadsheet={selectedWorksheetName}
                             setSelectedSpreadsheet={switchSpreadsheet}
                             parentWidth={parentSize.width}
                         />

@@ -9,7 +9,9 @@ import {
     ValueType,
 } from "exceljs";
 import {CSSProperties} from "react";
-import {Range} from "./useSpreadsheetStore.tsx";
+import {CellRange, Range} from "./useSpreadsheetStore.tsx";
+import {cn} from "./ui/utils.ts";
+import {Cell, Row as ReactTableRow} from "@tanstack/react-table";
 
 export type CellContent = Readonly<string | number>;
 
@@ -301,3 +303,109 @@ export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSPropertie
 
     return cssAlignment;
 };
+
+export const generateSpreadsheetColumns = (range: string): string[] => {
+    const [, endColumn] = range.split(":");
+    const lastColumnLetter = endColumn
+        .replace(/[0-9]/g, "") // Extract the column letter
+        .toUpperCase();
+
+    const columns: string[] = [];
+    let currentColumn = "A";
+
+    while (currentColumn !== computeNextColumn(lastColumnLetter)) {
+        columns.push(currentColumn.toUpperCase());
+        currentColumn = computeNextColumn(currentColumn.toUpperCase()).toUpperCase();
+    }
+
+    return columns;
+}
+
+const computeNextColumn = (column: string): string => {
+    let carry = 1;
+    let result = "";
+
+    for (let i = column.length - 1; i >= 0; i--) {
+        const charCode = column.charCodeAt(i) - 65 + carry;
+        carry = charCode >= 26 ? 1 : 0;
+        result = String.fromCharCode((charCode % 26) + 65) + result;
+    }
+
+    if (carry > 0) {
+        result = "A" + result;
+    }
+
+    return result;
+}
+
+const getTableRangeBorder = (range: Range): CellRange => {
+    const [startCell, endCell] = range;
+
+    // Convert cell references (e.g., "A1") to row and column indices
+    const startRowIndex = parseInt(startCell.slice(1)) - 1; // Row index (0-based)
+    const startColIndex = startCell.charCodeAt(0) - 65;     // Column index (0-based, 'A' -> 0)
+    const endRowIndex = parseInt(endCell.slice(1)) - 1;
+    const endColIndex = endCell.charCodeAt(0) - 65;
+
+    // Initialize border object
+    const border: CellRange = {
+        top: [],
+        right: [],
+        bottom: [],
+        left: []
+    };
+
+    // Calculate border positions
+    for (let col = startColIndex; col <= endColIndex; col++) {
+        border.top.push(`${String.fromCharCode(65 + col)}${startRowIndex + 1}`);
+        border.bottom.push(`${String.fromCharCode(65 + col)}${endRowIndex + 1}`);
+    }
+
+    for (let row = startRowIndex; row <= endRowIndex; row++) {
+        border.left.push(`${String.fromCharCode(65 + startColIndex)}${row + 1}`);
+        border.right.push(`${String.fromCharCode(65 + endColIndex)}${row + 1}`);
+    }
+
+    return border;
+}
+
+export const highlightCells = <TData,>(
+    rows:  ReactTableRow<TData>[],
+    rangesToSelect: Range[],
+    cellRefs: Record<string, (HTMLTableCellElement | null)>,
+    cellInnerContainerRefs: Record<string, (HTMLDivElement | null)>,
+) => {
+    if (rangesToSelect.length === 0) return;
+
+    rangesToSelect.forEach((range) => {
+        rows.forEach((row) => {
+            row.getVisibleCells().forEach((cell: Cell<TData, unknown>, index: number) => {
+                const cellId = `${cell.column.id}${cell.row.index + 1}`;
+                const cellRef = cellRefs[cellId];
+                const cellContainerRef = cellInnerContainerRefs[`${cellId}-inner-container`];
+                const isCellWithInRange = isCellInRange(cell.row.index + 1, cell.column.id, range);
+                const rangeToApply = getTableRangeBorder(range);
+                const rangeCheck = (borderSide: keyof CellRange) => rangeToApply[borderSide].includes(`${cell.column.id}${cell.row.index + 1}`);
+
+                if (cellRef && isCellWithInRange) {
+                    const borderTop = rangeCheck("top") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
+                    const borderRight = rangeCheck("right") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
+                    const borderBottom = rangeCheck("bottom") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
+                    const borderLeft = rangeCheck("left") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
+
+                    cellRef.style.borderTop = borderTop;
+                    cellRef.style.borderRight = borderRight;
+                    cellRef.style.borderBottom = borderBottom;
+                    cellRef.style.borderLeft = borderLeft;
+                }
+
+                if (cellContainerRef) {
+                    cellContainerRef.className = cn(cellContainerRef.className, {
+                        "!opacity-[70%]": isCellInRange(row.index + 1, cell.column.id, range),
+                        "bg-blue-200": isCellInRange(row.index + 1, cell.column.id, range),
+                    });
+                }
+            });
+        });
+    });
+}
