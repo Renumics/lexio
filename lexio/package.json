@@ -38,7 +38,6 @@
     "@react-hook/resize-observer": "^2.0.2",
     "compromise": "^14.14.4",
     "dompurify": "^3.2.4",
-    "esbuild": "^0.24.2",
     "jotai": "^2.10.3",
     "js-tiktoken": "^1.0.19",
     "openai": "^4.85.4",
