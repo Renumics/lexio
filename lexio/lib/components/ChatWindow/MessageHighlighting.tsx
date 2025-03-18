@@ -78,9 +78,9 @@ export const renderHighlightedContent = (
     // If content is a StreamChunk, extract the actual content and highlights
     if (typeof content === 'object' && content !== null) {
         const textContent = content.content || '';
-        const streamHighlights = content.highlights || [];
-        // Use stream highlights if available, otherwise fall back to props highlights
-        const highlightsToUse = streamHighlights.length > 0 ? streamHighlights : (highlights || []);
+        const streamCitations = content.citations || [];
+        // Extract highlights from citations
+        const highlightsToUse = streamCitations.map(citation => citation.messageHighlight);
         
         return renderHighlightedContentWithHighlights(textContent, highlightsToUse, markdown, style, markdownStyling);
     }

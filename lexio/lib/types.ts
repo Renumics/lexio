@@ -537,7 +537,6 @@ export type ActionHandler = {
 export interface StreamChunk {
     content?: string;
     sources?: Source[];
-    highlights?: MessageHighlight[];
     citations?: Citation[];
     done?: boolean;
 }
