@@ -38,21 +38,21 @@ def test_rect_creation():
 def test_pdf_highlight_creation():
     """Test creating a PDFHighlight."""
     rect = Rect(top=0, left=0, width=100, height=100)
-    highlight = PDFHighlight(page=1, rect=rect, color="#FFFF00")
+    highlight = PDFHighlight(page=1, rect=rect, highlightColorRgba='rgba(255, 255, 0, 0.3)')
     
     assert highlight.page == 1
     assert highlight.rect == rect
-    assert highlight.color == "#FFFF00"
+    assert highlight.highlightColorRgba == 'rgba(255, 255, 0, 0.3)'
 
 
 def test_pdf_highlight_minimal():
     """Test creating a PDFHighlight without optional fields."""
     rect = Rect(top=0, left=0, width=100, height=100)
-    highlight = PDFHighlight(page=1, rect=rect, color="#FFFF00")
+    highlight = PDFHighlight(page=1, rect=rect, highlightColorRgba='rgba(255, 255, 0, 0.3)')
     
     assert highlight.page == 1
     assert highlight.rect == rect
-    assert highlight.color == "#FFFF00"
+    assert highlight.highlightColorRgba == 'rgba(255, 255, 0, 0.3)'
 
 
 def test_source_creation():
@@ -64,7 +64,7 @@ def test_source_creation():
         description="A sample PDF document",
         relevance=0.95,
         href="https://example.com/doc.pdf",
-        highlights=[PDFHighlight(page=1, rect=Rect(top=0, left=0, width=100, height=100), color="#FFFF00")]
+        highlights=[PDFHighlight(page=1, rect=Rect(top=0, left=0, width=100, height=100), highlightColorRgba='rgba(255, 255, 0, 0.3)')]
     )
     
     assert source.id == "12345678-1234-5678-1234-567812345678"
@@ -282,12 +282,12 @@ def test_complex_source_serialization_deserialization():
             PDFHighlight(
                 page=1,
                 rect=Rect(top=10, left=20, width=100, height=50),
-                color="#FFFF00"
+                highlightColorRgba='rgba(255, 255, 0, 0.3)'
             ),
             PDFHighlight(
                 page=2,
                 rect=Rect(top=30, left=40, width=200, height=60),
-                color="#FFFF00"
+                highlightColorRgba='rgba(255, 255, 0, 0.3)'
             )
         ]
     )
