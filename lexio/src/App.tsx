@@ -18,6 +18,7 @@ import {
 } from '../lib/main';
 import { ExplanationProcessor } from '../lib/explanation';
 import { generateHighlightColors } from '../lib/utils/highlightColors';
+import { CitationGenerator } from '../lib/utils/citationGenerator';
 import './App.css';
 
 // This is a temporary mocked response for testing purposes
@@ -177,7 +178,7 @@ function App() {
                     }));
 
                     // 1. Process highlights for message highlighting
-                    const highlights: MessageHighlight[] = ideaSources.map(source => ({
+                    const messageHighlights: MessageHighlight[] = ideaSources.map(source => ({
                         text: source.answer_idea,
                         color: source.color,
                         startChar: explanationResult.answer.indexOf(source.answer_idea),
@@ -198,21 +199,12 @@ function App() {
                         })
                         .filter((h): h is NonNullable<typeof h> => h !== null);
 
-                    // 3. Create citations linking message highlights to source evidence
-                    const citations: Citation[] = ideaSources.map(source => {
-                        const evidence = source.supporting_evidence[0];
-                        if (!evidence?.highlight) return null;
-
-                        return {
-                            sourceId: sourceToProcess.id,
-                            messageHighlight: highlights[ideaSources.indexOf(source)],
-                            sourceHighlight: {
-                                page: evidence.highlight.page,
-                                rect: evidence.highlight.rect,
-                                highlightColorRgba: source.color,
-                            }
-                        };
-                    }).filter((c): c is NonNullable<typeof c> => c !== null);
+                    // 3. Create citations using the CitationGenerator
+                    const citations = CitationGenerator.createLexioCitations(
+                        messageHighlights,
+                        sourceToProcess,
+                        pdfHighlights
+                    );
 
                     // Update source with highlights for PDF viewer
                     const updatedSource: Source = {
@@ -223,7 +215,7 @@ function App() {
                     return {
                         response: Promise.resolve({
                             content: explanationResult.answer,
-                            highlights,
+                            messageHighlights,
                             citations,
                             done: true
                         } as StreamChunk),
