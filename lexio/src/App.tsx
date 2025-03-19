@@ -11,10 +11,9 @@ import {
     Source,
     createRESTContentSource, 
     ActionHandlerResponse,
-    Citation,
-    PDFHighlight,
     StreamChunk,
     MessageHighlight,
+    PDFHighlight,
 } from '../lib/main';
 import { ExplanationProcessor } from '../lib/explanation';
 import { generateHighlightColors } from '../lib/utils/highlightColors';
