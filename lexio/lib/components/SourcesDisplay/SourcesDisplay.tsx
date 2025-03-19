@@ -255,7 +255,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                           <span style={{ 
                             color: addOpacity(style.color || colors.text, 0.6), 
                             fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
-                            }}>Relevance:</span>
+                          }}>Relevance:</span>
                           <div 
                             className="ml-2 h-2 w-24 rounded-full" 
                             style={{
@@ -296,23 +296,23 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                     <div className="pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
                       <div className="flex flex-wrap gap-2">
                         {Object.entries(source.metadata)
-                            .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
-                            .map(([key, value]) => (
-                              <span
-                                key={key}
-                                className="inline-flex items-center px-2 py-1 rounded-md"
-                                style={{
-                                  backgroundColor: style.metadataTagBackground,
-                                  color: style.metadataTagColor,
-                                  fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
-                                  lineHeight: '1.2',
-                                }}
-                              >
-                                {key}: {value}
-                              </span>
-                            ))}
-                        </div>
+                          .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
+                          .map(([key, value]) => (
+                            <span
+                              key={key}
+                              className="inline-flex items-center px-2 py-1 rounded-md"
+                              style={{
+                                backgroundColor: style.metadataTagBackground,
+                                color: style.metadataTagColor,
+                                fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
+                                lineHeight: '1.2',
+                              }}
+                            >
+                              {key}: {value}
+                            </span>
+                          ))}
                       </div>
+                    </div>
                   )}
                 </li>
               ))}

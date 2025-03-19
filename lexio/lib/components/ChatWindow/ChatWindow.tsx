@@ -199,6 +199,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                 markdown={markdown}
                                 showCopy={showCopy}
                                 showFeedback={showFeedback}
+                                highlights={msg.highlights || []}
                             />
                         )}
                     </React.Fragment>
@@ -214,6 +215,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                         icon={assistantIcon || undefined}
                         markdown={markdown}
                         isStreaming={true}
+                        highlights={currentStream.highlights || []}
                     />
                 )}
                 <div ref={chatEndRef}/>

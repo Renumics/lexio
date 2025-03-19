@@ -41,6 +41,23 @@ export const activeMessageAtom = atom(
 export const retrievedSourcesAtom = atom<Source[]>([]);
 export const activeSourcesIdsAtom = atom<string[] | null>(null);
 export const selectedSourceIdAtom = atom<string | null>(null);
+export const currentPageAtom = atom<number | null>(null);
+
+export const selectedSourceWithPageAtom = atom(
+    (get) => {
+        const source = get(selectedSourceAtom);
+        const page = get(currentPageAtom);
+        if (!source) return null;
+        
+        return {
+            ...source,
+            metadata: {
+                ...(source.metadata || {}),
+                page: page ?? source.metadata?.page
+            }
+        };
+    }
+);
 
 export const activeSourcesAtom = atom(
     (get) => {
@@ -393,6 +410,7 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     // Explicit check for null or empty string
     if (action.sourceId === null || action.sourceId === '') {
         set(selectedSourceIdAtom, null);
+        set(currentPageAtom, null);
         return;
     }
     
@@ -409,19 +427,16 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
 
     // Only validate and update data if sourceData is provided
     if (response.sourceData) {
-        // Warn if trying to update a source that already has data
-        if (targetSource.data) {
-            console.warn(`Source ${action.sourceId} already has data but new data was provided`);
-            return;
-        }
-
         try {
             // Await the Promise to get the actual data
             const resolvedData = await response.sourceData;
             
             const updatedSources = currentSources.map(source => 
                 source.id === action.sourceId 
-                    ? { ...source, data: resolvedData }
+                    ? {
+                        ...source,
+                        data: source.data || resolvedData
+                    }
                     : source
             );
             set(retrievedSourcesAtom, updatedSources);
@@ -505,7 +520,16 @@ export const dispatchAtom = atom(
       // ---- Fetch additional data for certain actions ---
       if (action.type === 'SET_SELECTED_SOURCE') {
           const source = get(retrievedSourcesAtom).find(source => source.id === action.sourceId);
-          if (source) {
+          if (source && action.sourceObject) {
+              // Merge with existing source while preserving the new metadata
+              action.sourceObject = {
+                  ...source,
+                  metadata: {
+                      ...(source.metadata || {}),
+                      ...(action.sourceObject.metadata || {})
+                  }
+              };
+          } else if (source) {
               action.sourceObject = source;
           }
       }
