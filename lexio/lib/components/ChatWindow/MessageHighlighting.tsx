@@ -1,10 +1,8 @@
 import React from 'react';
-import { MessageHighlight, StreamChunk, Citation, Source, UUID } from '../../types';
+import { MessageHighlight, StreamChunk, Citation } from '../../types';
 import { ChatWindowStyles } from './ChatWindow';
 import { AssistantMarkdownContent } from './AssistantMarkdownContent';
 import { useSources } from '../../hooks/hooks';
-import { useSetAtom } from 'jotai';
-import { dispatchAtom } from '../../state/rag-state';
 
 /**
  * Renders content with highlights
@@ -17,8 +15,7 @@ const renderHighlightedContentWithHighlights = (
     style: ChatWindowStyles,
     markdownStyling: React.CSSProperties
 ) => {
-    const dispatch = useSetAtom(dispatchAtom);
-    const { sources } = useSources('CustomComponent');
+    const { setSelectedSource } = useSources('CustomComponent');
 
     const handleHighlightClick = (highlight: MessageHighlight) => {
         if (!citations) return;
@@ -32,31 +29,8 @@ const renderHighlightedContentWithHighlights = (
         console.log("Citation found:", citation);
 
         if (citation) {
-            const existingSource = sources.find(s => s.id === citation.sourceId);
-            
-            console.log("Existing source:", existingSource);
-            
-            // Create a source object with the page number while preserving existing data
-            const sourceObject: Source = {
-                ...(existingSource || {}),
-                id: citation.sourceId as UUID,
-                title: existingSource?.title || 'Source',
-                type: existingSource?.type || 'pdf',
-                metadata: {
-                    ...(existingSource?.metadata || {}),
-                    page: citation.sourceHighlight.page
-                }
-            };
-            
-            console.log("Created source object with page:", sourceObject);
-            
-            // Pass the source object to the dispatch function
-            dispatch({
-                type: 'SET_SELECTED_SOURCE',
-                sourceId: citation.sourceId,
-                sourceObject,
-                source: 'CustomComponent'
-            }, false);
+            // Set the selected source and page in one call
+            setSelectedSource(citation.sourceId, citation.sourceHighlight.page);
         }
     };
 

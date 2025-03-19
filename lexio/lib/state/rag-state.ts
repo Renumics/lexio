@@ -41,6 +41,23 @@ export const activeMessageAtom = atom(
 export const retrievedSourcesAtom = atom<Source[]>([]);
 export const activeSourcesIdsAtom = atom<string[] | null>(null);
 export const selectedSourceIdAtom = atom<string | null>(null);
+export const currentPageAtom = atom<number | null>(null);
+
+export const selectedSourceWithPageAtom = atom(
+    (get) => {
+        const source = get(selectedSourceAtom);
+        const page = get(currentPageAtom);
+        if (!source) return null;
+        
+        return {
+            ...source,
+            metadata: {
+                ...(source.metadata || {}),
+                page: page ?? source.metadata?.page
+            }
+        };
+    }
+);
 
 export const activeSourcesAtom = atom(
     (get) => {
@@ -393,10 +410,11 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     // Explicit check for null or empty string
     if (action.sourceId === null || action.sourceId === '') {
         set(selectedSourceIdAtom, null);
+        set(currentPageAtom, null);
         return;
     }
     
-    let currentSources = get(retrievedSourcesAtom);
+    const currentSources = get(retrievedSourcesAtom);
     const targetSource = currentSources.find(source => source.id === action.sourceId);
     
     if (!targetSource) {
@@ -406,23 +424,6 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     
     // Always set the selected source ID
     set(selectedSourceIdAtom, action.sourceId);
-
-    // Update source metadata if provided in the action
-    const sourceObject = action.sourceObject;
-    if (sourceObject?.metadata) {
-        const updatedSources = currentSources.map(source => 
-            source.id === action.sourceId 
-                ? {
-                    ...source,
-                    metadata: sourceObject.metadata  // Use the already merged metadata
-                }
-                : source
-        );
-        set(retrievedSourcesAtom, updatedSources);
-        
-        // Update currentSources to use the new metadata for subsequent operations
-        currentSources = updatedSources;
-    }
 
     // Only validate and update data if sourceData is provided
     if (response.sourceData) {
@@ -434,8 +435,7 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
                 source.id === action.sourceId 
                     ? {
                         ...source,
-                        data: source.data || resolvedData,
-                        metadata: sourceObject?.metadata || source.metadata  // Preserve metadata
+                        data: source.data || resolvedData
                     }
                     : source
             );
