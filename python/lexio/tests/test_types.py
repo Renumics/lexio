@@ -270,6 +270,7 @@ def test_source_serialization_deserialization():
 
 def test_complex_source_serialization_deserialization():
     """Test serializing and deserializing a Source with nested objects."""
+    # Create a source with highlights and metadata
     source = Source(
         id="12345678-1234-5678-1234-567812345678",
         title="Complex Source",
@@ -277,7 +278,7 @@ def test_complex_source_serialization_deserialization():
         description="A complex source with highlights and metadata",
         relevance=0.95,
         href="https://example.com/doc.pdf",
-        metadata={"page": 5, "_page": 5},
+        metadata={"page": 5, "_page": 5}, # Dict statt Metadata-Klasse
         highlights=[
             PDFHighlight(
                 page=1,

@@ -6,7 +6,6 @@ import {
     currentStreamAtom,
     activeSourcesAtom,
     activeSourcesIdsAtom,
-    selectedSourceAtom,
     selectedSourceIdAtom,
     retrievedSourcesAtom,
     errorAtom,
