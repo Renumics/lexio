@@ -396,7 +396,7 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
         return;
     }
     
-    const currentSources = get(retrievedSourcesAtom);
+    let currentSources = get(retrievedSourcesAtom);
     const targetSource = currentSources.find(source => source.id === action.sourceId);
     
     if (!targetSource) {
@@ -407,21 +407,36 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     // Always set the selected source ID
     set(selectedSourceIdAtom, action.sourceId);
 
+    // Update source metadata if provided in the action
+    const sourceObject = action.sourceObject;
+    if (sourceObject?.metadata) {
+        const updatedSources = currentSources.map(source => 
+            source.id === action.sourceId 
+                ? {
+                    ...source,
+                    metadata: sourceObject.metadata  // Use the already merged metadata
+                }
+                : source
+        );
+        set(retrievedSourcesAtom, updatedSources);
+        
+        // Update currentSources to use the new metadata for subsequent operations
+        currentSources = updatedSources;
+    }
+
     // Only validate and update data if sourceData is provided
     if (response.sourceData) {
-        // Warn if trying to update a source that already has data
-        if (targetSource.data) {
-            console.warn(`Source ${action.sourceId} already has data but new data was provided`);
-            return;
-        }
-
         try {
             // Await the Promise to get the actual data
             const resolvedData = await response.sourceData;
             
             const updatedSources = currentSources.map(source => 
                 source.id === action.sourceId 
-                    ? { ...source, data: resolvedData }
+                    ? {
+                        ...source,
+                        data: source.data || resolvedData,
+                        metadata: sourceObject?.metadata || source.metadata  // Preserve metadata
+                    }
                     : source
             );
             set(retrievedSourcesAtom, updatedSources);
@@ -505,7 +520,16 @@ export const dispatchAtom = atom(
       // ---- Fetch additional data for certain actions ---
       if (action.type === 'SET_SELECTED_SOURCE') {
           const source = get(retrievedSourcesAtom).find(source => source.id === action.sourceId);
-          if (source) {
+          if (source && action.sourceObject) {
+              // Merge with existing source while preserving the new metadata
+              action.sourceObject = {
+                  ...source,
+                  metadata: {
+                      ...(source.metadata || {}),
+                      ...(action.sourceObject.metadata || {})
+                  }
+              };
+          } else if (source) {
               action.sourceObject = source;
           }
       }

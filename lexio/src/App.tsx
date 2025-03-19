@@ -19,6 +19,8 @@ import {
 import { ExplanationProcessor } from '../lib/explanation';
 import { generateHighlightColors } from '../lib/utils/highlightColors';
 import { CitationGenerator } from '../lib/utils/citationGenerator';
+import { retrievedSourcesAtom } from '../lib/state/rag-state';
+import { useSetAtom } from 'jotai';
 import './App.css';
 
 // This is a temporary mocked response for testing purposes
@@ -34,6 +36,8 @@ type SourceData = Blob | Uint8Array | ArrayBuffer;
 const SET_ACTIVE_SOURCES = 'SET_ACTIVE_SOURCES' as const;
 
 function App() {
+    const setRetrievedSources = useSetAtom(retrievedSourcesAtom);
+    
     const contentSourceOptions = useMemo(() => ({
         buildFetchRequest: (_source: Source) => ({
             // url: '/pdfs/deepseek.pdf',  
@@ -93,8 +97,42 @@ function App() {
         }
 
         if (action.type === 'SET_SELECTED_SOURCE') {
-            const sourceToLoad = selectedSource || defaultSource;
-            console.log('Attempting to load PDF source:', sourceToLoad);
+            const sourceToLoad = action.sourceObject || selectedSource || defaultSource;
+            
+            console.log("Source to load:", sourceToLoad);
+            console.log("Action source object:", action.sourceObject);
+            
+            // If we already have data for this source, just update the metadata
+            if (sourceToLoad.data) {
+                console.log("Source already has data, returning with metadata update");
+                
+                // Create updated source with new metadata
+                const updatedSource = {
+                    ...sourceToLoad,
+                    metadata: {
+                        ...(sourceToLoad.metadata || {}),
+                        ...(action.sourceObject?.metadata || {})
+                    }
+                };
+                
+                // Update the source in state first
+                const currentSources = sources.map(source => 
+                    source.id === sourceToLoad.id ? updatedSource : source
+                );
+                setRetrievedSources(currentSources);
+                
+                // Return just the data - metadata is already updated in state
+                return {
+                    sourceData: Promise.resolve(updatedSource.data as Uint8Array),
+                    followUpAction: {
+                        type: SET_ACTIVE_SOURCES,
+                        sourceIds: [sourceToLoad.id],
+                        source: 'LexioProvider' as const
+                    }
+                };
+            }
+            
+            // Otherwise, load the source data
             return contentSource(sourceToLoad)
                 .then(async sourceWithData => {
                     console.log('Successfully loaded PDF data:', sourceWithData);
@@ -113,6 +151,21 @@ function App() {
                         } else {
                             throw new Error(`Unsupported data type: ${typeof data}`);
                         }
+
+                        // Create source with merged metadata
+                        const updatedSource = {
+                            ...sourceToLoad,
+                            metadata: {
+                                ...(sourceToLoad.metadata || {}),
+                                ...(action.sourceObject?.metadata || {})
+                            }
+                        };
+
+                        // Update source in state
+                        const currentSources = sources.map(source => 
+                            source.id === sourceToLoad.id ? updatedSource : source
+                        );
+                        setRetrievedSources(currentSources);
 
                         return {
                             sourceData: finalData,
@@ -265,7 +318,7 @@ function App() {
                 done: true
             } as StreamChunk)
         };
-    }, [contentSource]);
+    }, [contentSource, setRetrievedSources]);
 
     return (
         <div className="app-container">

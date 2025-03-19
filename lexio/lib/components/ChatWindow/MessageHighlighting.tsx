@@ -1,7 +1,10 @@
 import React from 'react';
-import { MessageHighlight, StreamChunk } from '../../types';
+import { MessageHighlight, StreamChunk, Citation, Source, UUID } from '../../types';
 import { ChatWindowStyles } from './ChatWindow';
 import { AssistantMarkdownContent } from './AssistantMarkdownContent';
+import { useSources } from '../../hooks/hooks';
+import { useSetAtom } from 'jotai';
+import { dispatchAtom } from '../../state/rag-state';
 
 /**
  * Renders content with highlights
@@ -9,10 +12,54 @@ import { AssistantMarkdownContent } from './AssistantMarkdownContent';
 const renderHighlightedContentWithHighlights = (
     content: string, 
     highlightsToUse: MessageHighlight[],
+    citations: Citation[] | undefined,
     markdown: boolean,
     style: ChatWindowStyles,
     markdownStyling: React.CSSProperties
 ) => {
+    const dispatch = useSetAtom(dispatchAtom);
+    const { sources } = useSources('CustomComponent');
+
+    const handleHighlightClick = (highlight: MessageHighlight) => {
+        if (!citations) return;
+        
+        // Find the citation that matches this highlight
+        const citation = citations.find(c => 
+            c.messageHighlight.startChar === highlight.startChar && 
+            c.messageHighlight.endChar === highlight.endChar
+        );
+
+        console.log("Citation found:", citation);
+
+        if (citation) {
+            const existingSource = sources.find(s => s.id === citation.sourceId);
+            
+            console.log("Existing source:", existingSource);
+            
+            // Create a source object with the page number while preserving existing data
+            const sourceObject: Source = {
+                ...(existingSource || {}),
+                id: citation.sourceId as UUID,
+                title: existingSource?.title || 'Source',
+                type: existingSource?.type || 'pdf',
+                metadata: {
+                    ...(existingSource?.metadata || {}),
+                    page: citation.sourceHighlight.page
+                }
+            };
+            
+            console.log("Created source object with page:", sourceObject);
+            
+            // Pass the source object to the dispatch function
+            dispatch({
+                type: 'SET_SELECTED_SOURCE',
+                sourceId: citation.sourceId,
+                sourceObject,
+                source: 'CustomComponent'
+            }, false);
+        }
+    };
+
     if (highlightsToUse && highlightsToUse.length > 0) {
         // Sort highlights by startChar to process them in order
         const sortedHighlights = [...highlightsToUse].sort((a, b) => a.startChar - b.startChar);
@@ -27,11 +74,22 @@ const renderHighlightedContentWithHighlights = (
                 segments.push(content.slice(lastIndex, highlight.startChar));
             }
 
-            // Add highlighted segment
+            // Add highlighted segment with click handler
             segments.push(
                 <span
                     key={`highlight-${index}`}
-                    style={{ backgroundColor: highlight.color }}
+                    style={{ 
+                        backgroundColor: highlight.color,
+                        cursor: citations ? 'pointer' : 'default'
+                    }}
+                    onClick={() => handleHighlightClick(highlight)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            handleHighlightClick(highlight);
+                        }
+                    }}
                 >
                     {content.slice(highlight.startChar, highlight.endChar)}
                 </span>
@@ -82,8 +140,9 @@ export const renderHighlightedContent = (
         // Extract highlights from citations
         const highlightsToUse = streamCitations.map(citation => citation.messageHighlight);
         
-        return renderHighlightedContentWithHighlights(textContent, highlightsToUse, markdown, style, markdownStyling);
+        return renderHighlightedContentWithHighlights(textContent, highlightsToUse, streamCitations, markdown, style, markdownStyling);
     }
 
-    return renderHighlightedContentWithHighlights(content, highlights || [], markdown, style, markdownStyling);
+    return renderHighlightedContentWithHighlights(content, highlights || [], undefined, markdown, style, markdownStyling);
 };
+
