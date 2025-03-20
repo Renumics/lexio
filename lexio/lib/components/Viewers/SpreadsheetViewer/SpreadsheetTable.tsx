@@ -1,9 +1,9 @@
 import {CSSProperties, useEffect, useRef} from "react";
 import {Cell, ColumnDef, flexRender, getCoreRowModel, useReactTable} from "@tanstack/react-table";
 import {cn} from "./ui/utils";
-import {Range, SelectedCell, useSpreadsheetStyles} from "./useSpreadsheetStore.tsx";
+import {Range, SelectedCell} from "./useSpreadsheetStore";
 import {useVirtualizer} from "@tanstack/react-virtual";
-import {CellContent} from "./utils.ts";
+import {CellContent, highlightCells} from "./utils";
 
 // In pixel
 const DEFAULT_COLUMN_WIDTH = 180 as const;
@@ -50,8 +50,6 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
 
     const cellInnerContainerRefs = useRef<Record<string, (HTMLDivElement | null)>>({});
 
-    const { highlightCells } = useSpreadsheetStyles();
-
     // Set cell styles of ranges to highlight
     useEffect(() => {
         highlightCells(
@@ -73,7 +71,7 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
         // This callback gets fired each time the virtualizer gets updated. See: https://tanstack.com/virtual/latest/docs/api/virtualizer#onchange
         onChange: () => {
             // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
-            // Without this, the refernce of cells gets lost and the highlight styles get lost when they are out of the view port.
+            // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
             highlightCells(
                 table.getRowModel().rows,
                 rangesToSelect,
@@ -156,7 +154,16 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
     }
 
     return (
-        <div ref={parentRef} style={{height: parentContainerHeight ? `${parentContainerHeight}px` : "inherit", width: "100%", overflowX: "auto", overflowY: "auto" }}>
+        <div
+            ref={parentRef}
+            style={{
+                height: parentContainerHeight ? `${parentContainerHeight}px` : "inherit",
+                width: "100%",
+                overflowX: "auto",
+                overflowY: "auto",
+                whiteSpace: "nowrap",
+            }}
+        >
             <table
                 style={{
                     // tableLayout: 'fixed',
@@ -190,6 +197,34 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
                             </th>
                         )}
                     </tr>
+                    // <tr key={headerGroup.id} className="flex w-full">
+                    //     {columnVirtualizer.getVirtualItems().map((virtualColumn, colIndex) => {
+                    //         const headers = headerGroup.headers;
+                    //         const header = headers[virtualColumn.index];
+                    //         return (
+                    //             <th
+                    //                 key={header.id}
+                    //                 style={{
+                    //                     // width: `${virtualColumn.size}px`,
+                    //                     position: "relative",
+                    //                     left: colIndex === 1 ? "0px" : `${virtualColumn.start}px`,
+                    //                     // added
+                    //                     display: "flex",
+                    //                     // width: header.getSize(),
+                    //                     width: colIndex === 0 ? `${calculateWidthOfFirstColumn()}px` : `${calculateWidthOfColumn(header.column.id)}px`,
+                    //
+                    //                     borderTop: "unset",
+                    //                     borderRight: colIndex === headers.length - 1 ? "1px solid #e5e7eb" : "unset",
+                    //                     borderLeft: colIndex === 0 ? "unset" : "1px solid #e5e7eb",
+                    //                     borderBottom: "1px solid #e5e7eb",
+                    //                     // transform: `translateX(${virtualColumn.start}px)`,
+                    //                 }}
+                    //             >
+                    //                 {colIndex === 0 ? "" : flexRender(header.column.columnDef.header, header.getContext())}
+                    //             </th>
+                    //         );
+                    //     })}
+                    // </tr>
                 )}
                 </thead>
                 <tbody className={"relative w-full"} style={{height: `${rowVirtualizer.getTotalSize()}px`}}>

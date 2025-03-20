@@ -35,7 +35,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
         cellStyles,
         rowStyles,
         headerStyles,
-        mergedRangesOfSelectedWorksheet,
+        mergedGroupOfSelectedWorksheet,
         getMetaDataOfSelectedCell,
     } = useSpreadsheetViewerStore({
         fileBufferArray,
@@ -126,7 +126,8 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                                 rangesToSelect={rangeToSelect}
                                 handleCellClick={handleCellClick}
                                 // parentContainerHeight={parentSize.height}
-                                mergedRangesOfSelectedWorksheet={mergedRangesOfSelectedWorksheet}
+                                mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
+                                selectedSheetName={selectedWorksheetName}
                             />
                        </div>
                    }

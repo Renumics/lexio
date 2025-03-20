@@ -21,7 +21,7 @@ import {
     Row,
     RowList,
     sortSpreadsheetColumnsComparator,
-    validateExcelRange, isCellInRange,
+    validateExcelRange,
 } from "./utils.ts";
 import {
     ParsingOptions,
@@ -38,6 +38,11 @@ export type SelectedCell = {
 export type Range = [string, string];
 
 export type CellRange = Record<"top" | "right" | "bottom" | "left", string[]>;
+
+export type MergeGroup = {
+    sheetName: string,
+    mergedRanges: MergedRange[],
+}
 
 export type MergedRange = {
     start: { row: number, column: string },
@@ -71,7 +76,7 @@ type ExcelOperationsStore = {
     setSelectedCell: (cell?: { row: number, column: string } | undefined) => void;
     rangeToSelect: Range[],
     setRangeToSelect: (range: Range[]) => void;
-    mergedRangesOfSelectedWorksheet: MergedRange[];
+    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
 };
 const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: string | undefined): ExcelOperationsStore => {
     const [sheetJsWorkbook, setSheetJsWorkbook] = useState<SheetJsWorkbook | undefined>(undefined);
@@ -83,41 +88,12 @@ const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: 
     const [selectedSheetJsWorksheet, setSelectedSheetJsWorksheet] = useState<SheetJsWorkSheet | undefined>(undefined);
     const [selectedCell, setSelectedCell] = useState<SelectedCell | undefined>(undefined);
     const [rangeToSelect, setRangeToSelect] = useState<Range[]>([]);
-    const [mergedRangesOfSelectedWorksheet, setMergedRangesOfSelectedWorksheet] = useState<MergedRange[]>([]);
+    const [mergedGroupOfSelectedWorksheet, setMergedGroupOfSelectedWorksheet] = useState<MergeGroup | undefined>(undefined);
     // Important: used exclusively to load styles and not data !
     const [excelJsWorkbook, setExcelJsWorkbook] = useState<ExcelJsWorkbook | undefined>(undefined);
 
     useEffect(() => {
-        const getExcelWorkbook = async (arrayBuffer: ArrayBuffer, selectedSpreadsheetName?: string | undefined): Promise<SheetJsWorkbook> => {
-            const setWorkbookData = (workbook: SheetJsWorkbook, selectedSpreadsheet?: string | undefined) => {
-                setSheetJsWorksheets(workbook.Sheets);
-                setSheetNames(workbook.SheetNames);
-
-                // Set the selected spreadsheet based on the input or the first available spreadsheet in the workbook as default.
-                const selectedSheetFromFile = workbook.SheetNames.find((name) => name === selectedSpreadsheet) ?? workbook.SheetNames[0];
-                setSelectedWorksheetName(selectedSheetFromFile);
-
-                // Set selected spreadsheet if provided.
-                const selectedWorksheet = workbook.Sheets[selectedSheetFromFile];
-                setSelectedSheetJsWorksheet(selectedWorksheet);
-
-                const mergedRanges: MergedRange[] = selectedWorksheet["!merges"] ? selectedWorksheet["!merges"].map((range) => {
-                    const encodeStartColumn = utils.encode_col(range.s.c);
-                    const encodeEndColumn = utils.encode_col(range.e.c);
-                    return {
-                        start: {
-                            row: range.s.r + 1, // Because the row count is 0-based indexed
-                            column: encodeStartColumn,
-                        },
-                        end: {
-                            row: range.e.r + 1, // Because the row count is 0-based indexed
-                            column: encodeEndColumn,
-                        },
-                    };
-                }) : [];
-                setMergedRangesOfSelectedWorksheet(mergedRanges)
-            }
-
+        const getExcelWorkbook = async (arrayBuffer: ArrayBuffer): Promise<SheetJsWorkbook> => {
             const readParsingOptions: ParsingOptions = {
                 type: "file",
                 // cellFormula: true,
@@ -137,7 +113,6 @@ const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: 
             const excelJsWorkbookInstance = await excelJsWorkbook.xlsx.load(arrayBuffer);
             setExcelJsWorkbook(excelJsWorkbookInstance);
 
-            setWorkbookData(workbook, selectedSpreadsheetName);
             return workbook;
         };
 
@@ -146,7 +121,7 @@ const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: 
             setIsLoading(true);
             setError(undefined);
             try {
-                const loadedWorkbook = await getExcelWorkbook(arrayBuffer, defaultSpreadsheetName);
+                const loadedWorkbook = await getExcelWorkbook(arrayBuffer);
                 setSheetJsWorkbook(loadedWorkbook);
             } catch (e) {
                 setError(e);
@@ -156,12 +131,53 @@ const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: 
         })();
     }, [arrayBuffer, defaultSpreadsheetName]);
 
-    // Switch worksheet when selectedWorksheetName gets updated.
+    useEffect(() => {
+        if (!sheetJsWorkbook) return;
+        const setWorkbookData = (workbook: SheetJsWorkbook, selectedSpreadsheet?: string | undefined) => {
+            setSheetJsWorksheets(workbook.Sheets);
+            setSheetNames(workbook.SheetNames);
+
+            // Set the selected spreadsheet based on the input or the first available spreadsheet in the workbook as default.
+            const selectedSheetFromFile = workbook.SheetNames.find((name) => name === selectedSpreadsheet) ?? workbook.SheetNames[0];
+            setSelectedWorksheetName(selectedSheetFromFile);
+
+            // Set selected spreadsheet if provided.
+            const selectedWorksheet = workbook.Sheets[selectedSheetFromFile];
+            setSelectedSheetJsWorksheet(selectedWorksheet);
+        }
+        setWorkbookData(sheetJsWorkbook, defaultSpreadsheetName);
+    }, [defaultSpreadsheetName, sheetJsWorkbook]);
+
+    // Switch worksheet and update mergedRanges when selectedWorksheetName gets updated.
     useEffect(() => {
         if (isLoading && (!sheetJsWorkbook || !sheetJsWorksheets)) return;
         if (!sheetJsWorkbook || !sheetJsWorksheets) return;
-        setSelectedSheetJsWorksheet(sheetJsWorksheets[selectedWorksheetName]);
-    }, [selectedWorksheetName, sheetJsWorkbook, sheetJsWorksheets]);
+        const selectedWorksheet = sheetJsWorksheets[selectedWorksheetName];
+        setSelectedSheetJsWorksheet(selectedWorksheet);
+
+        // Update merged ranges when selectedSheetJsWorksheet gets updated.
+        if (!selectedWorksheet) return;
+        setMergedGroupOfSelectedWorksheet(undefined);
+        const mergedRanges: MergedRange[] = selectedWorksheet["!merges"] ? selectedWorksheet["!merges"].map((range) => {
+            const encodeStartColumn = utils.encode_col(range.s.c);
+            const encodeEndColumn = utils.encode_col(range.e.c);
+            return {
+                start: {
+                    row: range.s.r + 1, // Because the row count is 0-based indexed
+                    column: encodeStartColumn,
+                },
+                end: {
+                    row: range.e.r + 1, // Because the row count is 0-based indexed
+                    column: encodeEndColumn,
+                },
+            };
+        }) : [];
+        const mergeGroup: MergeGroup = {
+            sheetName: selectedWorksheetName,
+            mergedRanges,
+        }
+        setMergedGroupOfSelectedWorksheet(mergeGroup);
+    }, [isLoading, selectedWorksheetName, sheetJsWorkbook, sheetJsWorksheets]);
 
     return {
         isLoading,
@@ -180,7 +196,7 @@ const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: 
         setSelectedCell,
         rangeToSelect,
         setRangeToSelect,
-        mergedRangesOfSelectedWorksheet,
+        mergedGroupOfSelectedWorksheet,
     };
 };
 
@@ -197,7 +213,7 @@ type OutputSpreadsheetViewerStore = {
     selectedCell?: SelectedCell  | undefined;
     setSelectedCell: (cell?: { row: number, column: string } | undefined) => void;
     rangeToSelect: Range[];
-    mergedRangesOfSelectedWorksheet: MergedRange[];
+    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
     isLoading: boolean;
     error: unknown;
     columns: ColumnDef<Row, CellContent>[];
@@ -222,7 +238,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         setSelectedWorksheetName,
         selectedSheetJsWorksheet,
         sheetNames,
-        mergedRangesOfSelectedWorksheet,
+        mergedGroupOfSelectedWorksheet,
     } = useSpreadsheetStore(input.fileBufferArray, input.defaultSelectedSheet);
 
     const [columns, setColumns] = useState<ColumnDef<Row, CellContent>[]>([]);
@@ -261,7 +277,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
             return;
         }
         if (!selectedSheetJsWorksheet) {
-            console.error("No worksheet found.");
+            console.warn("No worksheet found.");
             return;
         }
 
@@ -302,7 +318,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
 
         // Property rowNo added to ease row identification.
         setRowData(rows.map((row, index) => ({ rowNo: `${index + 1}`, ...row })));
-    }, [selectedSheetJsWorksheet, selectedWorksheetName, sheetJsWorkbook]);
+    }, [isLoading, selectedSheetJsWorksheet, selectedWorksheetName, sheetJsWorkbook]);
 
     // Sets styles of active worksheet.
     useEffect(() => {
@@ -312,7 +328,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         const excelJsSelectedWorksheet = excelJsWorkbook.worksheets.find((ws) => ws.name === selectedWorksheetName);
 
         if (!excelJsSelectedWorksheet) {
-            console.error("No excelJs worksheet found. No styles will be applied on the active worksheet.");
+            console.warn("No excelJs worksheet found. No styles will be applied on the active worksheet.");
             return;
         }
         const {
@@ -324,7 +340,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         setHeaderStyles(headerStyles);
         setRowStyles(rowStyles);
         setCellStyles(cellStyles);
-    }, [excelJsWorkbook, selectedWorksheetName]);
+    }, [excelJsWorkbook, isLoading, selectedWorksheetName]);
 
     const getMetaDataOfSelectedCell = (): CellMetaData => {
         if (!selectedCell) return {};
@@ -348,7 +364,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         cellStyles,
         rowStyles,
         headerStyles,
-        mergedRangesOfSelectedWorksheet,
+        mergedGroupOfSelectedWorksheet,
         getMetaDataOfSelectedCell,
     }
 }
@@ -415,30 +431,114 @@ const getStyleOfWorksheet = (worksheet: ExcelJsWorksheet): WorksheetStyle => {
     }
 }
 
+// export const mergeCells = (
+//     merges: MergedRange[],
+//     cellRefs: Record<string, HTMLTableCellElement>,
+//     onCellMergeDone?: (() => void) | undefined,
+// ) => {
+//     if (merges.length === 0) return;
+//
+//     console.log("merges: ", merges);
+//     const rowsModified: number[] = [];
+//     const cellsModified: string[] = [];
+//
+//     merges.forEach((merge) => {
+//         const firstCellOfRange = `${merge.start.column}${merge.start.row}`;
+//         const lastCellOfRange = `${merge.end.column}${merge.end.row}`;
+//
+//         if (!firstCellOfRange || !lastCellOfRange) {
+//             console.warn("Invalid merge range. No cells found.");
+//             return;
+//         }
+//
+//         Object.entries(cellRefs).forEach(([cellAddress, cellRef]) => {
+//             if (!cellRef) return;
+//             const cellComponent = extractCellComponent(cellAddress);
+//             if (!cellComponent) return;
+//             if (merge.start.row !== cellComponent.row || merge.end.row !== cellComponent.row) return;
+//
+//             const isInRange = isCellInRange(cellComponent?.row, cellComponent.column, [firstCellOfRange, lastCellOfRange]);
+//
+//             if (!isInRange) return;
+//
+//             if (cellAddress === firstCellOfRange) {
+//                 rowsModified.push(cellComponent.row)
+//                 cellsModified.push(cellAddress);
+//                 const nextCell = cellRefs[`${utils.encode_col(utils.decode_col(cellComponent.column) + 1)}${cellComponent.row}`];
+//
+//                 console.log("Current cell: ", cellAddress);
+//
+//                 if (!nextCell) {
+//                     console.log("Next cell not found.");
+//                     return;
+//                 }
+//                 cellRef.style.setProperty(
+//                     "width",
+//                     `${Number(cellRef.style.width.split("px")[0]) + Number(nextCell.style.width.split("px")[0])}px`,
+//                     "important",
+//                 );
+//
+//                 nextCell.style.setProperty("display", "none", "important");
+//             }
+//         })
+//     });
+//
+//     console.log("rowsModified: ", rowsModified);
+//     console.log("cellsModified: ", cellsModified);
+//
+//     if (onCellMergeDone) {
+//         if (rowsModified.length > 0 || cellsModified.length > 0) {
+//             onCellMergeDone();
+//         }
+//     }
+// };
 
-export const applyMergesToCells = (merges: MergedRange[], cellRefs: Record<string, HTMLTableCellElement | null>) => {
-    if (merges.length === 0) return;
 
-    for (const merge of merges) {
-        const firstCell = `${merge.start.column}${merge.start.row}`;
-        const lastCell = `${merge.end.column}${merge.end.row}`;
+export const mergeCells = (
+    merges: MergedRange[],
+    cellRefs: Record<string, HTMLTableCellElement>,
+    onCellMergeDone?: (() => void) | undefined,
+) => {
+    if (merges.length === 0 || Object.keys(cellRefs).length === 0) {
+        // onCellMergeDone?.();
+        return;
+    }
 
-        if (!firstCell ||!lastCell) {
-            console.error("Invalid merge range. No cells found.");
-            return;
+    merges.forEach((merge) => {
+        const startCell = cellRefs[`${merge.start.column}${merge.start.row}`];
+        if (!startCell) return;
+
+        const colSpan = utils.decode_col(merge.end.column) - utils.decode_col(merge.start.column) + 1;
+        const rowSpan = merge.end.row - merge.start.row + 1;
+
+        startCell.colSpan = colSpan;
+        startCell.rowSpan = rowSpan;
+
+        let totalWidth = parseFloat(startCell.style.width) || startCell.offsetWidth;
+        let totalHeight = parseFloat(startCell.style.height) || startCell.offsetHeight;
+
+        // Merge columns (adjust width)
+        for (let col = utils.decode_col(merge.start.column) + 1; col <= utils.decode_col(merge.end.column); col++) {
+            const cellToMerge = cellRefs[`${utils.encode_col(col)}${merge.start.row}`];
+            if (cellToMerge) {
+                totalWidth += parseFloat(cellToMerge.style.width) || cellToMerge.offsetWidth;
+                cellToMerge.style.display = 'none';
+            }
         }
 
-        Object.entries(cellRefs).forEach(([cellAddress, cellRef]) => {
-            if (!cellRef) return;
-            const cellComponent = extractCellComponent(cellAddress);
-            if (!cellComponent) return;
-            isCellInRange(cellComponent?.row, cellComponent.column, [firstCell, lastCell]);
-
-            if (cellAddress === lastCell) {
-                // cellRef?.remove?.();
+        // Merge rows (adjust height)
+        for (let row = merge.start.row + 1; row <= merge.end.row; row++) {
+            const cellToMerge = cellRefs[`${merge.start.column}${row}`];
+            if (cellToMerge) {
+                totalHeight += parseFloat(cellToMerge.style.height) || cellToMerge.offsetHeight;
+                cellToMerge.style.display = 'none';
             }
-        })
+        }
 
-        // cellRefs[lastCell]?.remove?.();
-    }
-}
+        // Apply the total width and height to the start cell
+        startCell.style.width = `${totalWidth}px`;
+        startCell.style.height = `${totalHeight}px`;
+    });
+
+    onCellMergeDone?.();
+};

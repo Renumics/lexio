@@ -5,8 +5,8 @@ import {
     Ref,
     RefObject,
     useEffect,
-    useImperativeHandle,
-    useRef
+    useImperativeHandle, useMemo,
+    useRef,
 } from "react"
 import {
     Cell,
@@ -21,8 +21,8 @@ import {
 } from "@tanstack/react-table";
 import {useVirtualizer, VirtualItem, Virtualizer,} from "@tanstack/react-virtual";
 import {
-    applyMergesToCells,
-    MergedRange,
+    mergeCells,
+    MergeGroup,
     Range,
     SelectedCell,
 } from "./useSpreadsheetStore";
@@ -77,6 +77,32 @@ const calculateHeightOfRow = (rowIndex: number, rowStyles: Record<string, CSSPro
     return result;
 }
 
+const applyMergesToCells = (mergeGroup: MergeGroup | undefined, sheetName: string, tableId: string, onMergeDone?: () => void) => {
+    if (sheetName.length === 0) return;
+    if (!mergeGroup) return;
+    if (mergeGroup.sheetName !== sheetName) return;
+    if (mergeGroup.mergedRanges.length === 0) return;
+
+    const getTableCellRefs = (sheetName: string): Record<string, HTMLTableCellElement> => {
+        try {
+            const allTableCells = document.querySelectorAll(`#${tableId} tbody tr td`) as NodeListOf<HTMLTableCellElement>;
+            const cellRefs: Record<string, HTMLTableCellElement> = {};
+            allTableCells.forEach((cell) => {
+                cellRefs[cell.id] = cell;
+            })
+            return cellRefs;
+        } catch (error) {
+            console.error("Error getting cell refs for sheet:", sheetName, error);
+            return {};
+        }
+    }
+
+    const allCellRefs = getTableCellRefs(sheetName);
+    if (Object.entries(allCellRefs).length === 0) return;
+
+    mergeCells(mergeGroup.mergedRanges, allCellRefs, onMergeDone);
+}
+
 type CellAndCellContainerRefType = {
     cellRefs: Record<string, HTMLTableCellElement | null>,
     cellInnerContainerRefs: Record<string, HTMLDivElement | null>,
@@ -94,19 +120,23 @@ type Props<TData, TValue> = {
     handleCellClick?: ((cell: Cell<TData, TValue>) => void) | undefined;
     // The height of the parent in case the parent doesn't have a fix size (value in pixel).
     parentContainerHeight?: number | undefined;
-    mergedRangesOfSelectedWorksheet: MergedRange[];
+    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
+    selectedSheetName: string;
 }
 
 export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
     const {
         data,
         columns,
-        selectedCell,
+        // selectedCell,
         // parentContainerHeight,
-        mergedRangesOfSelectedWorksheet,
+        mergedGroupOfSelectedWorksheet,
+        selectedSheetName,
     } = props;
 
     const rangesToSelect = props?.rangesToSelect ?? [["A0", "A0"]];
+
+    const tableId = useMemo(() => `${selectedSheetName.replace(" ", "")}${(new Date()).getTime()}`, [selectedSheetName]);
 
     // Initialize the table instance
     const table = useReactTable<TData>({
@@ -118,11 +148,34 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
 
     const cellAndInnerCellContainerRefs = useRef<CellAndCellContainerRefType | null>(null);
 
-    useEffect(() => {
-        if (!cellAndInnerCellContainerRefs.current) return;
-        console.log("cellAndInnerCellContainerRefs changed: ", cellAndInnerCellContainerRefs.current);
-        console.log("Number of cell refs: ", Object.entries(cellAndInnerCellContainerRefs.current?.cellRefs).length);
-    }, [cellAndInnerCellContainerRefs]);
+    // Ref to info about if merges have been applied to a worksheet or not.
+    // This is to persist the information acros re-renders
+    // const mergesApplied = useRef<Set<string>>(new Set<string>());
+
+    // const [
+    //     sheetsWithAppliedMerges,
+    //     setSheetsWithAppliedMerges
+    // ] = useState<Set<string>>(new Set<string>());
+
+    // const rowVirtualiserRef = useRef<Virtualizer<HTMLDivElement, HTMLTableRowElement> | null>(null);
+    // const columnVirtualiserRef = useRef<Virtualizer<HTMLDivElement, HTMLTableCellElement>| null>(null);
+
+    // useEffect(() => {
+    //     if (!cellAndInnerCellContainerRefs.current) return;
+    //     console.log("cellAndInnerCellContainerRefs changed: ", cellAndInnerCellContainerRefs.current);
+    //     console.log("Number of cell refs: ", Object.entries(cellAndInnerCellContainerRefs.current?.cellRefs).length);
+    // }, [data, cellAndInnerCellContainerRefs]);
+
+    // useEffect(() => {
+    //     const clearRefs = () => {
+    //         if (!cellAndInnerCellContainerRefs.current) return;
+    //         cellAndInnerCellContainerRefs.current = null;
+    //     }
+    //     clearRefs();
+    //     return () => {
+    //         clearRefs();
+    //     };
+    // }, [data]);
 
     // Set cell styles of ranges to highlight
     useEffect(() => {
@@ -134,11 +187,18 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
             cellAndInnerCellContainerRefs.current.cellRefs,
             cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
         );
-        applyMergesToCells(
-            mergedRangesOfSelectedWorksheet,
-            cellAndInnerCellContainerRefs.current.cellRefs,
-        )
-    }, [data, rangesToSelect, selectedCell, cellAndInnerCellContainerRefs, table]);
+    }, [rangesToSelect, cellAndInnerCellContainerRefs, table]);
+
+    // useEffect(() => {
+    //     // const allCells = table.getRowModel().rows.flatMap((row) => row.getVisibleCells());
+    //     // if (allCells.length !== Object.keys(cellAndInnerCellContainerRefs?.current?.cellRefs as object).length) return;
+    //     if (!cellAndInnerCellContainerRefs.current) return;
+    //     // applyMergesToCells(
+    //     //     mergedRangesOfSelectedWorksheet,
+    //     //     cellAndInnerCellContainerRefs.current.cellRefs,
+    //     // );
+    //     // mergesApplied.current.add(selectedSheetName);
+    // }, [cellAndInnerCellContainerRefs, mergedRangesOfSelectedWorksheet, selectedSheetName, table]);
 
     // The virtualizers need to know the scrollable container element
     const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -151,18 +211,25 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         getScrollElement: () => tableContainerRef.current,
         horizontal: true,
         overscan: 2, //how many columns to render on each side off screen each way (adjust this for performance)
-        onChange: () => {
-            // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
-            // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
-            if (!cellAndInnerCellContainerRefs.current) return;
-            // highlightCells(
-            //     // @ts-ignore
-            //     table.getRowModel().rows,
-            //     rangesToSelect,
-            //     cellAndInnerCellContainerRefs.current.cellRefs,
-            //     cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
-            // );
-        }
+        // onChange: () => {
+        //     // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
+        //     // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
+        //     // if (!cellAndInnerCellContainerRefs.current) return;
+        //     // highlightCells(
+        //     //     // @ts-ignore
+        //     //     table.getRowModel().rows,
+        //     //     rangesToSelect,
+        //     //     cellAndInnerCellContainerRefs.current.cellRefs,
+        //     //     cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
+        //     // );
+        //     // if (!cellAndInnerCellContainerRefs.current) return;
+        //     // applyMergesToCells(
+        //     //     mergedRangesOfSelectedWorksheet,
+        //     //     cellAndInnerCellContainerRefs.current.cellRefs,
+        //     // );
+        //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName);
+        //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName, tableId);
+        // },
     });
 
     // dynamic row height virtualization - alternatively you could use a simpler fixed row height strategy without the need for `measureElement`
@@ -177,18 +244,72 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                 ? element => element?.getBoundingClientRect().height
                 : undefined,
         overscan: 2,
-        onChange: () => {
-            // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
-            // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
-            if (!cellAndInnerCellContainerRefs.current) return;
-            // highlightCells(
-            //     table.getRowModel().rows,
-            //     rangesToSelect,
-            //     cellAndInnerCellContainerRefs.current.cellRefs,
-            //     cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
-            // );
-        }
-    })
+        // onChange: () => {
+        //     // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
+        //     // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
+        //     // if (!cellAndInnerCellContainerRefs.current) return;
+        //     // highlightCells(
+        //     //     table.getRowModel().rows,
+        //     //     rangesToSelect,
+        //     //     cellAndInnerCellContainerRefs.current.cellRefs,
+        //     //     cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
+        //     // );
+        //     // if (!cellAndInnerCellContainerRefs.current) return;
+        //     // applyMergesToCells(
+        //     //     mergedRangesOfSelectedWorksheet,
+        //     //     cellAndInnerCellContainerRefs.current.cellRefs,
+        //     // );
+        //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName);
+        //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName, tableId);
+        // }
+    });
+
+    useEffect(() => {
+        // if (sheetsWithAppliedMerges.has(selectedSheetName)) return;
+        // if (!mergedGroupOfSelectedWorksheet) return
+        // if (mergedGroupOfSelectedWorksheet.mergedRanges.length === 0) return;
+        // if (mergedGroupOfSelectedWorksheet.sheetName !== selectedSheetName) return;
+        // if (selectedSheetName.length === 0) return;
+        applyMergesToCells(
+            mergedGroupOfSelectedWorksheet,
+            selectedSheetName,
+            tableId,
+            // () => setSheetsWithAppliedMerges(prevState => prevState.add(selectedSheetName))
+        );
+    }, [mergedGroupOfSelectedWorksheet, selectedSheetName, tableId]);
+
+    // useEffect(() => {
+    //     return () => {
+    //         setSheetsWithAppliedMerges(new Set<string>());
+    //         // // Reset merges when unmounting selected worksheet
+    //         const getTableCellRefs = (sheetName: string): Record<string, HTMLTableCellElement> => {
+    //             try {
+    //                 const allTableCells = document.querySelectorAll(`#${sheetName} tbody tr td`) as NodeListOf<HTMLTableCellElement>;
+    //                 const cellRefs: Record<string, HTMLTableCellElement> = {};
+    //                 allTableCells.forEach((cell) => {
+    //                     cellRefs[cell.id] = cell;
+    //                 })
+    //                 return cellRefs;
+    //             } catch (error) {
+    //                 console.error("Error getting cell refs for sheet:", sheetName, error);
+    //                 return {};
+    //             }
+    //         }
+    //         const allCellRefs = getTableCellRefs(selectedSheetName);
+    //         if (Object.entries(allCellRefs).length === 0) return;
+    //         Object.values(allCellRefs).forEach((cell) => {
+    //             cell.colSpan = 1;
+    //         })
+    //     }
+    // }, []);
+
+    // useEffect(() => {
+    //     const allCellRefs = getTableCellRefs(selectedSheetName);
+    //     if (Object.entries(allCellRefs).length === 0) return;
+    //     Object.values(allCellRefs).forEach((cell) => {
+    //         cell.colSpan = 1;
+    //     })
+    // }, [getTableCellRefs, selectedSheetName]);
 
     const virtualColumns = columnVirtualizer.getVirtualItems()
 
@@ -222,6 +343,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         >
             {/* Even though we're still using sematic table tags, we must use CSS grid and flexbox for dynamic row heights */}
             <table
+                id={tableId}
                 style={{
                     display: "grid",
                     borderCollapse: "collapse",
@@ -255,7 +377,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                     cellsStyles={props.cellsStyles ?? {}}
                     headerStyles={props.headerStyles ?? {}}
                     rowStyles={props.rowStyles ?? {}}
-                    mergedRangesOfSelectedWorksheet={mergedRangesOfSelectedWorksheet}
+                    mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
                 />
             </table>
         </div>
@@ -430,7 +552,7 @@ type TableBodyProps<TData> = {
     cellsStyles: Record<string, CSSProperties>;
     headerStyles: Record<string, CSSProperties>;
     rowStyles: Record<number, CSSProperties>;
-    mergedRangesOfSelectedWorksheet: MergedRange[];
+    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
 }
 
 const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCellContainerRefType> | undefined) => {
@@ -446,7 +568,7 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
         cellsStyles,
         headerStyles,
         rowStyles,
-        mergedRangesOfSelectedWorksheet,
+        mergedGroupOfSelectedWorksheet,
     } = props;
 
     const { rows } = table.getRowModel();
@@ -476,19 +598,19 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
 
             return (
                 <TableBodyRow
-                    // ref={(el) => {
-                    //     if (!el) return;
-                    //     cellAndCellContainerRefsOfAllRows.current = {
-                    //         cellRefs: {
-                    //            ...cellAndCellContainerRefsOfAllRows.current.cellRefs,
-                    //             ...el.cellRefs,
-                    //         },
-                    //         cellInnerContainerRefs: {
-                    //            ...cellAndCellContainerRefsOfAllRows.current.cellInnerContainerRefs,
-                    //             ...el.cellInnerContainerRefs,
-                    //         },
-                    //     }
-                    // }}
+                    ref={(el) => {
+                        if (!el) return;
+                        cellAndCellContainerRefsOfAllRows.current = {
+                            cellRefs: {
+                               ...cellAndCellContainerRefsOfAllRows.current.cellRefs,
+                                ...el.cellRefs,
+                            },
+                            cellInnerContainerRefs: {
+                               ...cellAndCellContainerRefsOfAllRows.current.cellInnerContainerRefs,
+                                ...el.cellInnerContainerRefs,
+                            },
+                        }
+                    }}
                     columnVirtualizer={columnVirtualizer}
                     key={row.id}
                     // @ts-ignore
@@ -504,7 +626,7 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
                     cellsStyles={cellsStyles}
                     headerStyles={headerStyles}
                     rowStyles={rowStyles}
-                    mergedRangesOfSelectedWorksheet={mergedRangesOfSelectedWorksheet}
+                    mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
                 />
             )
         })}
@@ -525,7 +647,7 @@ type TableBodyRowProps<TData> = {
     cellsStyles: Record<string, CSSProperties>;
     headerStyles: Record<string, CSSProperties>;
     rowStyles: Record<number, CSSProperties>;
-    mergedRangesOfSelectedWorksheet: MergedRange[];
+    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
 }
 // @ts-ignore
 const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellAndCellContainerRefType> | undefined) => {
@@ -542,7 +664,7 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
         cellsStyles,
         headerStyles,
         rowStyles,
-        mergedRangesOfSelectedWorksheet,
+        mergedGroupOfSelectedWorksheet,
     } = props;
 
     const visibleCells = row.getVisibleCells();
@@ -585,22 +707,22 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                 <td style={{ display: "flex", width: virtualPaddingLeft }} />
             ) : null}
             {virtualColumns.map((vc, cellIndex, array) => {
-                const cell = visibleCells[vc.index]
+                const cell = visibleCells[vc.index];
                 return (
                     <TableBodyCell
-                        // ref={(el) => {
-                        //     if (!el) return;
-                        //     cellAndCellContainerRefsOfRow.current = {
-                        //         cellRefs: {
-                        //             ...cellAndCellContainerRefsOfRow.current.cellRefs,
-                        //             ...el.cellRefs,
-                        //         },
-                        //         cellInnerContainerRefs: {
-                        //             ...cellAndCellContainerRefsOfRow.current.cellInnerContainerRefs,
-                        //            ...el.cellInnerContainerRefs,
-                        //         }
-                        //     }
-                        // }}
+                        ref={(el) => {
+                            if (!el) return;
+                            cellAndCellContainerRefsOfRow.current = {
+                                cellRefs: {
+                                    ...cellAndCellContainerRefsOfRow.current.cellRefs,
+                                    ...el.cellRefs,
+                                },
+                                cellInnerContainerRefs: {
+                                    ...cellAndCellContainerRefsOfRow.current.cellInnerContainerRefs,
+                                   ...el.cellInnerContainerRefs,
+                                }
+                            }
+                        }}
                         // @ts-ignore
                         cell={cell}
                         key={cell.id}
@@ -614,7 +736,8 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                         cellsStyles={cellsStyles}
                         headerStyles={headerStyles}
                         rowStyles={rowStyles}
-                        mergedRangesOfSelectedWorksheet={mergedRangesOfSelectedWorksheet}
+                        mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
+                        shouldMerge={cellIndex < visibleCells.length - 1 && cell.getValue() === visibleCells[cellIndex + 1].getValue()}
                     />
                 )
             })}
@@ -637,7 +760,8 @@ type TableBodyCellProps<TData, TValue> = {
     headerStyles: Record<string, CSSProperties>;
     rowStyles: Record<number, CSSProperties>;
     handleCellSelection: (cell: Cell<TData, TValue>) => void;
-    mergedRangesOfSelectedWorksheet: MergedRange[];
+    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
+    shouldMerge: boolean;
 }
 const TableBodyCell = forwardRef(
     <T, V>(
@@ -656,6 +780,7 @@ const TableBodyCell = forwardRef(
         cellsStyles,
         rowStyles,
         // mergedRangesOfSelectedWorksheet,
+        // shouldMerge,
     } = props;
 
     const cellRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
@@ -703,7 +828,7 @@ const TableBodyCell = forwardRef(
 
         // const isFirstCellOfAMergedRange = mergedRangesOfSelectedWorksheet
         //     .find((m) => m.start.row === cell.row.index + 1 && m.start.column === cell.column.id);
-        // if (isFirstCellOfAMergedRange) {
+        // if (shouldMerge) {
         //     return calculateWidthOfColumn(cell.column.id, headerStyles) +
         //         calculateWidthOfColumn(utils.encode_col(utils.decode_col(cell.column.id) + 1), headerStyles);
         // }
@@ -716,20 +841,21 @@ const TableBodyCell = forwardRef(
         return calculateHeightOfRow(rowIndex, rowStyles);
     }
 
-    // const cellId = `${cell.column.id}${cell.row.index + 1}`;
-    //
-    // const cellInnerContainerId = `${cell.column.id}${cell.row.index + 1}-inner-container`;
+    const cellId = `${cell.column.id}${cell.row.index + 1}`;
+
+    const cellInnerContainerId = `${cell.column.id}${cell.row.index + 1}-inner-container`;
 
     return (
         <td
             key={cell.id}
-            // ref={(el) => {
-            //     if (el) {
-            //         cellRefs.current[cellId] = el;
-            //         return;
-            //     }
-            //     delete cellRefs.current[cellId];
-            // }}
+            ref={(el) => {
+                if (el) {
+                    cellRefs.current[cellId] = el;
+                    return;
+                }
+                delete cellRefs.current[cellId];
+            }}
+            id={cellId}
             style={{
                 display: "flex",
                 width: `${computeCellWidth()}px`,
@@ -747,13 +873,14 @@ const TableBodyCell = forwardRef(
             onClick={!isFirst ? () => handleCellSelection(cell) : undefined}
         >
             <div
-                // ref={(el) => {
-                //     if (el) {
-                //         cellInnerContainerRefs.current[cellInnerContainerId] = el;
-                //         return;
-                //     }
-                //     delete cellInnerContainerRefs.current[cellInnerContainerId];
-                // }}
+                ref={(el) => {
+                    if (el) {
+                        cellInnerContainerRefs.current[cellInnerContainerId] = el;
+                        return;
+                    }
+                    delete cellInnerContainerRefs.current[cellInnerContainerId];
+                }}
+                id={cellInnerContainerId}
                 className={cn("h-full w-full m-0 p-0 absolute border-[2px] border-transparent", {
                     "border-[2px] !border-blue-500": isSelected,
                 })}

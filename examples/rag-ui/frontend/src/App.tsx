@@ -25,6 +25,7 @@ const App: FC = () => {
 
     return (
         <LexioProvider
+            // @ts-ignore
             onAction={handleAction}
             config={undefined}
             theme={customTheme}
@@ -61,7 +62,8 @@ const useMockData = (): MockData => {
         }
         // Excel file
         const getExcelSampleSource = async () => {
-            const response = await fetch("http://localhost:5173/excel_sample.xlsx");
+            const response = await fetch("http://localhost:5173/Stundenzettel-2025-Ramses-Tetang.xlsx");
+            // const response = await fetch("http://localhost:5173/excel_sample.xlsx");
             const data = await response.arrayBuffer();
             setExcelSampleBuffer(data);
         }
@@ -100,12 +102,12 @@ const useMockData = (): MockData => {
             type: "xlsx",
             relevance: 30,
             data: excelSampleBuffer,
-            rangesHighlights: [
-                {
-                    sheetName: "Equipment List",
-                    ranges: ["A1:B8", "B9:C15", "C18:E20", "D5:F15", "F9:H15", "B42:E50"],
-                }
-            ],
+            // rangesHighlights: [
+            //     {
+            //         sheetName: "Equipment List",
+            //         ranges: ["A1:B8", "B9:C15", "C18:E20", "D5:F15", "F9:H15", "B42:E50", "F20:G29"],
+            //     }
+            // ],
         },
     ] as Source[];
 
