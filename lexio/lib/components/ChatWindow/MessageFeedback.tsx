@@ -1,4 +1,4 @@
-import { useState, useRef, KeyboardEvent } from 'react';
+import React, { useState, useRef, KeyboardEvent, useContext } from 'react';
 import { HandThumbUpIcon, HandThumbDownIcon, ChatBubbleLeftIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import {
   useFloating,
@@ -7,6 +7,22 @@ import {
   useInteractions
 } from '@floating-ui/react';
 import { useMessageFeedback } from '../../hooks/hooks';
+import { ThemeContext } from '../../theme/ThemeContext';
+import { addOpacity, scaleFontSize } from '../../utils/scaleFontSize';
+
+// Define style interface similar to other components
+interface MessageFeedbackStyles {
+  primaryColor?: string;
+  secondaryColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  borderColor?: string;
+  successColor?: string;
+  errorColor?: string;
+  fontFamily?: string;
+  fontSize?: string;
+  borderRadius?: string;
+}
 
 // Add props to receive the message ID and content
 interface MessageFeedbackProps {
@@ -15,7 +31,7 @@ interface MessageFeedbackProps {
   componentKey?: string;
 }
 
-const MessageFeedback = ({ messageId, messageContent, componentKey = undefined }: MessageFeedbackProps) => {
+const MessageFeedback: React.FC<MessageFeedbackProps> = ({ messageId, messageContent, componentKey = undefined }) => {
 
   const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null);
   const [showCommentForm, setShowCommentForm] = useState(false);
@@ -42,6 +58,27 @@ const MessageFeedback = ({ messageId, messageContent, componentKey = undefined }
   const dismiss = useDismiss(context);
   const role = useRole(context);
   const { getFloatingProps, getReferenceProps } = useInteractions([dismiss, role]);
+
+  // Get theme from context
+  const theme = useContext(ThemeContext);
+  if (!theme) {
+    throw new Error('ThemeContext is undefined');
+  }
+  const { colors, typography, componentDefaults } = theme.theme;
+
+  // Create styles based on theme
+  const style: MessageFeedbackStyles = {
+    primaryColor: colors.primary,
+    secondaryColor: colors.secondary,
+    backgroundColor: colors.background,
+    textColor: colors.text,
+    borderColor: addOpacity(colors.secondary, 0.2),
+    successColor: '#22c55e', // Green color for positive feedback
+    errorColor: '#ef4444',   // Red color for negative feedback
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizeBase,
+    borderRadius: componentDefaults.borderRadius,
+  };
 
   const handleFeedback = (type: 'positive' | 'negative') => {
     // Toggle feedback if clicking the same button again
@@ -91,36 +128,49 @@ const MessageFeedback = ({ messageId, messageContent, componentKey = undefined }
   };
 
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1" style={{ fontFamily: style.fontFamily }}>
       <button
         ref={commentButtonRef}
         {...getReferenceProps()}
         onClick={handleCommentClick}
-        className={`p-1.5 rounded-full transition-colors ${
-          submitted ? 'bg-blue-100 text-blue-600 hover:bg-blue-50' : 'bg-gray-100 text-gray-400 hover:bg-gray-50'
-        }`}
+        className="p-1.5 rounded-full transition-colors"
+        style={{
+          backgroundColor: submitted ? addOpacity(style.primaryColor || '#4b5563', 0.15) : addOpacity(style.secondaryColor || '#9ca3af', 0.1),
+          color: submitted ? style.primaryColor : addOpacity(style.textColor || '#6b7280', 0.7),
+          borderRadius: '9999px'
+        }}
         aria-label={submitted ? "Edit comment" : "Add comment"}
       >
         <ChatBubbleLeftIcon className="w-4 h-4" />
       </button>
       <button
         onClick={() => handleFeedback('positive')}
-        className={`p-1.5 rounded-full transition-colors ${
-          feedback === 'positive' 
-            ? 'bg-green-100 text-green-600 hover:bg-green-50' 
-            : 'bg-gray-100 text-gray-400 hover:bg-gray-50'
-        }`}
+        className="p-1.5 rounded-full transition-colors"
+        style={{
+          backgroundColor: feedback === 'positive'
+            ? addOpacity(style.successColor || '#22c55e', 0.15)
+            : addOpacity(style.secondaryColor || '#9ca3af', 0.1),
+          color: feedback === 'positive'
+            ? style.successColor
+            : addOpacity(style.textColor || '#6b7280', 0.7),
+          borderRadius: '9999px'
+        }}
         aria-label="Thumbs up"
       >
         <HandThumbUpIcon className="w-4 h-4" />
       </button>
       <button
         onClick={() => handleFeedback('negative')}
-        className={`p-1.5 rounded-full transition-colors ${
-          feedback === 'negative' 
-            ? 'bg-red-100 text-red-600 hover:bg-red-50' 
-            : 'bg-gray-100 text-gray-400 hover:bg-gray-50'
-        }`}
+        className="p-1.5 rounded-full transition-colors"
+        style={{
+          backgroundColor: feedback === 'negative'
+            ? addOpacity(style.errorColor || '#ef4444', 0.15)
+            : addOpacity(style.secondaryColor || '#9ca3af', 0.1),
+          color: feedback === 'negative'
+            ? style.errorColor
+            : addOpacity(style.textColor || '#6b7280', 0.7),
+          borderRadius: '9999px'
+        }}
         aria-label="Thumbs down"
       >
         <HandThumbDownIcon className="w-4 h-4" />
@@ -130,17 +180,27 @@ const MessageFeedback = ({ messageId, messageContent, componentKey = undefined }
       {showCommentForm && (
         <div
           ref={refs.setFloating}
-          style={floatingStyles}
+          style={{
+            ...floatingStyles,
+            backgroundColor: style.backgroundColor,
+            color: style.textColor,
+            border: `1px solid ${style.borderColor}`,
+            borderRadius: style.borderRadius,
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            padding: '0.75rem',
+            width: '16rem',
+            zIndex: 50
+          }}
           {...getFloatingProps()}
-          className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-64 z-50"
         >
           <div className="flex justify-between items-center mb-2">
-            <p className="text-sm font-medium">
+            <p className="text-sm font-medium" style={{ color: style.textColor, fontSize: scaleFontSize(style.fontSize || '0.875rem', 1) }}>
               {submitted ? "Edit your feedback" : "Add your feedback"}
             </p>
             <button 
               onClick={() => setShowCommentForm(false)}
               className="text-gray-400 hover:text-gray-600"
+              style={{ color: addOpacity(style.textColor || '#6b7280', 0.7) }}
             >
               <XMarkIcon className="w-4 h-4" />
             </button>
@@ -151,7 +211,28 @@ const MessageFeedback = ({ messageId, messageContent, componentKey = undefined }
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full p-2 text-sm border rounded-md mb-2"
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              fontSize: scaleFontSize(style.fontSize || '0.875rem', 0.9),
+              border: `1px solid ${style.borderColor}`,
+              borderRadius: style.borderRadius,
+              backgroundColor: addOpacity(style.backgroundColor || '#ffffff', 0.8),
+              color: style.textColor,
+              marginBottom: '0.5rem',
+              resize: 'vertical',
+              outline: 'none',
+              transition: 'border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out'
+            }}
+            className="focus-ring"
+            onFocus={(e) => {
+              e.target.style.borderColor = style.primaryColor || '#37a58c';
+              e.target.style.boxShadow = `0 0 0 2px ${addOpacity(style.primaryColor || '#37a58c', 0.25)}`;
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = style.borderColor || '#e5e7eb';
+              e.target.style.boxShadow = 'none';
+            }}
             rows={3}
             placeholder={submitted ? "Leave empty to remove comment" : "What did you think about this response?"}
           />
@@ -159,11 +240,39 @@ const MessageFeedback = ({ messageId, messageContent, componentKey = undefined }
           <div className="flex justify-end">
             <button
               onClick={handleCommentSubmit}
-              className={`text-sm px-3 py-1 rounded-md ${
-                submitted || comment.trim() 
-                  ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
+              style={{
+                fontSize: scaleFontSize(style.fontSize || '0.875rem', 0.9),
+                padding: '0.25rem 0.75rem',
+                borderRadius: style.borderRadius,
+                backgroundColor: (submitted || comment.trim())
+                  ? style.primaryColor
+                  : addOpacity(style.secondaryColor || '#9ca3af', 0.3),
+                color: (submitted || comment.trim())
+                  ? '#ffffff'
+                  : addOpacity(style.textColor || '#6b7280', 0.5),
+                cursor: (submitted || comment.trim()) ? 'pointer' : 'not-allowed',
+                transition: 'background-color 0.2s ease-in-out, transform 0.1s ease-in-out',
+              }}
+              onMouseOver={(e) => {
+                if (submitted || comment.trim()) {
+                  e.currentTarget.style.backgroundColor = addOpacity(style.primaryColor || '#37a58c', 0.85);
+                }
+              }}
+              onMouseOut={(e) => {
+                if (submitted || comment.trim()) {
+                  e.currentTarget.style.backgroundColor = style.primaryColor || '#37a58c';
+                }
+              }}
+              onMouseDown={(e) => {
+                if (submitted || comment.trim()) {
+                  e.currentTarget.style.transform = 'scale(0.98)';
+                }
+              }}
+              onMouseUp={(e) => {
+                if (submitted || comment.trim()) {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }
+              }}
               disabled={!submitted && !comment.trim()}
             >
               {submitted ? "Update" : "Submit"}

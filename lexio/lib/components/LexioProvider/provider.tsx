@@ -75,7 +75,6 @@ const LexioProvider = ({
   
   // Create a fresh Jotai store on first render
   const store = useMemo(() => createStore(), []);
-  
 
   // Whenever these change, update the store's relevant atoms
   useEffect(() => {
@@ -84,7 +83,7 @@ const LexioProvider = ({
     }
   }, [
     store,
-    onAction
+    onAction,
   ]);
 
   useEffect(() => {
