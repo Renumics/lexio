@@ -10,27 +10,68 @@ import { useMessageFeedback } from '../../hooks/hooks';
 import { ThemeContext } from '../../theme/ThemeContext';
 import { addOpacity, scaleFontSize } from '../../utils/scaleFontSize';
 
-// Define style interface similar to other components
+/**
+ * Style interface for the MessageFeedback component
+ * @typedef {Object} MessageFeedbackStyles
+ * @property {string} [primaryColor] - Primary color for active elements and highlights
+ * @property {string} [secondaryColor] - Secondary color for less prominent UI elements
+ * @property {string} [backgroundColor] - Background color for the component and popover
+ * @property {string} [textColor] - Main text color
+ * @property {string} [borderColor] - Color for borders
+ * @property {string} [successColor] - Color for positive feedback indicators
+ * @property {string} [errorColor] - Color for negative feedback indicators
+ * @property {string} [fontFamily] - Font family for text elements
+ * @property {string} [fontSize] - Base font size
+ * @property {string} [borderRadius] - Border radius for rounded corners
+ */
 interface MessageFeedbackStyles {
+  /** Primary color for active elements and highlights */
   primaryColor?: string;
+  /** Secondary color for less prominent UI elements */
   secondaryColor?: string;
+  /** Background color for the component and popover */
   backgroundColor?: string;
+  /** Main text color */
   textColor?: string;
+  /** Color for borders */
   borderColor?: string;
+  /** Color for positive feedback indicators */
   successColor?: string;
+  /** Color for negative feedback indicators */
   errorColor?: string;
+  /** Font family for text elements */
   fontFamily?: string;
+  /** Base font size */
   fontSize?: string;
+  /** Border radius for rounded corners */
   borderRadius?: string;
 }
 
-// Add props to receive the message ID and content
+/**
+ * Props for the MessageFeedback component
+ * @typedef {Object} MessageFeedbackProps
+ * @property {string} messageId - Unique identifier for the message being rated
+ * @property {string} messageContent - The content of the message being rated
+ * @property {string} [componentKey] - Optional key to identify the component instance
+ */
 interface MessageFeedbackProps {
+  /** Unique identifier for the message being rated */
   messageId: string;
+  /** The content of the message being rated */
   messageContent: string;
+  /** Optional key to identify the component instance */
   componentKey?: string;
 }
 
+/**
+ * A component that allows users to provide feedback on AI-generated messages.
+ * 
+ * The MessageFeedback component provides thumbs up/down buttons and a comment
+ * feature to collect user sentiment and detailed feedback about AI responses.
+ * 
+ * @param {MessageFeedbackProps} props - The props for the component
+ * @returns {JSX.Element} The rendered feedback component
+ */
 const MessageFeedback: React.FC<MessageFeedbackProps> = ({ messageId, messageContent, componentKey = undefined }) => {
 
   const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null);
@@ -73,8 +114,8 @@ const MessageFeedback: React.FC<MessageFeedbackProps> = ({ messageId, messageCon
     backgroundColor: colors.background,
     textColor: colors.text,
     borderColor: addOpacity(colors.secondary, 0.2),
-    successColor: '#22c55e', // Green color for positive feedback
-    errorColor: '#ef4444',   // Red color for negative feedback
+    successColor: colors.success, // Green color for positive feedback
+    errorColor: colors.error,   // Red color for negative feedback
     fontFamily: typography.fontFamily,
     fontSize: typography.fontSizeBase,
     borderRadius: componentDefaults.borderRadius,
