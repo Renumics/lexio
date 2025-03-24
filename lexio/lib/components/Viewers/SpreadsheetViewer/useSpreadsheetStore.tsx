@@ -228,6 +228,8 @@ type OutputSpreadsheetViewerStore = {
     rowStyles?: Record<string, CSSProperties> | undefined;
     headerStyles?: Record<string, CSSProperties> | undefined;
     getMetaDataOfSelectedCell: () => CellMetaData;
+    selectedRange: Range | undefined;
+    setSelectedRange: (range?: Range | undefined) => void;
 }
 
 export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): OutputSpreadsheetViewerStore => {
@@ -256,6 +258,8 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
     const [rowStyles, setRowStyles] = useState<Record<string, CSSProperties> | undefined>(undefined);
 
     const [headerStyles, setHeaderStyles] = useState<Record<string, CSSProperties> | undefined>(undefined);
+
+    const [selectedRange, setSelectedRange] = useState<Range | undefined>(undefined);
 
     useEffect(() => {
         if (!input.rangesToHighlight) return;
@@ -372,6 +376,8 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         headerStyles,
         mergedGroupOfSelectedWorksheet,
         getMetaDataOfSelectedCell,
+        selectedRange,
+        setSelectedRange,
     }
 }
 

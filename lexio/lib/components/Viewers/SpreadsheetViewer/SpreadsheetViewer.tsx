@@ -38,6 +38,8 @@ const SpreadsheetViewer: FC<Props> = (props) => {
         headerStyles,
         mergedGroupOfSelectedWorksheet,
         getMetaDataOfSelectedCell,
+        selectedRange,
+        setSelectedRange,
     } = useSpreadsheetViewerStore({
         fileBufferArray,
         defaultSelectedSheet,
@@ -51,12 +53,28 @@ const SpreadsheetViewer: FC<Props> = (props) => {
     const switchSpreadsheet = (spreadsheet: string) => {
         setSelectedWorksheetName(spreadsheet);
         setSelectedCell(undefined);
+        setSelectedRange(undefined);
     }
 
     const computeMetadataOfSelectedCell = (): string => {
         const metaData = getMetaDataOfSelectedCell();
         if (metaData?.f) return `=${metaData?.f}`;
         if (metaData?.v) return `${metaData?.v}`;
+        return "";
+    }
+
+    const cellMetaData = computeMetadataOfSelectedCell();
+
+    const resolveSelectedRange = (): string => {
+        if (!selectedRange && selectedCell) {
+            return `${selectedCell.column}${selectedCell.row + 1}`;
+        }
+        if (selectedRange && selectedCell && (selectedRange[0] === selectedRange[1])) {
+            return `${selectedCell.column}${selectedCell.row + 1}`;
+        }
+        if (selectedRange) {
+            return `${selectedRange[0]}:${selectedRange[1]}`
+        }
         return "";
     }
 
@@ -75,8 +93,8 @@ const SpreadsheetViewer: FC<Props> = (props) => {
         <div className="grid grid-rows-[max-content_90%_auto] h-full relative">
             <div className="grid grid-cols-[1fr_max-content] p-1 gap-2">
                 <div className="grid grid-cols-[max-content_1fr] gap-2">
-                    <div className="flex items-center content-center h-full w-[80px] py-1.5 px-2.5 border rounded-md text-xs text-neutral-600">
-                        {selectedCell ? `${selectedCell.column}${selectedCell.row + 1}` : null}
+                    <div className="flex items-center content-center h-full w-[80px] py-1.5 px-2.5 border rounded-md text-sm text-neutral-600">
+                        {resolveSelectedRange()}
                     </div>
                     <div className="grid grid-cols-[max-content_1fr] gap-1.5 items-center content-center">
                         <div className="flex items-center content-center gap-1 align-middle">
@@ -84,25 +102,23 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                             <div className="text-neutral-600">=</div>
                         </div>
                         <Tooltip
-                            className="h-full min-h-4 py-1.5 px-2.5 border rounded-md text-xs text-neutral-600 truncate"
-                            tooltipContent={computeMetadataOfSelectedCell()}
-                            shouldNotDisplayCondition={computeMetadataOfSelectedCell().length === 0}
+                            className="h-full min-h-4 py-1.5 px-2.5 border rounded-md text-sm text-neutral-600 truncate"
+                            tooltipContent={cellMetaData}
+                            shouldNotDisplayCondition={cellMetaData.length === 0}
                         >
-                            {computeMetadataOfSelectedCell()}
+                            {cellMetaData}
                         </Tooltip>
                     </div>
                 </div>
-                <div
+                <Tooltip
+                    tooltipContent={showStyles ? <div>Hide styles</div> : <div>Show styles</div>}
                     onClick={() => setShowStyles((prev) => !prev)}
-                    className="flex gap-2 cursor-pointer z-[10] sticky top-0 right-0 left-0 text-xs border p-1.5 text-neutral-600 rounded-md"
+                    className="flex gap-2 items-center text-xs cursor-pointer p-1.5 px-2 text-neutral-600 rounded-md"
                 >
-                    <div className="[&_svg]:size-4">
+                    <div className="[&_svg]:size-5">
                         {showStyles ? <EyeOff /> : <Eye />}
                     </div>
-                    <div>
-                        {showStyles ? "Hide styles" : "Show styles"}
-                    </div>
-                </div>
+                </Tooltip>
             </div>
             <div className="h-full w-full">
                 <div className="grid" style={{ height: "100%" }}>
@@ -131,6 +147,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                         // parentContainerHeight={parentSize.height}
                         mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
                         selectedSheetName={selectedWorksheetName}
+                        setSelectedRange={setSelectedRange}
                     />
                 </div>
             </div>

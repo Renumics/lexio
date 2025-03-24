@@ -128,6 +128,7 @@ type Props<TData, TValue> = {
     parentContainerHeight?: number | undefined;
     mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
     selectedSheetName: string;
+    setSelectedRange: (range?: Range | undefined) => void;
 }
 
 export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
@@ -138,6 +139,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         // parentContainerHeight,
         mergedGroupOfSelectedWorksheet,
         selectedSheetName,
+        setSelectedRange,
     } = props;
 
     const rangesToSelect = props?.rangesToSelect ?? [["A0", "A0"]];
@@ -159,6 +161,21 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
     const [selectedHeaderCells, setSelectedHeaderCells] = useState<string[]>([]);
 
     const [selectedHeaderRowCells, setSelectedHeaderRowCells] = useState<number[]>([]);
+
+    useEffect(() => {
+        if (!props.selectedCell) return;
+        const startColumn = utils.encode_col(selectedHeaderCells.map((header) => utils.decode_col(header)).sort((a, b) => a - b)[0]);
+        const startRow = selectedHeaderRowCells.sort((a, b) => a - b)[0];
+        const startCell = `${startColumn}${startRow}`
+
+        const endColumn = utils.encode_col(selectedHeaderCells.map((header) => utils.decode_col(header)).sort((a, b) => b - a)[0]);
+        const endRow = selectedHeaderRowCells.sort((a, b) => b - a)[0];
+        const endCell = `${endColumn}${endRow}`
+
+        const rangeToSelect: Range | undefined = startCell && endCell ? [startCell, endCell] : undefined;
+
+        setSelectedRange(rangeToSelect);
+    }, [props.selectedCell, selectedHeaderCells, selectedHeaderRowCells, setSelectedRange]);
 
     // Ref to info about if merges have been applied to a worksheet or not.
     // This is to persist the information acros re-renders
