@@ -9,7 +9,7 @@ import { PdfViewerToolbar } from "./PdfViewerToolbar";
 import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
 import {useHotkeys, Options} from 'react-hotkeys-hook';
 import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
-import { PDFHighlight } from "../../../types";
+import { PDFHighlight, Source } from "../../../types";
 
 // Configure PDF.js worker - we explicitly use the pdfjs worker from the react-pdf package to avoid conflicts with the worker versions.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -51,14 +51,14 @@ export interface PdfViewerStyles extends ViewerToolbarStyles {
  * @interface PdfViewerProps
  * @property {Uint8Array} data - The binary PDF data to display
  * @property {PDFHighlight[]} [highlights] - Optional array of highlight annotations to display on the PDF
- * @property {number} [page] - Optional page number to display initially
+ * @property {Source} [source] - Optional source metadata for the PDF
  * @property {PdfViewerStyles} [styleOverrides] - Optional style overrides for customizing the viewer's appearance
  */
 interface PdfViewerProps {
     data: Uint8Array;
     highlights?: PDFHighlight[];
-    page?: number;
-    styleOverrides?: PdfViewerStyles;
+    source?: Source;
+    styleOverrides?: Partial<PdfViewerStyles>;
 }
 
 /**
@@ -108,7 +108,7 @@ interface PdfViewerProps {
  * />
  * ```
  */
-const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
+const PdfViewer = ({data, highlights, source, styleOverrides = {}}: PdfViewerProps) => {
     const [pdfData, setPdfData] = useState<{data: object} | undefined>();
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
@@ -158,17 +158,20 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         setPdfData({data: new Uint8Array(data)});
     }, []);
 
+    // Effect to sync page number with source metadata
+    useEffect(() => {
+        if (source?.metadata?.page) {
+            setPageNumber(source.metadata.page);
+        }
+    }, [source?.metadata?.page]);
+
     // Function to calculate the target page based on the highlights
     useEffect(() => {
-        if (data) {
+        if (data && !source?.metadata?.page) {
             let targetPage = 1; // default to first page
 
-            // Set target page based on the provided page prop
-            if (page) {
-                targetPage = page;
-
-            // Otherwise, set target page based on the most frequent page in the highlights
-            } else if (highlights && highlights.length > 0) {
+            // Use most frequent page from highlights if no page specified in metadata
+            if (highlights && highlights.length > 0) {
                 // Count page occurrences in highlights
                 const pageCount = highlights.reduce((acc: {[key: number]: number}, highlight) => {
                     const highlightPage = highlight.page;
@@ -180,13 +183,13 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                 const mostFrequentPage = Object.entries(pageCount)
                     .reduce((a, b) => (b[1] > a[1] ? b : a))[0];
                 
-                targetPage = parseInt(mostFrequentPage) || page || 1;
+                targetPage = parseInt(mostFrequentPage) || 1;
             }
 
             setPageNumber(targetPage);
             fitParent();
         }
-    }, [data, highlights, page]);
+    }, [data, highlights]);
 
     // Function to handle successful loading of the PDF page and retrieve its original dimensions
     const onPageLoadSuccess = (page: PDFPageProxy) => {

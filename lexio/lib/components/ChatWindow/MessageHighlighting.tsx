@@ -1,8 +1,9 @@
 import React from 'react';
-import { MessageHighlight, StreamChunk, Citation } from '../../types';
+import { MessageHighlight, StreamChunk, Citation, UUID } from '../../types';
 import { ChatWindowStyles } from './ChatWindow';
 import { AssistantMarkdownContent } from './AssistantMarkdownContent';
-import { useSources } from '../../hooks/hooks';
+import { useSetAtom } from 'jotai';
+import { dispatchAtom } from '../../state/rag-state';
 
 /**
  * Renders content with highlights
@@ -15,7 +16,7 @@ const renderHighlightedContentWithHighlights = (
     style: ChatWindowStyles,
     markdownStyling: React.CSSProperties
 ) => {
-    const { setSelectedSource } = useSources('CustomComponent');
+    const dispatch = useSetAtom(dispatchAtom);
 
     const handleHighlightClick = (highlight: MessageHighlight) => {
         if (!citations) return;
@@ -29,8 +30,20 @@ const renderHighlightedContentWithHighlights = (
         console.log("Citation found:", citation);
 
         if (citation) {
-            // Set the selected source and page in one call
-            setSelectedSource(citation.sourceId, citation.sourceHighlight.page);
+            // First select the source
+            dispatch({
+                type: 'SET_SELECTED_SOURCE',
+                sourceId: citation.sourceId as UUID,
+                source: 'CustomComponent',
+                sourceObject: {
+                    id: citation.sourceId as UUID,
+                    title: '',  // These will be merged with existing source
+                    type: 'text',
+                    metadata: {
+                        page: citation.sourceHighlight.page
+                    }
+                }
+            }, false);
         }
     };
 

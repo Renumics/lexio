@@ -9,10 +9,9 @@ import {
     selectedSourceIdAtom,
     retrievedSourcesAtom,
     errorAtom,
-    currentPageAtom,
-    selectedSourceWithPageAtom
+    selectedSourceAtom
 } from "../state/rag-state";
-import { UUID } from "../types";
+import { UUID, Source } from "../types";
 import { Component } from "../types";
 
 /**
@@ -38,19 +37,11 @@ export const useSources = (component: Component) => {
     /**
      * Get the selected source from the state
      */
-    const selectedSource = useAtomValue(selectedSourceWithPageAtom);
+    const selectedSource = useAtomValue(selectedSourceAtom);
     /**
      * Get the selected source ID from the state
      */
     const selectedSourceId = useAtomValue(selectedSourceIdAtom);
-    /**
-     * Get the current page from the state
-     */
-    const currentPage = useAtomValue(currentPageAtom);
-    /**
-     * Set the current page
-     */
-    const setCurrentPage = useSetAtom(currentPageAtom);
 
     /**
      * Search for sources using the provided query.
@@ -76,15 +67,15 @@ export const useSources = (component: Component) => {
     };
 
     /**
-     * Set a single source as the selected source and optionally set its page.
+     * Set a single source as the selected source.
      * @param sourceId - ID of the source to select, or null to clear selection.
-     * @param page - Optional page number to set.
      */
-    const setSelectedSource = (sourceId: string | UUID | null, page?: number) => {
-        dispatch({type: 'SET_SELECTED_SOURCE', sourceId: sourceId || '', source: component}, false);
-        if (page !== undefined) {
-            setCurrentPage(page);
-        }
+    const setSelectedSource = (sourceId: string | UUID | null) => {
+        dispatch({
+            type: 'SET_SELECTED_SOURCE', 
+            sourceId: sourceId || '', 
+            source: component
+        }, false);
     };
 
     /**
@@ -108,12 +99,10 @@ export const useSources = (component: Component) => {
         activeSourcesIds,
         selectedSource,
         selectedSourceId,
-        currentPage,
         searchSources,
         clearSources,
         setActiveSources,
         setSelectedSource,
-        setCurrentPage,
         setFilterSources,
         resetFilterSources,
     };

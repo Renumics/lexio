@@ -41,19 +41,16 @@ export const activeMessageAtom = atom(
 export const retrievedSourcesAtom = atom<Source[]>([]);
 export const activeSourcesIdsAtom = atom<string[] | null>(null);
 export const selectedSourceIdAtom = atom<string | null>(null);
-export const currentPageAtom = atom<number | null>(null);
 
 export const selectedSourceWithPageAtom = atom(
     (get) => {
         const source = get(selectedSourceAtom);
-        const page = get(currentPageAtom);
         if (!source) return null;
         
         return {
             ...source,
             metadata: {
-                ...(source.metadata || {}),
-                page: page ?? source.metadata?.page
+                ...(source.metadata || {})
             }
         };
     }
@@ -410,7 +407,6 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     // Explicit check for null or empty string
     if (action.sourceId === null || action.sourceId === '') {
         set(selectedSourceIdAtom, null);
-        set(currentPageAtom, null);
         return;
     }
     
@@ -425,13 +421,35 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     // Always set the selected source ID
     set(selectedSourceIdAtom, action.sourceId);
 
-    // Only validate and update data if sourceData is provided
+    // Update source with new metadata and/or data
+    const updatedSources = currentSources.map(source => {
+        if (source.id !== action.sourceId) return source;
+
+        // Start with the existing source
+        let updatedSource = { ...source };
+
+        // Update metadata if provided in sourceObject
+        if (action.sourceObject?.metadata) {
+            updatedSource = {
+                ...updatedSource,
+                metadata: {
+                    ...(updatedSource.metadata || {}),
+                    ...action.sourceObject.metadata
+                }
+            };
+        }
+
+        return updatedSource;
+    });
+
+    // Update the sources atom with the changes
+    set(retrievedSourcesAtom, updatedSources);
+
+    // Handle source data update if provided
     if (response.sourceData) {
         try {
-            // Await the Promise to get the actual data
             const resolvedData = await response.sourceData;
-            
-            const updatedSources = currentSources.map(source => 
+            const sourcesWithData = updatedSources.map(source => 
                 source.id === action.sourceId 
                     ? {
                         ...source,
@@ -439,7 +457,7 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
                     }
                     : source
             );
-            set(retrievedSourcesAtom, updatedSources);
+            set(retrievedSourcesAtom, sourcesWithData);
         } catch (error) {
             console.error(`Failed to load data for source ${action.sourceId}:`, error);
             set(errorAtom, `Failed to load source data: ${error instanceof Error ? error.message : String(error)}`);
@@ -517,27 +535,8 @@ export const dispatchAtom = atom(
         }
         return;
       }
-      // ---- Fetch additional data for certain actions ---
-      if (action.type === 'SET_SELECTED_SOURCE') {
-          const source = get(retrievedSourcesAtom).find(source => source.id === action.sourceId);
-          if (source && action.sourceObject) {
-              // Merge with existing source while preserving the new metadata
-              action.sourceObject = {
-                  ...source,
-                  metadata: {
-                      ...(source.metadata || {}),
-                      ...(action.sourceObject.metadata || {})
-                  }
-              };
-          } else if (source) {
-              action.sourceObject = source;
-          }
-      }
 
       const retrievedSources = get(retrievedSourcesAtom);
-      
-      // const activeSourcesIds = get(activeSourcesIdsAtom);
-
       const activeSources = get(activeSourcesAtom);
           
       // ---- Call the handler
