@@ -51,13 +51,13 @@ export interface PdfViewerStyles extends ViewerToolbarStyles {
  * @interface PdfViewerProps
  * @property {Uint8Array} data - The binary PDF data to display
  * @property {PDFHighlight[]} [highlights] - Optional array of highlight annotations to display on the PDF
- * @property {Source} [source] - Optional source metadata for the PDF
+ * @property {number} [page] - Optional page number to display initially
  * @property {PdfViewerStyles} [styleOverrides] - Optional style overrides for customizing the viewer's appearance
  */
 interface PdfViewerProps {
     data: Uint8Array;
     highlights?: PDFHighlight[];
-    source?: Source;
+    page?: number;
     styleOverrides?: Partial<PdfViewerStyles>;
 }
 
@@ -108,7 +108,7 @@ interface PdfViewerProps {
  * />
  * ```
  */
-const PdfViewer = ({data, highlights, source, styleOverrides = {}}: PdfViewerProps) => {
+const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
     const [pdfData, setPdfData] = useState<{data: object} | undefined>();
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
@@ -158,19 +158,19 @@ const PdfViewer = ({data, highlights, source, styleOverrides = {}}: PdfViewerPro
         setPdfData({data: new Uint8Array(data)});
     }, []);
 
-    // Effect to sync page number with source metadata
+    // Effect to sync page number with page prop
     useEffect(() => {
-        if (source?.metadata?.page) {
-            setPageNumber(source.metadata.page);
+        if (page) {
+            setPageNumber(page);
         }
-    }, [source?.metadata?.page]);
+    }, [page]);
 
     // Function to calculate the target page based on the highlights
     useEffect(() => {
-        if (data && !source?.metadata?.page) {
+        if (data && !page) {
             let targetPage = 1; // default to first page
 
-            // Use most frequent page from highlights if no page specified in metadata
+            // Use most frequent page from highlights if no page specified
             if (highlights && highlights.length > 0) {
                 // Count page occurrences in highlights
                 const pageCount = highlights.reduce((acc: {[key: number]: number}, highlight) => {
