@@ -6,7 +6,7 @@ import {
     RefObject,
     useEffect,
     useImperativeHandle, useMemo,
-    useRef,
+    useRef, useState,
 } from "react"
 import {
     Cell,
@@ -27,7 +27,13 @@ import {
     SelectedCell,
 } from "./useSpreadsheetStore";
 import {cn} from "./ui/utils.ts";
-import {CellContent, highlightCells} from "./utils.ts";
+import {
+    CellContent,
+    // extractCellComponent,
+    highlightCells,
+    isCellInRange
+} from "./utils.ts";
+import {utils} from "xlsx";
 // import { utils } from "xlsx";
 
 // In pixel
@@ -39,8 +45,8 @@ const Z_INDEX_OF_STICKY_HEADER_ROW = 10 as const;
 
 const calculateWidthOfFirstColumn = (rowCount: number): number => {
     const baseWidth = 40; // Base width in pixels
-    const incrementPerRow = 0.2; // Width increment per row in pixels
-    return baseWidth + Math.floor(rowCount * incrementPerRow);
+    const incrementPerRow = 10; // Width increment per row in pixels
+    return baseWidth + Math.floor(String(rowCount).length * incrementPerRow);
 }
 
 const calculateWidthOfColumn = (columnId: string, headerStyles: Record<string, CSSProperties>): number => {
@@ -77,27 +83,27 @@ const calculateHeightOfRow = (rowIndex: number, rowStyles: Record<string, CSSPro
     return result;
 }
 
+const getTableCellRefs = (sheetName: string, tableId: string): Record<string, HTMLTableCellElement> => {
+    try {
+        const allTableCells = document.querySelectorAll(`#${tableId} tbody tr td`) as NodeListOf<HTMLTableCellElement>;
+        const cellRefs: Record<string, HTMLTableCellElement> = {};
+        allTableCells.forEach((cell) => {
+            cellRefs[cell.id] = cell;
+        })
+        return cellRefs;
+    } catch (error) {
+        console.error("Error getting cell refs for sheet:", sheetName, error);
+        return {};
+    }
+}
+
 const applyMergesToCells = (mergeGroup: MergeGroup | undefined, sheetName: string, tableId: string, onMergeDone?: () => void) => {
     if (sheetName.length === 0) return;
     if (!mergeGroup) return;
     if (mergeGroup.sheetName !== sheetName) return;
     if (mergeGroup.mergedRanges.length === 0) return;
 
-    const getTableCellRefs = (sheetName: string): Record<string, HTMLTableCellElement> => {
-        try {
-            const allTableCells = document.querySelectorAll(`#${tableId} tbody tr td`) as NodeListOf<HTMLTableCellElement>;
-            const cellRefs: Record<string, HTMLTableCellElement> = {};
-            allTableCells.forEach((cell) => {
-                cellRefs[cell.id] = cell;
-            })
-            return cellRefs;
-        } catch (error) {
-            console.error("Error getting cell refs for sheet:", sheetName, error);
-            return {};
-        }
-    }
-
-    const allCellRefs = getTableCellRefs(sheetName);
+    const allCellRefs = getTableCellRefs(sheetName, tableId);
     if (Object.entries(allCellRefs).length === 0) return;
 
     mergeCells(mergeGroup.mergedRanges, allCellRefs, onMergeDone);
@@ -136,7 +142,9 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
 
     const rangesToSelect = props?.rangesToSelect ?? [["A0", "A0"]];
 
-    const tableId = useMemo(() => `${selectedSheetName.replace(" ", "")}${(new Date()).getTime()}`, [selectedSheetName]);
+    const tableId = useMemo(() => {
+        return `${selectedSheetName.replace(" ", "")}${(new Date()).getTime()}`;
+    }, [selectedSheetName]);
 
     // Initialize the table instance
     const table = useReactTable<TData>({
@@ -147,6 +155,10 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
     });
 
     const cellAndInnerCellContainerRefs = useRef<CellAndCellContainerRefType | null>(null);
+
+    const [selectedHeaderCells, setSelectedHeaderCells] = useState<string[]>([]);
+
+    const [selectedHeaderRowCells, setSelectedHeaderRowCells] = useState<number[]>([]);
 
     // Ref to info about if merges have been applied to a worksheet or not.
     // This is to persist the information acros re-renders
@@ -208,10 +220,10 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         count: columns.length,
         // estimateSize: (index: number) => table.getVisibleLeafColumns()[index].getSize(), //estimate width of each column for accurate scrollbar dragging
         estimateSize: () => DEFAULT_COLUMN_WIDTH,
-        getScrollElement: () => tableContainerRef.current,
+        getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
         horizontal: true,
-        overscan: 2, //how many columns to render on each side off screen each way (adjust this for performance)
-        // onChange: () => {
+        overscan: 5, //how many columns to render on each side off screen each way (adjust this for performance)
+        onChange: () => {
         //     // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
         //     // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
         //     // if (!cellAndInnerCellContainerRefs.current) return;
@@ -229,22 +241,31 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         //     // );
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName);
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName, tableId);
-        // },
+            console.log("columnVirtualizer onChange called: ");
+
+            // console.log("virtualItems onChange called: ", instance.getVirtualItems());
+
+            applyMergesToCells(
+                mergedGroupOfSelectedWorksheet,
+                selectedSheetName,
+                tableId,
+            );
+        },
     });
 
     // dynamic row height virtualization - alternatively you could use a simpler fixed row height strategy without the need for `measureElement`
     const rowVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
         count: table.getRowCount(),
         estimateSize: () => 35, //estimate row height for accurate scrollbar dragging
-        getScrollElement: () => tableContainerRef.current,
+        getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
         //measure dynamic row height, except in firefox because it measures table border height incorrectly
         measureElement:
             typeof window !== "undefined" &&
             navigator.userAgent.indexOf("Firefox") === -1
                 ? element => element?.getBoundingClientRect().height
                 : undefined,
-        overscan: 2,
-        // onChange: () => {
+        overscan: 5,
+        onChange: () => {
         //     // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
         //     // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
         //     // if (!cellAndInnerCellContainerRefs.current) return;
@@ -261,7 +282,14 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         //     // );
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName);
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName, tableId);
-        // }
+
+            //console.log("rowVirtualizer onChange called: ", instance.getVirtualItems());
+            applyMergesToCells(
+                mergedGroupOfSelectedWorksheet,
+                selectedSheetName,
+                tableId,
+            );
+        }
     });
 
     useEffect(() => {
@@ -270,46 +298,75 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         // if (mergedGroupOfSelectedWorksheet.mergedRanges.length === 0) return;
         // if (mergedGroupOfSelectedWorksheet.sheetName !== selectedSheetName) return;
         // if (selectedSheetName.length === 0) return;
+
+        if (!tableContainerRef.current) return;
+        tableContainerRef.current.scrollBy(800, 800);
+        const timeout = setTimeout(() => {
+            if (!tableContainerRef.current) return;
+            tableContainerRef.current.scroll(0, 0);
+        }, 10);
+
+        rowVirtualizer.measure();
+        columnVirtualizer.measure();
+
         applyMergesToCells(
-            mergedGroupOfSelectedWorksheet,
-            selectedSheetName,
-            tableId,
-            // () => setSheetsWithAppliedMerges(prevState => prevState.add(selectedSheetName))
+                mergedGroupOfSelectedWorksheet,
+                selectedSheetName,
+                tableId,
         );
-    }, [mergedGroupOfSelectedWorksheet, selectedSheetName, tableId]);
 
-    // useEffect(() => {
-    //     return () => {
-    //         setSheetsWithAppliedMerges(new Set<string>());
-    //         // // Reset merges when unmounting selected worksheet
-    //         const getTableCellRefs = (sheetName: string): Record<string, HTMLTableCellElement> => {
-    //             try {
-    //                 const allTableCells = document.querySelectorAll(`#${sheetName} tbody tr td`) as NodeListOf<HTMLTableCellElement>;
-    //                 const cellRefs: Record<string, HTMLTableCellElement> = {};
-    //                 allTableCells.forEach((cell) => {
-    //                     cellRefs[cell.id] = cell;
-    //                 })
-    //                 return cellRefs;
-    //             } catch (error) {
-    //                 console.error("Error getting cell refs for sheet:", sheetName, error);
-    //                 return {};
-    //             }
-    //         }
-    //         const allCellRefs = getTableCellRefs(selectedSheetName);
-    //         if (Object.entries(allCellRefs).length === 0) return;
-    //         Object.values(allCellRefs).forEach((cell) => {
-    //             cell.colSpan = 1;
-    //         })
-    //     }
-    // }, []);
+        return () => clearTimeout(timeout);
 
-    // useEffect(() => {
-    //     const allCellRefs = getTableCellRefs(selectedSheetName);
-    //     if (Object.entries(allCellRefs).length === 0) return;
-    //     Object.values(allCellRefs).forEach((cell) => {
-    //         cell.colSpan = 1;
-    //     })
-    // }, [getTableCellRefs, selectedSheetName]);
+        // const cellRefs = getTableCellRefs(selectedSheetName, tableId);
+        //     if (!cellRefs) return;
+        //     Object.entries(cellRefs).forEach(([, cell]) => {
+        //         cell.colSpan = 1;
+        //         const cellComponents = extractCellComponent(cell.id);
+        //         if (!cellComponents) return;
+        //         // cell.style.width = `${calculateWidthOfColumn(cellComponents.column, props.headerStyles ?? {})}px`;
+        //     });
+    }, [mergedGroupOfSelectedWorksheet, selectedSheetName, table, columns.length, rowVirtualizer, columnVirtualizer, tableContainerRef, tableId]);
+
+    // Set selected header and header row cells
+    useEffect(() => {
+         if (!props.selectedCell || !mergedGroupOfSelectedWorksheet) return;
+        // return an array of header cells and header row cells present in the mergedGroupOfSelectedWorksheet when prop.selected cell is within that range
+        const headerCells: string[] = [];
+        const headerRowCells: number[] = [];
+        mergedGroupOfSelectedWorksheet.mergedRanges.forEach((range) => {
+               if (!props.selectedCell) return;
+               const startColumn = utils.decode_col(range.start.column);
+               const endColumn = utils.decode_col(range.end.column);
+
+               const startRow = range.start.row;
+               const endRow = range.end.row;
+
+               if (isCellInRange(props.selectedCell.row + 1, props.selectedCell.column, [`${range.start.column}${range.start.row}`,`${range.end.column}${range.end.row}`])) {
+                   // Columns
+                   for (let i = startColumn; i < endColumn + 1; i++) {
+                       headerCells.push(utils.encode_col(i));
+                   }
+
+                   // Rows
+                   for (let i = startRow; i < endRow + 1; i++) {
+                       headerRowCells.push(i);
+                   }
+               }
+        });
+        if (headerCells.length === 0) {
+            headerCells.push(props.selectedCell.column)
+        }
+        if (headerRowCells.length === 0) {
+            headerRowCells.push(props.selectedCell.row + 1)
+        }
+        setSelectedHeaderCells(headerCells);
+        setSelectedHeaderRowCells(headerRowCells);
+
+        return () => {
+            setSelectedHeaderCells([]);
+            setSelectedHeaderRowCells([]);
+        };
+    }, [mergedGroupOfSelectedWorksheet, props.selectedCell]);
 
     const virtualColumns = columnVirtualizer.getVirtualItems()
 
@@ -334,6 +391,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         <div
             className="container"
             ref={tableContainerRef}
+            id={selectedSheetName}
             style={{
                 overflow: "auto", //our scrollable table container
                 position: "relative", //needed for sticky header
@@ -356,19 +414,21 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                     // @ts-ignore
                     table={table}
                     rowCount={rowVirtualizer.getVirtualItems().length}
-                    selectedCell={props.selectedCell}
+                    selectedHeaderCells={selectedHeaderCells}
                     virtualPaddingLeft={virtualPaddingLeft}
                     virtualPaddingRight={virtualPaddingRight}
                     headerStyles={props.headerStyles}
                 />
                 <TableBody
-                    ref={cellAndInnerCellContainerRefs}
+                    // ref={cellAndInnerCellContainerRefs}
                     // @ts-ignore
                     rowVirtualizer={rowVirtualizer}
                     columnVirtualizer={columnVirtualizer}
                     // @ts-ignore
                     table={table}
                     selectedCell={props.selectedCell}
+                    selectedHeaderCells={selectedHeaderCells}
+                    selectedHeaderRowCells={selectedHeaderRowCells}
                     tableContainerRef={tableContainerRef}
                     virtualPaddingLeft={virtualPaddingLeft}
                     virtualPaddingRight={virtualPaddingRight}
@@ -388,6 +448,7 @@ type TableHeadProps = {
     columnVirtualizer: Virtualizer<HTMLDivElement, HTMLTableCellElement>;
     table: Table<unknown>;
     selectedCell?: SelectedCell | undefined;
+    selectedHeaderCells: string[];
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
     headerStyles?: Record<string, CSSProperties> | undefined;
@@ -397,7 +458,7 @@ const TableHead: FC<TableHeadProps> = (props) => {
     const {
         columnVirtualizer,
         table,
-        selectedCell,
+        selectedHeaderCells,
         virtualPaddingLeft,
         virtualPaddingRight,
         headerStyles,
@@ -418,7 +479,8 @@ const TableHead: FC<TableHeadProps> = (props) => {
                 key={headerGroup.id}
                 rowCount={table.getRowCount()}
                 headerGroup={headerGroup}
-                selectedCell={selectedCell}
+                // selectedCell={selectedCell}
+                selectedHeaderCells={selectedHeaderCells}
                 columnVirtualizer={columnVirtualizer}
                 virtualPaddingLeft={virtualPaddingLeft}
                 virtualPaddingRight={virtualPaddingRight}
@@ -433,7 +495,8 @@ type TableHeadRowProps<TData> = {
     columnVirtualizer: Virtualizer<HTMLDivElement, HTMLTableCellElement>;
     headerGroup: HeaderGroup<TData>;
     rowCount: number;
-    selectedCell?: SelectedCell | undefined;
+    // selectedCell?: SelectedCell | undefined;
+    selectedHeaderCells: string[];
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
     headerStyles?: Record<string, CSSProperties> | undefined;
@@ -443,7 +506,8 @@ const TableHeadRow = <T, >(props: TableHeadRowProps<T>) => {
         rowCount,
         columnVirtualizer,
         headerGroup,
-        selectedCell,
+        // selectedCell,
+        selectedHeaderCells,
         virtualPaddingLeft,
         virtualPaddingRight,
         headerStyles,
@@ -465,7 +529,7 @@ const TableHeadRow = <T, >(props: TableHeadRowProps<T>) => {
                         // @ts-ignore
                         header={header}
                         rowCount={rowCount}
-                        isSelected={(selectedCell && selectedCell.column === header.id && colIndex !== 0) ?? false}
+                        isSelected={selectedHeaderCells.includes(header.id) && colIndex !== 0}
                         isFirst={colIndex === 0}
                         isLast={colIndex === array.length - 1}
                         headerStyles={headerStyles}
@@ -522,19 +586,8 @@ const TableHeadCell = <T, D>(props: TableHeadCellProps<T, D>) => {
                 "!font-bold !text-white !bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0": isSelected,
             })}
         >
-            <div
-                {...{
-                    className: header.column.getCanSort()
-                        ? "cursor-pointer select-none"
-                        : '',
-                    onClick: header.column.getToggleSortingHandler(),
-                }}
-            >
+            <div>
                 {flexRender(header.column.columnDef.header, header.getContext())}
-                {{
-                    asc: ' 🔼',
-                    desc: ' 🔽',
-                }[header.column.getIsSorted() as string] ?? null}
             </div>
         </th>
     )
@@ -545,6 +598,8 @@ type TableBodyProps<TData> = {
     columnVirtualizer: Virtualizer<HTMLDivElement, HTMLTableCellElement>;
     table: Table<TData>;
     selectedCell?: SelectedCell | undefined;
+    selectedHeaderRowCells: number[];
+    selectedHeaderCells: string[];
     handleCellSelection: (cell: Cell<TData, unknown>) => void;
     tableContainerRef: RefObject<HTMLDivElement>;
     virtualPaddingLeft: number | undefined;
@@ -562,6 +617,8 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
         table,
         selectedCell,
         // tableContainerRef,
+        selectedHeaderRowCells,
+        selectedHeaderCells,
         virtualPaddingLeft,
         virtualPaddingRight,
         handleCellSelection,
@@ -619,6 +676,8 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
                     // @ts-ignore
                     handleCellClick={handleCellSelection}
                     selectedCell={selectedCell}
+                    selectedHeaderRowCells={selectedHeaderRowCells}
+                    selectedHeaderCells={selectedHeaderCells}
                     rowVirtualizer={rowVirtualizer}
                     virtualPaddingLeft={virtualPaddingLeft}
                     virtualPaddingRight={virtualPaddingRight}
@@ -640,6 +699,8 @@ type TableBodyRowProps<TData> = {
     row: Row<TData>;
     rowCount: number;
     selectedCell?: SelectedCell | undefined;
+    selectedHeaderRowCells: number[];
+    selectedHeaderCells: string[];
     handleCellClick: (cell: Cell<TData, unknown>) => void;
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
@@ -656,7 +717,9 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
         columnVirtualizer,
         row,
         rowCount,
-        selectedCell,
+        // selectedCell,
+        selectedHeaderRowCells,
+        selectedHeaderCells,
         virtualPaddingLeft,
         virtualPaddingRight,
         virtualRow,
@@ -672,9 +735,8 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
 
     const isCellSelected = (cell: Cell<T, CellContent>, cellIndex: number): boolean => {
         return (
-            selectedCell &&
-            selectedCell.row === cell.row.index &&
-            selectedCell.column === cell.column.id &&
+            selectedHeaderRowCells.includes(cell.row.index + 1) &&
+            selectedHeaderCells.includes(cell.column.id) &&
             cellIndex !== 0
         ) as boolean;
     }
@@ -730,7 +792,7 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                         isLast={cellIndex === array.length - 1}
                         isFirst={cellIndex === 0}
                         isSelected={isCellSelected(cell, cellIndex)}
-                        isFirstCellOfSelectedRow={(selectedCell && selectedCell.row === cell.row.index && cellIndex === 0) ?? false}
+                        isFirstCellOfSelectedRow={(selectedHeaderRowCells.includes(cell.row.index + 1) && cellIndex === 0) ?? false}
                         // @ts-ignore
                         handleCellSelection={(cell) => handleCellClick(cell)}
                         cellsStyles={cellsStyles}
@@ -787,6 +849,10 @@ const TableBodyCell = forwardRef(
 
     const cellInnerContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+    const cellId = `${cell.column.id}${cell.row.index + 1}`;
+
+    const cellInnerContainerId = `${cell.column.id}${cell.row.index + 1}-inner-container`;
+
     // Sends all cell refs to the parent component
     useImperativeHandle(ref, () => ({
         cellRefs: cellRefs.current,
@@ -841,10 +907,6 @@ const TableBodyCell = forwardRef(
         return calculateHeightOfRow(rowIndex, rowStyles);
     }
 
-    const cellId = `${cell.column.id}${cell.row.index + 1}`;
-
-    const cellInnerContainerId = `${cell.column.id}${cell.row.index + 1}-inner-container`;
-
     return (
         <td
             key={cell.id}
@@ -862,11 +924,11 @@ const TableBodyCell = forwardRef(
                 borderTop: "unset",
                 borderRight: isLast ? "1px solid #e5e7eb" : "unset",
                 borderLeft: isFirst ? "unset" : "1px solid #e5e7eb",
-                borderBottom: isSelected ? "none" : "1px solid #e5e7eb",
+                borderBottom: isFirstCellOfSelectedRow ? "none" : "1px solid #e5e7eb",
                 height: `${computeRowHeight()}px`,
             }}
             data-label={cell.column.columnDef.header}
-            className={cn("text-sm text-neutral-600 border-b border-r top-0 bottom-0 m-0 relative p-0", {
+            className={cn("text-sm text-neutral-600 top-0 bottom-0 m-0 relative p-0", {
                 "text-center justify-items-center justify-center items-center content-center select-none sticky left-0 z-[9] bg-neutral-100 tracking-tight": isFirst,
                 "!font-bold !bg-blue-500 !text-white": isFirstCellOfSelectedRow,
             })}
@@ -887,6 +949,7 @@ const TableBodyCell = forwardRef(
                 style={{
                     backgroundColor: getCellStyleOfCellContent(cell.row.index + 1, cell.column.id)?.backgroundColor,
                 }}
+                onClick={!isFirst ? () => handleCellSelection(cell) : undefined}
             >
                 <div
                     style={{
@@ -931,12 +994,12 @@ const TableBodyCell = forwardRef(
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </div>
                 </div>
-            </div>
             {isSelected ?
                 <div
                     className="bg-blue-500 text-blue-500 size-2 border border-white border-r-0 border-b-0 drop-shadow-lg rounded-[2px] absolute bottom-[-1px] right-[-1px] z-[1000]"
                 ></div> : null
             }
+            </div>
         </td>
     )
 });

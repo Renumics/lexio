@@ -12,6 +12,7 @@ import {CSSProperties} from "react";
 import {CellRange, Range} from "./useSpreadsheetStore.tsx";
 import {cn} from "./ui/utils.ts";
 import {Cell, Row as ReactTableRow} from "@tanstack/react-table";
+import {utils} from "xlsx";
 
 export type CellContent = Readonly<string | number>;
 
@@ -51,11 +52,14 @@ export const isCellInRange = (row: number, column: string, range: Range): boolea
 
     if (row > componentOfLastCellOfRange.row) return false;
     if (row < componentOfFirstCellOfRange.row) return false;
-    const cellRange = `${column.toUpperCase()}${row}`;
-    if (column < componentOfFirstCellOfRange.column || column > componentOfLastCellOfRange.column) return false;
+    // const cellRange = `${column.toUpperCase()}${row}`;
+    // if (column < componentOfFirstCellOfRange.column || column > componentOfLastCellOfRange.column) return false;
 
-    if (range[0] <= cellRange) return true;
-    return cellRange <= range[1];
+    // if (range[0] <= cellRange) return true;
+    // return cellRange <= range[1];
+
+    if (utils.decode_col(column) < utils.decode_col(componentOfFirstCellOfRange.column)) return false;
+    return utils.decode_col(column) <= utils.decode_col(componentOfLastCellOfRange.column);
 
 };
 

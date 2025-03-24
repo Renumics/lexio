@@ -75,7 +75,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
             <div className="grid grid-cols-[1fr_max-content] p-1 gap-2">
                 <div className="grid grid-cols-[max-content_1fr] gap-2">
                     <div className="flex items-center content-center h-full w-[80px] py-1.5 px-2.5 border rounded-md text-xs text-neutral-600">
-                        {selectedCell?.column}{selectedCell?.row}
+                        {selectedCell ? `${selectedCell.column}${selectedCell.row + 1}` : null}
                     </div>
                     <div className="grid grid-cols-[max-content_1fr] gap-1.5 items-center content-center">
                         <div className="flex items-center content-center gap-1 align-middle">
@@ -99,40 +99,36 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                     </div>
                 </div>
             </div>
-            <div>
-                <ParentSizeObserver className="h-full w-full">
-                    {(parentSize) =>
-                        <div className="grid" style={{height: `${parentSize.height}px`}}>
-                           {/* <SpreadsheetTable*/}
-                           {/*     columns={columns}*/}
-                           {/*     data={rowData.filter(r => r)}*/}
-                           {/*     showStyles={showStyles}*/}
-                           {/*    cellsStyles={showStyles ? cellStyles : undefined}*/}
-                           {/*    rowStyles={showStyles ? rowStyles : undefined}*/}
-                           {/*    headerStyles={showStyles ? headerStyles : undefined}*/}
-                           {/*    selectedCell={selectedCell}*/}
-                           {/*    rangesToSelect={rangeToSelect}*/}
-                           {/*    handleCellClick={handleCellClick}*/}
-                           {/*    parentContainerHeight={parentSize.height}*/}
-                           {/*/>*/}
-                            <TableContainer
-                                columns={columns}
-                                data={rowData.filter(r => r)}
-                                showStyles={showStyles}
-                                cellsStyles={showStyles ? cellStyles : undefined}
-                                rowStyles={showStyles ? rowStyles : undefined}
-                                headerStyles={showStyles ? headerStyles : undefined}
-                                selectedCell={selectedCell}
-                                rangesToSelect={rangeToSelect}
-                                handleCellClick={handleCellClick}
-                                // parentContainerHeight={parentSize.height}
-                                mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
-                                selectedSheetName={selectedWorksheetName}
-                            />
-                       </div>
-                   }
-               </ParentSizeObserver>
-           </div>
+            <div className="h-full w-full">
+                <div className="grid" style={{ height: "100%" }}>
+                    {/* <SpreadsheetTable*/}
+                    {/*     columns={columns}*/}
+                    {/*     data={rowData.filter(r => r)}*/}
+                    {/*     showStyles={showStyles}*/}
+                    {/*    cellsStyles={showStyles ? cellStyles : undefined}*/}
+                    {/*    rowStyles={showStyles ? rowStyles : undefined}*/}
+                    {/*    headerStyles={showStyles ? headerStyles : undefined}*/}
+                    {/*    selectedCell={selectedCell}*/}
+                    {/*    rangesToSelect={rangeToSelect}*/}
+                    {/*    handleCellClick={handleCellClick}*/}
+                    {/*    parentContainerHeight={parentSize.height}*/}
+                    {/*/>*/}
+                    <TableContainer
+                        columns={columns}
+                        data={rowData.filter(r => r)}
+                        showStyles={showStyles}
+                        cellsStyles={showStyles ? cellStyles : undefined}
+                        rowStyles={showStyles ? rowStyles : undefined}
+                        headerStyles={showStyles ? headerStyles : undefined}
+                        selectedCell={selectedCell}
+                        rangesToSelect={rangeToSelect}
+                        handleCellClick={handleCellClick}
+                        // parentContainerHeight={parentSize.height}
+                        mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
+                        selectedSheetName={selectedWorksheetName}
+                    />
+                </div>
+            </div>
             <div className="whitespace-nowrap p-2 z-[10] w-full border-t overflow-x-auto">
                 <ParentSizeObserver className="h-full w-full">
                     {(parentSize) =>
