@@ -991,7 +991,9 @@ const TableBodyCell = forwardRef(
                             } : {}),
                         }}
                     >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        <div className="truncate">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </div>
                     </div>
                 </div>
             {isSelected ?

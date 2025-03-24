@@ -9,6 +9,7 @@ import ParentSizeObserver from "./ParentSizeObserver.tsx";
 import { EyeOff, Eye } from "lucide-react";
 import {TableContainer} from "./RowAndColumnVirtualizer.tsx";
 import { Sigma } from "lucide-react";
+import Tooltip from "./ui/Tooltip.tsx";
 
 type Props = {
     fileName?: string | undefined;
@@ -82,9 +83,13 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                             <Sigma className="size-5 text-neutral-600" />
                             <div className="text-neutral-600">=</div>
                         </div>
-                        <div className="items-center content-center h-full min-h-4 py-1.5 px-2.5 border rounded-md text-xs text-neutral-600 truncate">
+                        <Tooltip
+                            className="h-full min-h-4 py-1.5 px-2.5 border rounded-md text-xs text-neutral-600 truncate"
+                            tooltipContent={computeMetadataOfSelectedCell()}
+                            shouldNotDisplayCondition={computeMetadataOfSelectedCell().length === 0}
+                        >
                             {computeMetadataOfSelectedCell()}
-                        </div>
+                        </Tooltip>
                     </div>
                 </div>
                 <div

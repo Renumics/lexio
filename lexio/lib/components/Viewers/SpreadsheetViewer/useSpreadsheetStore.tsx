@@ -316,7 +316,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                         if (!row.original[key]) return "";
                         if (typeof row.original[key] === "string" && row.original[key].includes("http"))
                             return <a href={row.original[key]}>{row.original[key]}</a>
-                        return <div>{row.original[key]}</div>
+                        return row.original[key]
                     },
                 })),
             ]
