@@ -390,13 +390,14 @@ export type UserAction =
  * @interface AddUserMessageActionResponse
  * @property {Promise<string> | AsyncIterable<StreamChunk>} [response] - The assistant's response. Can be a Promise resolving to a string or an AsyncIterable for streaming responses.
  * @property {Promise<Source[]>} [sources] - Sources related to the message. These will be displayed in the SourcesDisplay component.
+ * @property {Promise<Citation[]>} [citations] - Citations related to the message. These will be displayed in the SourcesDisplay component.
  * @property {string} [setUserMessage] - Updated user message. Can be used to modify the user's message before it's added to the chat.
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes. Useful for chaining actions.
  */
 export interface AddUserMessageActionResponse {
     response?: Promise<string | StreamChunk> | AsyncIterable<StreamChunk>;
     sources?: Promise<Source[]>;
-    citations?: Citation[];
+    citations?: Promise<Citation[]> | Citation[];
     setUserMessage?: string;
     followUpAction?: UserAction;
 }
