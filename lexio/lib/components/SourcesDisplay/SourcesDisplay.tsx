@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import { useState, useContext } from "react";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
 import { useSources} from "../../hooks";
@@ -259,7 +259,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                            <div 
                              className="ml-2 h-2 w-24 rounded-full" 
                              style={{
-                              backgroundColor: style.metadataTagBackground,
+                               backgroundColor: style.metadataTagBackground,
                             }}
                           >
                             <div
@@ -295,27 +295,27 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
                     <div className="pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(source.metadata)
-                          .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
-                          .map(([key, value]) => (
-                            <span
-                              key={key}
-                              className="inline-flex items-center px-2 py-1 rounded-md"
-                              style={{
-                                backgroundColor: style.metadataTagBackground,
-                                color: style.metadataTagColor,
-                                fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
-                                lineHeight: '1.2',
-                              }}
-                            >
-                              {key}: {value}
-                            </span>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </li>
-              ))}
+                      {Object.entries(source.metadata)
+                             .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
+                             .map(([key, value]) => (
+                               <span
+                                 key={key}
+                                 className="inline-flex items-center px-2 py-1 rounded-md"
+                                 style={{
+                                   backgroundColor: style.metadataTagBackground,
+                                   color: style.metadataTagColor,
+                                   fontSize: scaleFontSize(style.fontSize || '12px', 0.85),
+                                   lineHeight: '1.2',
+                                 }}
+                               >
+                                 {key}: {value}
+                               </span>
+                             ))}
+                         </div>
+                       </div>
+                   )}
+                 </li>
+               ))}
             </ul>
           )}
         </div>

@@ -429,7 +429,7 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
                     ...source,
                     metadata: {
                         ...(source.metadata || {}),
-                        ...action.sourceObject.metadata
+                        ...(action.sourceObject?.metadata || {})
                     }
                 }
                 : source
