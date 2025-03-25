@@ -3,8 +3,7 @@ import { Provider, createStore } from 'jotai';
 import { configAtom, registeredActionHandlersAtom } from '../../state/rag-state';
 import { ActionHandler, ProviderConfig } from '../../types';
 
-
-import { ThemeProvider } from '../../theme/ThemeContext';
+import { LexioThemeProvider } from '../../theme/ThemeContext';
 import { defaultTheme } from '../../theme';
 import { Theme } from '../../theme/types';
 
@@ -23,7 +22,6 @@ interface LexioProviderProps {
     theme?: Theme;
     config?: ProviderConfig;
 }
-
 
 /**
  * **LexioProvider** is a top-level context provider that wraps your application with necessary state management and theming.
@@ -97,9 +95,9 @@ const LexioProvider = ({
 
   return (
     <Provider store={store}>
-      <ThemeProvider theme={theme !== undefined ? theme : defaultTheme}>
+      <LexioThemeProvider theme={theme !== undefined ? theme : defaultTheme}>
         {children}
-      </ThemeProvider>
+      </LexioThemeProvider>
     </Provider>
   );
 };

@@ -1,5 +1,6 @@
 import type { Theme, PartialTheme } from './types';
-import {ThemeContext} from "./ThemeContext.tsx";
+import { ThemeContext, LexioThemeProvider, ThemeProvider, removeUndefined } from './ThemeContext';
+import { useLexioTheme } from '../hooks/useTheme';
 
 export const defaultTheme: Theme = {
   colors: {
@@ -66,4 +67,11 @@ export const createTheme = (overrides: Partial<PartialTheme>): Theme => {
     };
 }
 
-export { ThemeContext };
+export { 
+  ThemeContext, 
+  LexioThemeProvider, 
+  ThemeProvider, 
+  removeUndefined, 
+  useLexioTheme
+};
+export type { Theme, PartialTheme };
