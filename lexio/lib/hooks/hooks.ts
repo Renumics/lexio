@@ -6,12 +6,12 @@ import {
     currentStreamAtom,
     activeSourcesAtom,
     activeSourcesIdsAtom,
+    selectedSourceAtom,
     selectedSourceIdAtom,
     retrievedSourcesAtom,
-    errorAtom,
-    selectedSourceAtom
+    errorAtom
 } from "../state/rag-state";
-import { UUID, Source } from "../types";
+import { UUID } from "../types";
 import { Component } from "../types";
 
 /**
@@ -71,11 +71,7 @@ export const useSources = (component: Component) => {
      * @param sourceId - ID of the source to select, or null to clear selection.
      */
     const setSelectedSource = (sourceId: string | UUID | null) => {
-        dispatch({
-            type: 'SET_SELECTED_SOURCE', 
-            sourceId: sourceId || '', 
-            source: component
-        }, false);
+        dispatch({type: 'SET_SELECTED_SOURCE', sourceId: sourceId || '', source: component}, false);
     };
 
     /**

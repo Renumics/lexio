@@ -421,43 +421,40 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     // Always set the selected source ID
     set(selectedSourceIdAtom, action.sourceId);
 
-    // Update source with new metadata and/or data
-    const updatedSources = currentSources.map(source => {
-        if (source.id !== action.sourceId) return source;
-
-        // Start with the existing source
-        let updatedSource = { ...source };
-
-        // Update metadata if provided in sourceObject
-        if (action.sourceObject?.metadata) {
-            updatedSource = {
-                ...updatedSource,
-                metadata: {
-                    ...(updatedSource.metadata || {}),
-                    ...action.sourceObject.metadata
+    // Update metadata if provided in sourceObject
+    if (action.sourceObject?.metadata) {
+        const updatedSources = currentSources.map(source => 
+            source.id === action.sourceId 
+                ? {
+                    ...source,
+                    metadata: {
+                        ...(source.metadata || {}),
+                        ...action.sourceObject.metadata
+                    }
                 }
-            };
+                : source
+        );
+        set(retrievedSourcesAtom, updatedSources);
+    }
+
+    // Only validate and update data if sourceData is provided
+    if (response.sourceData) {
+        // Warn if trying to update a source that already has data
+        if (targetSource.data) {
+            console.warn(`Source ${action.sourceId} already has data but new data was provided`);
+            return;
         }
 
-        return updatedSource;
-    });
-
-    // Update the sources atom with the changes
-    set(retrievedSourcesAtom, updatedSources);
-
-    // Handle source data update if provided
-    if (response.sourceData) {
         try {
+            // Await the Promise to get the actual data
             const resolvedData = await response.sourceData;
-            const sourcesWithData = updatedSources.map(source => 
+
+            const updatedSources = currentSources.map(source => 
                 source.id === action.sourceId 
-                    ? {
-                        ...source,
-                        data: source.data || resolvedData
-                    }
+                    ? { ...source, data: resolvedData }
                     : source
             );
-            set(retrievedSourcesAtom, sourcesWithData);
+            set(retrievedSourcesAtom, updatedSources);
         } catch (error) {
             console.error(`Failed to load data for source ${action.sourceId}:`, error);
             set(errorAtom, `Failed to load source data: ${error instanceof Error ? error.message : String(error)}`);
