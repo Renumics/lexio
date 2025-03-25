@@ -309,6 +309,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
 
         setColumns(
             [
+                // Important: rowNo added to ease row identification. This column should always be first in the list.
                 { header: "", accessorKey: "rowNo" },
                 ...sortedWorksheetColumns.map((key) => ({
                     header: key,

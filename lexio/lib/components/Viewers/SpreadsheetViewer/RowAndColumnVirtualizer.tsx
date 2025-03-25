@@ -5,8 +5,10 @@ import {
     Ref,
     RefObject,
     useEffect,
-    useImperativeHandle, useMemo,
-    useRef, useState,
+    useImperativeHandle,
+    useMemo,
+    useRef,
+    useState,
 } from "react"
 import {
     Cell,
@@ -20,25 +22,16 @@ import {
     useReactTable,
 } from "@tanstack/react-table";
 import {useVirtualizer, VirtualItem, Virtualizer,} from "@tanstack/react-virtual";
-import {
-    mergeCells,
-    MergeGroup,
-    Range,
-    SelectedCell,
-} from "./useSpreadsheetStore";
+import {mergeCells, MergeGroup, Range, SelectedCell,} from "./useSpreadsheetStore";
 import {cn} from "./ui/utils.ts";
-import {
-    CellContent,
-    // extractCellComponent,
-    highlightCells,
-    isCellInRange
-} from "./utils.ts";
+import {CellContent, highlightCells, isCellInRange} from "./utils.ts";
 import {utils} from "xlsx";
 // import { utils } from "xlsx";
 
 // In pixel
 const DEFAULT_COLUMN_WIDTH = 120 as const;
 const DEFAULT_ROW_HEIGHT = 25 as const;
+// const TABLE_HEAD_ROW_HEIGHT = 30 as const;
 
 const Z_INDEX_OF_STICKY_HEADER_ROW = 10 as const;
 // const Z_INDEX_OF_STICKY_HEADER_COLUMN = 9 as const;
@@ -300,13 +293,13 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName);
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName, tableId);
 
-            //console.log("rowVirtualizer onChange called: ", instance.getVirtualItems());
+            console.log("rowVirtualizer onChange called: ");
             applyMergesToCells(
                 mergedGroupOfSelectedWorksheet,
                 selectedSheetName,
                 tableId,
             );
-        }
+        },
     });
 
     useEffect(() => {
@@ -323,14 +316,17 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
             tableContainerRef.current.scroll(0, 0);
         }, 10);
 
-        rowVirtualizer.measure();
-        columnVirtualizer.measure();
+        // rowVirtualizer.measure();
+        // columnVirtualizer.measure();
 
         applyMergesToCells(
                 mergedGroupOfSelectedWorksheet,
                 selectedSheetName,
                 tableId,
         );
+
+        rowVirtualizer.measure();
+        columnVirtualizer.measure();
 
         return () => clearTimeout(timeout);
 
@@ -488,6 +484,7 @@ const TableHead: FC<TableHeadProps> = (props) => {
                 position: "sticky",
                 top: 0,
                 zIndex: Z_INDEX_OF_STICKY_HEADER_ROW,
+                // height: `${TABLE_HEAD_ROW_HEIGHT}px`,
             }}
             className={"bg-neutral-100"}
         >
@@ -532,14 +529,29 @@ const TableHeadRow = <T, >(props: TableHeadRowProps<T>) => {
 
     const virtualColumns = columnVirtualizer.getVirtualItems();
 
+    const firstTableHeadCell = headerGroup.headers[0];
+
     return (
         <tr key={headerGroup.id} style={{display: "flex", width: "100%"}}>
             {virtualPaddingLeft ? (
                 //fake empty column to the left for virtualization scroll padding
                 <th style={{display: "flex", width: virtualPaddingLeft}}/>
             ) : null}
+            {firstTableHeadCell ?
+                <TableHeadCell
+                    key={firstTableHeadCell.id}
+                    // @ts-ignoref
+                    header={firstTableHeadCell}
+                    rowCount={rowCount}
+                    isSelected={false}
+                    isFirst={true}
+                    isLast={false}
+                    headerStyles={headerStyles}
+                /> : null
+            }
             {virtualColumns.map((virtualColumn, colIndex, array) => {
                 const header = headerGroup.headers[virtualColumn.index];
+                // if (header.id === "rowNo") return null;
                 return (
                     <TableHeadCell
                         key={header.id}
@@ -593,13 +605,15 @@ const TableHeadCell = <T, D>(props: TableHeadCellProps<T, D>) => {
                 display: "flex",
                 justifyContent: "center",
                 justifyItems: "center",
+                alignContent: "center",
+                alignItems: "center",
                 width: computeWidthOfHeadCell(),
                 borderTop: "unset",
                 borderRight: isLast ? "1px solid #e5e7eb" : "unset",
                 borderLeft: isFirst ? "unset" : "1px solid #e5e7eb",
                 borderBottom: "1px solid #e5e7eb",
             }}
-            className={cn("py-2 w-full m-0 border-b border-r text-center bg-neutral-100 text-sm text-neutral-600 font-normal tracking-tight sticky top-[-1px] z-[10] select-none", {
+            className={cn("py-2 w-full m-0 border-b border-r text-center bg-neutral-100 text-sm text-neutral-600 font-normal tracking-tight sticky left-0 top-[-1px] z-[10] select-none", {
                 "!font-bold !text-white !bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0": isSelected,
             })}
         >
@@ -748,6 +762,11 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
     } = props;
 
     const visibleCells = row.getVisibleCells();
+
+    const cellOfFirstColumn = visibleCells[0];
+
+    // const visibleCellsWithoutFirstColumn = visibleCells.slice(1);
+
     const virtualColumns = columnVirtualizer.getVirtualItems();
 
     const isCellSelected = (cell: Cell<T, CellContent>, cellIndex: number): boolean => {
@@ -785,8 +804,39 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                 //fake empty column to the left for virtualization scroll padding
                 <td style={{ display: "flex", width: virtualPaddingLeft }} />
             ) : null}
+            <TableBodyCell
+                ref={(el) => {
+                    if (!el) return;
+                    cellAndCellContainerRefsOfRow.current = {
+                        cellRefs: {
+                            ...cellAndCellContainerRefsOfRow.current.cellRefs,
+                            ...el.cellRefs,
+                        },
+                        cellInnerContainerRefs: {
+                            ...cellAndCellContainerRefsOfRow.current.cellInnerContainerRefs,
+                            ...el.cellInnerContainerRefs,
+                        }
+                    }
+                }}
+                // @ts-ignore
+                cell={cellOfFirstColumn}
+                key={cellOfFirstColumn.id}
+                rowCount={rowCount}
+                isLast={false}
+                isFirst={true}
+                isSelected={isCellSelected(cellOfFirstColumn, 0)}
+                isFirstCellOfSelectedRow={(selectedHeaderRowCells.includes(cellOfFirstColumn.row.index + 1)) ?? false}
+                // @ts-ignore
+                handleCellSelection={(cell) => handleCellClick(cell)}
+                cellsStyles={cellsStyles}
+                headerStyles={headerStyles}
+                rowStyles={rowStyles}
+                mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
+                shouldMerge={0 < visibleCells.length - 1 && cellOfFirstColumn.getValue() === visibleCells[1].getValue()}
+            />
             {virtualColumns.map((vc, cellIndex, array) => {
                 const cell = visibleCells[vc.index];
+                if (cell.column.id === "rowNo") return null;
                 return (
                     <TableBodyCell
                         ref={(el) => {
@@ -807,9 +857,9 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                         key={cell.id}
                         rowCount={rowCount}
                         isLast={cellIndex === array.length - 1}
-                        isFirst={cellIndex === 0}
+                        isFirst={false}
                         isSelected={isCellSelected(cell, cellIndex)}
-                        isFirstCellOfSelectedRow={(selectedHeaderRowCells.includes(cell.row.index + 1) && cellIndex === 0) ?? false}
+                        isFirstCellOfSelectedRow={false}
                         // @ts-ignore
                         handleCellSelection={(cell) => handleCellClick(cell)}
                         cellsStyles={cellsStyles}
