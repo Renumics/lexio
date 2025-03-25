@@ -231,7 +231,6 @@ function App() {
 
                     // 1. Process highlights for message highlighting
                     const messageHighlights: MessageHighlight[] = ideaSources.map(source => ({
-                        text: source.answer_idea,
                         color: source.color,
                         startChar: explanationResult.answer.indexOf(source.answer_idea),
                         endChar: explanationResult.answer.indexOf(source.answer_idea) + source.answer_idea.length
