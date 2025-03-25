@@ -158,7 +158,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         setPdfData({data: new Uint8Array(data)});
     }, []);
 
-    // Effect to sync page number with page prop
+    // Function to calculate the target page based on the highlights
     useEffect(() => {
         if (data) {
             let targetPage = 1; // default to first page
@@ -166,6 +166,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
             // Set target page based on the provided page prop
             if (page) {
                 targetPage = page;
+                
             // Otherwise, set target page based on the most frequent page in the highlights
             } else if (highlights && highlights.length > 0) {
                 // Count page occurrences in highlights

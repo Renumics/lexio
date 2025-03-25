@@ -448,7 +448,6 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
         try {
             // Await the Promise to get the actual data
             const resolvedData = await response.sourceData;
-
             const updatedSources = currentSources.map(source => 
                 source.id === action.sourceId 
                     ? { ...source, data: resolvedData }
