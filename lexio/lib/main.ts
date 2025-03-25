@@ -12,7 +12,7 @@ import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
 
-import { defaultTheme, createTheme } from './theme/index.ts'
+import { defaultTheme, createTheme, ThemeContext } from './theme/index.ts'
 
 import { createRESTContentSource } from './connectors/createRESTContentSource'
 import { createSSEConnector } from './connectors/createSSEConnector'
@@ -50,6 +50,7 @@ export {
     // Theme
     createTheme,
     defaultTheme,
+    ThemeContext
 }
 export * from './types'
 export * from './theme/types'

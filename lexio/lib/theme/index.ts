@@ -1,4 +1,5 @@
 import type { Theme, PartialTheme } from './types';
+import {ThemeContext} from "./ThemeContext.tsx";
 
 export const defaultTheme: Theme = {
   colors: {
@@ -64,3 +65,5 @@ export const createTheme = (overrides: Partial<PartialTheme>): Theme => {
         },
     };
 }
+
+export { ThemeContext };
