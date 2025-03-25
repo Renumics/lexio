@@ -4,8 +4,10 @@ import { QueryField } from './components/QueryField'
 import { AdvancedQueryField } from './components/AdvancedQueryField'
 import { ChatWindow } from './components/ChatWindow'
 import { PdfViewer } from './components/Viewers/PdfViewer'
+import { HtmlViewer } from './components/Viewers/HtmlViewer'
+import { MarkdownViewer } from './components/Viewers/MarkdownViewer'
 import { LexioProvider } from './components/LexioProvider'
-import { useMessages, useSources, useStatus, useMessageFeedback } from './hooks'
+import { useMessages, useSources, useStatus, useMessageFeedback, useLexioTheme } from './hooks'
 import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
@@ -27,10 +29,12 @@ export {
     ChatWindow,
     ContentDisplay,
     ErrorDisplay,
-    PdfViewer,
     QueryField,
     LexioProvider,
     SourcesDisplay,
+    PdfViewer,
+    HtmlViewer,
+    MarkdownViewer,
 
     // Connectors
     createRESTContentSource,
@@ -42,6 +46,8 @@ export {
     useSources,
     useStatus,
     useMessageFeedback,
+    useLexioTheme,
+
     // Theme
     createTheme,
     defaultTheme,
