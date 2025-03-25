@@ -77,7 +77,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
     if (selectedSource.type === 'pdf' && selectedSource.data && selectedSource.data instanceof Uint8Array) {
       // Prefer 'page' over '_page' if both are defined
       const page = selectedSource.metadata?.page ?? selectedSource.metadata?._page;
-
+      
       return (
         <PdfViewer 
           data={selectedSource.data}
