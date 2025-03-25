@@ -160,18 +160,14 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
 
     // Effect to sync page number with page prop
     useEffect(() => {
-        if (page) {
-            setPageNumber(page);
-        }
-    }, [page]);
-
-    // Function to calculate the target page based on the highlights
-    useEffect(() => {
-        if (data && !page) {
+        if (data) {
             let targetPage = 1; // default to first page
 
-            // Use most frequent page from highlights if no page specified
-            if (highlights && highlights.length > 0) {
+            // Set target page based on the provided page prop
+            if (page) {
+                targetPage = page;
+            // Otherwise, set target page based on the most frequent page in the highlights
+            } else if (highlights && highlights.length > 0) {
                 // Count page occurrences in highlights
                 const pageCount = highlights.reduce((acc: {[key: number]: number}, highlight) => {
                     const highlightPage = highlight.page;
@@ -183,13 +179,13 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                 const mostFrequentPage = Object.entries(pageCount)
                     .reduce((a, b) => (b[1] > a[1] ? b : a))[0];
                 
-                targetPage = parseInt(mostFrequentPage) || 1;
+                targetPage = parseInt(mostFrequentPage) || page || 1;
             }
 
             setPageNumber(targetPage);
             fitParent();
         }
-    }, [data, highlights]);
+    }, [data, highlights, page]);
 
     // Function to handle successful loading of the PDF page and retrieve its original dimensions
     const onPageLoadSuccess = (page: PDFPageProxy) => {
