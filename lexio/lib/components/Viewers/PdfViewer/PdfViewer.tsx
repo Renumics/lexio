@@ -166,7 +166,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
             // Set target page based on the provided page prop
             if (page) {
                 targetPage = page;
-                
+
             // Otherwise, set target page based on the most frequent page in the highlights
             } else if (highlights && highlights.length > 0) {
                 // Count page occurrences in highlights

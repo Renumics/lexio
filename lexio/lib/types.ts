@@ -206,7 +206,7 @@ export interface Source {
      * Highlight annotations in the PDF document. Only applicable for PDF sources.
      * These highlights will be visually displayed in the PDF viewer.
      */
-    highlights?: PDFHighlight[];  // Evidence highlights with idea references
+    highlights?: PDFHighlight[];
 }
 
 // ---- central state management types -----

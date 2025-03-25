@@ -448,6 +448,7 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
         try {
             // Await the Promise to get the actual data
             const resolvedData = await response.sourceData;
+
             const updatedSources = currentSources.map(source => 
                 source.id === action.sourceId 
                     ? { ...source, data: resolvedData }
@@ -533,7 +534,10 @@ export const dispatchAtom = atom(
       }
 
       const retrievedSources = get(retrievedSourcesAtom);
-      const activeSources = get(activeSourcesAtom);
+
+       // const activeSourcesIds = get(activeSourcesIdsAtom);
+
+       const activeSources = get(activeSourcesAtom);
           
       // ---- Call the handler
       const payload = await Promise.resolve(
