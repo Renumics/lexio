@@ -73,17 +73,17 @@ export interface PDFHighlight {
  * Used for visual emphasis of key points in the final message.
  *
  * @interface MessageHighlight
- * @property {string} text - The exact text to highlight
  * @property {string} color - Color for the highlight in any valid CSS format
- * @property {number} startChar - Starting character position in the message
- * @property {number} endChar - Ending character position in the message
+ * @property {string} [text] - The exact text to highlight (required if startChar/endChar not provided)
+ * @property {number} [startChar] - Starting character position in the message (required if text not provided)
+ * @property {number} [endChar] - Ending character position in the message (required if text not provided)
  */
-export interface MessageHighlight {
-    text: string;         
-    color: string;        
-    startChar: number;    
-    endChar: number;
-}
+export type MessageHighlight = {
+    color: string;
+} & (
+    | { text: string; startChar?: never; endChar?: never }
+    | { text?: never; startChar: number; endChar: number }
+);
 
 /**
  * Links message highlights to their supporting evidence in source documents.
