@@ -12,7 +12,8 @@ import {
     defaultTheme,
     Theme,
     UserAction,
-    Source
+    Source,
+    useLexioTheme
 } from '../../../lib/main';
 import {useEffect} from "react";
 
@@ -194,6 +195,27 @@ interface ThemeStoryProps {
     customTheme?: Theme;
 }
 
+// Example of a custom component using the theme
+const ThemedCustomComponent = () => {
+  // Access the theme using the useLexioTheme hook
+  const theme = useLexioTheme();
+  
+  return (
+    <div style={{
+      background: theme.colors.secondaryBackground,
+      color: theme.colors.text,
+      padding: theme.componentDefaults.padding,
+      borderRadius: theme.componentDefaults.borderRadius,
+      fontFamily: theme.typography.fontFamily,
+      marginBottom: '1rem',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    }}>
+      <h3 style={{ color: theme.colors.primary, marginTop: 0 }}>Custom Themed Component</h3>
+      <p>This component uses the useLexioTheme hook to access the current theme.</p>
+    </div>
+  );
+};
+
 const ThemingExample = ({customTheme}: ThemeStoryProps) => {
     return (
         <BaseLayout>
@@ -244,6 +266,9 @@ const ThemingExample = ({customTheme}: ThemeStoryProps) => {
                 }}
             >
                 <DataLoader/>
+                
+                {/* Add the custom themed component to showcase useLexioTheme */}
+                <ThemedCustomComponent />
                 <SharedLayout/>
             </LexioProvider>
         </BaseLayout>
@@ -253,45 +278,36 @@ const ThemingExample = ({customTheme}: ThemeStoryProps) => {
 type Story = StoryObj<typeof ThemingExample>;
 
 const meta = {
-    title: 'Additional Features/Global Theme',
+    title: 'Additional Features/Theming',
     component: ThemingExample,
     parameters: {
         layout: 'centered',
         docs: {
             description: {
-                component: `
-## Introduction
+                component: `# Theming in Lexio
 
-The \`Lexio\` library provides a flexible theming system that allows you to customize the look and feel of all components. You can either use the default theme, modify specific parts of it, or create an entirely new theme.
+Lexio provides a comprehensive theming system that allows you to customize the appearance of all components. The theming system is based on a central theme object that defines colors, typography, and component defaults.
 
 ## Theme Structure
 
-The theme consists of three main parts:
-
-\`\`\`typescript
-interface Theme {
-  colors: Colors;                       // Color palette
-  typography: Typography;               // Font settings
-  componentDefaults: ComponentDefaults; // Default component styles
-}
-\`\`\`
+A theme in Lexio consists of three main parts:
 
 ### 1. Colors
 
-The color system includes:
+The color palette includes:
 
 \`\`\`typescript
 interface Colors {
-  primary: string;            // Primary brand color
-  secondary: string;          // Secondary brand color
-  contrast: string;           // Contrast color for text on primary/secondary
-  background: string;         // Main background color
-  secondaryBackground: string;// Secondary background color
-  toolbarBackground: string;  // Background for toolbars
-  text: string;               // Main text color
-  secondaryText: string;      // Secondary text color
-  lightText: string;          // Light text color
-  success: string;            // Success state color
+  primary: string;             // Primary brand color
+  secondary: string;           // Secondary brand color
+  contrast: string;            // Contrast color (usually white)
+  background: string;          // Main background color
+  secondaryBackground: string; // Secondary background color
+  toolbarBackground: string;   // Toolbar background color
+  text: string;                // Main text color
+  secondaryText: string;       // Secondary text color
+  lightText: string;           // Light text color
+  success: string;             // Success state color
   warning: string;            // Warning state color
   error: string;              // Error state color
 }
@@ -384,6 +400,32 @@ const myTheme: Theme = {
   <YourComponents />
 </LexioProvider>
 \`\`\`
+
+## Accessing the Theme in Custom Components
+
+You can access the current theme in your custom components using the \`useLexioTheme\` hook:
+
+\`\`\`typescript
+import { useLexioTheme } from 'lexio';
+
+function MyCustomComponent() {
+  const theme = useLexioTheme();
+  
+  return (
+    <div style={{ 
+      color: theme.colors.text,
+      backgroundColor: theme.colors.background,
+      padding: theme.componentDefaults.padding,
+      borderRadius: theme.componentDefaults.borderRadius,
+      fontFamily: theme.typography.fontFamily
+    }}>
+      My themed custom component
+    </div>
+  );
+}
+\`\`\`
+
+This allows you to create components that automatically adapt to the current theme, maintaining a consistent look and feel throughout your application.
 
 ## Interactive Example 
 Try out the interactive examples below to see different theme variations in action.  

@@ -7,7 +7,7 @@ import { PdfViewer } from './components/Viewers/PdfViewer'
 import { HtmlViewer } from './components/Viewers/HtmlViewer'
 import { MarkdownViewer } from './components/Viewers/MarkdownViewer'
 import { LexioProvider } from './components/LexioProvider'
-import { useMessages, useSources, useStatus, useMessageFeedback } from './hooks'
+import { useMessages, useSources, useStatus, useMessageFeedback, useLexioTheme } from './hooks'
 import { SourcesDisplay } from './components/SourcesDisplay'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ContentDisplay } from './components/ContentDisplay'
@@ -46,10 +46,11 @@ export {
     useSources,
     useStatus,
     useMessageFeedback,
+    useLexioTheme,
 
     // Theme
     createTheme,
-    defaultTheme
+    defaultTheme,
 }
 export * from './types'
 export * from './theme/types'
