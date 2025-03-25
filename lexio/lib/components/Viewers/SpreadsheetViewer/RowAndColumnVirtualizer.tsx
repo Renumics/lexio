@@ -255,11 +255,11 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
 
             // console.log("virtualItems onChange called: ", instance.getVirtualItems());
 
-            applyMergesToCells(
-                mergedGroupOfSelectedWorksheet,
-                selectedSheetName,
-                tableId,
-            );
+            // applyMergesToCells(
+            //     mergedGroupOfSelectedWorksheet,
+            //     selectedSheetName,
+            //     tableId,
+            // );
         },
     });
 
@@ -294,11 +294,11 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName, tableId);
 
             console.log("rowVirtualizer onChange called: ");
-            applyMergesToCells(
-                mergedGroupOfSelectedWorksheet,
-                selectedSheetName,
-                tableId,
-            );
+            // applyMergesToCells(
+            //     mergedGroupOfSelectedWorksheet,
+            //     selectedSheetName,
+            //     tableId,
+            // );
         },
     });
 
@@ -529,7 +529,7 @@ const TableHeadRow = <T, >(props: TableHeadRowProps<T>) => {
 
     const virtualColumns = columnVirtualizer.getVirtualItems();
 
-    const firstTableHeadCell = headerGroup.headers[0];
+    // const firstTableHeadCell = headerGroup.headers[0];
 
     return (
         <tr key={headerGroup.id} style={{display: "flex", width: "100%"}}>
@@ -537,18 +537,18 @@ const TableHeadRow = <T, >(props: TableHeadRowProps<T>) => {
                 //fake empty column to the left for virtualization scroll padding
                 <th style={{display: "flex", width: virtualPaddingLeft}}/>
             ) : null}
-            {firstTableHeadCell ?
-                <TableHeadCell
-                    key={firstTableHeadCell.id}
-                    // @ts-ignoref
-                    header={firstTableHeadCell}
-                    rowCount={rowCount}
-                    isSelected={false}
-                    isFirst={true}
-                    isLast={false}
-                    headerStyles={headerStyles}
-                /> : null
-            }
+            {/*{firstTableHeadCell ?*/}
+            {/*    <TableHeadCell*/}
+            {/*        key={firstTableHeadCell.id}*/}
+            {/*        // @ts-ignoref*/}
+            {/*        header={firstTableHeadCell}*/}
+            {/*        rowCount={rowCount}*/}
+            {/*        isSelected={false}*/}
+            {/*        isFirst={true}*/}
+            {/*        isLast={false}*/}
+            {/*        headerStyles={headerStyles}*/}
+            {/*    /> : null*/}
+            {/*}*/}
             {virtualColumns.map((virtualColumn, colIndex, array) => {
                 const header = headerGroup.headers[virtualColumn.index];
                 // if (header.id === "rowNo") return null;
