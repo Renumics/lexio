@@ -71,14 +71,37 @@ export class CitationGenerator {
         source: Source,
         pdfHighlights: PDFHighlight[]
     ): Citation[] {
-        const ideas = messageHighlights.map(highlight => ({
-            text: highlight.text,
-            position: {
-                start: highlight.startChar,
-                end: highlight.endChar
-            },
-            color: highlight.color
-        }));
+        // Convert message highlights to ideas
+        const ideas = messageHighlights.map(highlight => {
+            if (highlight.text) {
+                return {
+                    text: highlight.text,
+                    position: {
+                        start: 0, // These will be ignored since we're using text
+                        end: 0
+                    },
+                    color: highlight.color
+                };
+            } else if (highlight.startChar !== undefined && highlight.endChar !== undefined) {
+                return {
+                    text: '', // This will be ignored since we're using startChar/endChar
+                    position: {
+                        start: highlight.startChar,
+                        end: highlight.endChar
+                    },
+                    color: highlight.color
+                };
+            }
+            // If neither text nor startChar/endChar are provided, use empty values
+            return {
+                text: '',
+                position: {
+                    start: 0,
+                    end: 0
+                },
+                color: highlight.color
+            };
+        });
 
         const locations = pdfHighlights.map(highlight => ({
             page: highlight.page,
@@ -91,10 +114,11 @@ export class CitationGenerator {
         return connections.map(connection => ({
             sourceId: connection.sourceId,
             messageHighlight: {
-                text: connection.idea.text,
-                startChar: connection.idea.position.start,
-                endChar: connection.idea.position.end,
-                color: connection.idea.color || 'yellow'
+                color: connection.idea.color || 'yellow',
+                ...(connection.idea.position.start === 0 && connection.idea.position.end === 0
+                    ? { text: connection.idea.text }
+                    : { startChar: connection.idea.position.start, endChar: connection.idea.position.end }
+                )
             },
             sourceHighlight: {
                 page: connection.location.page || 1,
