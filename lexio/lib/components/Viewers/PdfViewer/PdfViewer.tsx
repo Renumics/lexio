@@ -9,7 +9,7 @@ import { PdfViewerToolbar } from "./PdfViewerToolbar";
 import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
 import {useHotkeys, Options} from 'react-hotkeys-hook';
 import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
-import { PDFHighlight, Source } from "../../../types";
+import { PDFHighlight } from "../../../types";
 
 // Configure PDF.js worker - we explicitly use the pdfjs worker from the react-pdf package to avoid conflicts with the worker versions.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
