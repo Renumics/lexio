@@ -1,5 +1,5 @@
 // ideaSplitter.ts
-import { loadOpenAI } from './dependencies';
+import { loadOpenAIChat } from './dependencies';
 import { extractClauses } from './clause_extractor';
 
 /**
@@ -42,8 +42,6 @@ export interface IdeaWithSnippet {
  * Uses the OpenAI API to split the sentence into distinct ideas.
  */
 export async function splitIntoIdeasUsingLLM(sentence: string): Promise<string[]> {
-  // console.log('Input sentence:', sentence);
-  
   const prompt = `Extract key phrases from this text that represent complete, distinct ideas. Each phrase must be an exact word-for-word match from the original text.
 
 Original text: "${sentence}"
@@ -66,24 +64,20 @@ improve performance over time
 Now extract phrases from the original text:`;
 
   try {
-    const client = await loadOpenAI();
-    const response = await client.chat.completions.create({
+    const client = await loadOpenAIChat();
+    const outputText = await client.createChatCompletion([
+      { role: 'system', content: 'You are a helpful assistant that extracts meaningful, complete phrases from text.' },
+      { role: 'user', content: prompt }
+    ], {
       model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: 'You are a helpful assistant that extracts meaningful, complete phrases from text.' },
-        { role: 'user', content: prompt }
-      ],
       max_tokens: 150,
       temperature: 0.3,
     });
 
-    const outputText: string = response.choices[0].message?.content || '';
-    // console.log('LLM raw output:', outputText);
-
     const ideas = outputText
       .split('\n')
-      .map(line => line.trim())
-      .filter(line => {
+      .map((line: string) => line.trim())
+      .filter((line: string) => {
         const exists = line && sentence.includes(line);
         if (!exists && line) {
           console.log('Filtered out non-matching phrase:', line);
@@ -91,7 +85,6 @@ Now extract phrases from the original text:`;
         return exists;
       });
 
-    // console.log('Final extracted ideas:', ideas);
     return ideas;
   } catch (error) {
     console.error("Error calling LLM for idea splitting:", error);

@@ -1,15 +1,19 @@
 // embedding.ts
 
 // Remove dotenv, fs, and path since these are Node‑only.
-import { loadCompromise } from './dependencies';
+import { loadCompromise, loadOpenAIEmbeddings } from './dependencies';
 
-// Use only Vite's import.meta.env
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-console.log('OpenAI Key status:', !!OPENAI_API_KEY);
+// No need for direct API key access here anymore
+let embeddingsClient: Awaited<ReturnType<typeof loadOpenAIEmbeddings>> | null = null;
 
-if (!OPENAI_API_KEY) {
-    console.error('Environment variables available:', import.meta.env);
-    throw new Error('VITE_OPENAI_API_KEY is not defined in your environment variables.');
+/**
+ * Ensures the embeddings client is initialized
+ */
+async function ensureEmbeddingsClient() {
+  if (!embeddingsClient) {
+    embeddingsClient = await loadOpenAIEmbeddings();
+  }
+  return embeddingsClient;
 }
 
 /**
@@ -45,34 +49,13 @@ export async function getEmbedding(chunk: string): Promise<number[] | null> {
   try {
     // Always normalize before getting the embedding
     const normalizedChunk = await normalizeForEmbedding(chunk);
-    const response = await fetch("https://api.openai.com/v1/embeddings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "text-embedding-ada-002",
-        input: normalizedChunk,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error("OpenAI API response error:", response.statusText);
-      return null;
-    }
-
-    const data = await response.json();
-    if (!data || !data.data || data.data.length === 0) {
-      console.error("Invalid response data:", data);
-      return null;
-    }
-    return data.data[0].embedding;
+    const client = await ensureEmbeddingsClient();
+    return await client.createEmbedding(normalizedChunk);
   } catch (error) {
     console.error("Error getting embedding:", error);
     return null;
   }
-};
+}
 
 /**
  * Types for chunk input and processed chunks.
