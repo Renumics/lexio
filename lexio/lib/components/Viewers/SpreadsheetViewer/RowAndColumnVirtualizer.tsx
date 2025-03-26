@@ -255,11 +255,11 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
 
             // console.log("virtualItems onChange called: ", instance.getVirtualItems());
 
-            // applyMergesToCells(
-            //     mergedGroupOfSelectedWorksheet,
-            //     selectedSheetName,
-            //     tableId,
-            // );
+            applyMergesToCells(
+                mergedGroupOfSelectedWorksheet,
+                selectedSheetName,
+                tableId,
+            );
         },
     });
 
@@ -294,11 +294,11 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName, tableId);
 
             console.log("rowVirtualizer onChange called: ");
-            // applyMergesToCells(
-            //     mergedGroupOfSelectedWorksheet,
-            //     selectedSheetName,
-            //     tableId,
-            // );
+            applyMergesToCells(
+                mergedGroupOfSelectedWorksheet,
+                selectedSheetName,
+                tableId,
+            );
         },
     });
 
@@ -354,7 +354,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                const startRow = range.start.row;
                const endRow = range.end.row;
 
-               if (isCellInRange(props.selectedCell.row + 1, props.selectedCell.column, [`${range.start.column}${range.start.row}`,`${range.end.column}${range.end.row}`])) {
+               if (isCellInRange(props.selectedCell.row, props.selectedCell.column, [`${range.start.column}${range.start.row}`,`${range.end.column}${range.end.row}`])) {
                    // Columns
                    for (let i = startColumn; i < endColumn + 1; i++) {
                        headerCells.push(utils.encode_col(i));
@@ -370,7 +370,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
             headerCells.push(props.selectedCell.column)
         }
         if (headerRowCells.length === 0) {
-            headerRowCells.push(props.selectedCell.row + 1)
+            headerRowCells.push(props.selectedCell.row)
         }
         setSelectedHeaderCells(headerCells);
         setSelectedHeaderRowCells(headerRowCells);
@@ -485,6 +485,7 @@ const TableHead: FC<TableHeadProps> = (props) => {
                 top: 0,
                 zIndex: Z_INDEX_OF_STICKY_HEADER_ROW,
                 // height: `${TABLE_HEAD_ROW_HEIGHT}px`,
+                visibility: "hidden",
             }}
             className={"bg-neutral-100"}
         >
@@ -683,7 +684,6 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
         >
         {virtualRows.map(virtualRow => {
             const row = rows[virtualRow.index] as Row<unknown>
-
             return (
                 <TableBodyRow
                     ref={(el) => {
@@ -771,7 +771,7 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
 
     const isCellSelected = (cell: Cell<T, CellContent>, cellIndex: number): boolean => {
         return (
-            selectedHeaderRowCells.includes(cell.row.index + 1) &&
+            selectedHeaderRowCells.includes(cell.row.index - 1) &&
             selectedHeaderCells.includes(cell.column.id) &&
             cellIndex !== 0
         ) as boolean;
@@ -802,22 +802,9 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
         >
             {virtualPaddingLeft ? (
                 //fake empty column to the left for virtualization scroll padding
-                <td style={{ display: "flex", width: virtualPaddingLeft }} />
+                <td style={{display: "flex", width: virtualPaddingLeft}}/>
             ) : null}
             <TableBodyCell
-                ref={(el) => {
-                    if (!el) return;
-                    cellAndCellContainerRefsOfRow.current = {
-                        cellRefs: {
-                            ...cellAndCellContainerRefsOfRow.current.cellRefs,
-                            ...el.cellRefs,
-                        },
-                        cellInnerContainerRefs: {
-                            ...cellAndCellContainerRefsOfRow.current.cellInnerContainerRefs,
-                            ...el.cellInnerContainerRefs,
-                        }
-                    }
-                }}
                 // @ts-ignore
                 cell={cellOfFirstColumn}
                 key={cellOfFirstColumn.id}
@@ -825,7 +812,7 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                 isLast={false}
                 isFirst={true}
                 isSelected={isCellSelected(cellOfFirstColumn, 0)}
-                isFirstCellOfSelectedRow={(selectedHeaderRowCells.includes(cellOfFirstColumn.row.index + 1)) ?? false}
+                isFirstCellOfSelectedRow={(selectedHeaderRowCells.includes(cellOfFirstColumn.row.index - 1)) ?? false}
                 // @ts-ignore
                 handleCellSelection={(cell) => handleCellClick(cell)}
                 cellsStyles={cellsStyles}
@@ -848,7 +835,7 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                                 },
                                 cellInnerContainerRefs: {
                                     ...cellAndCellContainerRefsOfRow.current.cellInnerContainerRefs,
-                                   ...el.cellInnerContainerRefs,
+                                    ...el.cellInnerContainerRefs,
                                 }
                             }
                         }}
@@ -866,13 +853,13 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                         headerStyles={headerStyles}
                         rowStyles={rowStyles}
                         mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
-                        shouldMerge={cellIndex < visibleCells.length - 1 && cell.getValue() === visibleCells[cellIndex + 1].getValue()}
+                        shouldMerge={cellIndex < visibleCells.length - 1 && cell.getValue() === visibleCells[cellIndex].getValue()}
                     />
                 )
             })}
             {virtualPaddingRight ? (
                 //fake empty column to the right for virtualization scroll padding
-                <td style={{ display: "flex", width: virtualPaddingRight }} />
+                <td style={{display: "flex", width: virtualPaddingRight}}/>
             ) : null}
         </tr>
     )
@@ -916,9 +903,9 @@ const TableBodyCell = forwardRef(
 
     const cellInnerContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-    const cellId = `${cell.column.id}${cell.row.index + 1}`;
+    const cellId = `${cell.column.id}${cell.row.index}`;
 
-    const cellInnerContainerId = `${cell.column.id}${cell.row.index + 1}-inner-container`;
+    const cellInnerContainerId = `${cell.column.id}${cell.row.index}-inner-container`;
 
     // Sends all cell refs to the parent component
     useImperativeHandle(ref, () => ({
@@ -958,19 +945,11 @@ const TableBodyCell = forwardRef(
 
     const computeCellWidth = (): number => {
         if (isFirst) return calculateWidthOfFirstColumn(rowCount);
-
-        // const isFirstCellOfAMergedRange = mergedRangesOfSelectedWorksheet
-        //     .find((m) => m.start.row === cell.row.index + 1 && m.start.column === cell.column.id);
-        // if (shouldMerge) {
-        //     return calculateWidthOfColumn(cell.column.id, headerStyles) +
-        //         calculateWidthOfColumn(utils.encode_col(utils.decode_col(cell.column.id) + 1), headerStyles);
-        // }
-        // return cell.column.getSize();
         return calculateWidthOfColumn(cell.column.id, headerStyles);
     }
 
     const computeRowHeight = (): number => {
-        const rowIndex = cell.row.index + 1;
+        const rowIndex = cell.row.index;
         return calculateHeightOfRow(rowIndex, rowStyles);
     }
 
@@ -1014,7 +993,7 @@ const TableBodyCell = forwardRef(
                     "border-[2px] !border-blue-500": isSelected,
                 })}
                 style={{
-                    backgroundColor: getCellStyleOfCellContent(cell.row.index + 1, cell.column.id)?.backgroundColor,
+                    backgroundColor: getCellStyleOfCellContent(cell.row.index, cell.column.id)?.backgroundColor,
                 }}
                 onClick={!isFirst ? () => handleCellSelection(cell) : undefined}
             >
@@ -1030,10 +1009,10 @@ const TableBodyCell = forwardRef(
                         wordWrap: "break-word",
                         overflowWrap: "break-word",
                         whiteSpace: "ellipsis",
-                        borderTop: getCellStyle(cell.row.index + 1, cell.column.id)?.borderTop,
-                        borderRight: getCellStyle(cell.row.index + 1, cell.column.id)?.borderRight,
-                        borderBottom: getCellStyle(cell.row.index + 1, cell.column.id)?.borderBottom,
-                        borderLeft: getCellStyle(cell.row.index + 1, cell.column.id)?.borderLeft,
+                        borderTop: getCellStyle(cell.row.index, cell.column.id)?.borderTop,
+                        borderRight: getCellStyle(cell.row.index, cell.column.id)?.borderRight,
+                        borderBottom: getCellStyle(cell.row.index, cell.column.id)?.borderBottom,
+                        borderLeft: getCellStyle(cell.row.index, cell.column.id)?.borderLeft,
                     }}
                 >
                     <div
@@ -1047,7 +1026,7 @@ const TableBodyCell = forwardRef(
                             width: "100%",
                             height: "100%",
                             // styles from source file
-                            ...getCellStyleOfCellContent(cell.row.index + 1, cell.column.id),
+                            ...getCellStyleOfCellContent(cell.row.index, cell.column.id),
                             // For first column containing the row number.
                             ...(isFirst ? {
                                 display: "flex",

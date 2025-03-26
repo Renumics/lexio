@@ -47,7 +47,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
     });
 
     const handleCellClick = (cell: Cell<Record<string, CellContent>, CellContent>) => {
-        setSelectedCell({ row: cell.row.index, column: cell.column.id });
+        setSelectedCell({ row: cell.row.index - 1, column: cell.column.id });
     }
 
     const switchSpreadsheet = (spreadsheet: string) => {
@@ -58,7 +58,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
 
     const computeMetadataOfSelectedCell = (): string => {
         const metaData = getMetaDataOfSelectedCell();
-        if (metaData?.f) return `=${metaData?.f}`;
+        if (metaData?.f) return `${metaData?.f}`;
         if (metaData?.v) return `${metaData?.v}`;
         return "";
     }

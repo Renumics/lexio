@@ -303,8 +303,6 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         const sortedWorksheetColumns = generateSpreadsheetColumns(selectedSheetJsWorksheet["!ref"] as string)
             .sort((a, b) => sortSpreadsheetColumnsComparator(a, b));
 
-        console.log("selectedSheetJsWorksheet: ", selectedSheetJsWorksheet);
-
         const rows: RowList = utils.sheet_to_json(selectedSheetJsWorksheet, sheetToJsonOptions);
 
         setColumns(
@@ -328,7 +326,11 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         );
 
         // Property rowNo added to ease row identification.
-        setRowData(rows.map((row, index) => ({ rowNo: `${index + 1}`, ...row })));
+        setRowData([
+            // Workaround for first row representing the header row.
+            { ...sortedWorksheetColumns.reduce((acc, currentKey) => ({...acc, [currentKey]: currentKey }), { rowNo: "" }) },
+            ...rows.map((row, index) => ({ rowNo: `${index + 1}`, ...row }))
+        ]);
     }, [isLoading, selectedSheetJsWorksheet, selectedWorksheetName, sheetJsWorkbook]);
 
     // Sets styles of active worksheet.
@@ -358,7 +360,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         if (!selectedSheetJsWorksheet) {
             throw new Error("No worksheet found. No metadata will be fetched.");
         }
-        return selectedSheetJsWorksheet[`${selectedCell.column}${selectedCell.row + 1}`] as CellMetaData;
+        return selectedSheetJsWorksheet[`${selectedCell.column}${selectedCell.row}`] as CellMetaData;
     }
 
     return {
@@ -539,7 +541,7 @@ export const mergeCells = (
             const cellToMerge = cellRefs[`${utils.encode_col(col)}${merge.start.row}`];
             if (cellToMerge) {
                 totalWidth += parseFloat(cellToMerge.style.width) || cellToMerge.offsetWidth;
-                cellToMerge.style.display = "none";
+                cellToMerge.style.visibility = "hidden";
             }
         }
 
@@ -560,15 +562,15 @@ export const mergeCells = (
             }
         }
 
-        startCell.style.width = `${totalWidth}px`;
-
+        // startCell.style.width = `${totalWidth}px`;
 
         startCell.style.setProperty("border", "none", "important");
-        const innerContainerOfSTartCell = startCell.children[0] as HTMLDivElement;
-        if (!innerContainerOfSTartCell) return;
-        innerContainerOfSTartCell.style.height = `${totalHeight}px`;
-        innerContainerOfSTartCell.style.borderBottom = "1px solid #e5e7eb";
-        innerContainerOfSTartCell.style.borderLeft = "1px solid #e5e7eb";
+        const innerContainerOfStartCell = startCell.children[0] as HTMLDivElement | null;
+        if (!innerContainerOfStartCell) return;
+        innerContainerOfStartCell.style.height = `${totalHeight}px`;
+        innerContainerOfStartCell.style.width = `${totalWidth}px`;
+        innerContainerOfStartCell.style.borderBottom = "1px solid #e5e7eb";
+        innerContainerOfStartCell.style.borderLeft = "1px solid #e5e7eb";
         // startCell.style.height = `${totalHeight}px`;
     });
 
