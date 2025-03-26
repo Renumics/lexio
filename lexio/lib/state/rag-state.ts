@@ -532,14 +532,27 @@ export const dispatchAtom = atom(
         }
         return;
       }
+      // ---- Fetch additional data for certain actions ---
+      if (action.type === 'SET_SELECTED_SOURCE') {
+        const source = get(retrievedSourcesAtom).find(source => source.id === action.sourceId);
+        if (source) {
+            action.sourceObject = {
+                ...source,
+                metadata: {
+                    ...(source.metadata || {}),
+                    ...(action.sourceObject?.metadata || {})
+                }
+            };
+        }
+      }
 
       const retrievedSources = get(retrievedSourcesAtom);
 
        // const activeSourcesIds = get(activeSourcesIdsAtom);
 
        const activeSources = get(activeSourcesAtom);
-          
-      // ---- Call the handler
+
+       // ---- Call the handler
       const payload = await Promise.resolve(
         handler.handler(
           action,
