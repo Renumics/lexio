@@ -49,7 +49,9 @@ const renderHighlightedContentWithHighlights = (
 
     if (highlightsToUse && highlightsToUse.length > 0) {
         // Sort highlights by startChar to process them in order
-        const sortedHighlights = [...highlightsToUse].sort((a, b) => a.startChar - b.startChar);
+        const sortedHighlights = [...highlightsToUse]
+            .filter(h => h.startChar !== undefined && h.endChar !== undefined)
+            .sort((a, b) => (a.startChar as number) - (b.startChar as number));
         
         let lastIndex = 0;
         const segments: React.ReactNode[] = [];
@@ -57,11 +59,16 @@ const renderHighlightedContentWithHighlights = (
         // Process each highlight in order
         sortedHighlights.forEach((highlight, index) => {
             // Add non-highlighted text before this highlight
-            if (highlight.startChar > lastIndex) {
+            if (highlight.startChar !== undefined && highlight.startChar > lastIndex) {
                 segments.push(content.slice(lastIndex, highlight.startChar));
             }
 
             // Add highlighted segment with click handler
+            const highlightContent = highlight.text || 
+                (highlight.startChar !== undefined && highlight.endChar !== undefined 
+                    ? content.slice(highlight.startChar, highlight.endChar) 
+                    : '');
+
             segments.push(
                 <span
                     key={`highlight-${index}`}
@@ -78,11 +85,11 @@ const renderHighlightedContentWithHighlights = (
                         }
                     }}
                 >
-                    {content.slice(highlight.startChar, highlight.endChar)}
+                    {highlightContent}
                 </span>
             );
 
-            lastIndex = highlight.endChar;
+            lastIndex = highlight.endChar !== undefined ? highlight.endChar : lastIndex;
         });
 
         // Add any remaining text after the last highlight
