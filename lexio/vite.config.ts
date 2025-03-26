@@ -46,8 +46,6 @@ export default defineConfig({
       // onwarn(warning, warn) {
       //   if (warning.code === 'DYNAMIC_IMPORT_ASSERTIONS') return
       //   if (warning.message.includes('dynamic import cannot be analyzed')) return
-
-
       //   warn(warning)
       // }
     },
