@@ -397,7 +397,7 @@ export type UserAction =
 export interface AddUserMessageActionResponse {
     response?: Promise<string | StreamChunk> | AsyncIterable<StreamChunk>;
     sources?: Promise<Source[]>;
-    citations?: Promise<Citation[]> | Citation[];
+    citations?: Promise<Citation[]>;
     setUserMessage?: string;
     followUpAction?: UserAction;
 }
