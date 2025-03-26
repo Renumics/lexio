@@ -1,6 +1,6 @@
 // preprocessing.ts
 import { pdfjs } from 'react-pdf';
-import sbd from 'sbd';
+import { loadSbd } from './dependencies';
 
 // Set the pdfjs worker source from the CDN
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -145,10 +145,12 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
 /**
  * Clean text and split into sentences.
  */
-function cleanAndSplitText(rawBlocks: ParseResult['blocks']): TextWithMetadata[] {
+async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<TextWithMetadata[]> {
     let textsWithMetadata: TextWithMetadata[] = [];
     
     if (rawBlocks && rawBlocks.block_type === "Document") {
+        const sbd = await loadSbd();  // Load SBD dynamically
+        
         for (const pageBlock of rawBlocks.children) {
             if (!pageBlock.text || typeof pageBlock.text !== "string") continue;
             
@@ -172,7 +174,7 @@ function cleanAndSplitText(rawBlocks: ParseResult['blocks']): TextWithMetadata[]
                 .replace(/\s+/g, ' ')
                 .trim();
             
-            // Split into sentences
+            // Split into sentences using dynamically loaded SBD
             const sentences = sbd.sentences(cleanedText, { newline_boundaries: true });
             
             for (const sentence of sentences) {

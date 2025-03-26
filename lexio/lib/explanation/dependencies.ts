@@ -32,4 +32,22 @@ export async function loadTiktoken() {
       'yarn add js-tiktoken'
     );
   }
+}
+
+/**
+ * Dynamically loads the sbd (sentence boundary detection) library.
+ * @throws Error if sbd is not installed
+ */
+export async function loadSbd() {
+  try {
+    const sbd = await import('sbd');
+    return sbd.default;
+  } catch (error) {
+    throw new Error(
+      'Sentence boundary detection features require the sbd library. Please install it:\n' +
+      'npm install sbd\n' +
+      'or\n' +
+      'yarn add sbd'
+    );
+  }
 } 
