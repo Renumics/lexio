@@ -2,10 +2,11 @@
 // This file provides a heuristic clause extractor in TypeScript using the "compromise" NLP library.
 // Note: Unlike the original Python/spaCy version, this does not perform true dependency parsing.
 
-import nlp from 'compromise';
+import { loadCompromise } from './dependencies';
 
-export function extractClauses(text: string): string[] {
+export async function extractClauses(text: string): Promise<string[]> {
   // Use compromise to split the text into sentences.
+  const nlp = await loadCompromise();
   const doc = nlp(text);
   const sentences = doc.sentences().out('array');
   const clauses: string[] = [];

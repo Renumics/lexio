@@ -1,5 +1,5 @@
 // similarity.ts
-import nlp from 'compromise';
+import { loadCompromise } from './dependencies';
 import { getEmbedding } from './embedding';
 import { splitIntoSentences } from './chunking';
 import { PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
@@ -249,7 +249,8 @@ export async function findTopSentencesGlobally(
 /**
  * Extracts entities (people, places, organizations, topics) from the given text.
  */
-export function extractEntitiesAndTopics(text: string): Entities {
+export async function extractEntitiesAndTopics(text: string): Promise<Entities> {
+  const nlp = await loadCompromise();
   const doc = nlp(text);
   const people = doc.people().out("array");
   const places = doc.places().out("array");
@@ -261,7 +262,8 @@ export function extractEntitiesAndTopics(text: string): Entities {
 /**
  * Extracts key phrases from the given text.
  */
-export function extractKeyPhrases(text: string): string[] {
+export async function extractKeyPhrases(text: string): Promise<string[]> {
+  const nlp = await loadCompromise();
   const doc = nlp(text);
   return doc.topics().out("array");
 }

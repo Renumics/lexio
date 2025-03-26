@@ -232,7 +232,7 @@ export class ExplanationProcessor {
 
             const ideaSources = await Promise.all(
                 answerIdeas.map(async ({ idea }) => {
-                    const keyPhrases = extractKeyPhrases(idea);
+                    const keyPhrases = await extractKeyPhrases(idea);
                     const ideaEmbedding = await getEmbedding(idea);
                     
                     if (!ideaEmbedding) {

@@ -1,15 +1,26 @@
 // tokenizer.ts
-import { getEncoding } from "js-tiktoken";
+import { loadTiktoken } from './dependencies';
 
-// Initialize the encoder using the "cl100k_base" encoding.
-const enc = getEncoding("cl100k_base");
+let encoder: any = null;
+
+/**
+ * Initialize the encoder lazily.
+ */
+async function initializeEncoder() {
+  if (!encoder) {
+    const tiktoken = await loadTiktoken();
+    encoder = tiktoken.getEncoding("cl100k_base");
+  }
+  return encoder;
+}
 
 /**
  * Count tokens for an array of sentence strings.
  *
  * @param sentences - An array of sentences.
- * @returns An array of token counts corresponding to each sentence.
+ * @returns A promise that resolves to an array of token counts corresponding to each sentence.
  */
-export function countTokens(sentences: string[]): number[] {
+export async function countTokens(sentences: string[]): Promise<number[]> {
+  const enc = await initializeEncoder();
   return sentences.map((sentence) => enc.encode(sentence).length);
 }

@@ -73,7 +73,8 @@ export async function groupSentenceObjectsIntoChunks(
 
   for (let i = 0; i < sentences.length; i++) {
     const sentence = sentences[i];
-    const sentenceTokenCount = countTokens([sentence.text])[0];
+    const tokenCounts = await countTokens([sentence.text]);  // Add await here
+    const sentenceTokenCount = tokenCounts[0];
     const nextSentence = sentences[i + 1];
 
     // Create a new chunk if:

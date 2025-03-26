@@ -1,7 +1,7 @@
 // embedding.ts
 
 // Remove dotenv, fs, and path since these are Node‑only.
-import nlp from 'compromise';
+import { loadCompromise } from './dependencies';
 
 // Use only Vite's import.meta.env
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
@@ -18,11 +18,12 @@ if (!OPENAI_API_KEY) {
  * @param text - The text to normalize.
  * @returns The normalized text.
  */
-export function normalizeForEmbedding(text: string): string {
+export async function normalizeForEmbedding(text: string): Promise<string> {
   if (!text || typeof text !== 'string') {
     console.warn('Invalid input provided to normalizeForEmbedding');
     return '';
   }
+  const nlp = await loadCompromise();
   const doc = nlp(text);
   doc.contractions().expand();
   // Additional normalization steps
@@ -43,7 +44,7 @@ export function normalizeForEmbedding(text: string): string {
 export async function getEmbedding(chunk: string): Promise<number[] | null> {
   try {
     // Always normalize before getting the embedding
-    const normalizedChunk = normalizeForEmbedding(chunk);
+    const normalizedChunk = await normalizeForEmbedding(chunk);
     const response = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: {
@@ -148,7 +149,7 @@ export async function generateEmbeddingsForChunks(
           chunk: {
             ...chunkData,
             original: chunkText,
-            normalized: normalizeForEmbedding(chunkText),
+            normalized: await normalizeForEmbedding(chunkText),
             sentences: []  // Ensure every chunk has a `sentences` property
           },
           embedding

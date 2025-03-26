@@ -215,8 +215,8 @@ function App() {
                     );
                     console.log('Explanation result:', {
                         summary: explanationResult.summary,
-                        answerIdeasCount: explanationResult.answerIdeas.length,
-                        ideaSourcesCount: explanationResult.ideaSources.length,
+                        answerIdeasCount: explanationResult.answerIdeas,
+                        ideaSourcesCount: explanationResult.ideaSources,
                         // Add any other relevant metrics you want to log
                     });
 
