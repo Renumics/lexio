@@ -1,9 +1,0 @@
-{
-  "typesToInclude": [
-    "Message",
-    "Source",
-    "StreamChunk",
-    "PDFHighlight",
-    "UUID"
-  ]
-}

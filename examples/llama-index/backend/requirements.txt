@@ -1,4 +1,0 @@
-fastapi[standard] 
-llama-index
-sse-starlette
-pdfplumber

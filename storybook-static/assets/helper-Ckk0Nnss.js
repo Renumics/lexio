@@ -1,0 +1,3 @@
+import{j as t}from"./index-EuO1YB73.js";import{T as o,D as a,P as n,C as i}from"./index-DvK65IPP.js";import{n as p}from"./index-CXQShRbs.js";const m=()=>t.jsxs(t.Fragment,{children:[t.jsx(o,{}),t.jsx("h2",{children:"Description:"}),t.jsx(a,{}),t.jsx("h2",{children:"Component Preview:"}),t.jsx(n,{}),t.jsx("h2",{children:"Props:"}),t.jsx(i,{})]}),j=(e,{notes:c})=>{let r=p(e);return r&&(r=r.split(`
+`).map(s=>s.startsWith("@example")?s.replace("@example","**Example:**"):s).filter(s=>!s.startsWith("@param")&&!s.startsWith("@component")&&!s.startsWith("@remarks")&&!s.startsWith("@todo")&&!s.startsWith("@see")&&!s.startsWith("@returns")).join(`
+`)),r||""};m.__docgenInfo={description:"",methods:[],displayName:"renderDocsBlocks"};export{j as e,m as r};
