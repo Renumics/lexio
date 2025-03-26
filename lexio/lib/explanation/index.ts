@@ -199,12 +199,12 @@ export class ExplanationProcessor {
 
             for (const sentence of sentences) {
                 const ideas = config.IDEA_SPLITTING_METHOD === 'heuristic' ? splitIntoIdeasHeuristic(sentence)
-                    : config.IDEA_SPLITTING_METHOD === 'dependency' ? splitIntoIdeasDependencyParsing(sentence)
+                    : config.IDEA_SPLITTING_METHOD === 'dependency' ? await splitIntoIdeasDependencyParsing(sentence)
                     : config.IDEA_SPLITTING_METHOD === 'llm' ? await splitIntoIdeasUsingLLM(sentence)
                     : [sentence];
                 
                 // For each idea, find its specific part within the sentence
-                ideas.forEach(idea => {
+                for (const idea of ideas) {
                     // Clean up the idea text for better matching
                     const cleanIdea = idea
                         .replace(/^[-\s.]+|[-\s.]+$/g, '') // Remove leading/trailing dashes, spaces, periods
@@ -225,7 +225,7 @@ export class ExplanationProcessor {
                         idea: cleanIdea,
                         originalText
                     });
-                });
+                }
             }
             console.log('Number of answer ideas:', answerIdeas.length);
             console.log('Answer ideas:', answerIdeas);

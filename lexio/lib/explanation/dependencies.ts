@@ -50,4 +50,39 @@ export async function loadSbd() {
       'yarn add sbd'
     );
   }
+}
+
+let openaiClient: any = null;
+
+/**
+ * Dynamically loads and initializes the OpenAI client.
+ * @throws Error if openai is not installed
+ */
+export async function loadOpenAI() {
+  if (openaiClient) {
+    return openaiClient;
+  }
+
+  try {
+    const OpenAI = (await import('openai')).default;
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('VITE_OPENAI_API_KEY is not defined in your environment variables.');
+    }
+
+    openaiClient = new OpenAI({ 
+      apiKey, 
+      dangerouslyAllowBrowser: true 
+    });
+    
+    return openaiClient;
+  } catch (error) {
+    throw new Error(
+      'OpenAI features require the openai library. Please install it:\n' +
+      'npm install openai\n' +
+      'or\n' +
+      'yarn add openai'
+    );
+  }
 } 

@@ -1,17 +1,6 @@
 // ideaSplitter.ts
-import OpenAI from 'openai';
+import { loadOpenAI } from './dependencies';
 import { extractClauses } from './clause_extractor';
-
-// Use Vite's environment variables for the API key.
-const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-if (!apiKey) {
-  throw new Error('VITE_OPENAI_API_KEY is not defined in your environment variables.');
-}
-
-const client = new OpenAI({ 
-  apiKey, 
-  dangerouslyAllowBrowser: true 
-});
 
 /**
  * The simplest Heuristic-based splitting:
@@ -32,43 +21,10 @@ export function splitIntoIdeasHeuristic(sentence: string): string[] {
 /**
  * Dependency parsing splitting:
  * Uses a dependency parser to split the sentence into clauses.
- * This example calls a Python script using spawnSync, but you could also use the local clause extractor.
  */
-// export function splitIntoIdeasDependencyParsing(sentence: string): string[] {
-//   // Option 1: Use the local TypeScript clause extractor (using compromise)
-//   try {
-//     const clauses = extractClauses(sentence);
-//     return clauses && clauses.length ? clauses : [sentence];
-//   } catch (error) {
-//     console.error("Error in local dependency parsing splitting:", error);
-//   }
-
-//   // Option 2: Call the Python script (uncomment below to use)
-//   /*
-//   const processResult = spawnSync('python3', ['clause_extractor.py'], {
-//     input: sentence,
-//     encoding: 'utf-8',
-//     maxBuffer: 1024 * 1024,
-//   });
-
-//   if (processResult.error) {
-//     console.error("Error calling dependency parser:", processResult.error);
-//     return [sentence];
-//   }
-//   try {
-//     const result = JSON.parse(processResult.stdout);
-//     return Array.isArray(result) && result.length ? result : [sentence];
-//   } catch (err) {
-//     console.error("Error parsing dependency parser output:", err);
-//     return [sentence];
-//   }
-//   */
-//   return [sentence]; // Fallback
-// }
-
-export function splitIntoIdeasDependencyParsing(sentence: string): string[] {
+export async function splitIntoIdeasDependencyParsing(sentence: string): Promise<string[]> {
   try {
-    const clauses = extractClauses(sentence);
+    const clauses = await extractClauses(sentence);
     return clauses && clauses.length ? clauses : [sentence];
   } catch (error) {
     console.error("Error in local dependency parsing splitting:", error);
@@ -110,6 +66,7 @@ improve performance over time
 Now extract phrases from the original text:`;
 
   try {
+    const client = await loadOpenAI();
     const response = await client.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
