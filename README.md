@@ -20,7 +20,7 @@ It supports multiple document types (PDF, HTML, Markdown, Text) with advanced fe
 
 Developers can use ready-made components or easily build custom ones using React hooks and the flexible action handler pattern.
 
-![RAG UI Example](lexio%2Fsrc%2Fassets%2Flexio_screenshot_el_nino.png)
+<p align="center"><a href="https://renumics.com/lexio-ui"><img src="lexio/src/assets/lexio-intro-video.gif" width="100%"/></a></p>
 
 ## Quick Start
 
@@ -150,35 +150,3 @@ Lexio provides a set of React hooks that allow you to interact with the state an
   </div>
 </div>
 
-## Target Groups
-
-<div align="center">
-  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; color: #000;">
-    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 15px; border-left: 4px solid #e74c3c;">
-      <h3>🚀 Startups</h3>
-      <ul>
-        <li style="color: #000;">Rapid prototyping capabilities</li>
-        <li style="color: #000;">Quick time-to-market</li>
-        <li style="color: #000;">Flexible customization options</li>
-      </ul>
-    </div>
-    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 15px; border-left: 4px solid #e74c3c;">
-      <h3>🌐 Enterprise</h3>
-      <ul>
-        <li style="color: #000;">Enterprise-grade reliability</li>
-        <li style="color: #000;">Seamless integration with existing systems</li>
-        <li style="color: #000;">Production-ready components</li>
-        <li style="color: #000;">Professional support options</li>
-      </ul>
-    </div>
-    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 15px; border-left: 4px solid #e74c3c;">
-      <h3>👨‍💻 AI Developers</h3>
-      <ul>
-        <li style="color: #000;">Full control over RAG pipeline</li>
-        <li style="color: #000;">Custom component development</li>
-        <li style="color: #000;">Advanced configuration options</li>
-        <li style="color: #000;">Direct access to underlying state</li>
-      </ul>
-    </div>
-  </div>
-</div>

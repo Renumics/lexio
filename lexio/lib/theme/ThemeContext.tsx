@@ -36,8 +36,8 @@ interface ThemeContextValue {
  * React Context for providing theme values throughout the application.
  * 
  * @remarks
- * This context is typically not used directly. Instead, use the ThemeProvider
- * component to provide theme values to your application, and the useTheme hook
+ * This context is typically not used directly. Instead, use the LexioThemeProvider
+ * component to provide theme values to your application, and the useLexioTheme hook
  * to consume them. 
  * 
  * @internal
@@ -45,15 +45,15 @@ interface ThemeContextValue {
 export const ThemeContext = React.createContext<ThemeContextValue | undefined>(undefined);
 
 /**
- * Props for the ThemeProvider component.
+ * Props for the LexioThemeProvider component.
  * 
- * @interface ThemeProviderProps
+ * @interface LexioThemeProviderProps
  * @property {Theme} theme - The theme configuration to provide to the application
  * @property {React.ReactNode} children - Child components that will have access to the theme
  * 
  * @internal
  */
-interface ThemeProviderProps {
+interface LexioThemeProviderProps {
   theme: Theme;
   children: React.ReactNode;
 }
@@ -62,12 +62,12 @@ interface ThemeProviderProps {
  * Provider component for making a theme available throughout the application.
  * 
  * @component
- * @param {ThemeProviderProps} props - The props for the ThemeProvider
+ * @param {LexioThemeProviderProps} props - The props for the LexioThemeProvider
  * @returns {JSX.Element} A ThemeContext.Provider wrapping the children
  * 
  * @remarks
- * The ThemeProvider is typically used within the RAGProvider component, which
- * handles the complete setup of the RAG UI system --> **There is no need to use the ThemeProvider directly.**
+ * The LexioThemeProvider is typically used within the RAGProvider component, which
+ * handles the complete setup of the RAG UI system --> **There is no need to use the LexioThemeProvider directly.**
  * 
  * @example
  * ```tsx
@@ -83,20 +83,20 @@ interface ThemeProviderProps {
  * ```
  * 
  * @example
- * If you need to use the ThemeProvider directly:
+ * If you need to use the LexioThemeProvider directly:
  * ```tsx
- * import { ThemeProvider, defaultTheme } from 'lexio';
+ * import { LexioThemeProvider, defaultTheme } from 'lexio';
  * 
  * function App() {
  *   return (
- *     <ThemeProvider theme={defaultTheme}>
+ *     <LexioThemeProvider theme={defaultTheme}>
  *       <YourComponents />
- *     </ThemeProvider>
+ *     </LexioThemeProvider>
  *   );
  * }
  * ```
  */
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ theme, children }) => {
+export const LexioThemeProvider: React.FC<LexioThemeProviderProps> = ({ theme, children }) => {
   // Memoize the theme value to avoid unnecessary re-renders
   // todo: as secondary optimization we also shallow compare the theme object in the parent component (RAGProvider) ?
   const memoizedTheme = useMemo(() => ({ theme }), [theme]);
@@ -107,3 +107,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ theme, children })
     </ThemeContext.Provider>
   );
 };
+
+// For backward compatibility
+export const ThemeProvider = LexioThemeProvider;

@@ -138,9 +138,9 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
 
         toolbarBorderRadius: '0.35rem',
         toolbarBoxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)',
-        toolbarChipBackground: '#ffffff',
+        toolbarChipBackground: colors.background,
         toolbarChipBorderRadius: '0.375rem',
-        toolbarChipInputBackground: '#ffffff',
+        toolbarChipInputBackground: colors.background,
 
         toolbarButtonBackground: colors.primary,
         toolbarButtonColor: colors.contrast,

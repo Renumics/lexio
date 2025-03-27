@@ -5,8 +5,8 @@ import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import { docco } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import remarkGfm from "remark-gfm";
 import "./AssistantMarkdownContent.css";
-import { ClipboardIcon, ClipboardDocumentIcon } from "@heroicons/react/24/outline";
-import { scaleFontSize } from "../../utils/scaleFontSize.tsx";
+import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline";
+import {scaleFontSize, addOpacity} from "../../utils/scaleFontSize.tsx";
 import { MessageFeedback } from "./MessageFeedback.tsx";
 import { MessageHighlight, StreamChunk, UUID, Citation } from "../../types.ts";
 import { useSetAtom } from 'jotai';
@@ -474,7 +474,16 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                         {showCopy && (
                             <button
                                 onClick={handleCopy}
-                                className="p-1.5 rounded-full transition-colors bg-gray-100 text-gray-400 hover:bg-gray-50"
+                                className="p-1.5 rounded-full transition-colors"
+                                style={{
+                                    backgroundColor: copied
+                                        ? addOpacity(style.accent || '#4b5563', 0.15)
+                                        : addOpacity(style.accent || '#9ca3af', 0.1),
+                                    color: copied
+                                        ? style.accent
+                                        : addOpacity(style.color || '#6b7280', 0.7),
+                                    borderRadius: '9999px'
+                                }}
                                 aria-label={copied ? "Copied" : "Copy"}
                             >
                                 {copied ? <ClipboardDocumentIcon className="w-4 h-4" /> : <ClipboardIcon className="w-4 h-4" />}
