@@ -8,18 +8,22 @@ import "./AssistantMarkdownContent.css";
 import { ClipboardIcon, ClipboardDocumentIcon } from "@heroicons/react/24/outline";
 import { scaleFontSize } from "../../utils/scaleFontSize.tsx";
 import { MessageFeedback } from "./MessageFeedback.tsx";
-import { MessageHighlight, StreamChunk } from "../../types.ts";
+import { MessageHighlight, StreamChunk, UUID } from "../../types.ts";
+import { useSetAtom } from 'jotai';
+import { dispatchAtom } from '../../state/rag-state';
 /**
  * Props for the AssistantMarkdownContent component.
  * @typedef {Object} AssistantMarkdownContentProps
  * @property {string} content - The markdown content to render.
  * @property {ChatWindowStyles} style - Styling options for the chat window.
  * @property {MessageHighlight[]} [highlights] - Array of highlight specifications.
+ * @property {string | StreamChunk} [originalMessage] - The original message for citation access.
  */
 interface AssistantMarkdownContentProps {
     content: string;
     style: ChatWindowStyles;
     highlights?: MessageHighlight[];
+    citations?: StreamChunk['citations'];  // More specific type
 }
 
 
@@ -31,34 +35,18 @@ interface AssistantMarkdownContentProps {
  *
  * @internal
  */
-const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ content, style, highlights }) => {
-    console.log('AssistantMarkdownContent props:', {
-        content,
-        highlights,
-        contentType: typeof content
-    });
+const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ 
+    content, 
+    style, 
+    highlights,
+    citations 
+}) => {
+    const dispatch = useSetAtom(dispatchAtom);
     
-    // Check if content is an object with a content property
-    const rawContent = typeof content === 'object' && content !== null && 'content' in content
-        ? (content as any).content
-        : content;
-    
-    console.log('AssistantMarkdownContent processed:', {
-        rawContent,
-        rawContentType: typeof rawContent,
-        highlightsLength: highlights?.length || 0
-    });
-
     const markdownRef = React.useRef<HTMLDivElement>(null);
 
     // Create highlights array from provided highlights
     const highlightsToUse = highlights || [];
-    console.log('Highlights processing:', {
-        originalHighlights: highlights,
-        highlightsToUse,
-        hasStartChar: highlightsToUse.some(h => h?.startChar !== undefined),
-        hasText: highlightsToUse.some(h => h?.text !== undefined)
-    });
 
     // Handle click events on mark elements
     const handleMarkClick = React.useCallback((event: MouseEvent) => {
@@ -66,10 +54,38 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
         if (target.tagName.toLowerCase() === 'mark') {
             const highlightIndex = parseInt(target.getAttribute('data-highlight-index') || '-1', 10);
             if (highlightIndex >= 0 && highlightIndex < highlightsToUse.length) {
-                console.log('Highlight clicked:', highlightsToUse[highlightIndex]);
+                const highlight = highlightsToUse[highlightIndex];
+                console.log('Highlight clicked:', highlight);
+
+                // Find the citation that matches this highlight
+                if (citations) {
+                    const citation = citations.find(c => 
+                        c.messageHighlight.startChar === highlight.startChar && 
+                        c.messageHighlight.endChar === highlight.endChar
+                    );
+
+                    console.log("Citation found:", citation);
+
+                    if (citation) {
+                        // First select the source
+                        dispatch({
+                            type: 'SET_SELECTED_SOURCE',
+                            sourceId: citation.sourceId as UUID,
+                            source: 'CustomComponent',
+                            sourceObject: {
+                                id: citation.sourceId as UUID,
+                                title: '',  // These will be merged with existing source
+                                type: 'text',
+                                metadata: {
+                                    page: citation.sourceHighlight.page
+                                }
+                            }
+                        }, false);
+                    }
+                }
             }
         }
-    }, [highlightsToUse]);
+    }, [highlightsToUse, citations, dispatch]);
 
     // Set up event listener for mark clicks
     useEffect(() => {
@@ -89,9 +105,9 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
             .map(highlight => {
                 const startChar = highlight.startChar as number;
                 const endChar = highlight.endChar as number;
-                if (startChar >= 0 && endChar > startChar && endChar <= rawContent.length) {
+                if (startChar >= 0 && endChar > startChar && endChar <= content.length) {
                     // Extract the text to highlight
-                    const text = rawContent.substring(startChar, endChar);
+                    const text = content.substring(startChar, endChar);
                     console.log('Processing highlight segment:', {
                         startChar,
                         endChar,
@@ -124,7 +140,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
         
         console.log('Final text segments to highlight:', segments);
         return segments;
-    }, [rawContent, highlightsToUse]);
+    }, [content, highlightsToUse]);
 
     // Apply highlights after markdown rendering
     useEffect(() => {
@@ -302,7 +318,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
                     },
                 }}
             >
-                {rawContent}
+                {content}
             </Markdown>
         </div>
     );
@@ -438,6 +454,7 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                                 content={messageContent}
                                 style={style}
                                 highlights={messageHighlights}
+                                citations={typeof message === 'object' ? message.citations : undefined}
                             />
                         </div>
                     ) : (
