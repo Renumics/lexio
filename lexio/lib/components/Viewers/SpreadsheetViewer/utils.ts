@@ -14,13 +14,25 @@ import {cn} from "./ui/utils.ts";
 import {Cell, Row as ReactTableRow} from "@tanstack/react-table";
 import {utils} from "xlsx";
 
-export type CellContent = Readonly<string | number>;
+export type CellContent = Readonly<string | number | null | CSSProperties>;
 
 export type Row = Record<string, CellContent>;
 
-export type RowList = Record<string, CellContent>[];
+export type RawRow = Record<string, string | number | null>;
+
+export type RowList = Row[];
 
 export type CellContentEntry = [string, CellContent];
+
+// In pixel
+export const DEFAULT_COLUMN_WIDTH = 120 as const;
+export const DEFAULT_ROW_HEIGHT = 25 as const;
+
+// export const TABLE_HEAD_ROW_HEIGHT = 30 as const;
+
+export const Z_INDEX_OF_STICKY_HEADER_ROW = 10 as const;
+
+// export const Z_INDEX_OF_STICKY_HEADER_COLUMN = 9 as const;
 
 export const extractCellComponent = (cellName: string): { column: string, row: number } | null => {
     const match = cellName.match(/^([A-Z]+)(\d+)$/);
@@ -68,13 +80,13 @@ export const validateExcelRange = (range: string): boolean => {
     return regex.test(range);
 }
 
-export const getRowEntryWitMostColumns = (data: RowList): CellContentEntry[] => {
-    return data.reduce((acc: CellContentEntry[], currentRow: Row) => {
-        const entries = Object.entries(currentRow).sort((a, b) => a[0].localeCompare(b[0])) as [string, CellContent][];
-        if (acc.length < entries.length) return entries;
-        return acc;
-    }, []);
-};
+// export const getRowEntryWitMostColumns = (data: RowList): CellContentEntry[] => {
+//     return data.reduce((acc: CellContentEntry[], currentRow: Row) => {
+//         const entries = Object.entries(currentRow).sort((a, b) => a[0].localeCompare(b[0])) as [string, CellContent][];
+//         if (acc.length < entries.length) return entries;
+//         return acc;
+//     }, []);
+// };
 
 export const sortSpreadsheetColumnsComparator = (current: string, next: string): number => {
     if (current.length !== next.length) {
@@ -412,4 +424,44 @@ export const highlightCells = <TData,>(
             });
         });
     });
+}
+
+export const calculateWidthOfFirstColumn = (rowCount: number): number => {
+    const baseWidth = 40; // Base width in pixels
+    const incrementPerRow = 10; // Width increment per row in pixels
+    return baseWidth + Math.floor(String(rowCount).length * incrementPerRow);
+}
+
+export const calculateWidthOfColumn = (columnId: string, headerStyles: Record<string, CSSProperties>): number => {
+    const styleOfHeader = headerStyles[columnId];
+    const minWidthInPixel = (styleOfHeader?.minWidth ?? "0px") as string;
+    const minWidthInt = Number(minWidthInPixel.split("px")[0]);
+
+    const minWidthToWidthFactor = 9;
+
+    // If minWidth from styleOfHeader is 0 set it to a default value of 10px.
+    const nonZeroMinWidthOfColumn = minWidthInt === 0 ? 10 : minWidthInt;
+
+    const result = nonZeroMinWidthOfColumn * minWidthToWidthFactor;
+
+    if (result <= DEFAULT_COLUMN_WIDTH) return DEFAULT_COLUMN_WIDTH;
+
+    return result;
+}
+
+export const calculateHeightOfRow = (rowIndex: number, rowStyles: Record<string, CSSProperties>): number => {
+    const styleOfRow = rowStyles[rowIndex];
+    const heightInPixel = (styleOfRow?.height ?? "0px") as string;
+    const heightInt = Number(heightInPixel.split("px")[0]);
+
+    const minHeightFactor = 1.5;
+
+    // If minWidth from styleOfHeader is 0 set it to a default value of 10px.
+    const nonZeroMinHeightOfRow = heightInt === 0 ? 10 : heightInt;
+
+    const result = nonZeroMinHeightOfRow * minHeightFactor;
+
+    if (result <= DEFAULT_ROW_HEIGHT) return DEFAULT_ROW_HEIGHT;
+
+    return result;
 }

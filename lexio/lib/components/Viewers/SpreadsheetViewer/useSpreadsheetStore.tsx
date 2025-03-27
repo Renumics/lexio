@@ -8,25 +8,28 @@ import {
 import {CSSProperties, useEffect, useState} from "react";
 import {ColumnDef} from "@tanstack/react-table";
 import {
+    calculateHeightOfRow,
+    calculateWidthOfColumn,
+    calculateWidthOfFirstColumn,
     CellContent,
     convertArgbToHex,
     excelAlignmentToCss,
     excelBorderToCss,
     extractCellComponent,
-    // getRowEntryWitMostColumns,
+    generateSpreadsheetColumns,
+    isCellInRange,
     ptFontSizeToPixel,
     ptToPixel,
-    // resolveCellFormat,
-    generateSpreadsheetColumns,
+    RawRow,
     Row,
     RowList,
     sortSpreadsheetColumnsComparator,
     validateExcelRange,
-    isCellInRange,
 } from "./utils.ts";
 import {
     ParsingOptions,
-    read, Sheet2JSONOpts,
+    read,
+    Sheet2JSONOpts,
     utils,
     WorkBook as SheetJsWorkbook,
     WorkSheet as SheetJsWorkSheet,
@@ -251,7 +254,9 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
 
     const [columns, setColumns] = useState<ColumnDef<Row, CellContent>[]>([]);
 
-    const [rowData, setRowData] = useState<RowList>([]);
+    const [rawRowData, setRawRowData] = useState<RawRow[]>([]);
+
+    const [rowData, setRowData] = useState<Row[]>([]);
 
     const [cellStyles, setCellStyles] = useState<Record<string, CSSProperties> | undefined>(undefined);
 
@@ -303,7 +308,28 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         const sortedWorksheetColumns = generateSpreadsheetColumns(selectedSheetJsWorksheet["!ref"] as string)
             .sort((a, b) => sortSpreadsheetColumnsComparator(a, b));
 
-        const rows: RowList = utils.sheet_to_json(selectedSheetJsWorksheet, sheetToJsonOptions);
+        const rows: Row[] = utils.sheet_to_json(selectedSheetJsWorksheet, sheetToJsonOptions);
+        
+        const missingColumnKeysInRows: string[] = [];
+        
+        sortedWorksheetColumns.forEach((column) => {
+            //@ts-ignore
+           const columnKeyExists = !!rows.find((row) => row.hasOwnProperty(column));
+           if (columnKeyExists) return;
+           missingColumnKeysInRows.push(column);
+        });
+
+        const rowsWithAllColumnKeys = rows.map((row) => {
+            return {
+                ...row,
+                ...missingColumnKeysInRows.reduce((acc, column) => {
+                    return {
+                        ...acc,
+                        [column]: null, // Empty cell. This can be an empty string, null or undefined
+                    }
+                }, {}),
+            }
+        })
 
         setColumns(
             [
@@ -326,11 +352,19 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         );
 
         // Property rowNo added to ease row identification.
-        setRowData([
+        const rawRows = [
             // Workaround for first row representing the header row.
-            { ...sortedWorksheetColumns.reduce((acc, currentKey) => ({...acc, [currentKey]: currentKey }), { rowNo: "" }) },
-            ...rows.map((row, index) => ({ rowNo: `${index + 1}`, ...row }))
-        ]);
+            {...sortedWorksheetColumns.reduce((acc, currentKey) => {
+                    return {
+                        ...acc,
+                        [currentKey]: currentKey,
+                    };
+                }, { rowNo: "" }),
+            },
+            ...rowsWithAllColumnKeys.map((row, index) => ({ rowNo: `${index + 1}`, ...row })),
+        ] as RawRow[];
+
+        setRawRowData(rawRows);
     }, [isLoading, selectedSheetJsWorksheet, selectedWorksheetName, sheetJsWorkbook]);
 
     // Sets styles of active worksheet.
@@ -354,6 +388,82 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         setRowStyles(rowStyles);
         setCellStyles(cellStyles);
     }, [excelJsWorkbook, isLoading, selectedWorksheetName]);
+
+    // Computes and apply rowStyles, cellStyles and headerStyles to rows, cells and inner container of cells in rowData
+    useEffect(() => {
+        if (rawRowData.length === 0) return;
+        if (!headerStyles || !rowStyles || !cellStyles) return;
+
+        const getCellStyle = (row: number, column: string): CSSProperties => {
+            if (!row || !column) return {};
+            return cellStyles[`${column}${row}`];
+        }
+
+        const applyStylesToCells = (rawRow: RawRow, rowIndex: number): Row => {
+            // Basic styles
+            const cellStyles = Object.entries(rawRow).map((entry) => {
+                const [columnKey] = entry;
+                return {
+                    [`${columnKey}${rowIndex}`]: {
+                        width: columnKey === "rowNo" ? `${calculateWidthOfFirstColumn(rawRowData.length)}px` : `${calculateWidthOfColumn(columnKey, headerStyles)}px`,
+                        height: `${calculateHeightOfRow(rowIndex, rowStyles)}px`,
+                    },
+                    [`${columnKey}${rowIndex}-inner-container`]: {
+                        backgroundColor: getCellStyle(rowIndex, columnKey)?.backgroundColor,
+                    }
+                }
+            }).reduce((acc: Row, currentKey) => {
+                return { ...acc, ...currentKey };
+            }, {});
+
+            if (
+                selectedWorksheetName.length === 0 ||
+                !mergedGroupOfSelectedWorksheet ||
+                !mergedGroupOfSelectedWorksheet.mergedRanges ||
+                mergedGroupOfSelectedWorksheet.sheetName !== selectedWorksheetName ||
+                mergedGroupOfSelectedWorksheet.mergedRanges.length === 0
+            ) {
+                return {
+                    ...rawRow,
+                    ...cellStyles,
+                }
+            }
+
+            // Cell merge
+            const cellStylesWithCellMerges = Object.entries(cellStyles).map((cellStyleEntry) => {
+                const [cellAddress, basicStyles] = cellStyleEntry;
+                if (cellAddress.includes("-inner-container")) {
+                    return {
+                        [cellAddress]: {
+                            ...basicStyles,
+                            width: "",
+                            height: "",
+                            visibility: "hidden",
+                            borderBottom: "",
+                            borderLeft: ""
+                        }
+                    }
+                }
+                return {
+                    [cellAddress]: {
+                        ...basicStyles,
+                        width: "",
+                        height: "",
+                        visibility: "hidden",
+                    },
+                }
+            }).reduce((acc: Row, currentKey) => {
+                return { ...acc, ...currentKey };
+            }, {});
+
+            return {
+                ...rawRow,
+                ...cellStylesWithCellMerges,
+            }
+        }
+
+        setRowData(rawRowData.map(applyStylesToCells));
+    }, [rawRowData, rowStyles, headerStyles, cellStyles]);
 
     const getMetaDataOfSelectedCell = (): CellMetaData => {
         if (!selectedCell) return {};

@@ -143,6 +143,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                         headerStyles={showStyles ? headerStyles : undefined}
                         selectedCell={selectedCell}
                         rangesToSelect={rangeToSelect}
+                        // @ts-ignore
                         handleCellClick={handleCellClick}
                         // parentContainerHeight={parentSize.height}
                         mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}

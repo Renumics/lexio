@@ -24,57 +24,18 @@ import {
 import {useVirtualizer, VirtualItem, Virtualizer,} from "@tanstack/react-virtual";
 import {mergeCells, MergeGroup, Range, SelectedCell,} from "./useSpreadsheetStore";
 import {cn} from "./ui/utils.ts";
-import {CellContent, highlightCells, isCellInRange} from "./utils.ts";
+import {
+    // calculateHeightOfRow,
+    calculateWidthOfColumn,
+    calculateWidthOfFirstColumn,
+    CellContent,
+    DEFAULT_COLUMN_WIDTH,
+    highlightCells,
+    isCellInRange,
+    Z_INDEX_OF_STICKY_HEADER_ROW
+} from "./utils.ts";
 import {utils} from "xlsx";
 // import { utils } from "xlsx";
-
-// In pixel
-const DEFAULT_COLUMN_WIDTH = 120 as const;
-const DEFAULT_ROW_HEIGHT = 25 as const;
-// const TABLE_HEAD_ROW_HEIGHT = 30 as const;
-
-const Z_INDEX_OF_STICKY_HEADER_ROW = 10 as const;
-// const Z_INDEX_OF_STICKY_HEADER_COLUMN = 9 as const;
-
-const calculateWidthOfFirstColumn = (rowCount: number): number => {
-    const baseWidth = 40; // Base width in pixels
-    const incrementPerRow = 10; // Width increment per row in pixels
-    return baseWidth + Math.floor(String(rowCount).length * incrementPerRow);
-}
-
-const calculateWidthOfColumn = (columnId: string, headerStyles: Record<string, CSSProperties>): number => {
-    const styleOfHeader = headerStyles[columnId];
-    const minWidthInPixel = (styleOfHeader?.minWidth ?? "0px") as string;
-    const minWidthInt = Number(minWidthInPixel.split("px")[0]);
-
-    const minWidthToWidthFactor = 9;
-
-    // If minWidth from styleOfHeader is 0 set it to a default value of 10px.
-    const nonZeroMinWidthOfColumn = minWidthInt === 0 ? 10 : minWidthInt;
-
-    const result = nonZeroMinWidthOfColumn * minWidthToWidthFactor;
-
-    if (result <= DEFAULT_COLUMN_WIDTH) return DEFAULT_COLUMN_WIDTH;
-
-    return result;
-}
-
-const calculateHeightOfRow = (rowIndex: number, rowStyles: Record<string, CSSProperties>): number => {
-    const styleOfRow = rowStyles[rowIndex];
-    const heightInPixel = (styleOfRow?.height ?? "0px") as string;
-    const heightInt = Number(heightInPixel.split("px")[0]);
-
-    const minHeightFactor = 1.5;
-
-    // If minWidth from styleOfHeader is 0 set it to a default value of 10px.
-    const nonZeroMinHeightOfRow = heightInt === 0 ? 10 : heightInt;
-
-    const result = nonZeroMinHeightOfRow * minHeightFactor;
-
-    if (result <= DEFAULT_ROW_HEIGHT) return DEFAULT_ROW_HEIGHT;
-
-    return result;
-}
 
 const getTableCellRefs = (sheetName: string, tableId: string): Record<string, HTMLTableCellElement> => {
     try {
@@ -116,6 +77,7 @@ type Props<TData, TValue> = {
     cellsStyles?: Record<string, CSSProperties> | undefined
     selectedCell?: SelectedCell | undefined;
     rangesToSelect?: Range[] | undefined;
+    // @ts-ignore
     handleCellClick?: ((cell: Cell<TData, TValue>) => void) | undefined;
     // The height of the parent in case the parent doesn't have a fix size (value in pixel).
     parentContainerHeight?: number | undefined;
@@ -889,12 +851,12 @@ const TableBodyCell = forwardRef(
         isFirst,
         isLast,
         isSelected,
-        rowCount,
+        // rowCount,
         isFirstCellOfSelectedRow,
         handleCellSelection,
-        headerStyles,
+        // headerStyles,
         cellsStyles,
-        rowStyles,
+        // rowStyles,
         // mergedRangesOfSelectedWorksheet,
         // shouldMerge,
     } = props;
@@ -943,15 +905,15 @@ const TableBodyCell = forwardRef(
         return Object.fromEntries(styleEntriesWithoutBorders) as CSSProperties;
     }
 
-    const computeCellWidth = (): number => {
-        if (isFirst) return calculateWidthOfFirstColumn(rowCount);
-        return calculateWidthOfColumn(cell.column.id, headerStyles);
-    }
-
-    const computeRowHeight = (): number => {
-        const rowIndex = cell.row.index;
-        return calculateHeightOfRow(rowIndex, rowStyles);
-    }
+    // const computeCellWidth = (): number => {
+    //     if (isFirst) return calculateWidthOfFirstColumn(rowCount);
+    //     return calculateWidthOfColumn(cell.column.id, headerStyles);
+    // }
+    //
+    // const computeRowHeight = (): number => {
+    //     const rowIndex = cell.row.index;
+    //     return calculateHeightOfRow(rowIndex, rowStyles);
+    // }
 
     return (
         <td
@@ -966,12 +928,14 @@ const TableBodyCell = forwardRef(
             id={cellId}
             style={{
                 display: "flex",
-                width: `${computeCellWidth()}px`,
+                // width: `${computeCellWidth()}px`,
                 borderTop: "unset",
                 borderRight: isLast ? "1px solid #e5e7eb" : "unset",
                 borderLeft: isFirst ? "unset" : "1px solid #e5e7eb",
                 borderBottom: isFirstCellOfSelectedRow ? "none" : "1px solid #e5e7eb",
-                height: `${computeRowHeight()}px`,
+                // height: `${computeRowHeight()}px`,
+                // @ts-ignore
+                ...(cell.row.original[cellId] ?? {}),
             }}
             data-label={cell.column.columnDef.header}
             className={cn("text-sm text-neutral-600 top-0 bottom-0 m-0 relative p-0", {
@@ -992,10 +956,12 @@ const TableBodyCell = forwardRef(
                 className={cn("h-full w-full m-0 p-0 absolute border-[2px] border-transparent", {
                     "border-[2px] !border-blue-500": isSelected,
                 })}
-                style={{
-                    backgroundColor: getCellStyleOfCellContent(cell.row.index, cell.column.id)?.backgroundColor,
-                }}
                 onClick={!isFirst ? () => handleCellSelection(cell) : undefined}
+                style={{
+                    // @ts-ignore
+                    ...(cell.row.original[cellInnerContainerId] ?? {}),
+                    //backgroundColor: getCellStyleOfCellContent(cell.row.index, cell.column.id)?.backgroundColor,
+                }}
             >
                 <div
                     style={{
