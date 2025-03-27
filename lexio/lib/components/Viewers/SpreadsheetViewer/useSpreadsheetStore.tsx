@@ -530,7 +530,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                         } : {}),
                     },
                     [`${columnKey}${rowIndex}-content-container`]: {
-                        height: "100%",
+                        // height: "100%",
                         // truncate cell content
                         overflow: "hidden",
                         textOverflow: "ellipsis",

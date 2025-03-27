@@ -256,11 +256,11 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName, tableId);
 
             // console.log("rowVirtualizer onChange called: ");
-            // applyMergesToCells(
-            //     mergedGroupOfSelectedWorksheet,
-            //     selectedSheetName,
-            //     tableId,
-            // );
+            applyMergesToCells(
+                mergedGroupOfSelectedWorksheet,
+                selectedSheetName,
+                tableId,
+            );
         },
     });
 
