@@ -39,55 +39,19 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
 
     const markdownRef = React.useRef<HTMLDivElement>(null);
 
-    // Create mock highlights for testing if no highlights are provided
-    const testHighlights: MessageHighlight[] = highlights && highlights.length > 0 ? highlights : [
-        // Position-based highlight (first 10 characters)
-        {
-            startChar: 0,
-            endChar: Math.min(10, rawContent.length),
-            color: 'rgba(255, 255, 0, 0.3)', // Light yellow
-            text: undefined
-        },
-        // Position-based highlight for "traffic" if it exists
-        ...((() => {
-            const lowerContent = rawContent.toLowerCase();
-            const trafficIndex = lowerContent.indexOf('traffic');
-            if (trafficIndex >= 0) {
-                return [{
-                    startChar: trafficIndex,
-                    endChar: trafficIndex + 'traffic'.length,
-                    color: 'rgba(0, 255, 0, 0.2)', // Light green
-                    text: undefined
-                }];
-            }
-            return [];
-        })()),
-        // Position-based highlight for "tensorflow" if it exists
-        ...((() => {
-            const lowerContent = rawContent.toLowerCase();
-            const tensorflowIndex = lowerContent.indexOf('tensorflow');
-            if (tensorflowIndex >= 0) {
-                return [{
-                    startChar: tensorflowIndex,
-                    endChar: tensorflowIndex + 'tensorflow'.length,
-                    color: 'rgba(0, 0, 255, 0.2)', // Light blue
-                    text: undefined
-                }];
-            }
-            return [];
-        })())
-    ];
+    // Create highlights array from provided highlights
+    const highlightsToUse = highlights || [];
 
     // Handle click events on mark elements
     const handleMarkClick = React.useCallback((event: MouseEvent) => {
         const target = event.target as HTMLElement;
         if (target.tagName.toLowerCase() === 'mark') {
             const highlightIndex = parseInt(target.getAttribute('data-highlight-index') || '-1', 10);
-            if (highlightIndex >= 0 && highlightIndex < testHighlights.length) {
-                console.log('Highlight clicked:', testHighlights[highlightIndex]);
+            if (highlightIndex >= 0 && highlightIndex < highlightsToUse.length) {
+                console.log('Highlight clicked:', highlightsToUse[highlightIndex]);
             }
         }
-    }, [testHighlights]);
+    }, [highlightsToUse]);
 
     // Set up event listener for mark clicks
     useEffect(() => {
@@ -102,7 +66,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
 
     // Store the original text segments to highlight
     const textSegmentsToHighlight = useMemo(() => {
-        return testHighlights
+        return highlightsToUse
             .filter(h => h.startChar !== undefined && h.endChar !== undefined)
             .map(highlight => {
                 const startChar = highlight.startChar as number;
@@ -114,21 +78,22 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
                     // For the first highlight that might include markdown formatting
                     // Try to extract the actual content without markdown syntax
                     let cleanText = text;
+                    
+                    // Handle heading syntax
                     if (startChar === 0 && text.startsWith('#')) {
-                        // Handle heading syntax
                         cleanText = text.replace(/^#+\s*/, '');
                     }
 
                     return {
                         text: cleanText,
                         color: highlight.color,
-                        index: testHighlights.indexOf(highlight)
+                        index: highlightsToUse.indexOf(highlight)
                     };
                 }
                 return null;
             })
             .filter(Boolean);
-    }, [rawContent, testHighlights]);
+    }, [rawContent, highlightsToUse]);
 
     // Apply highlights after markdown rendering
     useEffect(() => {
@@ -207,7 +172,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
                     const length = Math.min(segment.text.length, nodeText.length);
                     if (length > 0) {
                         const beforeText = firstNode.splitText(0);
-                        beforeText.splitText(length);  // Don't store the result since we don't use it
+                        beforeText.splitText(length);
 
                         const markElement = document.createElement('mark');
                         markElement.style.backgroundColor = segment.color;

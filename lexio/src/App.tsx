@@ -216,8 +216,8 @@ function App() {
                     );
                     console.log('Explanation result:', {
                         summary: explanationResult.summary,
-                        answerIdeasCount: explanationResult.answerIdeas,
-                        ideaSourcesCount: explanationResult.ideaSources,
+                        answerIdeas: explanationResult.answerIdeas,
+                        ideaSources: explanationResult.ideaSources,
                         // Add any other relevant metrics you want to log
                     });
 
@@ -257,6 +257,12 @@ function App() {
                         sourceToProcess,
                         pdfHighlights
                     );
+
+                    console.log('Ideas/ sources result:', {
+                        messageHighlights: messageHighlights,
+                        pdfHighlights: pdfHighlights,
+                        citations: citations
+                    });
 
                     // Update source with highlights for PDF viewer
                     const updatedSource: Source = {
