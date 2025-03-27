@@ -237,6 +237,11 @@ type OutputSpreadsheetViewerStore = {
 
 export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): OutputSpreadsheetViewerStore => {
     const {
+        fileBufferArray,
+        defaultSelectedSheet,
+    } = input;
+
+    const {
         isLoading,
         error,
         sheetJsWorkbook,
@@ -250,7 +255,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         selectedSheetJsWorksheet,
         sheetNames,
         mergedGroupOfSelectedWorksheet,
-    } = useSpreadsheetStore(input.fileBufferArray, input.defaultSelectedSheet);
+    } = useSpreadsheetStore(fileBufferArray, defaultSelectedSheet);
 
     const [columns, setColumns] = useState<ColumnDef<Row, CellContent>[]>([]);
 

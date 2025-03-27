@@ -1,4 +1,4 @@
-import {FC, useState} from "react";
+import {FC} from "react";
 import {useSpreadsheetViewerStore} from "./useSpreadsheetStore.tsx";
 // import {SpreadsheetTable} from "./SpreadsheetTable.tsx";
 import {Cell} from "@tanstack/react-table";
@@ -6,7 +6,7 @@ import {CellContent} from "./utils";
 import {SpreadsheetSelection} from "./SpreadsheetSelection";
 import { LoaderCircle } from "lucide-react";
 import ParentSizeObserver from "./ParentSizeObserver.tsx";
-import { EyeOff, Eye } from "lucide-react";
+// import { EyeOff, Eye } from "lucide-react";
 import {TableContainer} from "./RowAndColumnVirtualizer.tsx";
 import { Sigma } from "lucide-react";
 import Tooltip from "./ui/Tooltip.tsx";
@@ -20,7 +20,7 @@ type Props = {
 const SpreadsheetViewer: FC<Props> = (props) => {
     const { fileBufferArray, defaultSelectedSheet, rangesToHighlight } = props;
 
-    const [showStyles, setShowStyles] = useState<boolean>(true);
+    // const [showStyles, setShowStyles] = useState<boolean>(true);
 
     const {
         selectedWorksheetName,
@@ -43,7 +43,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
     } = useSpreadsheetViewerStore({
         fileBufferArray,
         defaultSelectedSheet,
-        rangesToHighlight
+        rangesToHighlight,
     });
 
     const handleCellClick = (cell: Cell<Record<string, CellContent>, CellContent>) => {
@@ -78,6 +78,8 @@ const SpreadsheetViewer: FC<Props> = (props) => {
         return "";
     }
 
+    const selectedCellRange = resolveSelectedRange();
+
     if (isLoading) {
         return (
             <div className="grid m-[auto] justify-center content-center items-center">
@@ -91,18 +93,20 @@ const SpreadsheetViewer: FC<Props> = (props) => {
 
     return (
         <div className="grid grid-rows-[max-content_90%_auto] h-full relative">
-            <div className="grid grid-cols-[1fr_max-content] p-1 gap-2 border-b">
+            <div className="grid grid-cols-[1fr_max-content] p-2 gap-2 border-b">
                 <div className="grid grid-cols-[max-content_1fr] gap-2">
-                    <div
+                    <Tooltip
+                        tooltipContent={selectedCellRange}
+                        shouldNotDisplayCondition={selectedCellRange.length === 0}
                         className="flex items-center content-center w-[100px] py-1.5 px-2.5 border text-sm text-neutral-600 h-[35px]"
                         style={{
                             borderRadius: "5px"
                         }}
                     >
                         <div className="truncate">
-                            {resolveSelectedRange()}
+                            {selectedCellRange}
                         </div>
-                    </div>
+                    </Tooltip>
                     <div className="grid grid-cols-[max-content_1fr] gap-1.5 items-center content-center">
                         <div className="flex items-center content-center gap-1 align-middle">
                             <Sigma className="size-5 text-neutral-600" />
@@ -120,15 +124,15 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                         </Tooltip>
                     </div>
                 </div>
-                <Tooltip
-                    tooltipContent={showStyles ? <div>Hide styles</div> : <div>Show styles</div>}
-                    onClick={() => setShowStyles((prev) => !prev)}
-                    className="flex gap-2 items-center text-xs cursor-pointer p-1.5 px-2 text-neutral-600 rounded-md"
-                >
-                    <div className="[&_svg]:size-5">
-                        {showStyles ? <EyeOff /> : <Eye />}
-                    </div>
-                </Tooltip>
+                {/*<Tooltip*/}
+                {/*    tooltipContent={showStyles ? <div>Hide styles</div> : <div>Show styles</div>}*/}
+                {/*    onClick={() => setShowStyles((prev) => !prev)}*/}
+                {/*    className="flex gap-2 items-center text-xs cursor-pointer p-1.5 px-2 text-neutral-600 rounded-md"*/}
+                {/*>*/}
+                {/*    <div className="[&_svg]:size-5">*/}
+                {/*        {showStyles ? <EyeOff /> : <Eye />}*/}
+                {/*    </div>*/}
+                {/*</Tooltip>*/}
             </div>
             <div className="h-full w-full">
                 <div className="grid" style={{ height: "100%" }}>
@@ -147,10 +151,10 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                     <TableContainer
                         columns={columns}
                         data={rowData.filter(r => r)}
-                        showStyles={showStyles}
-                        cellsStyles={showStyles ? cellStyles : undefined}
-                        rowStyles={showStyles ? rowStyles : undefined}
-                        headerStyles={showStyles ? headerStyles : undefined}
+                        showStyles={true}
+                        cellsStyles={cellStyles}
+                        rowStyles={rowStyles}
+                        headerStyles={headerStyles}
                         selectedCell={selectedCell}
                         rangesToSelect={rangeToSelect}
                         // @ts-ignore
