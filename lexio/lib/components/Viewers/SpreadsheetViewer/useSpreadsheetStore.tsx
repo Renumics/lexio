@@ -23,7 +23,7 @@ import {
     RawRow,
     Row,
     RowList,
-    sortSpreadsheetColumnsComparator,
+    sortSpreadsheetColumnsComparator, TABLE_HEAD_ROW_HEIGHT,
     validateExcelRange,
 } from "./utils.ts";
 import {
@@ -399,20 +399,147 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
             return cellStyles[`${column}${row}`];
         }
 
+        const cssPropsToIgnoreInCellContent: (keyof CSSProperties)[] = [
+            "borderTop",
+            "borderRight",
+            "borderBottom",
+            "borderLeft",
+        ];
+
+        const getCellStyleOfCellContent = (row: number, column: string): CSSProperties => {
+            const styles = getCellStyle(row, column);
+            if (!styles) return {};
+            const allStyleEntries = Object.entries(styles);
+            const styleEntriesWithoutBorders = allStyleEntries.filter(([key]) =>
+                !cssPropsToIgnoreInCellContent.includes(key as (keyof CSSProperties))
+            );
+            return Object.fromEntries(styleEntriesWithoutBorders) as CSSProperties;
+        }
+
         const applyStylesToCells = (rawRow: RawRow, rowIndex: number): Row => {
             // Basic styles
             const cellStyles = Object.entries(rawRow).map((entry) => {
                 const [columnKey] = entry;
+                const isFirstCellOfRow = columnKey === "rowNo";
+                // const [lastCellKeyOfRow] = Object.entries(rawRow)[Object.entries(rawRow).length - 1]
+                // const isLastCellOfRow = lastCellKeyOfRow === columnKey;
+
+                // Styles for cells in header row
+                if (rowIndex === 0) {
+                    return {
+                        [`${columnKey}${rowIndex}`]: {
+                            borderTop: "unset",
+                            borderRight: "1px solid #e5e7eb",
+                            borderBottom: "1px solid #e5e7eb",
+                            borderLeft: "unset",
+                            margin: "0",
+                            backgroundColor: "rgb(245, 245, 245)",
+                            // position: "sticky",
+                            // left: "0",
+                            // top: "-1px",
+                            // zIndex: "10",
+                            userSelect: "none",
+                            width: isFirstCellOfRow ? `${calculateWidthOfFirstColumn(rawRowData.length)}px` : `${calculateWidthOfColumn(columnKey, headerStyles)}px`,
+                            height: `${TABLE_HEAD_ROW_HEIGHT}px`,
+                        },
+                        [`${columnKey}${rowIndex}-inner-container`]: {
+                            height: "100%",
+                            width: "inherit",
+                            margin: "0",
+                            padding: "0",
+                        },
+                        [`${columnKey}${rowIndex}-content-container`]: {
+                            display: "flex",
+                            justifyContent: "center",
+                            justifyItems: "center",
+                            alignContent: "center",
+                            alignItems: "center",
+                            textAlign: "center",
+                            fontSize: "0.875rem",
+                            margin: "auto",
+                            color: "rgb(82, 82, 82)",
+                            fontWeight: "400",
+                            letterSpacing: "-0.025em",
+                            height: "100%",
+                            // truncate cell content
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                        },
+                        [`${columnKey}${rowIndex}-border-container`]: {
+                            height: "100%",
+                        },
+                        [`${columnKey}${rowIndex}-content-wrapper-container`]: {
+                            height: "100%",
+                        },
+                    }
+                }
                 return {
                     [`${columnKey}${rowIndex}`]: {
-                        width: columnKey === "rowNo" ? `${calculateWidthOfFirstColumn(rawRowData.length)}px` : `${calculateWidthOfColumn(columnKey, headerStyles)}px`,
+                        display: "flex",
+                        borderTop: "unset",
+                        borderRight: "1px solid #e5e7eb",
+                        borderLeft: "unset",
+                        width: isFirstCellOfRow ? `${calculateWidthOfFirstColumn(rawRowData.length)}px` : `${calculateWidthOfColumn(columnKey, headerStyles)}px`,
                         height: `${calculateHeightOfRow(rowIndex, rowStyles)}px`,
                     },
                     [`${columnKey}${rowIndex}-inner-container`]: {
+                        height: "100%",
+                        width: "inherit",
+                        margin: "0",
+                        padding: "0",
+                        position: "absolute",
+                        borderWidth: "2px",
+                        borderColor: "transparent",
                         backgroundColor: getCellStyle(rowIndex, columnKey)?.backgroundColor,
-                    }
+                    },
+                    [`${columnKey}${rowIndex}-border-container`]: {
+                        position: "absolute",
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        width: "100%",
+                        height: "100%",
+                        wordWrap: "break-word",
+                        overflowWrap: "break-word",
+                        whiteSpace: "ellipsis",
+                        borderTop: getCellStyle(rowIndex, columnKey)?.borderTop,
+                        borderRight: getCellStyle(rowIndex, columnKey)?.borderRight,
+                        borderBottom: getCellStyle(rowIndex, columnKey)?.borderBottom,
+                        borderLeft: getCellStyle(rowIndex, columnKey)?.borderLeft,
+                    },
+                    [`${columnKey}${rowIndex}-content-wrapper-container`]: {
+                        position: "relative",
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        display: "flex",
+                        width: "100%",
+                        height: "100%",
+                        // styles from source file
+                        ...getCellStyleOfCellContent(rowIndex, columnKey),
+                        // For first column containing the row number.
+                        ...(isFirstCellOfRow ? {
+                            display: "flex",
+                            justifyContent: "center",
+                            justifyItems: "center",
+                            alignContent: "center",
+                            alignItems: "center",
+                        } : {}),
+                    },
+                    [`${columnKey}${rowIndex}-content-container`]: {
+                        height: "100%",
+                        // truncate cell content
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                    },
                 }
-            }).reduce((acc: Row, currentKey) => {
+            })
+                // @ts-ignore
+                .reduce((acc, currentKey) => {
                 return { ...acc, ...currentKey };
             }, {});
 
@@ -423,6 +550,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                 mergedGroupOfSelectedWorksheet.sheetName !== selectedWorksheetName ||
                 mergedGroupOfSelectedWorksheet.mergedRanges.length === 0
             ) {
+                // @ts-ignore
                 return {
                     ...rawRow,
                     ...cellStyles,
@@ -432,38 +560,48 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
             // Cell merge
             const cellStylesWithCellMerges = Object.entries(cellStyles).map((cellStyleEntry) => {
                 const [cellAddress, basicStyles] = cellStyleEntry;
+                if (
+                    cellAddress.includes("-content-container") ||
+                    cellAddress.includes("-content-wrapper-container")
+                ) {
+                    return {
+                        [cellAddress]: {
+                            ...basicStyles as Partial<CSSProperties>,
+                        }
+                    }
+                }
                 if (cellAddress.includes("-inner-container")) {
                     return {
                         [cellAddress]: {
-                            ...basicStyles,
-                            width: "",
-                            height: "",
-                            visibility: "hidden",
-                            borderBottom: "",
-                            borderLeft: ""
+                            ...basicStyles as Partial<CSSProperties>,
+                            // width: "",
+                            // height: "",
+                            // visibility: "hidden",
+                            // borderBottom: "",
+                            // borderLeft: ""
                         }
                     }
                 }
                 return {
                     [cellAddress]: {
-                        ...basicStyles,
-                        width: "",
-                        height: "",
-                        visibility: "hidden",
+                        ...basicStyles as Partial<CSSProperties>,
+                        // width: "",
+                        // height: "",
+                        // visibility: "hidden",
                     },
                 }
-            }).reduce((acc: Row, currentKey) => {
+            }).reduce((acc, currentKey) => {
                 return { ...acc, ...currentKey };
             }, {});
 
             return {
                 ...rawRow,
                 ...cellStylesWithCellMerges,
-            }
+            } as Row
         }
 
         setRowData(rawRowData.map(applyStylesToCells));
-    }, [rawRowData, rowStyles, headerStyles, cellStyles]);
+    }, [rawRowData, rowStyles, headerStyles, cellStyles, selectedWorksheetName, mergedGroupOfSelectedWorksheet]);
 
     const getMetaDataOfSelectedCell = (): CellMetaData => {
         if (!selectedCell) return {};
@@ -680,7 +818,7 @@ export const mergeCells = (
         innerContainerOfStartCell.style.height = `${totalHeight}px`;
         innerContainerOfStartCell.style.width = `${totalWidth}px`;
         innerContainerOfStartCell.style.borderBottom = "1px solid #e5e7eb";
-        innerContainerOfStartCell.style.borderLeft = "1px solid #e5e7eb";
+        innerContainerOfStartCell.style.borderRight = "1px solid #e5e7eb";
         // startCell.style.height = `${totalHeight}px`;
     });
 

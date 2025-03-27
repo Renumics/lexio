@@ -849,13 +849,13 @@ const TableBodyCell = forwardRef(
     const {
         cell,
         isFirst,
-        isLast,
+        // isLast,
         isSelected,
         // rowCount,
         isFirstCellOfSelectedRow,
         handleCellSelection,
         // headerStyles,
-        cellsStyles,
+        // cellsStyles,
         // rowStyles,
         // mergedRangesOfSelectedWorksheet,
         // shouldMerge,
@@ -868,6 +868,12 @@ const TableBodyCell = forwardRef(
     const cellId = `${cell.column.id}${cell.row.index}`;
 
     const cellInnerContainerId = `${cell.column.id}${cell.row.index}-inner-container`;
+
+    const cellContentContainerId = `${cell.column.id}${cell.row.index}-content-container`;
+
+    const cellContentWrapperContainerId = `${cell.column.id}${cell.row.index}-content-wrapper-container`;
+
+    const cellBorderContainerId = `${cell.column.id}${cell.row.index}-border-container`;
 
     // Sends all cell refs to the parent component
     useImperativeHandle(ref, () => ({
@@ -883,27 +889,27 @@ const TableBodyCell = forwardRef(
         };
     }, []);
 
-    const getCellStyle = (row: number, column: string): CSSProperties => {
-        if (!row || !column) return {};
-        return cellsStyles[`${column}${row}`];
-    }
+    // const getCellStyle = (row: number, column: string): CSSProperties => {
+    //     if (!row || !column) return {};
+    //     return cellsStyles[`${column}${row}`];
+    // }
 
-    const cssPropsToIgnoreInCellContent: (keyof CSSProperties)[] = [
-        "borderTop",
-        "borderRight",
-        "borderBottom",
-        "borderLeft",
-    ];
-
-    const getCellStyleOfCellContent = (row: number, column: string): CSSProperties => {
-        const styles = getCellStyle(row, column);
-        if (!styles) return {};
-        const allStyleEntries = Object.entries(styles);
-        const styleEntriesWithoutBorders = allStyleEntries.filter(([key]) =>
-            !cssPropsToIgnoreInCellContent.includes(key as (keyof CSSProperties))
-        );
-        return Object.fromEntries(styleEntriesWithoutBorders) as CSSProperties;
-    }
+    // const cssPropsToIgnoreInCellContent: (keyof CSSProperties)[] = [
+    //     "borderTop",
+    //     "borderRight",
+    //     "borderBottom",
+    //     "borderLeft",
+    // ];
+    //
+    // const getCellStyleOfCellContent = (row: number, column: string): CSSProperties => {
+    //     const styles = getCellStyle(row, column);
+    //     if (!styles) return {};
+    //     const allStyleEntries = Object.entries(styles);
+    //     const styleEntriesWithoutBorders = allStyleEntries.filter(([key]) =>
+    //         !cssPropsToIgnoreInCellContent.includes(key as (keyof CSSProperties))
+    //     );
+    //     return Object.fromEntries(styleEntriesWithoutBorders) as CSSProperties;
+    // }
 
     // const computeCellWidth = (): number => {
     //     if (isFirst) return calculateWidthOfFirstColumn(rowCount);
@@ -914,6 +920,8 @@ const TableBodyCell = forwardRef(
     //     const rowIndex = cell.row.index;
     //     return calculateHeightOfRow(rowIndex, rowStyles);
     // }
+
+    const isCellClickable = !(isFirst || cell.row.index === 0);
 
     return (
         <td
@@ -927,22 +935,16 @@ const TableBodyCell = forwardRef(
             }}
             id={cellId}
             style={{
-                display: "flex",
-                // width: `${computeCellWidth()}px`,
-                borderTop: "unset",
-                borderRight: isLast ? "1px solid #e5e7eb" : "unset",
-                borderLeft: isFirst ? "unset" : "1px solid #e5e7eb",
-                borderBottom: isFirstCellOfSelectedRow ? "none" : "1px solid #e5e7eb",
-                // height: `${computeRowHeight()}px`,
                 // @ts-ignore
                 ...(cell.row.original[cellId] ?? {}),
+                borderBottom: isFirstCellOfSelectedRow ? "none" : "1px solid #e5e7eb",
             }}
             data-label={cell.column.columnDef.header}
-            className={cn("text-sm text-neutral-600 top-0 bottom-0 m-0 relative p-0", {
+            className={cn({
                 "text-center justify-items-center justify-center items-center content-center select-none sticky left-0 z-[9] bg-neutral-100 tracking-tight": isFirst,
                 "!font-bold !bg-blue-500 !text-white": isFirstCellOfSelectedRow,
             })}
-            onClick={!isFirst ? () => handleCellSelection(cell) : undefined}
+            onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
         >
             <div
                 ref={(el) => {
@@ -953,57 +955,33 @@ const TableBodyCell = forwardRef(
                     delete cellInnerContainerRefs.current[cellInnerContainerId];
                 }}
                 id={cellInnerContainerId}
-                className={cn("h-full w-full m-0 p-0 absolute border-[2px] border-transparent", {
-                    "border-[2px] !border-blue-500": isSelected,
+                className={cn({
+                    "border-[2px] !border-b-[2px] !border-r-[2px] !border-blue-500": isSelected,
                 })}
-                onClick={!isFirst ? () => handleCellSelection(cell) : undefined}
+                onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
                 style={{
                     // @ts-ignore
                     ...(cell.row.original[cellInnerContainerId] ?? {}),
-                    //backgroundColor: getCellStyleOfCellContent(cell.row.index, cell.column.id)?.backgroundColor,
                 }}
             >
                 <div
                     style={{
-                        position: "absolute",
-                        top: 0,
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        width: "100%",
-                        height: "100%",
-                        wordWrap: "break-word",
-                        overflowWrap: "break-word",
-                        whiteSpace: "ellipsis",
-                        borderTop: getCellStyle(cell.row.index, cell.column.id)?.borderTop,
-                        borderRight: getCellStyle(cell.row.index, cell.column.id)?.borderRight,
-                        borderBottom: getCellStyle(cell.row.index, cell.column.id)?.borderBottom,
-                        borderLeft: getCellStyle(cell.row.index, cell.column.id)?.borderLeft,
+                        // @ts-ignore
+                        ...(cell.row.original[cellBorderContainerId] ?? {}),
                     }}
                 >
                     <div
                         style={{
-                            position: "relative",
-                            top: 0,
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            display: "flex",
-                            width: "100%",
-                            height: "100%",
-                            // styles from source file
-                            ...getCellStyleOfCellContent(cell.row.index, cell.column.id),
-                            // For first column containing the row number.
-                            ...(isFirst ? {
-                                display: "flex",
-                                justifyContent: "center",
-                                justifyItems: "center",
-                                alignContent: "center",
-                                alignItems: "center",
-                            } : {}),
+                            // @ts-ignore
+                            ...(cell.row.original[cellContentWrapperContainerId] ?? {}),
                         }}
                     >
-                        <div className="truncate">
+                        <div
+                            style={{
+                                // @ts-ignore
+                                ...(cell.row.original[cellContentContainerId] ?? {}),
+                            }}
+                        >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </div>
                     </div>

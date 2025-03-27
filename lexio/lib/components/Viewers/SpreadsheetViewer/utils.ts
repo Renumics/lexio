@@ -14,7 +14,7 @@ import {cn} from "./ui/utils.ts";
 import {Cell, Row as ReactTableRow} from "@tanstack/react-table";
 import {utils} from "xlsx";
 
-export type CellContent = Readonly<string | number | null | CSSProperties>;
+export type CellContent = Readonly<string | number | null | Partial<CSSProperties>>;
 
 export type Row = Record<string, CellContent>;
 
@@ -26,9 +26,10 @@ export type CellContentEntry = [string, CellContent];
 
 // In pixel
 export const DEFAULT_COLUMN_WIDTH = 120 as const;
+
 export const DEFAULT_ROW_HEIGHT = 25 as const;
 
-// export const TABLE_HEAD_ROW_HEIGHT = 30 as const;
+export const TABLE_HEAD_ROW_HEIGHT = 35 as const;
 
 export const Z_INDEX_OF_STICKY_HEADER_ROW = 10 as const;
 
