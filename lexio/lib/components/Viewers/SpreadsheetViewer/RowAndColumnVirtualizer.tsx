@@ -21,8 +21,8 @@ import {
     Table,
     useReactTable,
 } from "@tanstack/react-table";
-import {useVirtualizer, VirtualItem, Virtualizer,} from "@tanstack/react-virtual";
-import {mergeCells, MergeGroup, Range, SelectedCell,} from "./useSpreadsheetStore";
+import {useVirtualizer, VirtualItem, Virtualizer} from "@tanstack/react-virtual";
+import {mergeCells, MergeGroup, Range, SelectedCell} from "./useSpreadsheetStore";
 import {cn} from "./ui/utils.ts";
 import {
     // calculateHeightOfRow,
@@ -30,7 +30,7 @@ import {
     calculateWidthOfFirstColumn,
     CellContent,
     DEFAULT_COLUMN_WIDTH,
-    highlightCells,
+    // highlightCells,
     isCellInRange,
     Z_INDEX_OF_STICKY_HEADER_ROW
 } from "./utils.ts";
@@ -97,7 +97,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         setSelectedRange,
     } = props;
 
-    const rangesToSelect = props?.rangesToSelect ?? [["A0", "A0"]];
+    // const rangesToSelect = props?.rangesToSelect ?? [["A0", "A0"]];
 
     const tableId = useMemo(() => {
         return `${selectedSheetName.replace(" ", "")}${(new Date()).getTime()}`;
@@ -111,7 +111,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         getCoreRowModel: getCoreRowModel(),
     });
 
-    const cellAndInnerCellContainerRefs = useRef<CellAndCellContainerRefType | null>(null);
+    // const cellAndInnerCellContainerRefs = useRef<CellAndCellContainerRefType | null>(null);
 
     const [selectedHeaderCells, setSelectedHeaderCells] = useState<string[]>([]);
 
@@ -162,16 +162,16 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
     // }, [data]);
 
     // Set cell styles of ranges to highlight
-    useEffect(() => {
-        if (!cellAndInnerCellContainerRefs.current) return;
-        highlightCells(
-            // @ts-ignore
-            table.getRowModel().rows,
-            rangesToSelect,
-            cellAndInnerCellContainerRefs.current.cellRefs,
-            cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
-        );
-    }, [rangesToSelect, cellAndInnerCellContainerRefs, table]);
+    // useEffect(() => {
+    //     if (!cellAndInnerCellContainerRefs.current) return;
+    //     highlightCells(
+    //         // @ts-ignore
+    //         table.getRowModel().rows,
+    //         rangesToSelect,
+    //         cellAndInnerCellContainerRefs.current.cellRefs,
+    //         cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
+    //     );
+    // }, [rangesToSelect, cellAndInnerCellContainerRefs, table]);
 
     // useEffect(() => {
     //     // const allCells = table.getRowModel().rows.flatMap((row) => row.getVisibleCells());
@@ -213,7 +213,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         //     // );
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName);
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName, tableId);
-            console.log("columnVirtualizer onChange called: ");
+        //     console.log("columnVirtualizer onChange called: ");
 
             // console.log("virtualItems onChange called: ", instance.getVirtualItems());
 
@@ -255,12 +255,12 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName);
         //     // applyMergesToCells(mergedGroupOfSelectedWorksheet, selectedSheetName, tableId);
 
-            console.log("rowVirtualizer onChange called: ");
-            applyMergesToCells(
-                mergedGroupOfSelectedWorksheet,
-                selectedSheetName,
-                tableId,
-            );
+            // console.log("rowVirtualizer onChange called: ");
+            // applyMergesToCells(
+            //     mergedGroupOfSelectedWorksheet,
+            //     selectedSheetName,
+            //     tableId,
+            // );
         },
     });
 
@@ -495,7 +495,7 @@ const TableHeadRow = <T, >(props: TableHeadRowProps<T>) => {
     // const firstTableHeadCell = headerGroup.headers[0];
 
     return (
-        <tr key={headerGroup.id} style={{display: "flex", width: "100%"}}>
+        <tr key={headerGroup.id} style={{display: "flex", width: "100%", height: 0 }}>
             {virtualPaddingLeft ? (
                 //fake empty column to the left for virtualization scroll padding
                 <th style={{display: "flex", width: virtualPaddingLeft}}/>
@@ -773,7 +773,7 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                 rowCount={rowCount}
                 isLast={false}
                 isFirst={true}
-                isSelected={isCellSelected(cellOfFirstColumn, 0)}
+                isCellSelected={false}
                 isFirstCellOfSelectedRow={(selectedHeaderRowCells.includes(cellOfFirstColumn.row.index - 1)) ?? false}
                 // @ts-ignore
                 handleCellSelection={(cell) => handleCellClick(cell)}
@@ -807,7 +807,8 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                         rowCount={rowCount}
                         isLast={cellIndex === array.length - 1}
                         isFirst={false}
-                        isSelected={isCellSelected(cell, cellIndex)}
+                        isCellSelected={isCellSelected(cell, cellIndex)}
+                        isHeaderCellSelected={selectedHeaderCells.includes(cell.column.id) && row.index === 0}
                         isFirstCellOfSelectedRow={false}
                         // @ts-ignore
                         handleCellSelection={(cell) => handleCellClick(cell)}
@@ -833,7 +834,8 @@ type TableBodyCellProps<TData, TValue> = {
     isLast: boolean;
     isFirstCellOfSelectedRow : boolean;
     rowCount: number;
-    isSelected: boolean;
+    isCellSelected: boolean;
+    isHeaderCellSelected: boolean;
     cellsStyles: Record<string, CSSProperties>;
     headerStyles: Record<string, CSSProperties>;
     rowStyles: Record<number, CSSProperties>;
@@ -850,7 +852,8 @@ const TableBodyCell = forwardRef(
         cell,
         isFirst,
         // isLast,
-        isSelected,
+        isCellSelected,
+        isHeaderCellSelected,
         // rowCount,
         isFirstCellOfSelectedRow,
         handleCellSelection,
@@ -943,6 +946,8 @@ const TableBodyCell = forwardRef(
             className={cn({
                 "text-center justify-items-center justify-center items-center content-center select-none sticky left-0 z-[9] bg-neutral-100 tracking-tight": isFirst,
                 "!font-bold !bg-blue-500 !text-white": isFirstCellOfSelectedRow,
+                // Select headers
+                "!bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0": isHeaderCellSelected,
             })}
             onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
         >
@@ -956,7 +961,7 @@ const TableBodyCell = forwardRef(
                 }}
                 id={cellInnerContainerId}
                 className={cn({
-                    "border-[2px] !border-b-[2px] !border-r-[2px] !border-blue-500": isSelected,
+                    "border-[2px] !border-b-[2px] !border-r-[2px] !border-blue-500": isCellSelected,
                 })}
                 onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
                 style={{
@@ -977,6 +982,9 @@ const TableBodyCell = forwardRef(
                         }}
                     >
                         <div
+                            className={cn({
+                                "!font-bold !text-white": isHeaderCellSelected,
+                            })}
                             style={{
                                 // @ts-ignore
                                 ...(cell.row.original[cellContentContainerId] ?? {}),
@@ -986,7 +994,7 @@ const TableBodyCell = forwardRef(
                         </div>
                     </div>
                 </div>
-            {isSelected ?
+            {isCellSelected ?
                 <div
                     className="bg-blue-500 text-blue-500 size-2 border border-white border-r-0 border-b-0 drop-shadow-lg rounded-[2px] absolute bottom-[-1px] right-[-1px] z-[1000]"
                 ></div> : null

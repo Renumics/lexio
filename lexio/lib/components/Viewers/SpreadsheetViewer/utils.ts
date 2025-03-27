@@ -438,7 +438,7 @@ export const calculateWidthOfColumn = (columnId: string, headerStyles: Record<st
     const minWidthInPixel = (styleOfHeader?.minWidth ?? "0px") as string;
     const minWidthInt = Number(minWidthInPixel.split("px")[0]);
 
-    const minWidthToWidthFactor = 9;
+    const minWidthToWidthFactor = 7;
 
     // If minWidth from styleOfHeader is 0 set it to a default value of 10px.
     const nonZeroMinWidthOfColumn = minWidthInt === 0 ? 10 : minWidthInt;
