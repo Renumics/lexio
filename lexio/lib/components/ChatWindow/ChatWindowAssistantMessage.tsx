@@ -40,12 +40,13 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
     const markdownRef = React.useRef<HTMLDivElement>(null);
 
     // Create mock highlights for testing if no highlights are provided
-    const testHighlights = highlights && highlights.length > 0 ? highlights : [
+    const testHighlights: MessageHighlight[] = highlights && highlights.length > 0 ? highlights : [
         // Position-based highlight (first 10 characters)
         {
             startChar: 0,
             endChar: Math.min(10, rawContent.length),
-            color: 'rgba(255, 255, 0, 0.3)' // Light yellow
+            color: 'rgba(255, 255, 0, 0.3)', // Light yellow
+            text: undefined
         },
         // Position-based highlight for "traffic" if it exists
         ...((() => {
@@ -55,7 +56,8 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
                 return [{
                     startChar: trafficIndex,
                     endChar: trafficIndex + 'traffic'.length,
-                    color: 'rgba(0, 255, 0, 0.2)' // Light green
+                    color: 'rgba(0, 255, 0, 0.2)', // Light green
+                    text: undefined
                 }];
             }
             return [];
@@ -68,7 +70,8 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
                 return [{
                     startChar: tensorflowIndex,
                     endChar: tensorflowIndex + 'tensorflow'.length,
-                    color: 'rgba(0, 0, 255, 0.2)' // Light blue
+                    color: 'rgba(0, 0, 255, 0.2)', // Light blue
+                    text: undefined
                 }];
             }
             return [];
@@ -138,21 +141,23 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
             if (!segment) continue;
 
             // Find all text nodes
-            const allTextNodes = [];
+            const allTextNodes: Text[] = [];
             const walker = document.createTreeWalker(
                 container,
                 NodeFilter.SHOW_TEXT,
                 null
             );
 
-            let node;
-            while (node = walker.nextNode()) {
-                allTextNodes.push(node);
+            let node: Node | null;
+            while ((node = walker.nextNode()) !== null) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    allTextNodes.push(node as Text);
+                }
             }
 
             // Process each text node to find all occurrences
             for (let i = 0; i < allTextNodes.length; i++) {
-                const textNode = allTextNodes[i];
+                const textNode: Text = allTextNodes[i];
                 const nodeText = textNode.textContent || '';
                 let index = nodeText.indexOf(segment.text);
 
@@ -162,8 +167,8 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
                     // Each time we find and highlight text, the node structure changes
 
                     // Split the text node and insert our mark
-                    const beforeText = textNode.splitText(index);
-                    const afterText = beforeText.splitText(segment.text.length);
+                    const beforeText: Text = textNode.splitText(index);
+                    const afterText: Text = beforeText.splitText(segment.text.length);
 
                     const markElement = document.createElement('mark');
                     markElement.style.backgroundColor = segment.color;
@@ -202,7 +207,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
                     const length = Math.min(segment.text.length, nodeText.length);
                     if (length > 0) {
                         const beforeText = firstNode.splitText(0);
-                        const afterText = beforeText.splitText(length);
+                        beforeText.splitText(length);  // Don't store the result since we don't use it
 
                         const markElement = document.createElement('mark');
                         markElement.style.backgroundColor = segment.color;
