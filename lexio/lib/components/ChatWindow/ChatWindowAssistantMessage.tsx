@@ -294,7 +294,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({
                                         style={docco}
                                         language={language}
                                         PreTag="div"
-                                        wrapLongLine={true}
+                                        wrapLongLines={true}
                                     >
                                         {String(children).replace(/\n$/, '')}
                                     </SyntaxHighlighter>
