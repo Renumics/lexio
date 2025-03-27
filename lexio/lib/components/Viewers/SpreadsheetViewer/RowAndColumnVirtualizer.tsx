@@ -733,7 +733,7 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
 
     const isCellSelected = (cell: Cell<T, CellContent>, cellIndex: number): boolean => {
         return (
-            selectedHeaderRowCells.includes(cell.row.index - 1) &&
+            selectedHeaderRowCells.includes(cell.row.index) &&
             selectedHeaderCells.includes(cell.column.id) &&
             cellIndex !== 0
         ) as boolean;
@@ -774,7 +774,7 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                 isLast={false}
                 isFirst={true}
                 isCellSelected={false}
-                isFirstCellOfSelectedRow={(selectedHeaderRowCells.includes(cellOfFirstColumn.row.index - 1)) ?? false}
+                isFirstCellOfSelectedRow={(selectedHeaderRowCells.includes(cellOfFirstColumn.row.index)) ?? false}
                 // @ts-ignore
                 handleCellSelection={(cell) => handleCellClick(cell)}
                 cellsStyles={cellsStyles}

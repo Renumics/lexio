@@ -47,7 +47,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
     });
 
     const handleCellClick = (cell: Cell<Record<string, CellContent>, CellContent>) => {
-        setSelectedCell({ row: cell.row.index - 1, column: cell.column.id });
+        setSelectedCell({ row: cell.row.index, column: cell.column.id });
     }
 
     const switchSpreadsheet = (spreadsheet: string) => {
@@ -67,10 +67,10 @@ const SpreadsheetViewer: FC<Props> = (props) => {
 
     const resolveSelectedRange = (): string => {
         if (!selectedRange && selectedCell) {
-            return `${selectedCell.column}${selectedCell.row + 1}`;
+            return `${selectedCell.column}${selectedCell.row}`;
         }
         if (selectedRange && selectedCell && (selectedRange[0] === selectedRange[1])) {
-            return `${selectedCell.column}${selectedCell.row + 1}`;
+            return `${selectedCell.column}${selectedCell.row}`;
         }
         if (selectedRange) {
             return `${selectedRange[0]}:${selectedRange[1]}`
@@ -91,10 +91,17 @@ const SpreadsheetViewer: FC<Props> = (props) => {
 
     return (
         <div className="grid grid-rows-[max-content_90%_auto] h-full relative">
-            <div className="grid grid-cols-[1fr_max-content] p-1 gap-2">
+            <div className="grid grid-cols-[1fr_max-content] p-1 gap-2 border-b">
                 <div className="grid grid-cols-[max-content_1fr] gap-2">
-                    <div className="flex items-center content-center h-full w-[80px] py-1.5 px-2.5 border rounded-md text-sm text-neutral-600">
-                        {resolveSelectedRange()}
+                    <div
+                        className="flex items-center content-center w-[100px] py-1.5 px-2.5 border text-sm text-neutral-600 h-[35px]"
+                        style={{
+                            borderRadius: "5px"
+                        }}
+                    >
+                        <div className="truncate">
+                            {resolveSelectedRange()}
+                        </div>
                     </div>
                     <div className="grid grid-cols-[max-content_1fr] gap-1.5 items-center content-center">
                         <div className="flex items-center content-center gap-1 align-middle">
@@ -102,9 +109,12 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                             <div className="text-neutral-600">=</div>
                         </div>
                         <Tooltip
-                            className="h-full min-h-4 py-1.5 px-2.5 border rounded-md text-sm text-neutral-600 truncate"
+                            className="min-h-4 py-1.5 px-2.5 border text-sm text-neutral-600 truncate h-[35px]"
                             tooltipContent={cellMetaData}
                             shouldNotDisplayCondition={cellMetaData.length === 0}
+                            style={{
+                                borderRadius: "5px"
+                            }}
                         >
                             {cellMetaData}
                         </Tooltip>
