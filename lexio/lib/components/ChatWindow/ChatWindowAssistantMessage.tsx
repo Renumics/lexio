@@ -8,7 +8,7 @@ import "./AssistantMarkdownContent.css";
 import { ClipboardIcon, ClipboardDocumentIcon } from "@heroicons/react/24/outline";
 import { scaleFontSize } from "../../utils/scaleFontSize.tsx";
 import { MessageFeedback } from "./MessageFeedback.tsx";
-import { MessageHighlight } from "../../types.ts";
+import { MessageHighlight, StreamChunk } from "../../types.ts";
 /**
  * Props for the AssistantMarkdownContent component.
  * @typedef {Object} AssistantMarkdownContentProps
@@ -32,15 +32,33 @@ interface AssistantMarkdownContentProps {
  * @internal
  */
 const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ content, style, highlights }) => {
+    console.log('AssistantMarkdownContent props:', {
+        content,
+        highlights,
+        contentType: typeof content
+    });
+    
     // Check if content is an object with a content property
     const rawContent = typeof content === 'object' && content !== null && 'content' in content
         ? (content as any).content
         : content;
+    
+    console.log('AssistantMarkdownContent processed:', {
+        rawContent,
+        rawContentType: typeof rawContent,
+        highlightsLength: highlights?.length || 0
+    });
 
     const markdownRef = React.useRef<HTMLDivElement>(null);
 
     // Create highlights array from provided highlights
     const highlightsToUse = highlights || [];
+    console.log('Highlights processing:', {
+        originalHighlights: highlights,
+        highlightsToUse,
+        hasStartChar: highlightsToUse.some(h => h?.startChar !== undefined),
+        hasText: highlightsToUse.some(h => h?.text !== undefined)
+    });
 
     // Handle click events on mark elements
     const handleMarkClick = React.useCallback((event: MouseEvent) => {
@@ -66,7 +84,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
 
     // Store the original text segments to highlight
     const textSegmentsToHighlight = useMemo(() => {
-        return highlightsToUse
+        const segments = highlightsToUse
             .filter(h => h.startChar !== undefined && h.endChar !== undefined)
             .map(highlight => {
                 const startChar = highlight.startChar as number;
@@ -74,6 +92,12 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
                 if (startChar >= 0 && endChar > startChar && endChar <= rawContent.length) {
                     // Extract the text to highlight
                     const text = rawContent.substring(startChar, endChar);
+                    console.log('Processing highlight segment:', {
+                        startChar,
+                        endChar,
+                        extractedText: text,
+                        highlightColor: highlight.color
+                    });
 
                     // For the first highlight that might include markdown formatting
                     // Try to extract the actual content without markdown syntax
@@ -82,6 +106,10 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
                     // Handle heading syntax
                     if (startChar === 0 && text.startsWith('#')) {
                         cleanText = text.replace(/^#+\s*/, '');
+                        console.log('Cleaned markdown heading:', {
+                            original: text,
+                            cleaned: cleanText
+                        });
                     }
 
                     return {
@@ -93,6 +121,9 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
                 return null;
             })
             .filter(Boolean);
+        
+        console.log('Final text segments to highlight:', segments);
+        return segments;
     }, [rawContent, highlightsToUse]);
 
     // Apply highlights after markdown rendering
@@ -292,7 +323,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ con
  * @property {MessageHighlight[]} [highlights] - Array of highlight specifications.
  */
 interface ChatWindowAssistantMessageProps {
-    message: string;
+    message: string | StreamChunk;
     messageId: string | null;
     style: ChatWindowStyles;
     roleLabel: string;
@@ -324,17 +355,35 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
     showFeedback,
     highlights
 }) => {
+    console.log('ChatWindowAssistantMessage props:', {
+        message,
+        messageId,
+        markdown,
+        isStreaming,
+        highlights
+    });
+    console.log('Message type:', typeof message);
+    if (typeof message === 'object') {
+        console.log('Message object properties:', Object.keys(message));
+    }
+
     const [copied, setCopied] = useState(false);
     // show icon if showRoleIndicator is true and icon is not null
     const showIcon = showRoleIndicator && !!icon;
     // show label if showRoleIndicator is true and roleLabel is not null and icon is not shown
     const showLabel = showRoleIndicator && !!roleLabel && !showIcon;
 
+    // Extract content and highlights from message if it's a StreamChunk
+    const messageContent = typeof message === 'object' ? message.content || '' : message;
+    const messageHighlights = typeof message === 'object' && message.citations 
+        ? message.citations.map(citation => citation.messageHighlight)
+        : highlights;
+
     /**
      * Handles copying the message content to the clipboard.
      */
     const handleCopy = () => {
-        navigator.clipboard.writeText(String(message));
+        navigator.clipboard.writeText(messageContent);
         setCopied(true);
         setTimeout(() => {
             setCopied(false);
@@ -359,10 +408,14 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
 
     return (
         <div className={`w-full flex ${showIcon ? 'justify-start' : 'flex-col items-start'} pe-10`}>
-            {showLabel && <strong className="inline-block ml-2 mb-1" style={{
-                fontSize: style.roleLabelFontSize,
-                lineHeight: 'normal',
-            }}>{roleLabel}</strong>}
+            {showLabel && (
+                <strong className="inline-block ml-2 mb-1" style={{
+                    fontSize: style.roleLabelFontSize,
+                    lineHeight: 'normal',
+                }}>
+                    {roleLabel}
+                </strong>
+            )}
             {showIcon && (
                 <div className="flex flex-col items-center m-2">
                     <div className="w-fit h-fit p-1 rounded-3xl" style={{
@@ -382,16 +435,14 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                         <div className={"assistant-markdown-content"}
                             style={assistantMarkdownContentStyling}>
                             <AssistantMarkdownContent
-                                content={message}
+                                content={messageContent}
                                 style={style}
-                                highlights={highlights}
+                                highlights={messageHighlights}
                             />
                         </div>
                     ) : (
                         <div className="inline whitespace-pre-wrap">
-                            {typeof message === 'object' && message !== null && 'content' in message
-                                ? (message as any).content
-                                : message}
+                            {messageContent}
                         </div>
                     )}
                 </div>
@@ -403,7 +454,7 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                             lineHeight: 'normal',
                         }}
                     >
-                        {showFeedback && <MessageFeedback messageId={messageId} messageContent={message} />}
+                        {showFeedback && <MessageFeedback messageId={messageId} messageContent={messageContent} />}
                         {showCopy && (
                             <button
                                 onClick={handleCopy}
