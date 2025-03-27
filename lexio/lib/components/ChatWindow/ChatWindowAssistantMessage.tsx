@@ -8,7 +8,7 @@ import "./AssistantMarkdownContent.css";
 import { ClipboardIcon, ClipboardDocumentIcon } from "@heroicons/react/24/outline";
 import { scaleFontSize } from "../../utils/scaleFontSize.tsx";
 import { MessageFeedback } from "./MessageFeedback.tsx";
-import { MessageHighlight, StreamChunk, UUID } from "../../types.ts";
+import { MessageHighlight, StreamChunk, UUID, Citation } from "../../types.ts";
 import { useSetAtom } from 'jotai';
 import { dispatchAtom } from '../../state/rag-state';
 /**
@@ -17,13 +17,12 @@ import { dispatchAtom } from '../../state/rag-state';
  * @property {string} content - The markdown content to render.
  * @property {ChatWindowStyles} style - Styling options for the chat window.
  * @property {MessageHighlight[]} [highlights] - Array of highlight specifications.
- * @property {string | StreamChunk} [originalMessage] - The original message for citation access.
  */
 interface AssistantMarkdownContentProps {
     content: string;
     style: ChatWindowStyles;
     highlights?: MessageHighlight[];
-    citations?: StreamChunk['citations'];  // More specific type
+    citations?: Citation[];  // More explicit type
 }
 
 
