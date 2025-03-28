@@ -109,6 +109,7 @@ interface PdfViewerProps {
  * ```
  */
 const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
+
     const [pdfData, setPdfData] = useState<{data: object} | undefined>();
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);

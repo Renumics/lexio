@@ -128,8 +128,11 @@ export const activeSourcesAtom = atom(
 export const selectedSourceAtom = atom(
     (get) => {
         const retrievedSources = get(retrievedSourcesAtom);
+        console.log('retrievedSourcesAtom:', retrievedSources);
         const selectedId = get(selectedSourceIdAtom);
-        return selectedId ? retrievedSources.find(source => source.id === selectedId) ?? null : null;
+        const selectedSource = selectedId ? retrievedSources.find(source => source.id === selectedId) ?? null : null;
+        console.log('selectedSourceAtom:', selectedSource);
+        return selectedSource;
     }
 );
 
@@ -557,26 +560,25 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
 }) => {
     console.log('setSelectedSourceAtom', action, response);
 
-    // Explicit check for null or empty string
     if (action.sourceId === null || action.sourceId === '') {
         set(selectedSourceIdAtom, null);
         return;
     }
 
-    const currentSources = get(retrievedSourcesAtom);
-    const targetSource = currentSources.find(source => source.id === action.sourceId);
+    // Use the base sources without citations
+    const baseSources = get(_retrievedSourcesAtom);
+    const targetSource = baseSources.find(source => source.id === action.sourceId);
 
     if (!targetSource) {
         console.warn(`Source with id ${action.sourceId} not found`);
         return;
     }
 
-    // Always set the selected source ID
     set(selectedSourceIdAtom, action.sourceId);
 
     // Add page override if provided
     if (action.pdfPageOverride !== undefined) {
-        const updatedSources = currentSources.map(source =>
+        const updatedSources = baseSources.map(source =>
             source.id === action.sourceId
                 ? {
                     ...source,
@@ -592,17 +594,15 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
 
     // Only validate and update data if sourceData is provided
     if (response.sourceData) {
-        // Warn if trying to update a source that already has data
         if (targetSource.data) {
             console.warn(`Source ${action.sourceId} already has data but new data was provided`);
             return;
         }
 
         try {
-            // Await the Promise to get the actual data
             const resolvedData = await response.sourceData;
 
-            const updatedSources = currentSources.map(source =>
+            const updatedSources = baseSources.map(source =>
                 source.id === action.sourceId
                     ? { ...source, data: resolvedData }
                     : source
