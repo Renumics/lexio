@@ -32,7 +32,7 @@ interface HighlightProps {
     scale: number;
     rotate: number;
     canvasDimensions: CanvasDimensions;
-    highlightColorRgba: string;  // Required, no default
+    highlightColorRgba?: string;  // Now optional with the ? modifier
 }
 
 /**
@@ -53,7 +53,7 @@ const Highlight = ({
     scale,
     rotate,
     canvasDimensions,
-    highlightColorRgba
+    highlightColorRgba = 'rgba(255, 255, 0, 0.3)'  // Default value from highlightStyleDefaults
 }: HighlightProps) => {
     const [highlightStyle, setHighlightStyle] = useState({});
 
