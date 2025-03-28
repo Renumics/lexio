@@ -255,7 +255,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         estimateSize: () => DEFAULT_COLUMN_WIDTH,
         getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
         horizontal: true,
-        overscan: 10, //how many columns to render on each side off screen each way (adjust this for performance)
+        overscan: 2, //how many columns to render on each side off screen each way (adjust this for performance)
         onChange: () => {
         //     // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
         //     // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
@@ -304,7 +304,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
             navigator.userAgent.indexOf("Firefox") === -1
                 ? element => element?.getBoundingClientRect().height
                 : undefined,
-        overscan: 10,
+        overscan: 2,
         onChange: () => {
         //     // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
         //     // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
@@ -1113,7 +1113,7 @@ const TableBodyCell = forwardRef(
                 </div>
             {isCellSelected ?
                 <div
-                    className="bg-blue-500 text-blue-500 size-2 border border-white border-r-0 border-b-0 drop-shadow-lg rounded-[2px] absolute bottom-[-1px] right-[-1px] z-[1000]"
+                    className="bg-blue-500 text-blue-500 size-2 border border-white border-r-0 border-b-0 drop-shadow-lg rounded-[2px] absolute bottom-[-1px] right-[-1px] z-[5]"
                 ></div> : null
             }
             </div>
