@@ -12,26 +12,46 @@ const DEFAULT_PARENT_SIZE: ContainerSize = {
 
 type Props = {
     className?: string;
+    debounceTime?: number | undefined;
     children?: ((parentSize: ContainerSize) => ReactNode) | undefined;
 }
 const ParentSizeObserver: FC<Props> = (props) => {
+
+    const { className, debounceTime = 100, children } = props;
 
     const [parentSize, setParentSize] = useState<ContainerSize>(DEFAULT_PARENT_SIZE);
 
     const parentRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
+        if (!parentRef.current) return;
+
+        let timeout: NodeJS.Timeout | undefined = undefined;
+
+        const handleResize = (entries: ResizeObserverEntry[]) => {
+            const entry = entries[0];
+            if (entry) {
+                const { width, height } = entry.contentRect;
+                setParentSize({
+                    width: Math.floor(width),
+                    height: Math.floor(height),
+                });
+            }
+        }
+
         const observeParent = () => {
             if (!parentRef.current) return DEFAULT_PARENT_SIZE;
-
-            const resizeObserver = new ResizeObserver(entries => {
-                entries.forEach((entry) => {
-                    const { width, height } = entry.contentRect;
-                    setParentSize({ width, height });
-                })
+            const resizeObserver = new ResizeObserver((entries) => {
+                if (debounceTime > 0) {
+                    timeout = setTimeout(() => {
+                        handleResize(entries);
+                    }, debounceTime);
+                    return;
+                }
+                handleResize(entries);
             });
 
-            resizeObserver.observe(parentRef.current);
+            resizeObserver.observe(parentRef.current as Element);
 
             return () => {
                 resizeObserver.disconnect();
@@ -40,12 +60,14 @@ const ParentSizeObserver: FC<Props> = (props) => {
 
         return () => {
             observeParent();
+            if (!timeout) return;
+            clearTimeout(timeout as NodeJS.Timeout);
         }
-    }, [parentRef, props.children]);
+    }, [debounceTime, parentRef, children]);
 
     return (
-        <div ref={parentRef} className={props.className}>
-            {props.children ? props.children(parentSize) : null}
+        <div ref={parentRef} className={className}>
+            {children ? children(parentSize) : null}
         </div>
     );
 }
