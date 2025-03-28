@@ -65,23 +65,23 @@ export interface PDFHighlight {
      * RGBA color string for the highlight
      * @example 'rgba(255, 255, 0, 0.3)'
      */
-    highlightColorRgba: string;
+    highlightColorRgba?: string;
 }
 
 /**
- * Represents an important idea or concept to be highlighted in the assistant's message.
- * Used for visual emphasis of key points in the final message.
+ * Represents a text segment to be highlighted in the assistant's message.
+ * Used for visual emphasis in the displayed message.
  *
  * @interface MessageHighlight
  * @property {string} color - Color for the highlight in any valid CSS format
- * @property {string} [text] - The exact text to highlight (required if startChar/endChar not provided)
- * @property {number} [startChar] - Starting character position in the message (required if text not provided)
- * @property {number} [endChar] - Ending character position in the message (required if text not provided)
+ * @property {string} [text] - The exact text to highlight
+ * @property {number} [startChar] - Starting character position in the message
+ * @property {number} [endChar] - Ending character position in the message
  */
 export type MessageHighlight = {
     color: string;
 } & (
-    | { text: string; startChar?: never; endChar?: never }
+    | { text: string; startChar?: never; endChar?: never } // either text or startChar/endChar, not both
     | { text?: never; startChar: number; endChar: number }
 );
 
