@@ -7,6 +7,10 @@ from lexio.types import (
     PDFHighlight,
     Source,
     StreamChunk,
+    Citation,
+    MessageHighlight,
+    MessageHighlight1,
+    MessageHighlight2,
 )
 
 
@@ -431,3 +435,145 @@ def test_metadata_extra_fields():
     
     # Verify the extra field is present
     assert source.metadata["extra_field"] == "value"
+
+
+def test_message_highlight_with_text():
+    """Test creating a MessageHighlight with text."""
+    highlight = MessageHighlight.model_validate({
+        "color": "rgba(255, 255, 0, 0.3)",
+        "text": "important text"
+    })
+    
+    # Access the underlying model through .root
+    assert highlight.root.color == "rgba(255, 255, 0, 0.3)"
+    assert highlight.root.text == "important text"
+    
+    # This should be a MessageHighlight1 instance
+    assert isinstance(highlight.root, MessageHighlight1)
+
+
+def test_message_highlight_with_char_positions():
+    """Test creating a MessageHighlight with character positions."""
+    highlight = MessageHighlight.model_validate({
+        "color": "rgba(255, 0, 0, 0.3)",
+        "startChar": 10,
+        "endChar": 20
+    })
+    
+    # Access the underlying model through .root
+    assert highlight.root.color == "rgba(255, 0, 0, 0.3)"
+    assert highlight.root.startChar == 10
+    assert highlight.root.endChar == 20
+    
+    # This should be a MessageHighlight2 instance
+    assert isinstance(highlight.root, MessageHighlight2)
+
+
+def test_citation_creation():
+    """Test creating a Citation."""
+    citation = Citation(
+        sourceId="12345678-1234-5678-1234-567812345678",
+        messageHighlight=MessageHighlight.model_validate({
+            "color": "rgba(255, 255, 0, 0.3)",
+            "text": "cited text"
+        }),
+        sourceHighlight=PDFHighlight(
+            page=1,
+            rect=Rect(top=10, left=20, width=100, height=50),
+            highlightColorRgba="rgba(255, 255, 0, 0.3)"
+        )
+    )
+    
+    assert citation.sourceId == "12345678-1234-5678-1234-567812345678"
+    assert citation.messageHighlight.root.color == "rgba(255, 255, 0, 0.3)"
+    assert citation.messageHighlight.root.text == "cited text"
+    assert citation.sourceHighlight.page == 1
+    assert citation.sourceHighlight.rect.top == 10
+
+
+def test_citation_serialization_deserialization():
+    """Test serializing and deserializing a Citation."""
+    # Create a citation
+    citation = Citation(
+        sourceId="12345678-1234-5678-1234-567812345678",
+        messageHighlight=MessageHighlight.model_validate({
+            "color": "rgba(255, 255, 0, 0.3)",
+            "text": "cited text"
+        }),
+        sourceHighlight=PDFHighlight(
+            page=1,
+            rect=Rect(top=10, left=20, width=100, height=50),
+            highlightColorRgba="rgba(255, 255, 0, 0.3)"
+        )
+    )
+    
+    # Serialize to JSON
+    json_data = citation.model_dump_json()
+    
+    # Deserialize from JSON
+    deserialized_citation = Citation.model_validate_json(json_data)
+    
+    # Verify the deserialized citation matches the original
+    assert deserialized_citation.sourceId == citation.sourceId
+    assert deserialized_citation.messageHighlight.root.color == citation.messageHighlight.root.color
+    assert deserialized_citation.messageHighlight.root.text == citation.messageHighlight.root.text
+    assert deserialized_citation.sourceHighlight.page == citation.sourceHighlight.page
+    assert deserialized_citation.sourceHighlight.rect.top == citation.sourceHighlight.rect.top
+
+
+def test_stream_chunk_with_citations():
+    """Test creating a StreamChunk with citations."""
+    citation = Citation(
+        sourceId="12345678-1234-5678-1234-567812345678",
+        messageHighlight=MessageHighlight.model_validate({
+            "color": "rgba(255, 255, 0, 0.3)",
+            "text": "cited text"
+        }),
+        sourceHighlight=PDFHighlight(
+            page=1,
+            rect=Rect(top=10, left=20, width=100, height=50),
+            highlightColorRgba="rgba(255, 255, 0, 0.3)"
+        )
+    )
+    
+    chunk = StreamChunk(
+        content="Response with citation",
+        citations=[citation],
+        done=True
+    )
+    
+    assert chunk.content == "Response with citation"
+    assert len(chunk.citations) == 1
+    assert chunk.citations[0].sourceId == "12345678-1234-5678-1234-567812345678"
+    assert chunk.done is True
+
+
+def test_message_with_highlights():
+    """Test creating a Message with highlights."""
+    highlight1 = MessageHighlight.model_validate({
+        "color": "rgba(255, 255, 0, 0.3)",
+        "text": "important"
+    })
+    
+    highlight2 = MessageHighlight.model_validate({
+        "color": "rgba(0, 0, 255, 0.3)",
+        "startChar": 20,
+        "endChar": 30
+    })
+    
+    message = Message(
+        id="12345678-1234-5678-1234-567812345678",
+        role="assistant",
+        content="This is an important message with some highlighted text.",
+        highlights=[highlight1, highlight2]
+    )
+    
+    assert message.id == "12345678-1234-5678-1234-567812345678"
+    assert message.role == "assistant"
+    assert message.content == "This is an important message with some highlighted text."
+    assert len(message.highlights) == 2
+    assert message.highlights[0].root.color == "rgba(255, 255, 0, 0.3)"
+    assert message.highlights[0].root.text == "important"
+    assert message.highlights[1].root.color == "rgba(0, 0, 255, 0.3)"
+    assert message.highlights[1].root.startChar == 20
+    assert message.highlights[1].root.endChar == 30
