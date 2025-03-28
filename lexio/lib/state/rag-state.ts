@@ -42,20 +42,6 @@ export const retrievedSourcesAtom = atom<Source[]>([]);
 export const activeSourcesIdsAtom = atom<string[] | null>(null);
 export const selectedSourceIdAtom = atom<string | null>(null);
 
-export const selectedSourceWithPageAtom = atom(
-    (get) => {
-        const source = get(selectedSourceAtom);
-        if (!source) return null;
-        
-        return {
-            ...source,
-            metadata: {
-                ...(source.metadata || {})
-            }
-        };
-    }
-);
-
 export const activeSourcesAtom = atom(
     (get) => {
         const retrievedSources = get(retrievedSourcesAtom);
