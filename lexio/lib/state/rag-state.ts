@@ -128,10 +128,8 @@ export const activeSourcesAtom = atom(
 export const selectedSourceAtom = atom(
     (get) => {
         const retrievedSources = get(retrievedSourcesAtom);
-        console.log('retrievedSourcesAtom:', retrievedSources);
         const selectedId = get(selectedSourceIdAtom);
         const selectedSource = selectedId ? retrievedSources.find(source => source.id === selectedId) ?? null : null;
-        console.log('selectedSourceAtom:', selectedSource);
         return selectedSource;
     }
 );

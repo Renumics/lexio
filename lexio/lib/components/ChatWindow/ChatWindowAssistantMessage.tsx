@@ -197,13 +197,6 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
     showFeedback,
     highlights
 }) => {
-    console.log('ChatWindowAssistantMessage props:', {
-        message,
-        messageId,
-        markdown,
-        isStreaming,
-        highlights
-    });
 
     const [copied, setCopied] = useState(false);
     // show icon if showRoleIndicator is true and icon is not null
