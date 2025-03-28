@@ -1,5 +1,5 @@
 import { atom } from 'jotai'
-import { ActionHandler, AddUserMessageAction, AddUserMessageActionResponse, ClearMessagesAction, ClearMessagesActionResponse, ClearSourcesAction, ClearSourcesActionResponse, ProviderConfig, ResetFilterSourcesAction, ResetFilterSourcesActionResponse, SearchSourcesAction, SearchSourcesActionResponse, SetActiveMessageAction, SetActiveMessageActionResponse, SetActiveSourcesAction, SetActiveSourcesActionResponse, SetFilterSourcesAction, SetFilterSourcesActionResponse, SetMessageFeedbackAction, SetMessageFeedbackActionResponse, SetSelectedSourceAction, SetSelectedSourceActionResponse, StreamChunk, UserAction, UUID } from "../types";
+import { ActionHandler, AddUserMessageAction, AddUserMessageActionResponse, ClearMessagesAction, ClearMessagesActionResponse, ClearSourcesAction, ClearSourcesActionResponse, MessageHighlight, ProviderConfig, ResetFilterSourcesAction, ResetFilterSourcesActionResponse, SearchSourcesAction, SearchSourcesActionResponse, SetActiveMessageAction, SetActiveMessageActionResponse, SetActiveSourcesAction, SetActiveSourcesActionResponse, SetFilterSourcesAction, SetFilterSourcesActionResponse, SetMessageFeedbackAction, SetMessageFeedbackActionResponse, SetSelectedSourceAction, SetSelectedSourceActionResponse, StreamChunk, UserAction, UUID } from "../types";
 import { Message, Source } from '../types';
 
 
@@ -129,6 +129,7 @@ export const addUserMessageAtom = atom(
             response: AddUserMessageActionResponse
         }
     ) => {
+        console.log('addUserMessageAtom', action, response);
         // Save previous state for rollback.
         const previousMessages = get(completedMessagesAtom);
         const previousSources = get(retrievedSourcesAtom);
@@ -161,7 +162,7 @@ export const addUserMessageAtom = atom(
         // Process sources independently.
         const processSources = async () => {
             if (!response.sources) return; // Skip if no sources provided.
-            const sourcesData: Source[] = await addTimeout(
+            const sourcesData = await addTimeout(
                 response.sources.then(srcs => srcs),
                 config.timeouts?.request,
                 'Sources request timeout exceeded',
@@ -171,7 +172,7 @@ export const addUserMessageAtom = atom(
             // Add a UUID to each source if it's missing.
             const sourcesDataWithIds = sourcesData.map(source => ({
                 ...source,
-                id: source.id || (crypto.randomUUID() as UUID),
+                id: (crypto.randomUUID() as UUID),
             }));
 
             // Update sources-related state.
@@ -181,13 +182,35 @@ export const addUserMessageAtom = atom(
             return sourcesDataWithIds;
         };
 
+        // Process citations independently
+        const processCitations = async (sourcesWithIds?: Source[]) => {
+            if (!response.citations) return; // Skip if no citations provided
+            
+            try {
+                const citationsData = await addTimeout(
+                    response.citations,
+                    config.timeouts?.request,
+                    'Citations request timeout exceeded',
+                    abortController.signal
+                );
+                
+                return citationsData;
+            } catch (error) {
+                console.error('Failed to process citations:', error);
+                throw error;
+            }
+        };
+
         // Process the user message or streaming response independently.
         const processMessage = async () => {
             if (response.response) {
                 let accumulatedContent = '';
+                let messageId: UUID;
+                let messageHighlights: MessageHighlight[] = [];
+                
                 if (Symbol.asyncIterator in response.response) {
                     // Create a single consistent ID for the entire streaming message
-                    const messageId = crypto.randomUUID() as UUID;
+                    messageId = crypto.randomUUID() as UUID;
 
                     // Streaming response: process each chunk.
                     const streamTimeout = new StreamTimeout(config.timeouts?.stream);
@@ -195,6 +218,19 @@ export const addUserMessageAtom = atom(
                         if (abortController.signal.aborted) break;
                         streamTimeout.check();
                         accumulatedContent += chunk.content ?? '';
+                        
+                        // If the chunk has citations, collect message highlights
+                        if (chunk.citations) {
+                            for (const citation of chunk.citations) {
+                                if (!messageHighlights.some(h => 
+                                    h.startChar === citation.messageHighlight.startChar && 
+                                    h.endChar === citation.messageHighlight.endChar
+                                )) {
+                                    messageHighlights.push(citation.messageHighlight);
+                                }
+                            }
+                        }
+                        
                         // Provide immediate feedback as streaming chunks arrive.
                         set(currentStreamAtom, {
                             id: messageId, // Use the same ID for all updates
@@ -202,6 +238,7 @@ export const addUserMessageAtom = atom(
                             content: accumulatedContent,
                         });
                     }
+                    
                     // Finalize streaming.
                     set(completedMessagesAtom, [
                         ...get(completedMessagesAtom),
@@ -209,10 +246,11 @@ export const addUserMessageAtom = atom(
                             id: messageId, // Use the same ID for the final message
                             role: 'assistant',
                             content: accumulatedContent,
+                            highlights: messageHighlights.length > 0 ? messageHighlights : undefined
                         },
                     ]);
                     set(currentStreamAtom, null);
-                    return accumulatedContent;
+                    return { content: accumulatedContent, messageId, messageHighlights };
                 } else {
                     // Non-streaming (single promise) response.
                     const messageData = await addTimeout(
@@ -221,41 +259,91 @@ export const addUserMessageAtom = atom(
                         'Response timeout exceeded',
                         abortController.signal
                     );
+                    
+                    messageId = crypto.randomUUID() as UUID;
+                    
                     set(completedMessagesAtom, [
                         ...get(completedMessagesAtom),
                         {
-                            id: crypto.randomUUID() as UUID,
+                            id: messageId,
                             role: 'assistant',
                             content: messageData,
+                            highlights: messageHighlights.length > 0 ? messageHighlights : undefined
                         } as Message,
                     ]);
-                    return messageData;
+                    return { content: messageData, messageId, messageHighlights };
                 }
             }
         };
 
         // --- The key elegant change: since this function is async, it automatically returns a promise.
         try {
-            const results = await Promise.allSettled([processSources(), processMessage()]);
-            const errors = results.filter(result => result.status === 'rejected');
-
-            if (errors.length > 0) {
-                // Abort remaining work and restore previous state.
-                abortController.abort();
-                set(completedMessagesAtom, previousMessages);
-                set(retrievedSourcesAtom, previousSources);
-                set(currentStreamAtom, null);
-
-                // Aggregate error messages.
-                const errorMessages = errors
-                    .map((e: PromiseRejectedResult) =>
-                        e.reason instanceof Error ? e.reason.message : String(e.reason)
-                    )
-                    .join('; ');
-                throw new Error(errorMessages);
+            // Process sources first to get the source IDs
+            const sourcesResult = await processSources();
+            
+            // Process message to get the message ID
+            const messageResult = await processMessage();
+            
+            // Process citations after both sources and message are processed
+            if (response.citations && sourcesResult && messageResult) {
+                const citationsData = await processCitations(sourcesResult);
+                
+                if (citationsData) {
+                    // Update sources with highlights from citations
+                    const updatedSources = [...sourcesResult];
+                    
+                    for (const citation of citationsData) {
+                        // Find the source to update
+                        const sourceIndex = citation.sourceIndex !== undefined 
+                            ? citation.sourceIndex 
+                            : updatedSources.findIndex(s => s.id === citation.sourceId);
+                        
+                        if (sourceIndex >= 0 && sourceIndex < updatedSources.length) {
+                            const source = updatedSources[sourceIndex];
+                            
+                            // Initialize highlights array if it doesn't exist
+                            if (!source.highlights) {
+                                source.highlights = [];
+                            }
+                            
+                            // Add the highlight to the source
+                            source.highlights.push(citation.sourceHighlight);
+                        }
+                    }
+                    
+                    // Update sources with new highlights
+                    set(retrievedSourcesAtom, updatedSources);
+                    
+                    // Update the message with highlights if not already added
+                    if (messageResult && messageResult.messageId) {
+                        const messages = get(completedMessagesAtom);
+                        const messageIndex = messages.findIndex(m => m.id === messageResult.messageId);
+                        
+                        if (messageIndex >= 0) {
+                            const message = messages[messageIndex];
+                            const messageHighlights = citationsData.map(c => c.messageHighlight);
+                            
+                            // Update the message with highlights
+                            const updatedMessages = [...messages];
+                            updatedMessages[messageIndex] = {
+                                ...message,
+                                highlights: messageHighlights
+                            };
+                            
+                            set(completedMessagesAtom, updatedMessages);
+                        }
+                    }
+                }
             }
-            return results;
+            
+            return { sourcesResult, messageResult };
         } catch (error) {
+            // Abort remaining work and restore previous state.
+            abortController.abort();
+            set(completedMessagesAtom, previousMessages);
+            set(retrievedSourcesAtom, previousSources);
+            set(currentStreamAtom, null);
+
             // Notify about the error and propagate it.
             set(setErrorAtom, `Failed to process user message: ${error instanceof Error ? error.message : error}`);
             throw error;

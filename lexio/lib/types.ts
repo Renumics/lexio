@@ -90,15 +90,16 @@ export type MessageHighlight = {
  * Used to connect highlighted message parts with their source evidence.
  *
  * @interface Citation
- * @property {string} sourceId - ID of the source document containing the evidence
  * @property {MessageHighlight} messageHighlight - The message highlight this citation supports
  * @property {PDFHighlight} sourceHighlight - The highlight in the source document
  */
-export interface Citation {
-  sourceId: string;
+export type Citation = {
   messageHighlight: MessageHighlight;
   sourceHighlight: PDFHighlight;
-}
+} & (
+  | { sourceId: string; sourceIndex?: never } // either sourceId or sourceIndex, not both
+  | { sourceId?: never; sourceIndex: number }
+);
 
 /**
  * Represents a chat message in the conversation.
@@ -397,7 +398,7 @@ export type UserAction =
  */
 export interface AddUserMessageActionResponse {
   response?: Promise<string | StreamChunk> | AsyncIterable<StreamChunk>;
-  sources?: Promise<Source[]>;
+  sources?: Promise<Omit<Source, 'id'>[]>; // id is generated here
   citations?: Promise<Citation[]>;
   setUserMessage?: string;
   followUpAction?: UserAction;
@@ -517,7 +518,8 @@ export type ActionHandlerResponse =
   SetSelectedSourceActionResponse |
   SetFilterSourcesActionResponse |
   ResetFilterSourcesActionResponse |
-  SetMessageFeedbackActionResponse;
+  SetMessageFeedbackActionResponse |
+  undefined; // allow undefined responses for unhandled actions
 
 /**
  * Defines an action handler for a specific component.
