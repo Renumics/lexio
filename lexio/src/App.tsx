@@ -207,9 +207,7 @@ function App() {
             
             // Simple response without any explanation processing
             return {
-                response: Promise.resolve({
-                    content: ragResponse,
-                }),
+                response: Promise.resolve(ragResponse),
                 sources: Promise.resolve(MOCKED_SOURCES),
                 citations: Promise.resolve(MOCKED_CITATIONS),
             };

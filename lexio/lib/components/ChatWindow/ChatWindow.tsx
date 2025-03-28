@@ -131,6 +131,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                                    componentKey = undefined,
                                                }) => {
     const {messages, currentStream} = useMessages(componentKey ? `ChatWindow-${componentKey}` : 'ChatWindow');
+
+    console.log('messages', messages);
     // Add ref for scrolling
     const chatEndRef = React.useRef<HTMLDivElement>(null);
 

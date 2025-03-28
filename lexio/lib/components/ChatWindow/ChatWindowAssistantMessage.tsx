@@ -8,7 +8,7 @@ import "./AssistantMarkdownContent.css";
 import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline";
 import {scaleFontSize, addOpacity} from "../../utils/scaleFontSize.tsx";
 import { MessageFeedback } from "./MessageFeedback.tsx";
-import { MessageHighlight, StreamChunk, Citation } from "../../types.ts";
+import { MessageHighlight } from "../../types.ts";
 import { useCitations } from '../../hooks/hooks';
 import { useHighlightManager } from './highlightUtils';
 
@@ -23,7 +23,6 @@ interface AssistantMarkdownContentProps {
     content: string;
     style: ChatWindowStyles;
     highlights?: MessageHighlight[];
-    citations?: Citation[];  // More explicit type
 }
 
 /**
@@ -37,7 +36,7 @@ interface AssistantMarkdownContentProps {
 const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({ 
     content, 
     style, 
-    highlights,
+    highlights
 }) => {
     const { navigateToCitation } = useCitations('ChatWindow');
     const markdownRef = React.useRef<HTMLDivElement>(null);
@@ -166,7 +165,7 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({
  * @property {MessageHighlight[]} [highlights] - Array of highlight specifications.
  */
 interface ChatWindowAssistantMessageProps {
-    message: string | StreamChunk;
+    message: string;
     messageId: string | null;
     style: ChatWindowStyles;
     roleLabel: string;
@@ -205,10 +204,6 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
         isStreaming,
         highlights
     });
-    console.log('Message type:', typeof message);
-    if (typeof message === 'object') {
-        console.log('Message object properties:', Object.keys(message));
-    }
 
     const [copied, setCopied] = useState(false);
     // show icon if showRoleIndicator is true and icon is not null
@@ -216,11 +211,9 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
     // show label if showRoleIndicator is true and roleLabel is not null and icon is not shown
     const showLabel = showRoleIndicator && !!roleLabel && !showIcon;
 
-    // Extract content and highlights from message if it's a StreamChunk
-    const messageContent = typeof message === 'object' ? message.content || '' : message;
-    const messageHighlights = typeof message === 'object' && message.citations 
-        ? message.citations.map(citation => citation.messageHighlight)
-        : highlights;
+    // No need for complex type checking since message is always a string
+    const messageContent = message;
+    const messageHighlights = highlights || [];
 
     /**
      * Handles copying the message content to the clipboard.
@@ -281,7 +274,6 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                                 content={messageContent}
                                 style={style}
                                 highlights={messageHighlights}
-                                citations={typeof message === 'object' ? message.citations : undefined}
                             />
                         </div>
                     ) : (

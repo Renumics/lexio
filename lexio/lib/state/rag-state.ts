@@ -333,7 +333,7 @@ export const addUserMessageAtom = atom(
                 // Add messageId and unique id to each citation, and resolve sourceIndex to sourceId if needed
                 const enhancedCitations = citationsData.map(citation => {
                     // Create a new citation object with id and messageId
-                    const enhancedCitation = {
+                    let enhancedCitation: Omit<Citation, 'sourceId' | 'sourceIndex'> & { sourceId?: string; sourceIndex?: number } = {
                         ...citation,
                         id: crypto.randomUUID() as UUID,
                         messageId: messageId
@@ -347,26 +347,29 @@ export const addUserMessageAtom = atom(
                         if (citation.sourceIndex >= 0 && citation.sourceIndex < currentSources.length) {
                             const sourceId = currentSources[citation.sourceIndex].id;
                             
-                            // Return citation with sourceId instead of sourceIndex
-                            return {
-                                ...enhancedCitation,
-                                sourceId,
-                                sourceIndex: undefined
-                            };
+                            // Set sourceId and explicitly delete the sourceIndex property
+                            enhancedCitation.sourceId = sourceId;
+                            delete enhancedCitation.sourceIndex;
                         } else {
                             console.error(`Invalid sourceIndex: ${citation.sourceIndex}. Sources length: ${currentSources.length}`);
                             throw new Error(`Invalid sourceIndex: ${citation.sourceIndex}`);
                         }
                     }
                     
-                    // If citation already has sourceId, just return it
+                    // If citation already has sourceId, ensure sourceIndex is removed
                     if ('sourceId' in citation && citation.sourceId) {
-                        return enhancedCitation;
+                        enhancedCitation.sourceId = citation.sourceId;
+                        delete enhancedCitation.sourceIndex;
                     }
                     
-                    // If we get here, citation has neither valid sourceId nor valid sourceIndex
-                    console.error('Citation missing sourceId or valid sourceIndex:', citation);
-                    throw new Error('Citation missing sourceId or valid sourceIndex');
+                    // Final check - citation must have a sourceId at this point
+                    if (!enhancedCitation.sourceId) {
+                        console.error('Citation missing sourceId after processing:', citation);
+                        throw new Error('Citation missing sourceId after processing');
+                    }
+                    
+                    // Return as properly typed Citation (now that we've ensured it has sourceId and no sourceIndex)
+                    return enhancedCitation as Citation;
                 });
                 
                 // Store citations in the dedicated atom
