@@ -21,6 +21,13 @@
         "content": {
           "type": "string",
           "title": "content"
+        },
+        "highlights": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MessageHighlight"
+          },
+          "title": "highlights"
         }
       },
       "defaultProperties": [],
@@ -28,7 +35,8 @@
       "propertyOrder": [
         "id",
         "role",
-        "content"
+        "content",
+        "highlights"
       ],
       "required": [
         "content",
@@ -118,6 +126,7 @@
     },
     "StreamChunk": {
       "description": "Represents a chunk of streamed content.\nUsed for streaming responses from the assistant in real-time.",
+      "title": "StreamChunk",
       "type": "object",
       "properties": {
         "content": {
@@ -131,6 +140,13 @@
           },
           "title": "sources"
         },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "title": "citations"
+        },
         "done": {
           "type": "boolean",
           "title": "done"
@@ -141,11 +157,12 @@
       "propertyOrder": [
         "content",
         "sources",
+        "citations",
         "done"
       ]
     },
     "PDFHighlight": {
-      "description": "Represents a highlight annotation in a PDF document.",
+      "description": "Represents a highlight annotation in a PDF document.\nUsed to visually highlight text regions in PDF sources.",
       "title": "PDFHighlight",
       "type": "object",
       "properties": {
@@ -195,13 +212,19 @@
             "width"
           ],
           "title": "rect"
+        },
+        "highlightColorRgba": {
+          "description": "RGBA color string for the highlight",
+          "type": "string",
+          "title": "highlightColorRgba"
         }
       },
       "defaultProperties": [],
       "additionalProperties": false,
       "propertyOrder": [
         "page",
-        "rect"
+        "rect",
+        "highlightColorRgba"
       ],
       "required": [
         "page",
@@ -213,6 +236,84 @@
       "title": "UUID",
       "type": "string",
       "pattern": "^.*-.*-.*-.*-.*$"
+    },
+    "Citation": {
+      "description": "Links message highlights to their supporting evidence in source documents.\nUsed to connect highlighted message parts with their source evidence.",
+      "title": "Citation",
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "title": "sourceId"
+        },
+        "messageHighlight": {
+          "$ref": "#/definitions/MessageHighlight",
+          "title": "messageHighlight"
+        },
+        "sourceHighlight": {
+          "$ref": "#/definitions/PDFHighlight",
+          "title": "sourceHighlight"
+        }
+      },
+      "defaultProperties": [],
+      "additionalProperties": false,
+      "propertyOrder": [
+        "sourceId",
+        "messageHighlight",
+        "sourceHighlight"
+      ],
+      "required": [
+        "messageHighlight",
+        "sourceHighlight",
+        "sourceId"
+      ]
+    },
+    "MessageHighlight": {
+      "description": "Represents a text segment to be highlighted in the assistant's message.\nUsed for visual emphasis in the displayed message.",
+      "title": "MessageHighlight",
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "string",
+              "title": "color"
+            },
+            "text": {
+              "type": "string",
+              "title": "text"
+            }
+          },
+          "required": [
+            "color",
+            "text"
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "string",
+              "title": "color"
+            },
+            "startChar": {
+              "type": "number",
+              "title": "startChar"
+            },
+            "endChar": {
+              "type": "number",
+              "title": "endChar"
+            }
+          },
+          "required": [
+            "color",
+            "endChar",
+            "startChar"
+          ]
+        }
+      ]
     }
   }
 }

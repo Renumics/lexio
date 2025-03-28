@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lexio"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python type definitions for the lexio frontend library. Provides Pydantic models for type-safe interaction with the lexio UI components, including source references."
 readme = "README.md"
 requires-python = ">=3.9"

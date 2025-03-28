@@ -9,7 +9,9 @@ import {
     selectedSourceAtom,
     selectedSourceIdAtom,
     retrievedSourcesAtom,
-    errorAtom
+    errorAtom,
+    getCitationsForMessageAtom,
+    citationsAtom
 } from "../state/rag-state";
 import { UUID } from "../types";
 import { Component } from "../types";
@@ -209,5 +211,74 @@ export const useMessageFeedback = (component: Component) => {
 
     return {
         submitFeedback
+    };
+};
+
+/**
+ * Hook to access and manipulate citations.
+ * @param component - The component name to identify the source of the action.
+ * @returns An object containing citation data and functions to work with citations.
+ */
+export const useCitations = (component: Component) => {
+    const dispatch = useSetAtom(dispatchAtom);
+    const getCitationsForMessage = useAtomValue(getCitationsForMessageAtom);
+    const allCitations = useAtomValue(citationsAtom);
+
+    /**
+     * Get all citations for a specific message.
+     * @param messageId - ID of the message to get citations for.
+     * @returns Array of citations associated with the message.
+     */
+    const getCitationsForMessageId = (messageId: string | UUID) => {
+        return getCitationsForMessage(messageId as UUID);
+    };
+
+    /**
+     * Get a citation by its ID.
+     * @param citationId - ID of the citation to retrieve.
+     * @returns The citation object if found, or undefined if not found.
+     */
+    const getCitationById = (citationId: string | UUID) => {
+        return allCitations.find(citation => citation.id === citationId);
+    };
+
+    /**
+     * Navigate to the source associated with a citation.
+     * This selects the source and can optionally highlight the relevant section.
+     * @param citationId - ID of the citation to navigate to.
+     */
+    const navigateToCitation = (citationId: string | UUID) => {
+        const citation = getCitationById(citationId);
+        if (!citation) {
+            console.warn(`Citation with ID ${citationId} not found`);
+            return;
+        }
+
+        // If citation uses sourceId, use that directly
+        if ('sourceId' in citation && citation.sourceId) {
+            // Get the page number from the highlight if it's a PDF
+            const pageNumber = citation.sourceHighlight?.page;
+            
+            dispatch({
+                type: 'SET_SELECTED_SOURCE', 
+                sourceId: citation.sourceId, 
+                pdfPageOverride: pageNumber,
+                source: component
+            }, false);
+        }
+        // If citation uses sourceIndex, we need to find the source ID
+        else if ('sourceIndex' in citation && citation.sourceIndex !== undefined) {
+            console.warn('Citation uses sourceIndex which should have been resolved to sourceId');
+        }
+        else {
+            console.warn(`Citation ${citationId} has neither sourceId nor sourceIndex`);
+        }
+    };
+
+    return {
+        allCitations,
+        getCitationsForMessageId,
+        getCitationById,
+        navigateToCitation
     };
 };

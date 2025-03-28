@@ -131,6 +131,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                                    componentKey = undefined,
                                                }) => {
     const {messages, currentStream} = useMessages(componentKey ? `ChatWindow-${componentKey}` : 'ChatWindow');
+
     // Add ref for scrolling
     const chatEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -199,6 +200,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                 markdown={markdown}
                                 showCopy={showCopy}
                                 showFeedback={showFeedback}
+                                highlights={msg.highlights || []}
                             />
                         )}
                     </React.Fragment>
@@ -214,6 +216,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                         icon={assistantIcon || undefined}
                         markdown={markdown}
                         isStreaming={true}
+                        highlights={currentStream.highlights || []}
                     />
                 )}
                 <div ref={chatEndRef}/>

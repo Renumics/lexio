@@ -4,6 +4,12 @@
 # Coverage Reports
 coverage
 
+# Environment Variables
+.env.local
+
+# PDF Files
+pdfs/
+
 # Logs
 logs
 *.log

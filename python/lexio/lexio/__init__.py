@@ -4,11 +4,13 @@ This file is auto-generated. Do not edit directly.
 
 Generated from:
   source:    lexio.types
-  timestamp: 2025-03-10T09:00:20+00:00
+  timestamp: 2025-03-28T11:05:42+00:00
 """
 
 from lexio.types import (
+    Citation,
     Message,
+    MessageHighlight,
     PDFHighlight,
     Source,
     StreamChunk,
@@ -17,7 +19,9 @@ from lexio.types import (
 from lexio._version import __version__
 
 __all__ = [
+    "Citation",
     "Message",
+    "MessageHighlight",
     "PDFHighlight",
     "Source",
     "StreamChunk",
