@@ -1,5 +1,5 @@
 import { atom } from 'jotai'
-import { ActionHandler, AddUserMessageAction, AddUserMessageActionResponse, ClearMessagesAction, ClearMessagesActionResponse, ClearSourcesAction, ClearSourcesActionResponse, MessageHighlight, ProviderConfig, ResetFilterSourcesAction, ResetFilterSourcesActionResponse, SearchSourcesAction, SearchSourcesActionResponse, SetActiveMessageAction, SetActiveMessageActionResponse, SetActiveSourcesAction, SetActiveSourcesActionResponse, SetFilterSourcesAction, SetFilterSourcesActionResponse, SetMessageFeedbackAction, SetMessageFeedbackActionResponse, SetSelectedSourceAction, SetSelectedSourceActionResponse, StreamChunk, UserAction, UUID } from "../types";
+import { ActionHandler, AddUserMessageAction, AddUserMessageActionResponse, Citation, ClearMessagesAction, ClearMessagesActionResponse, ClearSourcesAction, ClearSourcesActionResponse, ProviderConfig, ResetFilterSourcesAction, ResetFilterSourcesActionResponse, SearchSourcesAction, SearchSourcesActionResponse, SetActiveMessageAction, SetActiveMessageActionResponse, SetActiveSourcesAction, SetActiveSourcesActionResponse, SetFilterSourcesAction, SetFilterSourcesActionResponse, SetMessageFeedbackAction, SetMessageFeedbackActionResponse, SetSelectedSourceAction, SetSelectedSourceActionResponse, StreamChunk, UserAction, UUID } from "../types";
 import { Message, Source } from '../types';
 
 
@@ -23,8 +23,45 @@ export const configAtom = atom<ProviderConfig>({
     }
 });
 
+// Create a base atom with _ prefix to store raw messages
+export const _completedMessagesAtom = atom<Message[]>([]);
+
+// Create a derived atom that enhances messages with citation information
+export const completedMessagesAtom = atom(
+  (get) => {
+    const baseMessages = get(_completedMessagesAtom);
+    const allCitations = get(citationsAtom);
+    
+    // Return messages with citations information added
+    return baseMessages.map(message => {
+      // Find citations for this message
+      const messageCitations = allCitations.filter(
+        citation => citation.messageId === message.id
+      );
+      
+      // If no citations for this message, return the message as is
+      if (messageCitations.length === 0) {
+        return message;
+      }
+      
+      // Extract message highlights from citations
+      const messageHighlights = messageCitations.map(
+        citation => ({
+          ...citation.messageHighlight,
+          citationId: citation.id
+        })
+      );
+      
+      // Return enhanced message with highlights and citations
+      return {
+        ...message,
+        highlights: messageHighlights,
+      };
+    });
+  }
+);
+
 // message, active message, messages, and stream
-export const completedMessagesAtom = atom<Message[]>([]);
 export const currentStreamAtom = atom<Message | null>(null);
 export const activeMessageIdAtom = atom<string | null>(null);
 
@@ -38,7 +75,38 @@ export const activeMessageAtom = atom(
 
 
 // sources, active sources, selected source
-export const retrievedSourcesAtom = atom<Source[]>([]);
+export const _retrievedSourcesAtom = atom<Source[]>([]);
+export const retrievedSourcesAtom = atom(
+  (get) => {
+    const baseSources = get(_retrievedSourcesAtom);
+    const allCitations = get(citationsAtom);
+    
+    // Return sources with citation highlights added
+    return baseSources.map(source => {
+      // Find citations for this source
+      const sourceCitations = allCitations.filter(
+        citation => 'sourceId' in citation && citation.sourceId === source.id
+      );
+      
+      // If no citations for this source, return the source as is
+      if (sourceCitations.length === 0) {
+        return source;
+      }
+      
+      // Extract source highlights from citations
+      const sourceHighlights = sourceCitations.map(
+        citation => citation.sourceHighlight
+      );
+      
+      // Return enhanced source with highlights from citations
+      return {
+        ...source,
+        highlights: [...(source.highlights || []), ...sourceHighlights]
+      };
+    });
+  }
+);
+
 export const activeSourcesIdsAtom = atom<string[] | null>(null);
 export const selectedSourceIdAtom = atom<string | null>(null);
 
@@ -131,8 +199,8 @@ export const addUserMessageAtom = atom(
     ) => {
         console.log('addUserMessageAtom', action, response);
         // Save previous state for rollback.
-        const previousMessages = get(completedMessagesAtom);
-        const previousSources = get(retrievedSourcesAtom);
+        const previousMessages = get(_completedMessagesAtom);
+        const previousSources = get(_retrievedSourcesAtom);
         const previousCitations = get(citationsAtom);
 
         // Read configuration and create a common AbortController.
@@ -141,8 +209,8 @@ export const addUserMessageAtom = atom(
 
         // Handle user message modification.
         if (response.setUserMessage) {
-            set(completedMessagesAtom, [
-                ...get(completedMessagesAtom),
+            set(_completedMessagesAtom, [
+                ...get(_completedMessagesAtom),
                 {
                     id: crypto.randomUUID() as UUID,
                     role: 'user',
@@ -150,8 +218,8 @@ export const addUserMessageAtom = atom(
                 },
             ]);
         } else {
-            set(completedMessagesAtom, [
-                ...get(completedMessagesAtom),
+            set(_completedMessagesAtom, [
+                ...get(_completedMessagesAtom),
                 {
                     id: crypto.randomUUID(),
                     role: 'user',
@@ -171,13 +239,21 @@ export const addUserMessageAtom = atom(
             );
 
             // Add a UUID to each source if it's missing.
-            const sourcesDataWithIds = sourcesData.map(source => ({
-                ...source,
-                id: crypto.randomUUID() as UUID,
-            }));
+            const sourcesDataWithIds = sourcesData.map(source => {
+                // Check if 'id' exists on the source object
+                if ('id' in source && source.id) {
+                    return source;
+                } else {
+                    // If no id, create a new object with an id
+                    return {
+                        ...source,
+                        id: crypto.randomUUID() as UUID,
+                    };
+                }
+            });
 
             // Update sources-related state.
-            set(retrievedSourcesAtom, sourcesDataWithIds);
+            set(_retrievedSourcesAtom, sourcesDataWithIds);
             set(activeSourcesIdsAtom, null);
             set(selectedSourceIdAtom, null);
             return sourcesDataWithIds;
@@ -207,8 +283,8 @@ export const addUserMessageAtom = atom(
                         });
                     }
                     // Finalize streaming.
-                    set(completedMessagesAtom, [
-                        ...get(completedMessagesAtom),
+                    set(_completedMessagesAtom, [
+                        ...get(_completedMessagesAtom),
                         {
                             id: messageId, // Use the same ID for the final message
                             role: 'assistant',
@@ -226,8 +302,8 @@ export const addUserMessageAtom = atom(
                         abortController.signal
                     );
                     messageId = crypto.randomUUID() as UUID;
-                    set(completedMessagesAtom, [
-                        ...get(completedMessagesAtom),
+                    set(_completedMessagesAtom, [
+                        ...get(_completedMessagesAtom),
                         {
                             id: messageId,
                             role: 'assistant',
@@ -251,12 +327,47 @@ export const addUserMessageAtom = atom(
                     abortController.signal
                 );
                 
-                // Add messageId and unique id to each citation
-                const enhancedCitations = citationsData.map(citation => ({
-                    ...citation,
-                    id: crypto.randomUUID() as UUID,
-                    messageId: messageId
-                }));
+                // Get current sources to resolve sourceIndex to sourceId if needed
+                const currentSources = get(_retrievedSourcesAtom);
+                
+                // Add messageId and unique id to each citation, and resolve sourceIndex to sourceId if needed
+                const enhancedCitations = citationsData.map(citation => {
+                    // Create a new citation object with id and messageId
+                    const enhancedCitation = {
+                        ...citation,
+                        id: crypto.randomUUID() as UUID,
+                        messageId: messageId
+                    };
+                    
+                    // If citation has sourceIndex but no sourceId, resolve sourceIndex to sourceId
+                    if ('sourceIndex' in citation && citation.sourceIndex !== undefined && 
+                        (!('sourceId' in citation) || !citation.sourceId)) {
+                        
+                        // Check if sourceIndex is valid
+                        if (citation.sourceIndex >= 0 && citation.sourceIndex < currentSources.length) {
+                            const sourceId = currentSources[citation.sourceIndex].id;
+                            
+                            // Return citation with sourceId instead of sourceIndex
+                            return {
+                                ...enhancedCitation,
+                                sourceId,
+                                sourceIndex: undefined
+                            };
+                        } else {
+                            console.error(`Invalid sourceIndex: ${citation.sourceIndex}. Sources length: ${currentSources.length}`);
+                            throw new Error(`Invalid sourceIndex: ${citation.sourceIndex}`);
+                        }
+                    }
+                    
+                    // If citation already has sourceId, just return it
+                    if ('sourceId' in citation && citation.sourceId) {
+                        return enhancedCitation;
+                    }
+                    
+                    // If we get here, citation has neither valid sourceId nor valid sourceIndex
+                    console.error('Citation missing sourceId or valid sourceIndex:', citation);
+                    throw new Error('Citation missing sourceId or valid sourceIndex');
+                });
                 
                 // Store citations in the dedicated atom
                 set(citationsAtom, [...get(citationsAtom), ...enhancedCitations]);
@@ -294,8 +405,8 @@ export const addUserMessageAtom = atom(
         } catch (error) {
             // Abort remaining work and restore previous state.
             abortController.abort();
-            set(completedMessagesAtom, previousMessages);
-            set(retrievedSourcesAtom, previousSources);
+            set(_completedMessagesAtom, previousMessages);
+            set(_retrievedSourcesAtom, previousSources);
             set(citationsAtom, previousCitations);
             set(currentStreamAtom, null);
 
@@ -320,11 +431,11 @@ const setActiveMessageAtom = atom(null, (_get, set, { action, response }: {
 });
 
 // clear messages
-const clearMessagesAtom = atom(
+export const clearMessagesAtom = atom(
     null,
-    (get, set, { action, response }: { action: ClearMessagesAction, response: ClearMessagesActionResponse }) => {
+    (_get, set, { action, response }: { action: ClearMessagesAction, response: ClearMessagesActionResponse }) => {
         console.log('clearMessagesAtom', action, response);
-        set(completedMessagesAtom, []);
+        set(_completedMessagesAtom, []);
         set(currentStreamAtom, null);
         set(citationsAtom, []); // Clear citations when messages are cleared
     }
@@ -367,14 +478,22 @@ const searchSourcesAtom = atom(
                 abortController.signal
             );
 
-            // Add a UUID to each source if it's missing (like in addUserMessageAtom)
-            const sourcesDataWithIds = sourcesData.map(source => ({
-                ...source,
-                id: source.id || (crypto.randomUUID() as UUID),
-            }));
+            // Add a UUID to each source if it's missing.
+            const sourcesDataWithIds = sourcesData.map(source => {
+                // Check if 'id' exists on the source object
+                if ('id' in source && source.id) {
+                    return source;
+                } else {
+                    // If no id, create a new object with an id
+                    return {
+                        ...source,
+                        id: crypto.randomUUID() as UUID,
+                    };
+                }
+            });
 
             // If successful, update the retrieved sources.
-            set(retrievedSourcesAtom, sourcesDataWithIds);
+            set(_retrievedSourcesAtom, sourcesDataWithIds);
 
             // Optionally reset related state associated with sources.
             set(activeSourcesIdsAtom, null);
@@ -386,7 +505,7 @@ const searchSourcesAtom = atom(
             abortController.abort();
 
             // Roll back to the previous state.
-            set(retrievedSourcesAtom, previousSources);
+            set(_retrievedSourcesAtom, previousSources);
 
             // Store the error message in the global error state.
             set(
@@ -409,7 +528,7 @@ const clearSourcesAtom = atom(null, (_get, set, { action, response }: {
     response: ClearSourcesActionResponse
 }) => {
     console.log('clearSourcesAtom', action, response);
-    set(retrievedSourcesAtom, []);
+    set(_retrievedSourcesAtom, []);
     set(activeSourcesIdsAtom, null);
     set(selectedSourceIdAtom, null);
 });
@@ -465,7 +584,7 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
                 }
                 : source
         );
-        set(retrievedSourcesAtom, updatedSources);
+        set(_retrievedSourcesAtom, updatedSources);
     }
 
     // Only validate and update data if sourceData is provided
@@ -485,7 +604,7 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
                     ? { ...source, data: resolvedData }
                     : source
             );
-            set(retrievedSourcesAtom, updatedSources);
+            set(_retrievedSourcesAtom, updatedSources);
         } catch (error) {
             console.error(`Failed to load data for source ${action.sourceId}:`, error);
             set(errorAtom, `Failed to load source data: ${error instanceof Error ? error.message : String(error)}`);

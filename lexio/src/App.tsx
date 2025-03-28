@@ -11,7 +11,6 @@ import {
     Source,
     createRESTContentSource, 
     ActionHandlerResponse,
-    StreamChunk,
 } from '../lib/main';
 // import { ExplanationProcessor } from '../lib/explanation';
 import './App.css';
@@ -19,36 +18,127 @@ import './App.css';
 // This is a temporary mocked response for testing purposes
 // In the future, this will be replaced with a real response from the RAG system
 const MOCKED_RESPONSE = {
-    answer: "# Deep Learning for Traffic Data Imputation\n\nDeep learning improves traffic data imputation by **automatically learning patterns** without manual feature selection. The *Denoising Stacked Autoencoder* (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through:\n\n1. Layer-wise pre-training\n2. Fine-tuning\n\nCompared to traditional methods like ARIMA and k-NN, it maintains:\n- Higher accuracy\n- Stable error rates\n\nAcross different missing data levels, as demonstrated on Caltrans PeMS traffic data.\n\n```python\n# Example code for DSAE implementation\nimport tensorflow as tf\n\ndef build_autoencoder(input_dim, encoding_dim):\n    # Define encoder\n    input_layer = tf.keras.layers.Input(shape=(input_dim,))\n    encoder = tf.keras.layers.Dense(encoding_dim, activation='relu')(input_layer)\n    \n    # Define decoder\n    decoder = tf.keras.layers.Dense(input_dim, activation='sigmoid')(encoder)\n    \n    # Define autoencoder\n    autoencoder = tf.keras.Model(inputs=input_layer, outputs=decoder)\n    return autoencoder\n```"
-    //answer: "Deep learning improves traffic data imputation by automatically learning patterns without manual feature selection. The Denoising Stacked Autoencoder (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through layer-wise pre-training and fine-tuning. Compared to traditional methods like ARIMA and k-NN, it maintains higher accuracy and stable error rates across different missing data levels, as demonstrated on Caltrans PeMS traffic data."
+    answer: "# Deep Learning for Traffic Data Imputation\n\nDeep learning improves traffic data imputation by **automatically learning patterns** without manual feature selection. The *Denoising Stacked Autoencoder* (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through:\n\n1. Layer-wise pre-training\n2. Fine-tuning\n\nCompared to traditional methods like ARIMA and k-NN, it maintains:\n- Higher accuracy\n- Stable error rates\n\nAcross different missing data levels, as demonstrated on Caltrans PeMS traffic data.\n\nThe DSAE model architecture consists of multiple layers that progressively encode the input data into a lower-dimensional representation before reconstructing it. This approach is particularly effective for handling the temporal and spatial correlations in traffic data.\n\n```python\n# Example code for DSAE implementation\nimport tensorflow as tf\n\ndef build_autoencoder(input_dim, encoding_dim):\n    # Define encoder\n    input_layer = tf.keras.layers.Input(shape=(input_dim,))\n    encoder = tf.keras.layers.Dense(encoding_dim, activation='relu')(input_layer)\n    \n    # Define decoder\n    decoder = tf.keras.layers.Dense(input_dim, activation='sigmoid')(encoder)\n    \n    # Define autoencoder\n    autoencoder = tf.keras.Model(inputs=input_layer, outputs=decoder)\n    return autoencoder\n```\n\nExperimental results show that DSAE outperforms traditional methods in both accuracy and computational efficiency. The model was validated using real-world traffic data from multiple highway segments."
 };
 
 const MOCKED_CITATIONS = [
+  // Page 1 citation - Title and introduction
   {
     sourceIndex: 0,
     messageHighlight: {
-      startChar: 0,
-      endChar: 100,
-      color: '#ffeb3b'
+      text: "# Deep Learning for Traffic Data Imputation",
+      color: '#ffeb3b'  // Yellow
     },
     sourceHighlight: {
       page: 1,
       rect: {
-        top: 0,
-        left: 0,
-        width: 1,
-        height: 0.5
+        top: 0.2,
+        left: 0.1,
+        width: 0.8,
+        height: 0.1
+      }
+    }
+  },
+  // Page 2 citation - DSAE approach
+  {
+    sourceIndex: 0,
+    messageHighlight: {
+      text: "The Denoising Stacked Autoencoder (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through",
+      color: '#4caf50'  // Green
+    },
+    sourceHighlight: {
+      page: 2,
+      rect: {
+        top: 0.3,
+        left: 0.2,
+        width: 0.7,
+        height: 0.15
+      }
+    }
+  },
+  // Page 3 citation - Comparison with traditional methods
+  {
+    sourceIndex: 0,
+    messageHighlight: {
+      startChar: 177,
+      endChar: 245,
+      color: '#2196f3'  // Blue
+    },
+    sourceHighlight: {
+      page: 3,
+      rect: {
+        top: 0.4,
+        left: 0.15,
+        width: 0.75,
+        height: 0.12
+      }
+    }
+  },
+  // Page 4 citation - DSAE architecture
+  {
+    sourceIndex: 0,
+    messageHighlight: {
+      startChar: 310,
+      endChar: 420,
+      color: '#9c27b0'  // Purple
+    },
+    sourceHighlight: {
+      page: 4,
+      rect: {
+        top: 0.25,
+        left: 0.1,
+        width: 0.8,
+        height: 0.2
+      }
+    }
+  },
+  // Page 5 citation - Code example
+  {
+    sourceIndex: 0,
+    messageHighlight: {
+      startChar: 500,
+      endChar: 650,
+      color: '#f44336'  // Red
+    },
+    sourceHighlight: {
+      page: 5,
+      rect: {
+        top: 0.5,
+        left: 0.1,
+        width: 0.8,
+        height: 0.3
+      }
+    }
+  },
+  // Page 6 citation - Experimental results
+  {
+    sourceIndex: 0,
+    messageHighlight: {
+      startChar: 700,
+      endChar: 830,
+      color: '#ff9800'  // Orange
+    },
+    sourceHighlight: {
+      page: 6,
+      rect: {
+        top: 0.6,
+        left: 0.2,
+        width: 0.7,
+        height: 0.15
       }
     }
   }
 ];
 
 const MOCKED_SOURCES = [{
-    title: '... Paper',
+    title: 'Deep Learning for Traffic Data Imputation',
     type: 'pdf' as const,
     relevance: 1,
     metadata: {
-        id: 'id.pdf'
+        id: 'traffic-imputation.pdf',
+        authors: 'Chen et al.',
+        year: '2023',
+        pages: '6'  // Updated to reflect 6 pages
     }
 }];
 

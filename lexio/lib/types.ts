@@ -80,6 +80,7 @@ export interface PDFHighlight {
  */
 export type MessageHighlight = {
   color: string;
+  citationId?: UUID; // for passing citation Id to message display if necessary
 } & (
     | { text: string; startChar?: never; endChar?: never } // either text or startChar/endChar, not both
     | { text?: never; startChar: number; endChar: number }
@@ -94,8 +95,10 @@ export type MessageHighlight = {
  * @property {PDFHighlight} sourceHighlight - The highlight in the source document
  */
 export type Citation = {
+  readonly id: UUID;
   messageHighlight: MessageHighlight;
   sourceHighlight: PDFHighlight;
+  messageId?: UUID; // for storing citation internally does nto have to be returned to the user
 } & (
   | { sourceId: string; sourceIndex?: never } // either sourceId or sourceIndex, not both
   | { sourceId?: never; sourceIndex: number }
@@ -398,8 +401,8 @@ export type UserAction =
  */
 export interface AddUserMessageActionResponse {
   response?: Promise<string | StreamChunk> | AsyncIterable<StreamChunk>;
-  sources?: Promise<Omit<Source, 'id'>[]>; // id is generated here
-  citations?: Promise<Citation[]>;
+  sources?: Promise<Omit<Source, 'id'>[] | Source[]>; // id is generated here
+  citations?: Promise<Citation[] | Omit<Citation, 'id'>[]>;
   setUserMessage?: string;
   followUpAction?: UserAction;
 }
@@ -565,6 +568,6 @@ export type ActionHandler = {
 export interface StreamChunk {
   content?: string;
   sources?: Source[];
-  citations?: Citation[];
+  citations?: Citation[] | Omit<Citation, 'id'>[];
   done?: boolean;
 }

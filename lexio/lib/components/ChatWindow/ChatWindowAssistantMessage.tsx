@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useMemo, useState } from "react";
+import React, { ReactNode, useMemo, useState } from "react";
 import { ChatWindowStyles } from "./ChatWindow.tsx";
 import Markdown from "react-markdown";
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -8,9 +8,10 @@ import "./AssistantMarkdownContent.css";
 import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline";
 import {scaleFontSize, addOpacity} from "../../utils/scaleFontSize.tsx";
 import { MessageFeedback } from "./MessageFeedback.tsx";
-import { MessageHighlight, StreamChunk, UUID, Citation } from "../../types.ts";
-import { useSetAtom } from 'jotai';
-import { dispatchAtom } from '../../state/rag-state';
+import { MessageHighlight, StreamChunk, Citation } from "../../types.ts";
+import { useCitations } from '../../hooks/hooks';
+import { useHighlightManager } from './highlightUtils';
+
 /**
  * Props for the AssistantMarkdownContent component.
  * @typedef {Object} AssistantMarkdownContentProps
@@ -25,7 +26,6 @@ interface AssistantMarkdownContentProps {
     citations?: Citation[];  // More explicit type
 }
 
-
 /**
  * Renders markdown content with enhanced features such as syntax highlighting and copy functionality.
  *
@@ -38,206 +38,34 @@ const AssistantMarkdownContent: React.FC<AssistantMarkdownContentProps> = ({
     content, 
     style, 
     highlights,
-    citations 
 }) => {
-    const dispatch = useSetAtom(dispatchAtom);
-    
+    const { navigateToCitation } = useCitations('ChatWindow');
     const markdownRef = React.useRef<HTMLDivElement>(null);
-
-    // Create highlights array from provided highlights
-    const highlightsToUse = highlights || [];
-
-    // Handle click events on mark elements
-    const handleMarkClick = React.useCallback((event: MouseEvent) => {
-        const target = event.target as HTMLElement;
-        if (target.tagName.toLowerCase() === 'mark') {
-            const highlightIndex = parseInt(target.getAttribute('data-highlight-index') || '-1', 10);
-            if (highlightIndex >= 0 && highlightIndex < highlightsToUse.length) {
-                const highlight = highlightsToUse[highlightIndex];
-                console.log('Highlight clicked:', highlight);
-
-                // Find the citation that matches this highlight
-                if (citations) {
-                    const citation = citations.find(c => 
-                        c.messageHighlight.startChar === highlight.startChar && 
-                        c.messageHighlight.endChar === highlight.endChar
-                    );
-
-                    console.log("Citation found:", citation);
-
-                    if (citation) {
-                        // First select the source
-                        dispatch({
-                            type: 'SET_SELECTED_SOURCE',
-                            sourceId: citation.sourceId as UUID,
-                            source: 'CustomComponent',
-                            sourceObject: {
-                                id: citation.sourceId as UUID,
-                                title: '',  // These will be merged with existing source
-                                type: 'text',
-                                metadata: {
-                                    page: citation.sourceHighlight.page
-                                }
-                            }
-                        }, false);
-                    }
-                }
-            }
-        }
-    }, [highlightsToUse, citations, dispatch]);
-
-    // Set up event listener for mark clicks
-    useEffect(() => {
-        const markdownElement = markdownRef.current;
-        if (markdownElement) {
-            markdownElement.addEventListener('click', handleMarkClick);
-            return () => {
-                markdownElement.removeEventListener('click', handleMarkClick);
-            };
-        }
-    }, [handleMarkClick]);
-
-    // Store the original text segments to highlight
-    const textSegmentsToHighlight = useMemo(() => {
-        const segments = highlightsToUse
-            .filter(h => h.startChar !== undefined && h.endChar !== undefined)
-            .map(highlight => {
-                const startChar = highlight.startChar as number;
-                const endChar = highlight.endChar as number;
-                if (startChar >= 0 && endChar > startChar && endChar <= content.length) {
-                    // Extract the text to highlight
-                    const text = content.substring(startChar, endChar);
-                    console.log('Processing highlight segment:', {
-                        startChar,
-                        endChar,
-                        extractedText: text,
-                        highlightColor: highlight.color
-                    });
-
-                    // For the first highlight that might include markdown formatting
-                    // Try to extract the actual content without markdown syntax
-                    let cleanText = text;
-                    
-                    // Handle heading syntax
-                    if (startChar === 0 && text.startsWith('#')) {
-                        cleanText = text.replace(/^#+\s*/, '');
-                        console.log('Cleaned markdown heading:', {
-                            original: text,
-                            cleaned: cleanText
-                        });
-                    }
-
-                    return {
-                        text: cleanText,
-                        color: highlight.color,
-                        index: highlightsToUse.indexOf(highlight)
-                    };
-                }
-                return null;
-            })
-            .filter(Boolean);
-        
-        console.log('Final text segments to highlight:', segments);
-        return segments;
-    }, [content, highlightsToUse]);
-
-    // Apply highlights after markdown rendering
-    useEffect(() => {
-        if (!markdownRef.current || textSegmentsToHighlight.length === 0) return;
-
-        const container = markdownRef.current;
-
-        // Apply text-based highlights from position-based highlights
-        for (const segment of textSegmentsToHighlight) {
-            if (!segment) continue;
-
-            // Find all text nodes
-            const allTextNodes: Text[] = [];
-            const walker = document.createTreeWalker(
-                container,
-                NodeFilter.SHOW_TEXT,
-                null
-            );
-
-            let node: Node | null;
-            while ((node = walker.nextNode()) !== null) {
-                if (node.nodeType === Node.TEXT_NODE) {
-                    allTextNodes.push(node as Text);
-                }
-            }
-
-            // Process each text node to find all occurrences
-            for (let i = 0; i < allTextNodes.length; i++) {
-                const textNode: Text = allTextNodes[i];
-                const nodeText = textNode.textContent || '';
-                let index = nodeText.indexOf(segment.text);
-
-                // If we find the text in this node
-                if (index >= 0) {
-                    // We need to handle the case where the same text appears multiple times in a node
-                    // Each time we find and highlight text, the node structure changes
-
-                    // Split the text node and insert our mark
-                    const beforeText: Text = textNode.splitText(index);
-                    const afterText: Text = beforeText.splitText(segment.text.length);
-
-                    const markElement = document.createElement('mark');
-                    markElement.style.backgroundColor = segment.color;
-                    markElement.style.padding = '0 2px';
-                    markElement.style.borderRadius = '2px';
-                    markElement.style.cursor = 'pointer';
-                    markElement.dataset.highlightIndex = segment.index.toString();
-
-                    // Replace the text node with our mark
-                    beforeText.parentNode?.replaceChild(markElement, beforeText);
-                    markElement.appendChild(beforeText);
-
-                    // After splitting and replacing, we need to update our node reference
-                    // The next node to check is afterText
-                    allTextNodes[i] = afterText;
-                    i--; // Reprocess the same index since we've updated the node
-                }
-            }
-
-            // Special handling for the first highlight if it wasn't found
-            if (segment.index === 0) {
-                let found = false;
-                for (const node of allTextNodes) {
-                    if (node.parentNode?.querySelector('mark[data-highlight-index="0"]')) {
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found && allTextNodes.length > 0) {
-                    // For the first highlight, try to find the first text node
-                    const firstNode = allTextNodes[0];
-                    const nodeText = firstNode.textContent || '';
-
-                    // Highlight the beginning of the first text node
-                    const length = Math.min(segment.text.length, nodeText.length);
-                    if (length > 0) {
-                        const beforeText = firstNode.splitText(0);
-                        beforeText.splitText(length);
-
-                        const markElement = document.createElement('mark');
-                        markElement.style.backgroundColor = segment.color;
-                        markElement.style.padding = '0 2px';
-                        markElement.style.borderRadius = '2px';
-                        markElement.style.cursor = 'pointer';
-                        markElement.dataset.highlightIndex = segment.index.toString();
-
-                        // Replace the text node with our mark
-                        beforeText.parentNode?.replaceChild(markElement, beforeText);
-                        markElement.appendChild(beforeText);
-                    }
-                }
-            }
-        }
-    }, [textSegmentsToHighlight]);
+    
+    // Use the highlight manager from our utility
+    useHighlightManager(
+        content,
+        highlights,
+        markdownRef,
+        navigateToCitation
+    );
+    
+    // Styles for the markdown content
+    const assistantMarkdownContentStyling = useMemo(() => {
+        return {
+            "--font-size-h1": scaleFontSize(style.messageFontSize || '1rem', 1.6),
+            "--font-size-h2": scaleFontSize(style.messageFontSize || '1rem', 1.4),
+            "--font-size-h3": scaleFontSize(style.messageFontSize || '1rem', 1.25),
+            "--font-size-h4": scaleFontSize(style.messageFontSize || '1rem', 1.1),
+            "--font-size-base": style.messageFontSize || '1rem',
+            "--font-size-code": scaleFontSize(style.messageFontSize || '1rem', 1),
+            "--font-size-small": scaleFontSize(style.messageFontSize || '1rem', 0.75),
+            "--accent-color": style.accent
+        } as React.CSSProperties;
+    }, [style.messageFontSize, style.color]);
 
     return (
-        <div ref={markdownRef}>
+        <div ref={markdownRef} style={assistantMarkdownContentStyling}>
             <Markdown
                 remarkPlugins={[remarkGfm]}
                 components={{
