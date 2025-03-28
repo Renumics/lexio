@@ -46,12 +46,12 @@ export const activeSourcesAtom = atom(
     (get) => {
         const retrievedSources = get(retrievedSourcesAtom);
         const activeIds = get(activeSourcesIdsAtom);
-        
+
         // If activeIds is null, return null
         if (activeIds === null) {
             return null;
         }
-        
+
         // Otherwise filter sources to only include those with IDs in the activeIds array
         return retrievedSources.filter(source => activeIds.includes(source.id));
     }
@@ -188,7 +188,7 @@ export const addUserMessageAtom = atom(
                 if (Symbol.asyncIterator in response.response) {
                     // Create a single consistent ID for the entire streaming message
                     const messageId = crypto.randomUUID() as UUID;
-                    
+
                     // Streaming response: process each chunk.
                     const streamTimeout = new StreamTimeout(config.timeouts?.stream);
                     for await (const chunk of response.response as AsyncIterable<StreamChunk>) {
@@ -307,7 +307,7 @@ const searchSourcesAtom = atom(
         try {
             // Set loading state
             set(loadingAtom, true);
-            
+
             // If no sources promise is provided, skip updating and return early.
             if (!response.sources) {
                 console.warn("No sources provided to searchSourcesAtom. Operation skipped.");
@@ -378,7 +378,7 @@ const setActiveSourcesAtom = atom(null, (_get, set, { action, response }: {
     // Use response.activeSourceIds if provided, otherwise use action.sourceIds
     // Ensure we never set to null - empty array is used for reset
     const activeSourceIds = response.activeSourceIds ?? action.sourceIds;
-    
+
     // Convert null to empty array to ensure we never set null directly
     set(activeSourcesIdsAtom, activeSourceIds === null ? [] : activeSourceIds);
 });
@@ -389,33 +389,33 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     response: SetSelectedSourceActionResponse
 }) => {
     console.log('setSelectedSourceAtom', action, response);
-    
+
     // Explicit check for null or empty string
     if (action.sourceId === null || action.sourceId === '') {
         set(selectedSourceIdAtom, null);
         return;
     }
-    
+
     const currentSources = get(retrievedSourcesAtom);
     const targetSource = currentSources.find(source => source.id === action.sourceId);
-    
+
     if (!targetSource) {
         console.warn(`Source with id ${action.sourceId} not found`);
         return;
     }
-    
+
     // Always set the selected source ID
     set(selectedSourceIdAtom, action.sourceId);
 
-    // Update metadata if provided in sourceObject
-    if (action.sourceObject?.metadata) {
-        const updatedSources = currentSources.map(source => 
-            source.id === action.sourceId 
+    // Add page override if provided
+    if (action.pdfPageOverride !== undefined) {
+        const updatedSources = currentSources.map(source =>
+            source.id === action.sourceId
                 ? {
                     ...source,
                     metadata: {
                         ...(source.metadata || {}),
-                        ...(action.sourceObject?.metadata || {})
+                        overridePage: action.pdfPageOverride
                     }
                 }
                 : source
@@ -435,8 +435,8 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
             // Await the Promise to get the actual data
             const resolvedData = await response.sourceData;
 
-            const updatedSources = currentSources.map(source => 
-                source.id === action.sourceId 
+            const updatedSources = currentSources.map(source =>
+                source.id === action.sourceId
                     ? { ...source, data: resolvedData }
                     : source
             );
@@ -468,232 +468,226 @@ const resetFilterSourcesAtom = atom(null, (_get, _set, { action, response }: {
 
 const isBlockingAction = (action: UserAction): boolean => {
     switch (action.type) {
-      // Example: these actions might trigger an async operation that we consider blocking
-      case "ADD_USER_MESSAGE":
-      case "SEARCH_SOURCES":
-      case "CLEAR_MESSAGES":
-        return true;
-  
-      // Example: these actions do small or UI-only state updates
-      case "SET_SELECTED_SOURCE":
-      case "SET_ACTIVE_SOURCES":
-      case "SET_FILTER_SOURCES":
-      case "RESET_FILTER_SOURCES":
-        return false;
-  
-      // Provide a default
-      default:
-        return false;
+        // Example: these actions might trigger an async operation that we consider blocking
+        case "ADD_USER_MESSAGE":
+        case "SEARCH_SOURCES":
+        case "CLEAR_MESSAGES":
+            return true;
+
+        // Example: these actions do small or UI-only state updates
+        case "SET_SELECTED_SOURCE":
+        case "SET_ACTIVE_SOURCES":
+        case "SET_FILTER_SOURCES":
+        case "RESET_FILTER_SOURCES":
+            return false;
+
+        // Provide a default
+        default:
+            return false;
     }
-  }
+}
 
 
 // ----- MAIN: central dispatch atom / function -----
 export const dispatchAtom = atom(
-  null,
-  async (get, set, action: UserAction, recursiveCall: boolean = false) => {
+    null,
+    async (get, set, action: UserAction, recursiveCall: boolean = false) => {
 
-    // ---- 2) If action is blocking, check if we're already busy
-    if (!recursiveCall && isBlockingAction(action) && get(loadingAtom)) {
-      set(setErrorAtom, "RAG Operation already in progress");
-      return;
-    }
+        // ---- 2) If action is blocking, check if we're already busy
+        if (!recursiveCall && isBlockingAction(action) && get(loadingAtom)) {
+            set(setErrorAtom, "RAG Operation already in progress");
+            return;
+        }
 
-    // ---- 3) If this is the top-level call and the action is blocking, mark loading
-    if (!recursiveCall && isBlockingAction(action)) {
-      set(loadingAtom, true);
-      set(errorAtom, null); // clear any old error
-    }
-
-    try {
-      // ---- Handler resolution (unchanged)
-      const handlers = get(registeredActionHandlersAtom);
-      const handler = handlers.find(h => h.component === 'LexioProvider');
-      if (!handler) {
-        console.warn(`Handler for component ${action.source} not found`);
-
-        // If we turned on loading, we should turn it off before returning
+        // ---- 3) If this is the top-level call and the action is blocking, mark loading
         if (!recursiveCall && isBlockingAction(action)) {
-          set(loadingAtom, false);
+            set(loadingAtom, true);
+            set(errorAtom, null); // clear any old error
         }
-        return;
-      }
-      // ---- Fetch additional data for certain actions ---
-      if (action.type === 'SET_SELECTED_SOURCE') {
-        const source = get(retrievedSourcesAtom).find(source => source.id === action.sourceId);
-        if (source) {
-            action.sourceObject = {
-                ...source,
-                metadata: {
-                    ...(source.metadata || {}),
-                    ...(action.sourceObject?.metadata || {})
+
+        try {
+            // ---- Handler resolution (unchanged)
+            const handlers = get(registeredActionHandlersAtom);
+            const handler = handlers.find(h => h.component === 'LexioProvider');
+            if (!handler) {
+                console.warn(`Handler for component ${action.source} not found`);
+
+                // If we turned on loading, we should turn it off before returning
+                if (!recursiveCall && isBlockingAction(action)) {
+                    set(loadingAtom, false);
                 }
-            };
-        }
-      }
+                return;
+            }
+            // ---- Fetch additional data for certain actions ---
+            if (action.type === 'SET_SELECTED_SOURCE') {
+                const source = get(retrievedSourcesAtom).find(source => source.id === action.sourceId);
+                if (source) {
+                    action.sourceObject = source;
+                }
+            }
 
-      const retrievedSources = get(retrievedSourcesAtom);
+            const retrievedSources = get(retrievedSourcesAtom);
 
-       // const activeSourcesIds = get(activeSourcesIdsAtom);
+            // const activeSourcesIds = get(activeSourcesIdsAtom);
 
-       const activeSources = get(activeSourcesAtom);
+            const activeSources = get(activeSourcesAtom);
 
-       // ---- Call the handler
-      const payload = await Promise.resolve(
-        handler.handler(
-          action,
-          get(completedMessagesAtom),
-          retrievedSources,
-          activeSources,
-          get(selectedSourceAtom)
-        )
-      );
+            // ---- Call the handler
+            const payload = await Promise.resolve(
+                handler.handler(
+                    action,
+                    get(completedMessagesAtom),
+                    retrievedSources,
+                    activeSources,
+                    get(selectedSourceAtom)
+                )
+            );
 
-      // ---- Validate payload keys
-      const allowedKeys = allowedActionReturnValues[action.type] || [];
-      if (payload) {
-        const extraKeys = Object.keys(payload).filter(key => !allowedKeys.includes(key));
-        // we currently have no required keys, if we plan to add some in the future -> type guard is required -> throw error
-        if (extraKeys.length > 0) {
-          console.warn(
-            `Handler for action "${action.type}" returned unused properties: ${extraKeys.join(', ')}`
-          );
-        }
-      }
-   
-      // ---- Collect all atom write operations
-      const promises: Promise<any>[] = [];
+            // ---- Validate payload keys
+            const allowedKeys = allowedActionReturnValues[action.type] || [];
+            if (payload) {
+                const extraKeys = Object.keys(payload).filter(key => !allowedKeys.includes(key));
+                // we currently have no required keys, if we plan to add some in the future -> type guard is required -> throw error
+                if (extraKeys.length > 0) {
+                    console.warn(
+                        `Handler for action "${action.type}" returned unused properties: ${extraKeys.join(', ')}`
+                    );
+                }
+            }
 
-      switch (action.type) {
-        case 'ADD_USER_MESSAGE': {
-          const typedAction = action as AddUserMessageAction;
-          const typedResponse = payload as AddUserMessageActionResponse;
-          // set Atom returns either a value or a promise
-          const result = set(addUserMessageAtom, {
-            action: typedAction,
-            response: typedResponse,
-          });
-          // Promise.resolve is used to ensure that the result is a promise -> required for Promise.all
-          // This is not necessary if the result is already a promise but it allows sync and async ActionHandlerResponse values
-          promises.push(Promise.resolve(result));  // resolve(value) directly returns a promise
-          break;
-        }
-        case 'SET_ACTIVE_MESSAGE': {
-          const typedAction = action as SetActiveMessageAction;
-          const typedResponse = payload as SetActiveMessageActionResponse;
-          const result = set(setActiveMessageAtom, {
-            action: typedAction,
-            response: typedResponse,
-          });
-          promises.push(Promise.resolve(result));
-          break;
-        }
-        case 'CLEAR_MESSAGES': {
-          const typedAction = action as ClearMessagesAction;
-          const typedResponse = payload as ClearMessagesActionResponse;
-          const result = set(clearMessagesAtom, {
-            action: typedAction,
-            response: typedResponse,
-          });
-          promises.push(Promise.resolve(result));
-          break;
-        }
-        case 'SEARCH_SOURCES': {
-          const typedAction = action as SearchSourcesAction;
-          const typedResponse = payload as SearchSourcesActionResponse;
-          const result = set(searchSourcesAtom, {
-            action: typedAction,
-            response: typedResponse,
-          });
-          promises.push(Promise.resolve(result));
-          break;
-        }
-        case 'CLEAR_SOURCES': {
-          const typedAction = action as ClearSourcesAction;
-          const typedResponse = payload as ClearSourcesActionResponse;
-          const result = set(clearSourcesAtom, {
-            action: typedAction,
-            response: typedResponse,
-          });
-          promises.push(Promise.resolve(result));
-          break;
-        }
-        case 'SET_ACTIVE_SOURCES': {
-          const typedAction = action as SetActiveSourcesAction;
-          const typedResponse = payload as SetActiveSourcesActionResponse;
-          const result = set(setActiveSourcesAtom, {
-            action: typedAction,
-            response: typedResponse,
-          });
-          promises.push(Promise.resolve(result));
-          break;
-        }
-        case 'SET_SELECTED_SOURCE': {
-          const typedAction = action as SetSelectedSourceAction;
-          const typedResponse = payload as SetSelectedSourceActionResponse;
-          const result = set(setSelectedSourceAtom, {
-            action: typedAction,
-            response: typedResponse,
-          });
-          promises.push(Promise.resolve(result));
-          break;
-        }
-        case 'SET_FILTER_SOURCES': {
-          const typedAction = action as SetFilterSourcesAction;
-          const typedResponse = payload as SetFilterSourcesActionResponse;
-          const result = set(setFilterSourcesAtom, {
-            action: typedAction,
-            response: typedResponse,
-          });
-          promises.push(Promise.resolve(result));
-          break;
-        }
-        case 'RESET_FILTER_SOURCES': {
-          const typedAction = action as ResetFilterSourcesAction;
-          const typedResponse = payload as ResetFilterSourcesActionResponse;
-          const result = set(resetFilterSourcesAtom, {
-            action: typedAction,
-            response: typedResponse,
-          });
-          promises.push(Promise.resolve(result));
-          break;
-        }
-        case 'SET_MESSAGE_FEEDBACK': {
-          const typedAction = action as SetMessageFeedbackAction;
-          const typedResponse = payload as SetMessageFeedbackActionResponse;
-          const result = set(setMessageFeedbackAtom, {
-            action: typedAction,
-            response: typedResponse,
-          });
-          promises.push(Promise.resolve(result));
-          break;
-        }
-        default:
-          console.warn(`Unhandled action type: ${(action as any).type}`);
-      }
+            // ---- Collect all atom write operations
+            const promises: Promise<any>[] = [];
 
-      // ---- Process any follow-up action (recursive)
-      if (payload && payload.followUpAction) {
-        promises.push(Promise.resolve(set(dispatchAtom, payload.followUpAction, true)));
-      }
+            switch (action.type) {
+                case 'ADD_USER_MESSAGE': {
+                    const typedAction = action as AddUserMessageAction;
+                    const typedResponse = payload as AddUserMessageActionResponse;
+                    // set Atom returns either a value or a promise
+                    const result = set(addUserMessageAtom, {
+                        action: typedAction,
+                        response: typedResponse,
+                    });
+                    // Promise.resolve is used to ensure that the result is a promise -> required for Promise.all
+                    // This is not necessary if the result is already a promise but it allows sync and async ActionHandlerResponse values
+                    promises.push(Promise.resolve(result));  // resolve(value) directly returns a promise
+                    break;
+                }
+                case 'SET_ACTIVE_MESSAGE': {
+                    const typedAction = action as SetActiveMessageAction;
+                    const typedResponse = payload as SetActiveMessageActionResponse;
+                    const result = set(setActiveMessageAtom, {
+                        action: typedAction,
+                        response: typedResponse,
+                    });
+                    promises.push(Promise.resolve(result));
+                    break;
+                }
+                case 'CLEAR_MESSAGES': {
+                    const typedAction = action as ClearMessagesAction;
+                    const typedResponse = payload as ClearMessagesActionResponse;
+                    const result = set(clearMessagesAtom, {
+                        action: typedAction,
+                        response: typedResponse,
+                    });
+                    promises.push(Promise.resolve(result));
+                    break;
+                }
+                case 'SEARCH_SOURCES': {
+                    const typedAction = action as SearchSourcesAction;
+                    const typedResponse = payload as SearchSourcesActionResponse;
+                    const result = set(searchSourcesAtom, {
+                        action: typedAction,
+                        response: typedResponse,
+                    });
+                    promises.push(Promise.resolve(result));
+                    break;
+                }
+                case 'CLEAR_SOURCES': {
+                    const typedAction = action as ClearSourcesAction;
+                    const typedResponse = payload as ClearSourcesActionResponse;
+                    const result = set(clearSourcesAtom, {
+                        action: typedAction,
+                        response: typedResponse,
+                    });
+                    promises.push(Promise.resolve(result));
+                    break;
+                }
+                case 'SET_ACTIVE_SOURCES': {
+                    const typedAction = action as SetActiveSourcesAction;
+                    const typedResponse = payload as SetActiveSourcesActionResponse;
+                    const result = set(setActiveSourcesAtom, {
+                        action: typedAction,
+                        response: typedResponse,
+                    });
+                    promises.push(Promise.resolve(result));
+                    break;
+                }
+                case 'SET_SELECTED_SOURCE': {
+                    const typedAction = action as SetSelectedSourceAction;
+                    const typedResponse = payload as SetSelectedSourceActionResponse;
+                    const result = set(setSelectedSourceAtom, {
+                        action: typedAction,
+                        response: typedResponse,
+                    });
+                    promises.push(Promise.resolve(result));
+                    break;
+                }
+                case 'SET_FILTER_SOURCES': {
+                    const typedAction = action as SetFilterSourcesAction;
+                    const typedResponse = payload as SetFilterSourcesActionResponse;
+                    const result = set(setFilterSourcesAtom, {
+                        action: typedAction,
+                        response: typedResponse,
+                    });
+                    promises.push(Promise.resolve(result));
+                    break;
+                }
+                case 'RESET_FILTER_SOURCES': {
+                    const typedAction = action as ResetFilterSourcesAction;
+                    const typedResponse = payload as ResetFilterSourcesActionResponse;
+                    const result = set(resetFilterSourcesAtom, {
+                        action: typedAction,
+                        response: typedResponse,
+                    });
+                    promises.push(Promise.resolve(result));
+                    break;
+                }
+                case 'SET_MESSAGE_FEEDBACK': {
+                    const typedAction = action as SetMessageFeedbackAction;
+                    const typedResponse = payload as SetMessageFeedbackActionResponse;
+                    const result = set(setMessageFeedbackAtom, {
+                        action: typedAction,
+                        response: typedResponse,
+                    });
+                    promises.push(Promise.resolve(result));
+                    break;
+                }
+                default:
+                    console.warn(`Unhandled action type: ${(action as any).type}`);
+            }
 
-      // ---- Wait for all writes
-      await Promise.all(promises);
+            // ---- Process any follow-up action (recursive)
+            if (payload && payload.followUpAction) {
+                promises.push(Promise.resolve(set(dispatchAtom, payload.followUpAction, true)));
+            }
 
-    } catch (error) {
-      console.error("Error in dispatch async writes:", error);
-      // Optionally set an error message
-      set(setErrorAtom, `Dispatch failed: ${error instanceof Error ? error.message : String(error)}`);
+            // ---- Wait for all writes
+            await Promise.all(promises);
 
-    } finally {
-      // ---- 4) If top-level and action was blocking, release the loading lock
-      if (!recursiveCall && isBlockingAction(action)) {
-        set(loadingAtom, false);
-      }
+        } catch (error) {
+            console.error("Error in dispatch async writes:", error);
+            // Optionally set an error message
+            set(setErrorAtom, `Dispatch failed: ${error instanceof Error ? error.message : String(error)}`);
+
+        } finally {
+            // ---- 4) If top-level and action was blocking, release the loading lock
+            if (!recursiveCall && isBlockingAction(action)) {
+                set(loadingAtom, false);
+            }
+        }
     }
-  }
 );
-  
+
 
 
 

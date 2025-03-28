@@ -9,8 +9,8 @@
  */
 export interface ProviderConfig {
   timeouts?: {
-      stream?: number; // Timeout between stream chunks in ms
-      request?: number; // Overall request timeout in ms
+    stream?: number; // Timeout between stream chunks in ms
+    request?: number; // Overall request timeout in ms
   };
 }
 
@@ -34,38 +34,38 @@ export type UUID = `${string}-${string}-${string}-${string}-${string}`;
  * @property {string} highlightColorRgba - RGBA color string for the highlight (e.g., 'rgba(255, 255, 0, 0.3)')
  */
 export interface PDFHighlight {
+  /**
+   * The page number where the highlight appears. Page numbers are 1-based.
+   * @TJS-type integer
+   * @minimum 1
+   */
+  page: number;
+  /**
+   * The rectangle coordinates of the highlight
+   */
+  rect: {
     /**
-     * The page number where the highlight appears. Page numbers are 1-based.
-     * @TJS-type integer
-     * @minimum 1
+     * Top position of the highlight (relative to the page)
      */
-    page: number;
+    top: number;
     /**
-     * The rectangle coordinates of the highlight
+     * Left position of the highlight (relative to the page)
      */
-    rect: {
-        /**
-         * Top position of the highlight (relative to the page)
-         */
-        top: number;
-        /**
-         * Left position of the highlight (relative to the page)
-         */
-        left: number;
-        /**
-         * Width of the highlight (relative to the page width)
-         */
-        width: number;
-        /**
-         * Height of the highlight (relative to the page height)
-         */
-        height: number;
-    };
+    left: number;
     /**
-     * RGBA color string for the highlight
-     * @example 'rgba(255, 255, 0, 0.3)'
+     * Width of the highlight (relative to the page width)
      */
-    highlightColorRgba?: string;
+    width: number;
+    /**
+     * Height of the highlight (relative to the page height)
+     */
+    height: number;
+  };
+  /**
+   * RGBA color string for the highlight
+   * @example 'rgba(255, 255, 0, 0.3)'
+   */
+  highlightColorRgba?: string;
 }
 
 /**
@@ -79,11 +79,11 @@ export interface PDFHighlight {
  * @property {number} [endChar] - Ending character position in the message
  */
 export type MessageHighlight = {
-    color: string;
+  color: string;
 } & (
     | { text: string; startChar?: never; endChar?: never } // either text or startChar/endChar, not both
     | { text?: never; startChar: number; endChar: number }
-);
+  );
 
 /**
  * Links message highlights to their supporting evidence in source documents.
@@ -95,9 +95,9 @@ export type MessageHighlight = {
  * @property {PDFHighlight} sourceHighlight - The highlight in the source document
  */
 export interface Citation {
-    sourceId: string;
-    messageHighlight: MessageHighlight;
-    sourceHighlight: PDFHighlight;
+  sourceId: string;
+  messageHighlight: MessageHighlight;
+  sourceHighlight: PDFHighlight;
 }
 
 /**
@@ -111,10 +111,10 @@ export interface Citation {
  *                                         Only used for completed (non-streaming) messages
  */
 export interface Message {
-    readonly id: UUID;
-    role: "user" | "assistant";
-    content: string;
-    highlights?: MessageHighlight[];  // renamed from ideas
+  readonly id: UUID;
+  role: "user" | "assistant";
+  content: string;
+  highlights?: MessageHighlight[];  // renamed from ideas
 }
 
 /**
@@ -139,74 +139,74 @@ export type MessageWithOptionalId = Partial<Pick<Message, 'id'>> & Omit<Message,
  * @property {PDFHighlight[]} [highlights] - Optional highlight annotations for PDF sources
  */
 export interface Source {
-    readonly id: UUID;
+  readonly id: UUID;
+  /**
+   * Title of the source displayed in the SourcesDisplay component.
+   */
+  title: string;
+  /**
+   * Type of the source, used to determine the type of data to display in the ContentDisplay component.
+   */
+  type: "text" | "pdf" | "markdown" | "html";
+  /**
+   * Description of the source displayed in the SourcesDisplay component if provided.
+   */
+  description?: string;
+  /**
+   * Relevance score of the source. It is displayed in the SourcesDisplay component as bar chart.
+   * Should be a value between 0 and 1.
+   * 
+   * @minimum 0
+   * @maximum 1
+   */
+  relevance?: number;
+  /**
+   * Optional href to display a link to the source in the SourcesDisplay component.
+   */
+  href?: string;
+  /**
+   * Optional data to display in the ContentDisplay component. This can be set initially
+   * or lazily loaded when the `SET_SELECTED_SOURCE` action is handled. Simply return the data 
+   * from your `onAction()` function as `sourceData\` in the response.
+   * 
+   * For PDF sources, this should be a Uint8Array containing the binary PDF data.
+   * For text, markdown, and HTML sources, this should be a string.
+   * 
+   * @TJS-type [string, bytes]
+   * @python-type Union[str, bytes]
+   */
+  data?: string | Uint8Array;
+  /**
+   * Optional metadata associated with the source.
+   *
+   * If type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the SourcesDisplay component.
+   * Properties with a leading underscore (e.g., '_page') are hidden from display in the UI.
+   *  
+   * @remarks metadata is not used by the LexioProvider. It is shown as-is in the SourcesDisplay component. 
+   * 
+   * @TJS-type object
+   * @python-type Dict[str, any]
+   * @TJS-extra allow
+   */
+  metadata?: Record<string, any> & {
     /**
-     * Title of the source displayed in the SourcesDisplay component.
-     */
-    title: string;
+   * The page number to display for PDF documents. Page numbers are 1-based.
+   * @TJS-type integer
+   * @minimum 1
+   */
+    page?: number;
     /**
-     * Type of the source, used to determine the type of data to display in the ContentDisplay component.
-     */
-    type: "text" | "pdf" | "markdown" | "html";
-    /**
-     * Description of the source displayed in the SourcesDisplay component if provided.
-     */
-    description?: string;
-    /**
-     * Relevance score of the source. It is displayed in the SourcesDisplay component as bar chart.
-     * Should be a value between 0 and 1.
-     * 
-     * @minimum 0
-     * @maximum 1
-     */
-    relevance?: number;
-    /**
-     * Optional href to display a link to the source in the SourcesDisplay component.
-     */
-    href?: string;
-    /**
-     * Optional data to display in the ContentDisplay component. This can be set initially
-     * or lazily loaded when the `SET_SELECTED_SOURCE` action is handled. Simply return the data 
-     * from your `onAction()` function as `sourceData\` in the response.
-     * 
-     * For PDF sources, this should be a Uint8Array containing the binary PDF data.
-     * For text, markdown, and HTML sources, this should be a string.
-     * 
-     * @TJS-type [string, bytes]
-     * @python-type Union[str, bytes]
-     */
-    data?: string | Uint8Array;
-    /**
-     * Optional metadata associated with the source.
-     *
-     * If type='pdf', you can set the 'page' and '_page' properties to specify the page number to display in the SourcesDisplay component.
-     * Properties with a leading underscore (e.g., '_page') are hidden from display in the UI.
-     *  
-     * @remarks metadata is not used by the LexioProvider. It is shown as-is in the SourcesDisplay component. 
-     * 
-     * @TJS-type object
-     * @python-type Dict[str, any]
-     * @TJS-extra allow
-     */
-    metadata?: Record<string, any> & {
-        /**
-       * The page number to display for PDF documents. Page numbers are 1-based.
-       * @TJS-type integer
-       * @minimum 1
-       */
-        page?: number;
-        /**
-       * Hidden from display. The page number to display for PDF documents. Page numbers are 1-based.
-       * @TJS-type integer
-       * @minimum 1
-       */
-        _page?: number;
-    };
-    /**
-     * Highlight annotations in the PDF document. Only applicable for PDF sources.
-     * These highlights will be visually displayed in the PDF viewer.
-     */
-    highlights?: PDFHighlight[];
+   * Hidden from display. The page number to display for PDF documents. Page numbers are 1-based.
+   * @TJS-type integer
+   * @minimum 1
+   */
+    _page?: number;
+  };
+  /**
+   * Highlight annotations in the PDF document. Only applicable for PDF sources.
+   * These highlights will be visually displayed in the PDF viewer.
+   */
+  highlights?: PDFHighlight[];
 }
 
 // ---- central state management types -----
@@ -217,20 +217,20 @@ export interface Source {
  * while maintaining separate state and handlers.
  */
 export type Component = 'LexioProvider' |
-    'QueryField' |
-    'ChatWindow' |
-    'ContentDisplay' |
-    'SourcesDisplay' |
-    'AdvancedQueryField' |
-    'MessageFeedback' |
-    `QueryField-${string}` |
-    `ChatWindow-${string}` |
-    `ContentDisplay-${string}` |
-    `SourcesDisplay-${string}` |
-    `AdvancedQueryField-${string}` |
-    `MessageFeedback-${string}` |
-    `CustomComponent` |
-    `CustomComponent-${string}`; 
+  'QueryField' |
+  'ChatWindow' |
+  'ContentDisplay' |
+  'SourcesDisplay' |
+  'AdvancedQueryField' |
+  'MessageFeedback' |
+  `QueryField-${string}` |
+  `ChatWindow-${string}` |
+  `ContentDisplay-${string}` |
+  `SourcesDisplay-${string}` |
+  `AdvancedQueryField-${string}` |
+  `MessageFeedback-${string}` |
+  `CustomComponent` |
+  `CustomComponent-${string}`;
 
 // Flow: action in component -> triggers wrapped user function with state props -> triggers dispatch -> manipulates state
 /**
@@ -241,10 +241,10 @@ export type Component = 'LexioProvider' |
  * @property {string} message - The message content to add
  * @property {Component} source - The component that triggered the action
  */
-export type AddUserMessageAction = { 
-  type: 'ADD_USER_MESSAGE'; 
-  message: string; 
-  source: Component; 
+export type AddUserMessageAction = {
+  type: 'ADD_USER_MESSAGE';
+  message: string;
+  source: Component;
 };
 
 /**
@@ -254,10 +254,10 @@ export type AddUserMessageAction = {
  * @property {string} messageId - ID of the message to set as active
  * @property {Component} source - The component that triggered the action
  */
-export type SetActiveMessageAction = { 
-  type: 'SET_ACTIVE_MESSAGE'; 
-  messageId: string; 
-  source: Component; 
+export type SetActiveMessageAction = {
+  type: 'SET_ACTIVE_MESSAGE';
+  messageId: string;
+  source: Component;
 };
 
 /**
@@ -266,9 +266,9 @@ export type SetActiveMessageAction = {
  * @property {string} type - The action type identifier
  * @property {Component} source - The component that triggered the action
  */
-export type ClearMessagesAction = { 
-  type: 'CLEAR_MESSAGES'; 
-  source: Component; 
+export type ClearMessagesAction = {
+  type: 'CLEAR_MESSAGES';
+  source: Component;
 };
 
 /**
@@ -278,10 +278,10 @@ export type ClearMessagesAction = {
  * @property {string} query - The search query
  * @property {Component} source - The component that triggered the action
  */
-export type SearchSourcesAction = { 
-  type: 'SEARCH_SOURCES'; 
-  query: string; 
-  source: Component; 
+export type SearchSourcesAction = {
+  type: 'SEARCH_SOURCES';
+  query: string;
+  source: Component;
 };
 
 /**
@@ -290,9 +290,9 @@ export type SearchSourcesAction = {
  * @property {string} type - The action type identifier
  * @property {Component} source - The component that triggered the action
  */
-export type ClearSourcesAction = { 
-  type: 'CLEAR_SOURCES'; 
-  source: Component; 
+export type ClearSourcesAction = {
+  type: 'CLEAR_SOURCES';
+  source: Component;
 };
 
 /**
@@ -302,10 +302,10 @@ export type ClearSourcesAction = {
  * @property {string[]} sourceIds - Array of source IDs to set as active
  * @property {Component} source - The component that triggered the action
  */
-export type SetActiveSourcesAction = { 
-  type: 'SET_ACTIVE_SOURCES'; 
-  sourceIds: string[]; 
-  source: Component; 
+export type SetActiveSourcesAction = {
+  type: 'SET_ACTIVE_SOURCES';
+  sourceIds: string[];
+  source: Component;
 };
 
 /**
@@ -316,11 +316,12 @@ export type SetActiveSourcesAction = {
  * @property {Source} [sourceObject] - Optional source object to use
  * @property {Component} source - The component that triggered the action
  */
-export type SetSelectedSourceAction = { 
-  type: 'SET_SELECTED_SOURCE'; 
-  sourceId: string; 
-  sourceObject?: Source; 
-  source: Component; 
+export type SetSelectedSourceAction = {
+  type: 'SET_SELECTED_SOURCE';
+  sourceId: string;
+  sourceObject?: Source; // ToDo: this is filled in by the handler. the user uses sourceId, improbe typing for caller!
+  pdfPageOverride?: number;
+  source: Component;
 };
 
 /**
@@ -330,10 +331,10 @@ export type SetSelectedSourceAction = {
  * @property {any} filter - Filter criteria to apply
  * @property {Component} source - The component that triggered the action
  */
-export type SetFilterSourcesAction = { 
-  type: 'SET_FILTER_SOURCES'; 
+export type SetFilterSourcesAction = {
+  type: 'SET_FILTER_SOURCES';
   filter: any; // todo: define filter object
-  source: Component; 
+  source: Component;
 };
 
 /**
@@ -342,9 +343,9 @@ export type SetFilterSourcesAction = {
  * @property {string} type - The action type identifier
  * @property {Component} source - The component that triggered the action
  */
-export type ResetFilterSourcesAction = { 
-  type: 'RESET_FILTER_SOURCES'; 
-  source: Component; 
+export type ResetFilterSourcesAction = {
+  type: 'RESET_FILTER_SOURCES';
+  source: Component;
 };
 
 /**
@@ -357,19 +358,19 @@ export type ResetFilterSourcesAction = {
  * @property {string} [messageContent] - The content of the message receiving feedback (for convenience)
  * @property {Component} source - The component that triggered the action
  */
-export type SetMessageFeedbackAction = { 
-  type: 'SET_MESSAGE_FEEDBACK'; 
+export type SetMessageFeedbackAction = {
+  type: 'SET_MESSAGE_FEEDBACK';
   messageId: string;
   feedback: 'positive' | 'negative' | null;
   comment?: string;
   messageContent?: string;
-  source: Component; 
+  source: Component;
 };
 
 /**
  * Union type of all possible user actions in the system.
  */
-export type UserAction = 
+export type UserAction =
   | AddUserMessageAction       // User message
   | SetActiveMessageAction     // Set active message -> can be used to rollback to a previous message
   | ClearMessagesAction        // Clear all messages in the chat
@@ -395,11 +396,11 @@ export type UserAction =
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes. Useful for chaining actions.
  */
 export interface AddUserMessageActionResponse {
-    response?: Promise<string | StreamChunk> | AsyncIterable<StreamChunk>;
-    sources?: Promise<Source[]>;
-    citations?: Promise<Citation[]>;
-    setUserMessage?: string;
-    followUpAction?: UserAction;
+  response?: Promise<string | StreamChunk> | AsyncIterable<StreamChunk>;
+  sources?: Promise<Source[]>;
+  citations?: Promise<Citation[]>;
+  setUserMessage?: string;
+  followUpAction?: UserAction;
 }
 
 /**
@@ -410,8 +411,8 @@ export interface AddUserMessageActionResponse {
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface SetActiveMessageActionResponse {
-    messageId?: string;
-    followUpAction?: UserAction;
+  messageId?: string;
+  followUpAction?: UserAction;
 }
 
 /**
@@ -421,7 +422,7 @@ export interface SetActiveMessageActionResponse {
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface ClearMessagesActionResponse {
-    followUpAction?: UserAction;
+  followUpAction?: UserAction;
 }
 
 /**
@@ -432,8 +433,8 @@ export interface ClearMessagesActionResponse {
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface SearchSourcesActionResponse {
-    sources?: Promise<Source[]>;
-    followUpAction?: UserAction;
+  sources?: Promise<Source[]>;
+  followUpAction?: UserAction;
 }
 
 /**
@@ -443,7 +444,7 @@ export interface SearchSourcesActionResponse {
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface ClearSourcesActionResponse {
-    followUpAction?: UserAction;
+  followUpAction?: UserAction;
 }
 
 /**
@@ -454,8 +455,8 @@ export interface ClearSourcesActionResponse {
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface SetActiveSourcesActionResponse {
-    activeSourceIds?: string[];
-    followUpAction?: UserAction;
+  activeSourceIds?: string[];
+  followUpAction?: UserAction;
 }
 
 /**
@@ -468,9 +469,9 @@ export interface SetActiveSourcesActionResponse {
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface SetSelectedSourceActionResponse {
-    selectedSourceId?: string | null;
-    sourceData?: Promise<string | Uint8Array>;
-    followUpAction?: UserAction;
+  selectedSourceId?: string | null;
+  sourceData?: Promise<string | Uint8Array>;
+  followUpAction?: UserAction;
 }
 
 /**
@@ -480,7 +481,7 @@ export interface SetSelectedSourceActionResponse {
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface SetFilterSourcesActionResponse {
-    followUpAction?: UserAction;
+  followUpAction?: UserAction;
 }
 
 /**
@@ -490,7 +491,7 @@ export interface SetFilterSourcesActionResponse {
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface ResetFilterSourcesActionResponse {
-    followUpAction?: UserAction;
+  followUpAction?: UserAction;
 }
 
 /**
@@ -500,23 +501,23 @@ export interface ResetFilterSourcesActionResponse {
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface SetMessageFeedbackActionResponse {
-    followUpAction?: UserAction;
+  followUpAction?: UserAction;
 }
 
 /**
  * Union type of all possible action handler responses.
  */
 export type ActionHandlerResponse =
-    AddUserMessageActionResponse |
-    SetActiveMessageActionResponse |
-    ClearMessagesActionResponse |
-    SearchSourcesActionResponse |
-    ClearSourcesActionResponse |
-    SetActiveSourcesActionResponse |
-    SetSelectedSourceActionResponse |
-    SetFilterSourcesActionResponse |
-    ResetFilterSourcesActionResponse |
-    SetMessageFeedbackActionResponse;
+  AddUserMessageActionResponse |
+  SetActiveMessageActionResponse |
+  ClearMessagesActionResponse |
+  SearchSourcesActionResponse |
+  ClearSourcesActionResponse |
+  SetActiveSourcesActionResponse |
+  SetSelectedSourceActionResponse |
+  SetFilterSourcesActionResponse |
+  ResetFilterSourcesActionResponse |
+  SetMessageFeedbackActionResponse;
 
 /**
  * Defines an action handler for a specific component.
@@ -526,24 +527,24 @@ export type ActionHandlerResponse =
  * @property {Function} handler - Function that processes actions and returns responses
  */
 export type ActionHandler = {
-    component: Component;
-    /**
-     * Handler function that processes actions and returns responses.
-     * 
-     * @param {UserAction} actionHandlerFunction - The action to handle
-     * @param {Message[]} messages - Current messages in the conversation
-     * @param {Source[]} sources - Available sources
-     * @param {Source[] | null} activeSources - Currently active sources, if any
-     * @param {Source | null} selectedSource - Currently selected source, if any
-     * @returns {ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined | Promise<undefined>} - Response to the action
-     */
-    handler: (
-        actionHandlerFunction: UserAction,
-        messages: Message[],
-        sources: Source[],
-        activeSources: Source[] | null,
-        selectedSource: Source | null
-    ) => ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined | Promise<undefined>;
+  component: Component;
+  /**
+   * Handler function that processes actions and returns responses.
+   * 
+   * @param {UserAction} actionHandlerFunction - The action to handle
+   * @param {Message[]} messages - Current messages in the conversation
+   * @param {Source[]} sources - Available sources
+   * @param {Source[] | null} activeSources - Currently active sources, if any
+   * @param {Source | null} selectedSource - Currently selected source, if any
+   * @returns {ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined | Promise<undefined>} - Response to the action
+   */
+  handler: (
+    actionHandlerFunction: UserAction,
+    messages: Message[],
+    sources: Source[],
+    activeSources: Source[] | null,
+    selectedSource: Source | null
+  ) => ActionHandlerResponse | Promise<ActionHandlerResponse> | undefined | Promise<undefined>;
 };
 
 /**
@@ -560,8 +561,8 @@ export type ActionHandler = {
  * @property {Citation[]} [citations] - Citations related to this chunk
  */
 export interface StreamChunk {
-    content?: string;
-    sources?: Source[];
-    citations?: Citation[];
-    done?: boolean;
+  content?: string;
+  sources?: Source[];
+  citations?: Citation[];
+  done?: boolean;
 }
