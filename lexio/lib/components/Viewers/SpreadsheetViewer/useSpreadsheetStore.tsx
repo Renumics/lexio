@@ -487,6 +487,19 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                         borderLeft: "unset",
                         width: isFirstCellOfRow ? `${calculateWidthOfFirstColumn(rawRowData.length)}px` : `${calculateWidthOfColumn(columnKey, headerStyles)}px`,
                         height: `${calculateHeightOfRow(rowIndex, rowStyles)}px`,
+                        ...(isFirstCellOfRow ? {
+                            textAlign: "center",
+                            justifyItems: "center",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            alignContent: "center",
+                            userSelect: "none",
+                            position: "sticky",
+                            left: "0",
+                            zIndex: "9",
+                            backgroundColor: "rgb(245, 245, 245)",
+                            letterSpacing: "-0.015em"
+                        } : {}),
                     },
                     [`${columnKey}${rowIndex}-inner-container`]: {
                         height: "100%",
@@ -535,11 +548,24 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                         } : {}),
                     },
                     [`${columnKey}${rowIndex}-content-container`]: {
-                        // height: "100%",
                         // truncate cell content
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
+                        ...(isFirstCellOfRow ? {
+                            display: "flex",
+                            justifyContent: "center",
+                            justifyItems: "center",
+                            alignContent: "center",
+                            alignItems: "center",
+                            textAlign: "center",
+                            fontSize: "0.875rem",
+                            margin: "auto",
+                            color: "rgb(82, 82, 82)",
+                            fontWeight: "400",
+                            letterSpacing: "-0.025em",
+                            height: "100%",
+                        } : {}),
                     },
                 }
             })

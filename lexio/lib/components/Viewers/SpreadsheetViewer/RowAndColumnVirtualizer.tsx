@@ -944,9 +944,7 @@ const TableBodyCell = forwardRef(
             }}
             data-label={cell.column.columnDef.header}
             className={cn({
-                "text-center justify-items-center justify-center items-center content-center select-none sticky left-0 z-[9] bg-neutral-100 tracking-tight": isFirst,
-                "!font-bold !bg-blue-500 !text-white": isFirstCellOfSelectedRow,
-                // Select headers
+                "!bg-blue-500": isFirstCellOfSelectedRow,
                 "!bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0": isHeaderCellSelected,
             })}
             onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
@@ -983,7 +981,7 @@ const TableBodyCell = forwardRef(
                     >
                         <div
                             className={cn({
-                                "!font-bold !text-white": isHeaderCellSelected,
+                                "!font-bold !text-white": isHeaderCellSelected || isFirstCellOfSelectedRow,
                             })}
                             style={{
                                 // @ts-ignore
