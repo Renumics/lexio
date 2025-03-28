@@ -415,7 +415,7 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
                     ...source,
                     metadata: {
                         ...(source.metadata || {}),
-                        overridePage: action.pdfPageOverride
+                        _pdfPageOverride: action.pdfPageOverride
                     }
                 }
                 : source
