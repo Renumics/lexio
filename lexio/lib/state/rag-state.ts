@@ -133,6 +133,7 @@ export const addUserMessageAtom = atom(
         // Save previous state for rollback.
         const previousMessages = get(completedMessagesAtom);
         const previousSources = get(retrievedSourcesAtom);
+        const previousCitations = get(citationsAtom);
 
         // Read configuration and create a common AbortController.
         const config = get(configAtom);
@@ -172,7 +173,7 @@ export const addUserMessageAtom = atom(
             // Add a UUID to each source if it's missing.
             const sourcesDataWithIds = sourcesData.map(source => ({
                 ...source,
-                id: (crypto.randomUUID() as UUID),
+                id: crypto.randomUUID() as UUID,
             }));
 
             // Update sources-related state.
@@ -182,31 +183,11 @@ export const addUserMessageAtom = atom(
             return sourcesDataWithIds;
         };
 
-        // Process citations independently
-        const processCitations = async (sourcesWithIds?: Source[]) => {
-            if (!response.citations) return; // Skip if no citations provided
-            
-            try {
-                const citationsData = await addTimeout(
-                    response.citations,
-                    config.timeouts?.request,
-                    'Citations request timeout exceeded',
-                    abortController.signal
-                );
-                
-                return citationsData;
-            } catch (error) {
-                console.error('Failed to process citations:', error);
-                throw error;
-            }
-        };
-
         // Process the user message or streaming response independently.
         const processMessage = async () => {
             if (response.response) {
                 let accumulatedContent = '';
                 let messageId: UUID;
-                let messageHighlights: MessageHighlight[] = [];
                 
                 if (Symbol.asyncIterator in response.response) {
                     // Create a single consistent ID for the entire streaming message
@@ -218,19 +199,6 @@ export const addUserMessageAtom = atom(
                         if (abortController.signal.aborted) break;
                         streamTimeout.check();
                         accumulatedContent += chunk.content ?? '';
-                        
-                        // If the chunk has citations, collect message highlights
-                        if (chunk.citations) {
-                            for (const citation of chunk.citations) {
-                                if (!messageHighlights.some(h => 
-                                    h.startChar === citation.messageHighlight.startChar && 
-                                    h.endChar === citation.messageHighlight.endChar
-                                )) {
-                                    messageHighlights.push(citation.messageHighlight);
-                                }
-                            }
-                        }
-                        
                         // Provide immediate feedback as streaming chunks arrive.
                         set(currentStreamAtom, {
                             id: messageId, // Use the same ID for all updates
@@ -238,7 +206,6 @@ export const addUserMessageAtom = atom(
                             content: accumulatedContent,
                         });
                     }
-                    
                     // Finalize streaming.
                     set(completedMessagesAtom, [
                         ...get(completedMessagesAtom),
@@ -246,11 +213,10 @@ export const addUserMessageAtom = atom(
                             id: messageId, // Use the same ID for the final message
                             role: 'assistant',
                             content: accumulatedContent,
-                            highlights: messageHighlights.length > 0 ? messageHighlights : undefined
                         },
                     ]);
                     set(currentStreamAtom, null);
-                    return { content: accumulatedContent, messageId, messageHighlights };
+                    return { messageId, content: accumulatedContent };
                 } else {
                     // Non-streaming (single promise) response.
                     const messageData = await addTimeout(
@@ -259,89 +225,78 @@ export const addUserMessageAtom = atom(
                         'Response timeout exceeded',
                         abortController.signal
                     );
-                    
                     messageId = crypto.randomUUID() as UUID;
-                    
                     set(completedMessagesAtom, [
                         ...get(completedMessagesAtom),
                         {
                             id: messageId,
                             role: 'assistant',
                             content: messageData,
-                            highlights: messageHighlights.length > 0 ? messageHighlights : undefined
                         } as Message,
                     ]);
-                    return { content: messageData, messageId, messageHighlights };
+                    return { messageId, content: messageData };
                 }
+            }
+        };
+
+        // Process citations and store them in the citations atom
+        const processCitations = async (messageId?: UUID) => {
+            if (!response.citations) return; // Skip if no citations provided
+            
+            try {
+                const citationsData = await addTimeout(
+                    response.citations,
+                    config.timeouts?.request,
+                    'Citations request timeout exceeded',
+                    abortController.signal
+                );
+                
+                // Add messageId and unique id to each citation
+                const enhancedCitations = citationsData.map(citation => ({
+                    ...citation,
+                    id: crypto.randomUUID() as UUID,
+                    messageId: messageId
+                }));
+                
+                // Store citations in the dedicated atom
+                set(citationsAtom, [...get(citationsAtom), ...enhancedCitations]);
+                
+                return enhancedCitations;
+            } catch (error) {
+                console.error('Failed to process citations:', error);
+                throw error;
             }
         };
 
         // --- The key elegant change: since this function is async, it automatically returns a promise.
         try {
-            // Process sources first to get the source IDs
-            const sourcesResult = await processSources();
-            
-            // Process message to get the message ID
-            const messageResult = await processMessage();
-            
-            // Process citations after both sources and message are processed
-            if (response.citations && sourcesResult && messageResult) {
-                const citationsData = await processCitations(sourcesResult);
-                
-                if (citationsData) {
-                    // Update sources with highlights from citations
-                    const updatedSources = [...sourcesResult];
-                    
-                    for (const citation of citationsData) {
-                        // Find the source to update
-                        const sourceIndex = citation.sourceIndex !== undefined 
-                            ? citation.sourceIndex 
-                            : updatedSources.findIndex(s => s.id === citation.sourceId);
-                        
-                        if (sourceIndex >= 0 && sourceIndex < updatedSources.length) {
-                            const source = updatedSources[sourceIndex];
-                            
-                            // Initialize highlights array if it doesn't exist
-                            if (!source.highlights) {
-                                source.highlights = [];
-                            }
-                            
-                            // Add the highlight to the source
-                            source.highlights.push(citation.sourceHighlight);
-                        }
-                    }
-                    
-                    // Update sources with new highlights
-                    set(retrievedSourcesAtom, updatedSources);
-                    
-                    // Update the message with highlights if not already added
-                    if (messageResult && messageResult.messageId) {
-                        const messages = get(completedMessagesAtom);
-                        const messageIndex = messages.findIndex(m => m.id === messageResult.messageId);
-                        
-                        if (messageIndex >= 0) {
-                            const message = messages[messageIndex];
-                            const messageHighlights = citationsData.map(c => c.messageHighlight);
-                            
-                            // Update the message with highlights
-                            const updatedMessages = [...messages];
-                            updatedMessages[messageIndex] = {
-                                ...message,
-                                highlights: messageHighlights
-                            };
-                            
-                            set(completedMessagesAtom, updatedMessages);
-                        }
-                    }
-                }
+            // Process sources and message in parallel
+            const [sourcesResult, messageResult] = await Promise.all([
+                processSources().catch(error => {
+                    console.error('Error processing sources:', error);
+                    return null;
+                }),
+                processMessage().catch(error => {
+                    console.error('Error processing message:', error);
+                    return null;
+                })
+            ]);
+
+            // Process citations after message is processed (if we have a messageId)
+            if (messageResult?.messageId && response.citations) {
+                await processCitations(messageResult.messageId).catch(error => {
+                    console.error('Error processing citations:', error);
+                    return null;
+                });
             }
-            
+
             return { sourcesResult, messageResult };
         } catch (error) {
             // Abort remaining work and restore previous state.
             abortController.abort();
             set(completedMessagesAtom, previousMessages);
             set(retrievedSourcesAtom, previousSources);
+            set(citationsAtom, previousCitations);
             set(currentStreamAtom, null);
 
             // Notify about the error and propagate it.
@@ -365,13 +320,15 @@ const setActiveMessageAtom = atom(null, (_get, set, { action, response }: {
 });
 
 // clear messages
-const clearMessagesAtom = atom(null, (_get, set, { action, response }: {
-    action: ClearMessagesAction,
-    response: ClearMessagesActionResponse
-}) => {
-    console.log('clearMessagesAtom', action, response);
-    set(completedMessagesAtom, []);
-});
+const clearMessagesAtom = atom(
+    null,
+    (get, set, { action, response }: { action: ClearMessagesAction, response: ClearMessagesActionResponse }) => {
+        console.log('clearMessagesAtom', action, response);
+        set(completedMessagesAtom, []);
+        set(currentStreamAtom, null);
+        set(citationsAtom, []); // Clear citations when messages are cleared
+    }
+);
 
 // search sources
 const searchSourcesAtom = atom(
@@ -832,3 +789,14 @@ const setMessageFeedbackAtom = atom(null, (_get, _set, { action, response }: {
     // The feedback is stored locally in the component's state
     // You could add API calls here if needed
 });
+
+// Add a dedicated atom for citations
+export const citationsAtom = atom<Citation[]>([]);
+
+// Add a helper atom to get citations for a specific message
+export const getCitationsForMessageAtom = atom(
+    (get) => (messageId: UUID) => {
+        const allCitations = get(citationsAtom);
+        return allCitations.filter(citation => citation.messageId === messageId);
+    }
+);
