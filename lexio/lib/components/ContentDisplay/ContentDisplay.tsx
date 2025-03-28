@@ -130,14 +130,13 @@ const FileViewerRenderer: FC<PropsFileViewerRenderer> = (props) => {
       selectedSource.data instanceof ArrayBuffer
   ) {
     const {data, rangesHighlights} = selectedSource;
-    const ranges = rangesHighlights?.map((h) => h.ranges).flat();
     const defaultSheetName = rangesHighlights ? rangesHighlights[0].sheetName : undefined;
 
     return (
         <SpreadsheetViewer
             fileName={fileName}
             fileBufferArray={data as ArrayBuffer}
-            rangesToHighlight={ranges}
+            rangesToHighlight={rangesHighlights}
             defaultSelectedSheet={defaultSheetName}
         />
     )

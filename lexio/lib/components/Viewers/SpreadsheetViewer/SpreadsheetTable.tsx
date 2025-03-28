@@ -56,7 +56,7 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
             table.getRowModel().rows,
             rangesToSelect,
             cellRefs.current,
-            cellInnerContainerRefs.current,
+            // cellInnerContainerRefs.current,
         );
     }, [data, rangesToSelect, selectedCell, cellRefs, cellInnerContainerRefs, highlightCells, table]);
 
@@ -76,7 +76,7 @@ const SpreadsheetTable = <TData, TValue>(props: Props<TData, TValue>) => {
                 table.getRowModel().rows,
                 rangesToSelect,
                 cellRefs.current,
-                cellInnerContainerRefs.current,
+                // cellInnerContainerRefs.current,
             );
         },
     });

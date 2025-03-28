@@ -96,6 +96,20 @@ export const sortSpreadsheetColumnsComparator = (current: string, next: string):
     return current.localeCompare(next);
 }
 
+export const sortSpreadsheetRange = (cells: string[]): string[] => {
+    return cells.sort((a, b) => {
+        const colA = a.replace(/\d+/, "");
+        const colB = b.replace(/\d+/, "");
+        const rowA = parseInt(a.replace(/\D+/, ""));
+        const rowB = parseInt(b.replace(/\D+/, ""));
+
+        if (colA !== colB) {
+            return colA.localeCompare(colB);
+        }
+        return rowA - rowB;
+    });
+}
+
 export const resolveCellFormat = (value: CellValue, type: ValueType, numberFormat: string): CellContent => {
     switch (type) {
         case ValueType.Null: return "";
@@ -390,9 +404,21 @@ export const highlightCells = <TData,>(
     rows:  ReactTableRow<TData>[],
     rangesToSelect: Range[],
     cellRefs: Record<string, (HTMLTableCellElement | null)>,
-    cellInnerContainerRefs: Record<string, (HTMLDivElement | null)>,
+    // cellInnerContainerRefs: Record<string, (HTMLDivElement | null)>,
 ) => {
     if (rangesToSelect.length === 0) return;
+
+    const cellInnerContainerRefs: Record<string, (HTMLDivElement | null)> = Object.values(cellRefs)
+        .filter((cell) => cell !== null)
+        // returns cellInnerContainer of cell
+        .map((cell) => cell.children[0])
+        .reduce((acc, currentInnerCell) => {
+            if (!currentInnerCell) return acc;
+            return {
+                ...acc,
+                [currentInnerCell.id]: currentInnerCell,
+            }
+        }, {});
 
     rangesToSelect.forEach((range) => {
         rows.forEach((row) => {
@@ -423,6 +449,47 @@ export const highlightCells = <TData,>(
                     });
                 }
             });
+        });
+    });
+}
+
+export const clearCellHighlights = <TData,>(
+    rows:  ReactTableRow<TData>[],
+    cellRefs: Record<string, (HTMLTableCellElement | null)>,
+) => {
+    if (rows.length === 0) return;
+
+    const cellInnerContainerRefs: Record<string, (HTMLDivElement | null)> = Object.values(cellRefs)
+        .filter((cell) => cell !== null)
+        // returns cellInnerContainer of cell
+        .map((cell) => cell.children[0])
+        .reduce((acc, currentInnerCell) => {
+            if (!currentInnerCell) return acc;
+            return {
+                ...acc,
+                [currentInnerCell.id]: currentInnerCell,
+            }
+        }, {});
+
+    rows.forEach((row) => {
+        row.getVisibleCells().forEach((cell: Cell<TData, unknown>) => {
+            const columnKey = cell.column.id;
+            const rowIndex = cell.row.index + 1;
+            const cellId = `${columnKey}${rowIndex}`;
+            const cellRef = cellRefs[cellId];
+            const cellContainerRef = cellInnerContainerRefs[`${cellId}-inner-container`];
+
+            if (cellRef) {
+                cellRef.style.borderRight = "1px solid #e5e7eb";
+                cellRef.style.borderBottom = "1px solid #e5e7eb";
+            }
+
+            if (cellContainerRef) {
+                cellContainerRef.className = cn(cellContainerRef.className
+                    .replace("!opacity-[70%]", "")
+                    .replace("bg-blue-200", "")
+                );
+            }
         });
     });
 }
@@ -466,3 +533,25 @@ export const calculateHeightOfRow = (rowIndex: number, rowStyles: Record<string,
 
     return result;
 }
+
+export const getCellStyle = (row: number, column: string, cellStyles: Record<string, CSSProperties>): CSSProperties => {
+    if (!row || !column) return {};
+    return cellStyles[`${column}${row}`];
+}
+
+export const getCellStyleOfCellContent = (
+    row: number,
+    column: string,
+    cellStyles: Record<string, CSSProperties>,
+    cssPropsToIgnoreInCellContent: (keyof CSSProperties)[],
+): CSSProperties => {
+
+    const styles = getCellStyle(row, column, cellStyles);
+    if (!styles) return {};
+    const allStyleEntries = Object.entries(styles);
+    const styleEntriesWithoutBorders = allStyleEntries.filter(([key]) =>
+        !cssPropsToIgnoreInCellContent.includes(key as (keyof CSSProperties))
+    );
+    return Object.fromEntries(styleEntriesWithoutBorders) as CSSProperties;
+}
+

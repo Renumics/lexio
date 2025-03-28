@@ -1,20 +1,21 @@
 import {FC} from "react";
 import {useSpreadsheetViewerStore} from "./useSpreadsheetStore.tsx";
 // import {SpreadsheetTable} from "./SpreadsheetTable.tsx";
-import {Cell} from "@tanstack/react-table";
-import {CellContent} from "./utils";
+// import {Cell} from "@tanstack/react-table";
+// import {CellContent} from "./utils";
 import {SpreadsheetSelection} from "./SpreadsheetSelection";
 import {LoaderCircle, Sigma} from "lucide-react";
 import ParentSizeObserver from "./ParentSizeObserver.tsx";
 // import { EyeOff, Eye } from "lucide-react";
 import {TableContainer} from "./RowAndColumnVirtualizer.tsx";
 import Tooltip from "./ui/Tooltip.tsx";
+import {SpreadsheetHighlight} from "../../../types.ts";
 
 type Props = {
     fileName?: string | undefined;
     fileBufferArray: ArrayBuffer;
     defaultSelectedSheet?: string | undefined;
-    rangesToHighlight?: string[] | undefined;
+    rangesToHighlight?: SpreadsheetHighlight[] | undefined;
 }
 const SpreadsheetViewer: FC<Props> = (props) => {
     const { fileBufferArray, defaultSelectedSheet, rangesToHighlight } = props;
@@ -44,10 +45,6 @@ const SpreadsheetViewer: FC<Props> = (props) => {
         defaultSelectedSheet,
         rangesToHighlight,
     });
-
-    const handleCellClick = (cell: Cell<Record<string, CellContent>, CellContent>) => {
-        setSelectedCell({ row: cell.row.index, column: cell.column.id });
-    }
 
     const switchSpreadsheet = (spreadsheet: string) => {
         setSelectedWorksheetName(spreadsheet);
@@ -91,7 +88,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
     if (error) console.error(error);
 
     return (
-        <div className="grid grid-rows-[max-content_1fr_max-content] h-full relative">
+        <div className="grid grid-rows-[max-content_1fr_max-content] h-full">
             <div className="grid grid-cols-[1fr_max-content] p-2 gap-2 border-b">
                 <div className="grid grid-cols-[max-content_1fr] gap-2">
                     <Tooltip
@@ -134,19 +131,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                 {/*</Tooltip>*/}
             </div>
             <div className="h-full w-full">
-                <div className="grid h-[inherit]" style={{ height: "inherit" }}>
-                    {/* <SpreadsheetTable*/}
-                    {/*     columns={columns}*/}
-                    {/*     data={rowData.filter(r => r)}*/}
-                    {/*     showStyles={showStyles}*/}
-                    {/*    cellsStyles={showStyles ? cellStyles : undefined}*/}
-                    {/*    rowStyles={showStyles ? rowStyles : undefined}*/}
-                    {/*    headerStyles={showStyles ? headerStyles : undefined}*/}
-                    {/*    selectedCell={selectedCell}*/}
-                    {/*    rangesToSelect={rangeToSelect}*/}
-                    {/*    handleCellClick={handleCellClick}*/}
-                    {/*    parentContainerHeight={parentSize.height}*/}
-                    {/*/>*/}
+                <div className="grid h-[inherit] w-full">
                     <ParentSizeObserver className="overflow-auto">
                         {(parentSize) =>
                             <TableContainer
@@ -158,8 +143,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                                 headerStyles={headerStyles}
                                 selectedCell={selectedCell}
                                 rangesToSelect={rangeToSelect}
-                                // @ts-ignore
-                                handleCellClick={handleCellClick}
+                                setSelectedCell={setSelectedCell}
                                 parentContainerHeight={parentSize.height}
                                 mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
                                 selectedSheetName={selectedWorksheetName}

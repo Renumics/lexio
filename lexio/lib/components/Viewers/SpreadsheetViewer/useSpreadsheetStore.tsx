@@ -17,6 +17,8 @@ import {
     excelBorderToCss,
     extractCellComponent,
     generateSpreadsheetColumns,
+    getCellStyle,
+    getCellStyleOfCellContent,
     isCellInRange,
     ptFontSizeToPixel,
     ptToPixel,
@@ -34,6 +36,7 @@ import {
     WorkBook as SheetJsWorkbook,
     WorkSheet as SheetJsWorkSheet,
 } from "xlsx";
+import {SpreadsheetHighlight} from "../../../types.ts";
 
 export type SelectedCell = {
     row: number,
@@ -212,7 +215,7 @@ const useSpreadsheetStore = (arrayBuffer: ArrayBuffer, defaultSpreadsheetName?: 
 type InputSpreadsheetViewerStore = {
     fileBufferArray: ArrayBuffer;
     defaultSelectedSheet?: string | undefined;
-    rangesToHighlight?: string[] | undefined;
+    rangesToHighlight?: SpreadsheetHighlight[] | undefined;
 }
 
 type OutputSpreadsheetViewerStore = {
@@ -274,7 +277,12 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
     useEffect(() => {
         if (!input.rangesToHighlight) return;
         let rangesToSet: Range[] = [];
-        input.rangesToHighlight.forEach((range: string) => {
+        const rangesOfSelectedSheet = input.rangesToHighlight.find((range) => range.sheetName === selectedWorksheetName);
+        if (!rangesOfSelectedSheet) {
+            setRangeToSelect([]);
+            return;
+        }
+        rangesOfSelectedSheet.ranges.forEach((range: string) => {
             const rangeIsValid = validateExcelRange(range);
 
             if (!rangeIsValid) {
@@ -288,7 +296,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         // Important: rangeToSelect is first cleared to enable a consistent and steady UI on change of range to select.
         setRangeToSelect([]);
         setRangeToSelect(rangesToSet);
-    }, [input.rangesToHighlight]);
+    }, [input.rangesToHighlight, selectedWorksheetName, setRangeToSelect]);
 
     useEffect(() => {
         if (isLoading && (!sheetJsWorkbook || !selectedSheetJsWorksheet)) return;
@@ -399,11 +407,6 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
         if (rawRowData.length === 0) return;
         if (!headerStyles || !rowStyles || !cellStyles) return;
 
-        const getCellStyle = (row: number, column: string): CSSProperties => {
-            if (!row || !column) return {};
-            return cellStyles[`${column}${row}`];
-        }
-
         const cssPropsToIgnoreInCellContent: (keyof CSSProperties)[] = [
             "borderTop",
             "borderRight",
@@ -411,19 +414,9 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
             "borderLeft",
         ];
 
-        const getCellStyleOfCellContent = (row: number, column: string): CSSProperties => {
-            const styles = getCellStyle(row, column);
-            if (!styles) return {};
-            const allStyleEntries = Object.entries(styles);
-            const styleEntriesWithoutBorders = allStyleEntries.filter(([key]) =>
-                !cssPropsToIgnoreInCellContent.includes(key as (keyof CSSProperties))
-            );
-            return Object.fromEntries(styleEntriesWithoutBorders) as CSSProperties;
-        }
-
         const applyStylesToCells = (rawRow: RawRow, rowIndex: number): Row => {
             // Basic styles
-            const cellStyles = Object.entries(rawRow).map((entry) => {
+            const stylesOfCells = Object.entries(rawRow).map((entry) => {
                 const [columnKey] = entry;
                 const isFirstCellOfRow = columnKey === "rowNo";
                 // const [lastCellKeyOfRow] = Object.entries(rawRow)[Object.entries(rawRow).length - 1]
@@ -484,6 +477,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                         display: "flex",
                         borderTop: "unset",
                         borderRight: "1px solid #e5e7eb",
+                        borderBottom: "1px solid #e5e7eb",
                         borderLeft: "unset",
                         width: isFirstCellOfRow ? `${calculateWidthOfFirstColumn(rawRowData.length)}px` : `${calculateWidthOfColumn(columnKey, headerStyles)}px`,
                         height: `${calculateHeightOfRow(rowIndex, rowStyles)}px`,
@@ -509,7 +503,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                         position: "absolute",
                         borderWidth: "2px",
                         borderColor: "transparent",
-                        backgroundColor: getCellStyle(rowIndex, columnKey)?.backgroundColor,
+                        backgroundColor: getCellStyle(rowIndex, columnKey, cellStyles)?.backgroundColor,
                     },
                     [`${columnKey}${rowIndex}-border-container`]: {
                         position: "absolute",
@@ -522,10 +516,10 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                         wordWrap: "break-word",
                         overflowWrap: "break-word",
                         whiteSpace: "ellipsis",
-                        borderTop: getCellStyle(rowIndex, columnKey)?.borderTop,
-                        borderRight: getCellStyle(rowIndex, columnKey)?.borderRight,
-                        borderBottom: getCellStyle(rowIndex, columnKey)?.borderBottom,
-                        borderLeft: getCellStyle(rowIndex, columnKey)?.borderLeft,
+                        borderTop: getCellStyle(rowIndex, columnKey, cellStyles)?.borderTop,
+                        borderRight: getCellStyle(rowIndex, columnKey, cellStyles)?.borderRight,
+                        borderBottom: getCellStyle(rowIndex, columnKey, cellStyles)?.borderBottom,
+                        borderLeft: getCellStyle(rowIndex, columnKey, cellStyles)?.borderLeft,
                     },
                     [`${columnKey}${rowIndex}-content-wrapper-container`]: {
                         position: "relative",
@@ -537,7 +531,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                         width: "100%",
                         height: "100%",
                         // styles from source file
-                        ...getCellStyleOfCellContent(rowIndex, columnKey),
+                        ...getCellStyleOfCellContent(rowIndex, columnKey, cellStyles, cssPropsToIgnoreInCellContent),
                         // For first column containing the row number.
                         ...(isFirstCellOfRow ? {
                             display: "flex",
@@ -584,7 +578,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                 // @ts-ignore
                 return {
                     ...rawRow,
-                    ...cellStyles,
+                    ...stylesOfCells,
                 }
             }
 
@@ -628,7 +622,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
 
             return {
                 ...rawRow,
-                ...cellStyles,
+                ...stylesOfCells,
             } as Row
         }
 

@@ -32,6 +32,7 @@ import {
     DEFAULT_COLUMN_WIDTH,
     // highlightCells,
     isCellInRange,
+    sortSpreadsheetRange,
     Z_INDEX_OF_STICKY_HEADER_ROW
 } from "./utils.ts";
 import {utils} from "xlsx";
@@ -76,9 +77,8 @@ type Props<TData, TValue> = {
     rowStyles?: Record<number, CSSProperties> | undefined;
     cellsStyles?: Record<string, CSSProperties> | undefined
     selectedCell?: SelectedCell | undefined;
-    rangesToSelect?: Range[] | undefined;
-    // @ts-ignore
-    handleCellClick?: ((cell: Cell<TData, TValue>) => void) | undefined;
+    setSelectedCell: (cell: SelectedCell | undefined) => void;
+    rangesToSelect: Range[];
     // The height of the parent in case the parent doesn't have a fix size (value in pixel).
     parentContainerHeight?: number | undefined;
     mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
@@ -95,9 +95,15 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         mergedGroupOfSelectedWorksheet,
         selectedSheetName,
         setSelectedRange,
+        setSelectedCell,
     } = props;
 
-    // const rangesToSelect = props?.rangesToSelect ?? [["A0", "A0"]];
+    // const rangesToSelect = useMemo(() => {
+    //     if (props.rangesToSelect.length === 0 || props.rangesToSelect.length === 1) {
+    //         return [["A0", "A0"]] as Range[];
+    //     }
+    //     return props.rangesToSelect;
+    // }, [props.rangesToSelect]);
 
     const tableId = useMemo(() => {
         return `${selectedSheetName.replace(" ", "")}${(new Date()).getTime()}`;
@@ -116,6 +122,58 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
     const [selectedHeaderCells, setSelectedHeaderCells] = useState<string[]>([]);
 
     const [selectedHeaderRowCells, setSelectedHeaderRowCells] = useState<number[]>([]);
+
+    // Multiple cells selection
+    const [mouseSelectedRange, setMouseSelectedRange] = useState<Range | undefined>(undefined);
+    const [isMouseDownForRangeSelection, setIsMouseDownForRangeSelection] = useState<boolean>(false);
+
+    // onMouseDown={undefined}
+    // onMouseEnter={undefined}
+    // onMouseLeave={undefined} ? Really needed ?
+    // onMouseUp={undefined}
+
+    const handleMouseDown = (cellAddress: string) => {
+        setSelectedCell(undefined);
+        setIsMouseDownForRangeSelection(true);
+        setMouseSelectedRange([cellAddress, cellAddress]);
+    }
+    const handleMouseEnter = (cellAddress: string) => {
+        if (!mouseSelectedRange || !isMouseDownForRangeSelection) return;
+        const newRange = [mouseSelectedRange[0], cellAddress];
+        const sortedRange = sortSpreadsheetRange(newRange) as Range;
+        setMouseSelectedRange(sortedRange);
+    }
+    const handleMouseUp = () => {
+        setIsMouseDownForRangeSelection(false);
+    }
+
+    useEffect(() => {
+        setSelectedRange(mouseSelectedRange);
+
+        // Highlight
+        // if (!mouseSelectedRange) return;
+        // const rangesToHighlight = [mouseSelectedRange];
+        // setSelectedCell(undefined);
+        // highlightCells(
+        //     // @ts-ignore
+        //     table.getRowModel().rows,
+        //     rangesToHighlight,
+        //     getTableCellRefs(selectedSheetName, tableId),
+        // );
+    }, [mouseSelectedRange, selectedSheetName, setSelectedCell, setSelectedRange, table, tableId]);
+
+    // useEffect(() => {
+    //     setSelectedRange(mouseSelectedRange);
+    //     if (!mouseSelectedRange) return;
+    //     const rangesToHighlight = [mouseSelectedRange];
+    //     setSelectedCell(undefined);
+    //     highlightCells(
+    //         // @ts-ignore
+    //         table.getRowModel().rows,
+    //         rangesToHighlight,
+    //         getTableCellRefs(selectedSheetName, tableId),
+    //     );
+    // }, [mouseSelectedRange, selectedSheetName, setSelectedCell, setSelectedRange, table, tableId]);
 
     useEffect(() => {
         if (!props.selectedCell) return;
@@ -163,15 +221,18 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
 
     // Set cell styles of ranges to highlight
     // useEffect(() => {
-    //     if (!cellAndInnerCellContainerRefs.current) return;
-    //     highlightCells(
-    //         // @ts-ignore
-    //         table.getRowModel().rows,
-    //         rangesToSelect,
-    //         cellAndInnerCellContainerRefs.current.cellRefs,
-    //         cellAndInnerCellContainerRefs.current.cellInnerContainerRefs,
-    //     );
-    // }, [rangesToSelect, cellAndInnerCellContainerRefs, table]);
+    //     const timeout = setTimeout(() => {
+    //         highlightCells(
+    //             // @ts-ignore
+    //             table.getRowModel().rows,
+    //             rangesToSelect,
+    //             getTableCellRefs(selectedSheetName, tableId),
+    //         );
+    //     }, 1500);
+    //     return () => {
+    //         clearTimeout(timeout);
+    //     };
+    // }, [rangesToSelect, selectedSheetName, table, tableId]);
 
     // useEffect(() => {
     //     // const allCells = table.getRowModel().rows.flatMap((row) => row.getVisibleCells());
@@ -222,6 +283,13 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                 selectedSheetName,
                 tableId,
             );
+
+            // highlightCells(
+            //     // @ts-ignore
+            //     table.getRowModel().rows,
+            //     rangesToSelect,
+            //     getTableCellRefs(selectedSheetName, tableId),
+            // );
         },
     });
 
@@ -261,6 +329,13 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                 selectedSheetName,
                 tableId,
             );
+
+            // highlightCells(
+            //     // @ts-ignore
+            //     table.getRowModel().rows,
+            //     rangesToSelect,
+            //     getTableCellRefs(selectedSheetName, tableId),
+            // );
         },
     });
 
@@ -280,6 +355,8 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
 
         // rowVirtualizer.measure();
         // columnVirtualizer.measure();
+
+        if (!tableId) return;
 
         applyMergesToCells(
                 mergedGroupOfSelectedWorksheet,
@@ -357,9 +434,15 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
     }
 
     // Event Handlers
-    const handleCellSelection = (cell: Cell<TData, TValue>) => {
-        if (!props.handleCellClick) return;
-        props.handleCellClick(cell);
+    const handleCellClick = (cell: Cell<TData, TValue>) => {
+        // Clear previous cell selection states
+        // setMouseSelectedRange(undefined);
+        // clearCellHighlights(
+        //     table.getRowModel().rows,
+        //     getTableCellRefs(selectedSheetName, tableId),
+        // );
+
+        setSelectedCell({ row: cell.row.index, column: cell.column.id });
     }
 
     return (
@@ -408,11 +491,14 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                     virtualPaddingLeft={virtualPaddingLeft}
                     virtualPaddingRight={virtualPaddingRight}
                     // @ts-ignore
-                    handleCellSelection={handleCellSelection}
+                    handleCellSelection={handleCellClick}
                     cellsStyles={props.cellsStyles ?? {}}
                     headerStyles={props.headerStyles ?? {}}
                     rowStyles={props.rowStyles ?? {}}
                     mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
+                    handleMouseUp={handleMouseUp}
+                    handleMouseDown={handleMouseDown}
+                    handleMouseEnter={handleMouseEnter}
                 />
             </table>
         </div>
@@ -594,7 +680,6 @@ type TableBodyProps<TData> = {
     selectedCell?: SelectedCell | undefined;
     selectedHeaderRowCells: number[];
     selectedHeaderCells: string[];
-    handleCellSelection: (cell: Cell<TData, unknown>) => void;
     tableContainerRef: RefObject<HTMLDivElement>;
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
@@ -602,6 +687,11 @@ type TableBodyProps<TData> = {
     headerStyles: Record<string, CSSProperties>;
     rowStyles: Record<number, CSSProperties>;
     mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
+    // Events
+    handleMouseDown: (cellAddress: string) => void;
+    handleMouseEnter: (cellAddress: string) => void;
+    handleCellSelection: (cell: Cell<TData, unknown>) => void;
+    handleMouseUp: () => void;
 }
 
 const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCellContainerRefType> | undefined) => {
@@ -620,6 +710,9 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
         headerStyles,
         rowStyles,
         mergedGroupOfSelectedWorksheet,
+        handleMouseUp,
+        handleMouseDown,
+        handleMouseEnter,
     } = props;
 
     const { rows } = table.getRowModel();
@@ -679,6 +772,9 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
                     headerStyles={headerStyles}
                     rowStyles={rowStyles}
                     mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
+                    handleMouseUp={handleMouseUp}
+                    handleMouseDown={handleMouseDown}
+                    handleMouseEnter={handleMouseEnter}
                 />
             )
         })}
@@ -694,7 +790,6 @@ type TableBodyRowProps<TData> = {
     selectedCell?: SelectedCell | undefined;
     selectedHeaderRowCells: number[];
     selectedHeaderCells: string[];
-    handleCellClick: (cell: Cell<TData, unknown>) => void;
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
     virtualRow: VirtualItem;
@@ -702,6 +797,11 @@ type TableBodyRowProps<TData> = {
     headerStyles: Record<string, CSSProperties>;
     rowStyles: Record<number, CSSProperties>;
     mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
+    // Events
+    handleMouseDown: (cellAddress: string) => void;
+    handleMouseEnter: (cellAddress: string) => void;
+    handleCellClick: (cell: Cell<TData, unknown>) => void;
+    handleMouseUp: () => void;
 }
 // @ts-ignore
 const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellAndCellContainerRefType> | undefined) => {
@@ -721,6 +821,9 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
         headerStyles,
         rowStyles,
         mergedGroupOfSelectedWorksheet,
+        handleMouseUp,
+        handleMouseDown,
+        handleMouseEnter,
     } = props;
 
     const visibleCells = row.getVisibleCells();
@@ -817,6 +920,9 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                         rowStyles={rowStyles}
                         mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
                         shouldMerge={cellIndex < visibleCells.length - 1 && cell.getValue() === visibleCells[cellIndex].getValue()}
+                        handleMouseUp={handleMouseUp}
+                        handleMouseDown={handleMouseDown}
+                        handleMouseEnter={handleMouseEnter}
                     />
                 )
             })}
@@ -839,9 +945,13 @@ type TableBodyCellProps<TData, TValue> = {
     cellsStyles: Record<string, CSSProperties>;
     headerStyles: Record<string, CSSProperties>;
     rowStyles: Record<number, CSSProperties>;
-    handleCellSelection: (cell: Cell<TData, TValue>) => void;
     mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
     shouldMerge: boolean;
+    // Events
+    handleMouseUp?: () => void;
+    handleMouseDown?: ((cellAddress: string) => void) | undefined;
+    handleMouseEnter?: ((cellAddress: string) => void) | undefined;
+    handleCellSelection: (cell: Cell<TData, TValue>) => void;
 }
 const TableBodyCell = forwardRef(
     <T, V>(
@@ -862,6 +972,9 @@ const TableBodyCell = forwardRef(
         // rowStyles,
         // mergedRangesOfSelectedWorksheet,
         // shouldMerge,
+        handleMouseUp,
+        handleMouseDown,
+        handleMouseEnter,
     } = props;
 
     const cellRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
@@ -940,7 +1053,9 @@ const TableBodyCell = forwardRef(
             style={{
                 // @ts-ignore
                 ...(cell.row.original[cellId] ?? {}),
-                borderBottom: isFirstCellOfSelectedRow ? "none" : "1px solid #e5e7eb",
+                ...(isFirstCellOfSelectedRow ? {
+                    borderBottom: "none",
+                } : {}),
             }}
             data-label={cell.column.columnDef.header}
             className={cn({
@@ -948,6 +1063,10 @@ const TableBodyCell = forwardRef(
                 "!bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0": isHeaderCellSelected,
             })}
             onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
+            onMouseDown={handleMouseDown ? () => handleMouseDown(cellId) : undefined}
+            onMouseEnter={handleMouseEnter ? () => handleMouseEnter(cellId) : undefined}
+            // onMouseLeave={undefined}
+            onMouseUp={handleMouseUp ? () => handleMouseUp() : undefined}
         >
             <div
                 ref={(el) => {
