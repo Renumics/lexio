@@ -109,7 +109,6 @@ interface PdfViewerProps {
  * ```
  */
 const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
-
     const [pdfData, setPdfData] = useState<{data: object} | undefined>();
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
@@ -483,7 +482,6 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                                 scale={scale}
                                 rotate={rotate}
                                 canvasDimensions={canvasDimensions}
-                                highlightColorRgba={highlight.highlightColorRgba}
                             />
                         ))}
                     </div>
