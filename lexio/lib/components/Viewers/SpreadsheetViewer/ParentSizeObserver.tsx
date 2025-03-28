@@ -1,4 +1,4 @@
-import {FC, ReactNode, useEffect, useRef, useState} from "react";
+import {FC, ReactNode, useCallback, useEffect, useRef, useState} from "react";
 
 export type ContainerSize = {
     width: number;
@@ -23,12 +23,13 @@ const ParentSizeObserver: FC<Props> = (props) => {
 
     const parentRef = useRef<HTMLDivElement | null>(null);
 
-    useEffect(() => {
-        if (!parentRef.current) return;
+    const animationFrameId = useRef<number | null>(null);
 
-        let timeout: NodeJS.Timeout | undefined = undefined;
-
-        const handleResize = (entries: ResizeObserverEntry[]) => {
+    const handleResize = useCallback( (entries: ResizeObserverEntry[]) => {
+        if (animationFrameId.current) {
+            cancelAnimationFrame(animationFrameId.current as number);
+        }
+        animationFrameId.current = requestAnimationFrame(() => {
             const entry = entries[0];
             if (entry) {
                 const { width, height } = entry.contentRect;
@@ -37,33 +38,41 @@ const ParentSizeObserver: FC<Props> = (props) => {
                     height: Math.floor(height),
                 });
             }
-        }
+        });
+    }, []);
 
-        const observeParent = () => {
-            if (!parentRef.current) return DEFAULT_PARENT_SIZE;
-            const resizeObserver = new ResizeObserver((entries) => {
-                if (debounceTime > 0) {
-                    timeout = setTimeout(() => {
-                        handleResize(entries);
-                    }, debounceTime);
-                    return;
-                }
-                handleResize(entries);
-            });
+    useEffect(() => {
+        if (!parentRef.current) return;
 
+        let timeout: NodeJS.Timeout | undefined = undefined;
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            timeout = setTimeout(() => handleResize(entries), debounceTime);
+        });
+
+        resizeObserver.observe(parentRef.current as Element);
+
+        window.addEventListener("resize", () => {
             resizeObserver.observe(parentRef.current as Element);
-
-            return () => {
-                resizeObserver.disconnect();
-            };
-        };
+        })
 
         return () => {
-            observeParent();
-            if (!timeout) return;
-            clearTimeout(timeout as NodeJS.Timeout);
+            if (animationFrameId.current) {
+                cancelAnimationFrame(animationFrameId.current as number);
+                animationFrameId.current = null;
+            }
+
+            if (timeout) {
+                clearTimeout(timeout as NodeJS.Timeout);
+            }
+
+            resizeObserver.disconnect();
+
+            window.removeEventListener("resize", () => {
+                resizeObserver.disconnect();
+            });
         }
-    }, [debounceTime, parentRef, children]);
+    }, [debounceTime, parentRef, children, handleResize]);
 
     return (
         <div ref={parentRef} className={className}>
