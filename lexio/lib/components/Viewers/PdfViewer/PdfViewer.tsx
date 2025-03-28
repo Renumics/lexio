@@ -58,7 +58,7 @@ interface PdfViewerProps {
     data: Uint8Array;
     highlights?: PDFHighlight[];
     page?: number;
-    styleOverrides?: Partial<PdfViewerStyles>;
+    styleOverrides?: PdfViewerStyles;
 }
 
 /**
