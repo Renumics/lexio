@@ -41,7 +41,7 @@ const ParentSizeObserver: FC<Props> = (props) => {
         return () => {
             observeParent();
         }
-    }, []);
+    }, [parentRef, props.children]);
 
     return (
         <div ref={parentRef} className={props.className}>

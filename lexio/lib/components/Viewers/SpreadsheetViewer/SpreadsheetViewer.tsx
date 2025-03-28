@@ -4,11 +4,10 @@ import {useSpreadsheetViewerStore} from "./useSpreadsheetStore.tsx";
 import {Cell} from "@tanstack/react-table";
 import {CellContent} from "./utils";
 import {SpreadsheetSelection} from "./SpreadsheetSelection";
-import { LoaderCircle } from "lucide-react";
+import {LoaderCircle, Sigma} from "lucide-react";
 import ParentSizeObserver from "./ParentSizeObserver.tsx";
 // import { EyeOff, Eye } from "lucide-react";
 import {TableContainer} from "./RowAndColumnVirtualizer.tsx";
-import { Sigma } from "lucide-react";
 import Tooltip from "./ui/Tooltip.tsx";
 
 type Props = {
@@ -92,7 +91,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
     if (error) console.error(error);
 
     return (
-        <div className="grid grid-rows-[max-content_90%_auto] h-full relative">
+        <div className="grid grid-rows-[max-content_1fr_max-content] h-full relative">
             <div className="grid grid-cols-[1fr_max-content] p-2 gap-2 border-b">
                 <div className="grid grid-cols-[max-content_1fr] gap-2">
                     <Tooltip
@@ -135,7 +134,7 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                 {/*</Tooltip>*/}
             </div>
             <div className="h-full w-full">
-                <div className="grid" style={{ height: "100%" }}>
+                <div className="grid h-[inherit]" style={{ height: "inherit" }}>
                     {/* <SpreadsheetTable*/}
                     {/*     columns={columns}*/}
                     {/*     data={rowData.filter(r => r)}*/}
@@ -148,22 +147,26 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                     {/*    handleCellClick={handleCellClick}*/}
                     {/*    parentContainerHeight={parentSize.height}*/}
                     {/*/>*/}
-                    <TableContainer
-                        columns={columns}
-                        data={rowData.filter(r => r)}
-                        showStyles={true}
-                        cellsStyles={cellStyles}
-                        rowStyles={rowStyles}
-                        headerStyles={headerStyles}
-                        selectedCell={selectedCell}
-                        rangesToSelect={rangeToSelect}
-                        // @ts-ignore
-                        handleCellClick={handleCellClick}
-                        // parentContainerHeight={parentSize.height}
-                        mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
-                        selectedSheetName={selectedWorksheetName}
-                        setSelectedRange={setSelectedRange}
-                    />
+                    <ParentSizeObserver className="overflow-auto">
+                        {(parentSize) =>
+                            <TableContainer
+                                columns={columns}
+                                data={rowData.filter(r => r)}
+                                showStyles={true}
+                                cellsStyles={cellStyles}
+                                rowStyles={rowStyles}
+                                headerStyles={headerStyles}
+                                selectedCell={selectedCell}
+                                rangesToSelect={rangeToSelect}
+                                // @ts-ignore
+                                handleCellClick={handleCellClick}
+                                parentContainerHeight={parentSize.height}
+                                mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
+                                selectedSheetName={selectedWorksheetName}
+                                setSelectedRange={setSelectedRange}
+                            />
+                        }
+                    </ParentSizeObserver>
                 </div>
             </div>
             <div className="whitespace-nowrap p-2 z-[10] w-full border-t overflow-x-auto">

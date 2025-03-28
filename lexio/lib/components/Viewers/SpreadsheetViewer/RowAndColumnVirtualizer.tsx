@@ -91,7 +91,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         data,
         columns,
         // selectedCell,
-        // parentContainerHeight,
+        parentContainerHeight,
         mergedGroupOfSelectedWorksheet,
         selectedSheetName,
         setSelectedRange,
@@ -194,7 +194,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         estimateSize: () => DEFAULT_COLUMN_WIDTH,
         getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
         horizontal: true,
-        overscan: 5, //how many columns to render on each side off screen each way (adjust this for performance)
+        overscan: 10, //how many columns to render on each side off screen each way (adjust this for performance)
         onChange: () => {
         //     // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
         //     // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
@@ -236,7 +236,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
             navigator.userAgent.indexOf("Firefox") === -1
                 ? element => element?.getBoundingClientRect().height
                 : undefined,
-        overscan: 5,
+        overscan: 10,
         onChange: () => {
         //     // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
         //     // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
@@ -370,7 +370,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
             style={{
                 overflow: "auto", //our scrollable table container
                 position: "relative", //needed for sticky header
-                height: "800px", //should be a fixed height
+                height: parentContainerHeight, //should be a fixed height
                 whiteSpace: "nowrap",
             }}
         >
