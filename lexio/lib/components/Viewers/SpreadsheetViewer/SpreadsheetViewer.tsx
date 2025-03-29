@@ -153,17 +153,20 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                     </ParentSizeObserver>
                 </div>
             </div>
-            <div className="whitespace-nowrap p-2 z-[10] w-full border-t overflow-x-auto">
-                <ParentSizeObserver className="h-full w-full">
-                    {(parentSize) =>
-                        <SpreadsheetSelection
-                            spreadsheets={sheetNames}
-                            selectedSpreadsheet={selectedWorksheetName}
-                            setSelectedSpreadsheet={switchSpreadsheet}
-                            parentWidth={parentSize.width}
-                        />
-                    }
-                </ParentSizeObserver>
+            <div className="whitespace-nowrap p-2 z-[10] h-full w-full border-t">
+                <div className="grid h-[inherit] w-full">
+                    <ParentSizeObserver className="h-full w-full overflow-x-auto overflow-y-hidden">
+                        {(parentSize) =>
+                            <SpreadsheetSelection
+                                spreadsheets={sheetNames}
+                                selectedSpreadsheet={selectedWorksheetName}
+                                setSelectedSpreadsheet={switchSpreadsheet}
+                                parentWidth={parentSize.width}
+                                parentHeight={parentSize.height}
+                            />
+                        }
+                    </ParentSizeObserver>
+                </div>
             </div>
         </div>
     );

@@ -9,6 +9,7 @@ type PropsSpreadsheetSelection = {
     selectedSpreadsheet: string
     setSelectedSpreadsheet: (spreadsheet: string) => void;
     parentWidth?: number | undefined;
+    parentHeight?: number | undefined;
 }
 const SpreadsheetSelection: FC<PropsSpreadsheetSelection> = (props) => {
     const {
@@ -25,7 +26,10 @@ const SpreadsheetSelection: FC<PropsSpreadsheetSelection> = (props) => {
     return (
         <div
             className="bg-gray-100 rounded-md"
-            style={{ width: props.parentWidth ? `${props.parentWidth}px` : "100%" }}
+            style={{
+                width: props.parentWidth ? `${props.parentWidth}px` : "100%",
+                height: props.parentHeight ? `${props.parentHeight}px` : "100%",
+            }}
         >
             <div
                 style={{

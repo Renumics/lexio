@@ -53,6 +53,7 @@ const ParentSizeObserver: FC<Props> = (props) => {
         resizeObserver.observe(parentRef.current as Element);
 
         window.addEventListener("resize", () => {
+            if (!parentRef.current) return;
             resizeObserver.observe(parentRef.current as Element);
         })
 
