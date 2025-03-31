@@ -222,7 +222,7 @@ export const addUserMessageAtom = atom(
             set(_completedMessagesAtom, [
                 ...get(_completedMessagesAtom),
                 {
-                    id: crypto.randomUUID(),
+                    id: crypto.randomUUID() as UUID,
                     role: 'user',
                     content: action.message,
                 },

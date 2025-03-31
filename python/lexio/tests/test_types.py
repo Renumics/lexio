@@ -472,7 +472,8 @@ def test_message_highlight_with_char_positions():
 def test_citation_creation():
     """Test creating a Citation."""
     citation = Citation(
-        sourceId="12345678-1234-5678-1234-567812345678",
+        id="citation-12345678",
+        sourceIndex=0,
         messageHighlight=MessageHighlight.model_validate({
             "color": "rgba(255, 255, 0, 0.3)",
             "text": "cited text"
@@ -484,7 +485,8 @@ def test_citation_creation():
         )
     )
     
-    assert citation.sourceId == "12345678-1234-5678-1234-567812345678"
+    assert citation.id == "citation-12345678"
+    assert citation.sourceIndex == 0
     assert citation.messageHighlight.root.color == "rgba(255, 255, 0, 0.3)"
     assert citation.messageHighlight.root.text == "cited text"
     assert citation.sourceHighlight.page == 1
@@ -495,7 +497,8 @@ def test_citation_serialization_deserialization():
     """Test serializing and deserializing a Citation."""
     # Create a citation
     citation = Citation(
-        sourceId="12345678-1234-5678-1234-567812345678",
+        id="citation-12345678",
+        sourceIndex=0,
         messageHighlight=MessageHighlight.model_validate({
             "color": "rgba(255, 255, 0, 0.3)",
             "text": "cited text"
@@ -514,7 +517,8 @@ def test_citation_serialization_deserialization():
     deserialized_citation = Citation.model_validate_json(json_data)
     
     # Verify the deserialized citation matches the original
-    assert deserialized_citation.sourceId == citation.sourceId
+    assert deserialized_citation.id == citation.id
+    assert deserialized_citation.sourceIndex == citation.sourceIndex
     assert deserialized_citation.messageHighlight.root.color == citation.messageHighlight.root.color
     assert deserialized_citation.messageHighlight.root.text == citation.messageHighlight.root.text
     assert deserialized_citation.sourceHighlight.page == citation.sourceHighlight.page
@@ -524,7 +528,8 @@ def test_citation_serialization_deserialization():
 def test_stream_chunk_with_citations():
     """Test creating a StreamChunk with citations."""
     citation = Citation(
-        sourceId="12345678-1234-5678-1234-567812345678",
+        id="citation-12345678",
+        sourceIndex=0,
         messageHighlight=MessageHighlight.model_validate({
             "color": "rgba(255, 255, 0, 0.3)",
             "text": "cited text"
@@ -544,7 +549,7 @@ def test_stream_chunk_with_citations():
     
     assert chunk.content == "Response with citation"
     assert len(chunk.citations) == 1
-    assert chunk.citations[0].sourceId == "12345678-1234-5678-1234-567812345678"
+    assert chunk.citations[0].id == "citation-12345678"
     assert chunk.done is True
 
 
