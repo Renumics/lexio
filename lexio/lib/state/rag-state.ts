@@ -563,6 +563,10 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
         return;
     }
 
+    // Save previous state for rollback if needed
+    const previousSources = get(_retrievedSourcesAtom);
+    const previousCitations = get(citationsAtom);
+    
     // Use the base sources without citations
     const baseSources = get(_retrievedSourcesAtom);
     const targetSource = baseSources.find(source => source.id === action.sourceId);
@@ -590,15 +594,81 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
         set(_retrievedSourcesAtom, updatedSources);
     }
 
-    // Only validate and update data if sourceData is provided
-    if (response.sourceData) {
+    // Process citations if provided
+    const processCitations = async () => {
+        if (!response.citations) return; // Skip if no citations provided
+        
+        try {
+            // Get configuration for timeout
+            const config = get(configAtom);
+            const abortController = new AbortController();
+            
+            const citationsData = await addTimeout(
+                response.citations,
+                config.timeouts?.request,
+                'Citations request timeout exceeded in setSelectedSourceAtom',
+                abortController.signal
+            );
+            
+            // Get the last message ID to use for citations without messageId
+            const messages = get(_completedMessagesAtom);
+            const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
+            
+            if (!lastMessageId && citationsData.some(citation => !citation.messageId)) {
+                console.warn('Cannot process citations without messageId: no messages exist');
+                return;
+            }
+            
+            // Add sourceId and unique id to each citation
+            const enhancedCitations = citationsData.map(citation => {
+                // Start with a base citation object
+                const baseCitation = {
+                    ...citation,
+                    id: crypto.randomUUID() as UUID,
+                    sourceId: action.sourceId as string, // We know this is valid from checks above
+                    messageId: citation.messageId || lastMessageId // Use last message ID if not provided
+                };
+                
+                // All citations must have messageId, sourceId, and sourceHighlight
+                return {
+                    id: baseCitation.id,
+                    sourceId: baseCitation.sourceId,
+                    messageId: baseCitation.messageId,
+                    messageHighlight: baseCitation.messageHighlight || {}, // Provide empty object if missing
+                    sourceHighlight: baseCitation.sourceHighlight
+                } as Citation;
+            });
+            
+            // Store citations in the dedicated atom (append to existing)
+            set(citationsAtom, [...get(citationsAtom), ...enhancedCitations]);
+            
+            return enhancedCitations;
+        } catch (error) {
+            console.error('Failed to process citations for source:', error);
+            throw error;
+        }
+    };
+
+    // Process the source data if provided
+    const processSourceData = async () => {
+        // Only validate and update data if sourceData is provided
+        if (!response.sourceData) return;
+        
         if (targetSource.data) {
             console.warn(`Source ${action.sourceId} already has data but new data was provided`);
             return;
         }
 
         try {
-            const resolvedData = await response.sourceData;
+            const config = get(configAtom);
+            const abortController = new AbortController();
+            
+            const resolvedData = await addTimeout(
+                response.sourceData,
+                config.timeouts?.request,
+                'Source data request timeout exceeded',
+                abortController.signal
+            );
 
             const updatedSources = baseSources.map(source =>
                 source.id === action.sourceId
@@ -606,10 +676,35 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
                     : source
             );
             set(_retrievedSourcesAtom, updatedSources);
+            return resolvedData;
         } catch (error) {
             console.error(`Failed to load data for source ${action.sourceId}:`, error);
             set(errorAtom, `Failed to load source data: ${error instanceof Error ? error.message : String(error)}`);
+            throw error;
         }
+    };
+
+    try {
+        // Process source data and citations in parallel
+        await Promise.all([
+            processSourceData().catch(error => {
+                console.error('Error processing source data:', error);
+                return null;
+            }),
+            processCitations().catch(error => {
+                console.error('Error processing citations:', error);
+                return null;
+            })
+        ]);
+        
+        return { success: true };
+    } catch (error) {
+        // Restore previous state on critical errors
+        set(_retrievedSourcesAtom, previousSources);
+        set(citationsAtom, previousCitations);
+        
+        set(errorAtom, `Failed to process selected source: ${error instanceof Error ? error.message : String(error)}`);
+        throw error;
     }
 });
 

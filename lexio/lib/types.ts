@@ -12,6 +12,10 @@ export interface ProviderConfig {
     stream?: number; // Timeout between stream chunks in ms
     request?: number; // Overall request timeout in ms
   };
+  llms?: {
+    OPENAI_API_KEY?: string;
+    OPENAI_ENDPOINT?: string;
+  }
 }
 
 /**
@@ -475,6 +479,7 @@ export interface SetActiveSourcesActionResponse {
 export interface SetSelectedSourceActionResponse {
   selectedSourceId?: string | null;
   sourceData?: Promise<string | Uint8Array>;
+  citations?: Promise<Citation[] | Omit<Citation, 'id'>[]>;
   followUpAction?: UserAction;
 }
 
