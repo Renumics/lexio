@@ -7,7 +7,7 @@
       "type": "object",
       "properties": {
         "id": {
-          "$ref": "#/definitions/UUID",
+          "$ref": "#/definitions/UUID_1",
           "title": "id"
         },
         "role": {
@@ -50,7 +50,7 @@
       "type": "object",
       "properties": {
         "id": {
-          "$ref": "#/definitions/UUID",
+          "$ref": "#/definitions/UUID_1",
           "title": "id"
         },
         "title": {
@@ -141,10 +141,20 @@
           "title": "sources"
         },
         "citations": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Citation"
-          },
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Citation"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Omit<Citation,\"id\">"
+              }
+            }
+          ],
           "title": "citations"
         },
         "done": {
@@ -240,32 +250,71 @@
     "Citation": {
       "description": "Links message highlights to their supporting evidence in source documents.\nUsed to connect highlighted message parts with their source evidence.",
       "title": "Citation",
-      "type": "object",
-      "properties": {
-        "sourceId": {
-          "type": "string",
-          "title": "sourceId"
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/definitions/UUID_1",
+              "title": "id"
+            },
+            "messageHighlight": {
+              "$ref": "#/definitions/MessageHighlight",
+              "title": "messageHighlight"
+            },
+            "sourceHighlight": {
+              "$ref": "#/definitions/PDFHighlight",
+              "title": "sourceHighlight"
+            },
+            "messageId": {
+              "$ref": "#/definitions/UUID",
+              "title": "messageId"
+            },
+            "sourceId": {
+              "type": "string",
+              "title": "sourceId"
+            }
+          },
+          "required": [
+            "id",
+            "messageHighlight",
+            "sourceHighlight",
+            "sourceId"
+          ]
         },
-        "messageHighlight": {
-          "$ref": "#/definitions/MessageHighlight",
-          "title": "messageHighlight"
-        },
-        "sourceHighlight": {
-          "$ref": "#/definitions/PDFHighlight",
-          "title": "sourceHighlight"
+        {
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/definitions/UUID_1",
+              "title": "id"
+            },
+            "messageHighlight": {
+              "$ref": "#/definitions/MessageHighlight",
+              "title": "messageHighlight"
+            },
+            "sourceHighlight": {
+              "$ref": "#/definitions/PDFHighlight",
+              "title": "sourceHighlight"
+            },
+            "messageId": {
+              "$ref": "#/definitions/UUID",
+              "title": "messageId"
+            },
+            "sourceIndex": {
+              "type": "number",
+              "title": "sourceIndex"
+            }
+          },
+          "required": [
+            "id",
+            "messageHighlight",
+            "sourceHighlight",
+            "sourceIndex"
+          ]
         }
-      },
-      "defaultProperties": [],
-      "additionalProperties": false,
-      "propertyOrder": [
-        "sourceId",
-        "messageHighlight",
-        "sourceHighlight"
-      ],
-      "required": [
-        "messageHighlight",
-        "sourceHighlight",
-        "sourceId"
       ]
     },
     "MessageHighlight": {
@@ -279,6 +328,10 @@
             "color": {
               "type": "string",
               "title": "color"
+            },
+            "citationId": {
+              "$ref": "#/definitions/UUID",
+              "title": "citationId"
             },
             "text": {
               "type": "string",
@@ -297,6 +350,10 @@
             "color": {
               "type": "string",
               "title": "color"
+            },
+            "citationId": {
+              "$ref": "#/definitions/UUID",
+              "title": "citationId"
             },
             "startChar": {
               "type": "number",
