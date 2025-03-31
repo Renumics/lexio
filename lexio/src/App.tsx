@@ -345,7 +345,7 @@ function App() {
         config={{
           timeouts: {
             stream: 10000
-          }
+          },
         }}
       >
         <div

@@ -232,32 +232,39 @@ export const addUserMessageAtom = atom(
         // Process sources independently.
         const processSources = async () => {
             if (!response.sources) return; // Skip if no sources provided.
-            const sourcesData = await addTimeout(
-                response.sources.then(srcs => srcs),
-                config.timeouts?.request,
-                'Sources request timeout exceeded',
-                abortController.signal
-            );
+            try {
+                const sourcesData = await addTimeout(
+                    response.sources.then(srcs => srcs),
+                    config.timeouts?.request,
+                    'Sources request timeout exceeded',
+                    abortController.signal
+                );
 
-            // Add a UUID to each source if it's missing.
-            const sourcesDataWithIds = sourcesData.map(source => {
-                // Check if 'id' exists on the source object
-                if ('id' in source && source.id) {
-                    return source;
-                } else {
-                    // If no id, create a new object with an id
-                    return {
-                        ...source,
-                        id: crypto.randomUUID() as UUID,
-                    };
-                }
-            });
+                // Add a UUID to each source if it's missing.
+                const sourcesDataWithIds = sourcesData.map(source => {
+                    // Check if 'id' exists on the source object
+                    if ('id' in source && source.id) {
+                        return source;
+                    } else {
+                        // If no id, create a new object with an id
+                        return {
+                            ...source,
+                            id: crypto.randomUUID() as UUID,
+                        };
+                    }
+                });
 
-            // Update sources-related state.
-            set(_retrievedSourcesAtom, sourcesDataWithIds);
-            set(activeSourcesIdsAtom, null);
-            set(selectedSourceIdAtom, null);
-            return sourcesDataWithIds;
+                // Update sources-related state.
+                set(_retrievedSourcesAtom, sourcesDataWithIds);
+                set(activeSourcesIdsAtom, null);
+                set(selectedSourceIdAtom, null);
+                return sourcesDataWithIds;
+            } catch (error) {
+                console.error("Error processing sources:", error);
+                // Convert error to string before setting
+                set(errorAtom, `Error processing sources: ${error instanceof Error ? error.message : String(error)}`);
+                throw error;
+            }
         };
 
         // Process the user message or streaming response independently.
@@ -316,11 +323,15 @@ export const addUserMessageAtom = atom(
             }
         };
 
-        // Process citations and store them in the citations atom
-        const processCitations = async (messageId?: UUID) => {
+        // Process citations if they're part of the response
+        const processCitations = async () => {
             if (!response.citations) return; // Skip if no citations provided
             
             try {
+                // Get configuration for timeout
+                const config = get(configAtom);
+                const abortController = new AbortController();
+                
                 const citationsData = await addTimeout(
                     response.citations,
                     config.timeouts?.request,
@@ -328,53 +339,51 @@ export const addUserMessageAtom = atom(
                     abortController.signal
                 );
                 
-                // Get current sources to resolve sourceIndex to sourceId if needed
-                const currentSources = get(_retrievedSourcesAtom);
+                // Get the last message ID to use for citations
+                const messages = get(_completedMessagesAtom);
+                const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
                 
-                // Add messageId and unique id to each citation, and resolve sourceIndex to sourceId if needed
+                if (!lastMessageId) {
+                    console.warn('Cannot process citations: no messages exist');
+                    return;
+                }
+                
+                // Get existing citations
+                const existingCitations = get(citationsAtom);
+                
+                // Get sources to resolve sourceIndex to sourceId if needed
+                const sources = get(_retrievedSourcesAtom);
+                
+                // Add unique id to each citation and resolve sourceIndex to sourceId if needed
                 const enhancedCitations = citationsData.map(citation => {
-                    // Create a new citation object with id and messageId
-                    let enhancedCitation: Omit<Citation, 'sourceId' | 'sourceIndex'> & { sourceId?: string; sourceIndex?: number } = {
-                        ...citation,
-                        id: crypto.randomUUID() as UUID,
-                        messageId: messageId
-                    };
-                    
-                    // If citation has sourceIndex but no sourceId, resolve sourceIndex to sourceId
-                    if ('sourceIndex' in citation && citation.sourceIndex !== undefined && 
-                        (!('sourceId' in citation) || !citation.sourceId)) {
-                        
-                        // Check if sourceIndex is valid
-                        if (citation.sourceIndex >= 0 && citation.sourceIndex < currentSources.length) {
-                            const sourceId = currentSources[citation.sourceIndex].id;
-                            
-                            // Set sourceId and explicitly delete the sourceIndex property
-                            enhancedCitation.sourceId = sourceId;
-                            delete enhancedCitation.sourceIndex;
+                    // Handle sourceIndex if present
+                    let sourceId = citation.sourceId;
+                    if ('sourceIndex' in citation && citation.sourceIndex !== undefined) {
+                        // Convert sourceIndex to sourceId
+                        if (citation.sourceIndex >= 0 && citation.sourceIndex < sources.length) {
+                            sourceId = sources[citation.sourceIndex].id;
                         } else {
-                            console.error(`Invalid sourceIndex: ${citation.sourceIndex}. Sources length: ${currentSources.length}`);
-                            throw new Error(`Invalid sourceIndex: ${citation.sourceIndex}`);
+                            console.warn(`Invalid sourceIndex: ${citation.sourceIndex}, sources length: ${sources.length}`);
+                            return null; // Skip this citation
                         }
                     }
                     
-                    // If citation already has sourceId, ensure sourceIndex is removed
-                    if ('sourceId' in citation && citation.sourceId) {
-                        enhancedCitation.sourceId = citation.sourceId;
-                        delete enhancedCitation.sourceIndex;
+                    // Skip if no valid sourceId could be determined
+                    if (!sourceId) {
+                        console.warn('Citation missing sourceId and has invalid sourceIndex');
+                        return null;
                     }
                     
-                    // Final check - citation must have a sourceId at this point
-                    if (!enhancedCitation.sourceId) {
-                        console.error('Citation missing sourceId after processing:', citation);
-                        throw new Error('Citation missing sourceId after processing');
-                    }
-                    
-                    // Return as properly typed Citation (now that we've ensured it has sourceId and no sourceIndex)
-                    return enhancedCitation as Citation;
-                });
+                    return {
+                        ...citation,
+                        id: crypto.randomUUID() as UUID,
+                        sourceId: sourceId,
+                        messageId: citation.messageId || lastMessageId // Use last message ID if not provided
+                    } as Citation;
+                }).filter(Boolean) as Citation[]; // Remove null entries
                 
-                // Store citations in the dedicated atom
-                set(citationsAtom, [...get(citationsAtom), ...enhancedCitations]);
+                // Store citations in the dedicated atom (append to existing)
+                set(citationsAtom, [...existingCitations, ...enhancedCitations]);
                 
                 return enhancedCitations;
             } catch (error) {
@@ -385,37 +394,57 @@ export const addUserMessageAtom = atom(
 
         // --- The key elegant change: since this function is async, it automatically returns a promise.
         try {
-            // Process sources and message in parallel
-            const [sourcesResult, messageResult] = await Promise.all([
-                processSources().catch(error => {
-                    console.error('Error processing sources:', error);
-                    return null;
-                }),
-                processMessage().catch(error => {
-                    console.error('Error processing message:', error);
-                    return null;
-                })
+            // First, process sources and messages
+            const [sourcesResult, messageResult] = await Promise.allSettled([
+                processSources(),
+                processMessage()
             ]);
-
-            // Process citations after message is processed (if we have a messageId)
-            if (messageResult?.messageId && response.citations) {
-                await processCitations(messageResult.messageId).catch(error => {
-                    console.error('Error processing citations:', error);
-                    return null;
-                });
+            
+            // Check if either process failed
+            const initialErrors = [sourcesResult, messageResult].filter(result => result.status === 'rejected');
+            
+            if (initialErrors.length > 0) {
+                // Get the first error
+                const error = (initialErrors[0] as PromiseRejectedResult).reason;
+                
+                // Restore previous state
+                set(_completedMessagesAtom, previousMessages);
+                set(_retrievedSourcesAtom, previousSources);
+                set(citationsAtom, previousCitations);
+                
+                // Set appropriate error message based on which process failed
+                if (sourcesResult.status === 'rejected') {
+                    set(errorAtom, `Error processing sources: ${error instanceof Error ? error.message : String(error)}`);
+                } else {
+                    set(errorAtom, `Error processing message: ${error instanceof Error ? error.message : String(error)}`);
+                }
+                
+                throw error;
             }
-
-            return { sourcesResult, messageResult };
+            
+            // Now that sources and messages are processed, handle citations
+            if (response.citations) {
+                try {
+                    // Process citations now that sources and messages are available
+                    await processCitations();
+                } catch (citationError) {
+                    console.error('Error processing citations:', citationError);
+                    // We don't need to roll back everything for citation errors
+                    // Just set an error message
+                    set(errorAtom, `Error processing citations: ${citationError instanceof Error ? citationError.message : String(citationError)}`);
+                    // Don't throw here - we want to continue even if citations fail
+                }
+            }
+            
+            return { success: true };
         } catch (error) {
-            // Abort remaining work and restore previous state.
-            abortController.abort();
+            console.error("Unexpected error:", error);
+            // Restore previous state
             set(_completedMessagesAtom, previousMessages);
             set(_retrievedSourcesAtom, previousSources);
             set(citationsAtom, previousCitations);
-            set(currentStreamAtom, null);
-
-            // Notify about the error and propagate it.
-            set(setErrorAtom, `Failed to process user message: ${error instanceof Error ? error.message : error}`);
+            
+            set(errorAtom, `Unexpected error: ${error instanceof Error ? error.message : String(error)}`);
             throw error;
         }
     }
@@ -702,25 +731,43 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
     };
 
     try {
-        // Process source data and citations in parallel
-        await Promise.all([
-            processSourceData().catch(error => {
-                console.error('Error processing source data:', error);
-                return null;
-            }),
-            processCitations().catch(error => {
-                console.error('Error processing citations:', error);
-                return null;
-            })
+        // Process source data and citations in parallel using Promise.allSettled
+        const results = await Promise.allSettled([
+            processSourceData(),
+            processCitations()
         ]);
+        
+        // Check if any promises were rejected
+        const errors = results.filter(result => result.status === 'rejected');
+        
+        if (errors.length > 0) {
+            // Get the first error
+            const error = (errors[0] as PromiseRejectedResult).reason;
+            
+            // Restore previous state
+            set(_retrievedSourcesAtom, previousSources);
+            set(citationsAtom, previousCitations);
+            
+            // Set appropriate error message based on which process failed
+            if (results[0].status === 'rejected') {
+                set(errorAtom, `Failed to process source data: ${error instanceof Error ? error.message : String(error)}`);
+            } else {
+                set(errorAtom, `Failed to process citations: ${error instanceof Error ? error.message : String(error)}`);
+            }
+            
+            throw error;
+        }
         
         return { success: true };
     } catch (error) {
-        // Restore previous state on critical errors
+        // This catch block handles any errors in the Promise.allSettled itself
+        console.error("Unexpected error in setSelectedSourceAtom:", error);
+        
+        // Restore previous state
         set(_retrievedSourcesAtom, previousSources);
         set(citationsAtom, previousCitations);
         
-        set(errorAtom, `Failed to process selected source: ${error instanceof Error ? error.message : String(error)}`);
+        set(errorAtom, `Unexpected error processing selected source: ${error instanceof Error ? error.message : String(error)}`);
         throw error;
     }
 });
