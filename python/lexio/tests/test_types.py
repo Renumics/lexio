@@ -9,8 +9,6 @@ from lexio.types import (
     StreamChunk,
     Citation,
     MessageHighlight,
-    MessageHighlight1,
-    MessageHighlight2,
 )
 
 
@@ -18,7 +16,7 @@ def test_message_creation():
     """Test creating a Message."""
     message = Message(id="12345678-1234-5678-1234-567812345678", role="assistant", content="Hello, how can I help you?")
     
-    assert message.id == "12345678-1234-5678-1234-567812345678"
+    assert message.id.root == "12345678-1234-5678-1234-567812345678"
     assert message.role == "assistant"
     assert message.content == "Hello, how can I help you?"
 
@@ -71,7 +69,7 @@ def test_source_creation():
         highlights=[PDFHighlight(page=1, rect=Rect(top=0, left=0, width=100, height=100), highlightColorRgba='rgba(255, 255, 0, 0.3)')]
     )
     
-    assert source.id == "12345678-1234-5678-1234-567812345678"
+    assert source.id.root == "12345678-1234-5678-1234-567812345678"
     assert source.title == "Example Document"
     assert source.type == "pdf"
     assert source.description == "A sample PDF document"
@@ -89,7 +87,7 @@ def test_source_with_text_data():
         data="This is some sample text content"
     )
     
-    assert source.id == "12345678-1234-5678-1234-567812345678"
+    assert source.id.root == "12345678-1234-5678-1234-567812345678"
     assert source.title == "Example Text"
     assert source.type == "text"
     assert source.data == "This is some sample text content"
@@ -106,7 +104,7 @@ def test_source_with_binary_data():
         data=binary_data
     )
     
-    assert source.id == "12345678-1234-5678-1234-567812345678"
+    assert source.id.root == "12345678-1234-5678-1234-567812345678"
     assert source.title == "Example PDF"
     assert source.type == "pdf"
     assert source.data == binary_data
@@ -122,7 +120,7 @@ def test_source_with_metadata():
         metadata={"page": 5, "_page": 5}
     )
     
-    assert source.id == "12345678-1234-5678-1234-567812345678"
+    assert source.id.root == "12345678-1234-5678-1234-567812345678"
     assert source.title == "Example Document"
     assert source.type == "pdf"
     assert source.metadata is not None
@@ -187,11 +185,11 @@ def test_uuid_validation():
     """Test UUID validation."""
     # Since UUID is no longer exported, we test that IDs are accepted as strings
     message = Message(id="12345678-1234-5678-1234-567812345678", role="assistant", content="test")
-    assert message.id == "12345678-1234-5678-1234-567812345678"
+    assert message.id.root == "12345678-1234-5678-1234-567812345678"
     
     # Test with an invalid UUID format (should still work as we're using strings)
     message2 = Message(id="not-a-uuid", role="assistant", content="test")
-    assert message2.id == "not-a-uuid"
+    assert message2.id.root == "not-a-uuid"
 
 
 def test_message_serialization_deserialization():
@@ -210,7 +208,7 @@ def test_message_serialization_deserialization():
     deserialized_message = Message.model_validate_json(json_data)
     
     # Verify the deserialized message matches the original
-    assert deserialized_message.id == original_message.id
+    assert deserialized_message.id.root == original_message.id.root
     assert deserialized_message.role == original_message.role
     assert deserialized_message.content == original_message.content
 
@@ -232,7 +230,7 @@ def test_source_serialization_deserialization():
     deserialized_source = Source.model_validate_json(json_data)
     
     # Verify the deserialized source matches the original
-    assert deserialized_source.id == source_with_text.id
+    assert deserialized_source.id.root == source_with_text.id.root
     assert deserialized_source.title == source_with_text.title
     assert deserialized_source.type == source_with_text.type
     # String data might be converted to bytes during serialization/deserialization
@@ -266,7 +264,7 @@ def test_source_serialization_deserialization():
     reconstructed_source = Source.model_validate(received_data)
     
     # Verify the reconstructed source matches the original
-    assert reconstructed_source.id == source_with_binary.id
+    assert reconstructed_source.id.root == source_with_binary.id.root
     assert reconstructed_source.title == source_with_binary.title
     assert reconstructed_source.type == source_with_binary.type
     assert reconstructed_source.data == source_with_binary.data
@@ -304,7 +302,7 @@ def test_complex_source_serialization_deserialization():
     deserialized_source = Source.model_validate_json(json_data)
     
     # Verify the deserialized source matches the original
-    assert deserialized_source.id == source.id
+    assert deserialized_source.id.root == source.id.root
     assert deserialized_source.title == source.title
     assert deserialized_source.type == source.type
     assert deserialized_source.description == source.description
@@ -360,7 +358,7 @@ def test_stream_chunk_serialization_deserialization():
     # Verify the deserialized chunk matches the original
     assert deserialized_chunk.content == chunk.content
     assert len(deserialized_chunk.sources) == 1
-    assert deserialized_chunk.sources[0].id == chunk.sources[0].id
+    assert deserialized_chunk.sources[0].id.root == chunk.sources[0].id.root
     assert deserialized_chunk.sources[0].title == chunk.sources[0].title
     assert deserialized_chunk.sources[0].type == chunk.sources[0].type
     assert deserialized_chunk.done == chunk.done
@@ -381,7 +379,7 @@ def test_frontend_backend_compatibility():
     message = Message.model_validate_json(frontend_json)
     
     # Verify the parsed message has the expected values
-    assert message.id == "12345678-1234-5678-1234-567812345678"
+    assert message.id.root == "12345678-1234-5678-1234-567812345678"
     assert message.role == "user"
     assert message.content == "What is the capital of France?"
     
@@ -439,76 +437,96 @@ def test_metadata_extra_fields():
 
 def test_message_highlight_with_text():
     """Test creating a MessageHighlight with text."""
-    highlight = MessageHighlight.model_validate({
+    highlight_data = {
         "color": "rgba(255, 255, 0, 0.3)",
         "text": "important text"
-    })
+    }
+    highlight = MessageHighlight(root=highlight_data)
     
-    # Access the underlying model through .root
-    assert highlight.root.color == "rgba(255, 255, 0, 0.3)"
-    assert highlight.root.text == "important text"
+    # Access the underlying data through .root
+    assert highlight.root["color"] == "rgba(255, 255, 0, 0.3)"
+    assert highlight.root["text"] == "important text"
     
-    # This should be a MessageHighlight1 instance
-    assert isinstance(highlight.root, MessageHighlight1)
+    # Check that it has the expected keys
+    assert "color" in highlight.root
+    assert "text" in highlight.root
+    assert "startChar" not in highlight.root
+    assert "endChar" not in highlight.root
 
 
 def test_message_highlight_with_char_positions():
     """Test creating a MessageHighlight with character positions."""
-    highlight = MessageHighlight.model_validate({
+    highlight_data = {
         "color": "rgba(255, 0, 0, 0.3)",
         "startChar": 10,
         "endChar": 20
-    })
+    }
+    highlight = MessageHighlight(root=highlight_data)
     
-    # Access the underlying model through .root
-    assert highlight.root.color == "rgba(255, 0, 0, 0.3)"
-    assert highlight.root.startChar == 10
-    assert highlight.root.endChar == 20
+    # Access the underlying data through .root
+    assert highlight.root["color"] == "rgba(255, 0, 0, 0.3)"
+    assert highlight.root["startChar"] == 10
+    assert highlight.root["endChar"] == 20
     
-    # This should be a MessageHighlight2 instance
-    assert isinstance(highlight.root, MessageHighlight2)
+    # Check that it has the expected keys
+    assert "color" in highlight.root
+    assert "startChar" in highlight.root
+    assert "endChar" in highlight.root
+    assert "text" not in highlight.root
 
 
 def test_citation_creation():
     """Test creating a Citation."""
-    citation = Citation(
-        id="citation-12345678",
-        sourceIndex=0,
-        messageHighlight=MessageHighlight.model_validate({
+    citation_data = {
+        "id": "citation-12345678",
+        "sourceIndex": 0,
+        "messageHighlight": {
             "color": "rgba(255, 255, 0, 0.3)",
             "text": "cited text"
-        }),
-        sourceHighlight=PDFHighlight(
-            page=1,
-            rect=Rect(top=10, left=20, width=100, height=50),
-            highlightColorRgba="rgba(255, 255, 0, 0.3)"
-        )
-    )
+        },
+        "sourceHighlight": {
+            "page": 1,
+            "rect": {
+                "top": 10,
+                "left": 20,
+                "width": 100,
+                "height": 50
+            },
+            "highlightColorRgba": "rgba(255, 255, 0, 0.3)"
+        }
+    }
+    citation = Citation(root=citation_data)
     
-    assert citation.id == "citation-12345678"
-    assert citation.sourceIndex == 0
-    assert citation.messageHighlight.root.color == "rgba(255, 255, 0, 0.3)"
-    assert citation.messageHighlight.root.text == "cited text"
-    assert citation.sourceHighlight.page == 1
-    assert citation.sourceHighlight.rect.top == 10
+    assert citation.root["id"] == "citation-12345678"
+    assert citation.root["sourceIndex"] == 0
+    assert citation.root["messageHighlight"]["color"] == "rgba(255, 255, 0, 0.3)"
+    assert citation.root["messageHighlight"]["text"] == "cited text"
+    assert citation.root["sourceHighlight"]["page"] == 1
+    assert citation.root["sourceHighlight"]["rect"]["top"] == 10
 
 
 def test_citation_serialization_deserialization():
     """Test serializing and deserializing a Citation."""
     # Create a citation
-    citation = Citation(
-        id="citation-12345678",
-        sourceIndex=0,
-        messageHighlight=MessageHighlight.model_validate({
+    citation_data = {
+        "id": "citation-12345678",
+        "sourceIndex": 0,
+        "messageHighlight": {
             "color": "rgba(255, 255, 0, 0.3)",
             "text": "cited text"
-        }),
-        sourceHighlight=PDFHighlight(
-            page=1,
-            rect=Rect(top=10, left=20, width=100, height=50),
-            highlightColorRgba="rgba(255, 255, 0, 0.3)"
-        )
-    )
+        },
+        "sourceHighlight": {
+            "page": 1,
+            "rect": {
+                "top": 10,
+                "left": 20,
+                "width": 100,
+                "height": 50
+            },
+            "highlightColorRgba": "rgba(255, 255, 0, 0.3)"
+        }
+    }
+    citation = Citation(root=citation_data)
     
     # Serialize to JSON
     json_data = citation.model_dump_json()
@@ -517,29 +535,35 @@ def test_citation_serialization_deserialization():
     deserialized_citation = Citation.model_validate_json(json_data)
     
     # Verify the deserialized citation matches the original
-    assert deserialized_citation.id == citation.id
-    assert deserialized_citation.sourceIndex == citation.sourceIndex
-    assert deserialized_citation.messageHighlight.root.color == citation.messageHighlight.root.color
-    assert deserialized_citation.messageHighlight.root.text == citation.messageHighlight.root.text
-    assert deserialized_citation.sourceHighlight.page == citation.sourceHighlight.page
-    assert deserialized_citation.sourceHighlight.rect.top == citation.sourceHighlight.rect.top
+    assert deserialized_citation.root["id"] == citation.root["id"]
+    assert deserialized_citation.root["sourceIndex"] == citation.root["sourceIndex"]
+    assert deserialized_citation.root["messageHighlight"]["color"] == citation.root["messageHighlight"]["color"]
+    assert deserialized_citation.root["messageHighlight"]["text"] == citation.root["messageHighlight"]["text"]
+    assert deserialized_citation.root["sourceHighlight"]["page"] == citation.root["sourceHighlight"]["page"]
+    assert deserialized_citation.root["sourceHighlight"]["rect"]["top"] == citation.root["sourceHighlight"]["rect"]["top"]
 
 
 def test_stream_chunk_with_citations():
     """Test creating a StreamChunk with citations."""
-    citation = Citation(
-        id="citation-12345678",
-        sourceIndex=0,
-        messageHighlight=MessageHighlight.model_validate({
+    citation_data = {
+        "id": "citation-12345678",
+        "sourceIndex": 0,
+        "messageHighlight": {
             "color": "rgba(255, 255, 0, 0.3)",
             "text": "cited text"
-        }),
-        sourceHighlight=PDFHighlight(
-            page=1,
-            rect=Rect(top=10, left=20, width=100, height=50),
-            highlightColorRgba="rgba(255, 255, 0, 0.3)"
-        )
-    )
+        },
+        "sourceHighlight": {
+            "page": 1,
+            "rect": {
+                "top": 10,
+                "left": 20,
+                "width": 100,
+                "height": 50
+            },
+            "highlightColorRgba": "rgba(255, 255, 0, 0.3)"
+        }
+    }
+    citation = Citation(root=citation_data)
     
     chunk = StreamChunk(
         content="Response with citation",
@@ -549,22 +573,24 @@ def test_stream_chunk_with_citations():
     
     assert chunk.content == "Response with citation"
     assert len(chunk.citations) == 1
-    assert chunk.citations[0].id == "citation-12345678"
+    assert chunk.citations[0].root["id"] == "citation-12345678"
     assert chunk.done is True
 
 
 def test_message_with_highlights():
     """Test creating a Message with highlights."""
-    highlight1 = MessageHighlight.model_validate({
+    highlight1_data = {
         "color": "rgba(255, 255, 0, 0.3)",
         "text": "important"
-    })
+    }
+    highlight1 = MessageHighlight(root=highlight1_data)
     
-    highlight2 = MessageHighlight.model_validate({
+    highlight2_data = {
         "color": "rgba(0, 0, 255, 0.3)",
         "startChar": 20,
         "endChar": 30
-    })
+    }
+    highlight2 = MessageHighlight(root=highlight2_data)
     
     message = Message(
         id="12345678-1234-5678-1234-567812345678",
@@ -573,12 +599,12 @@ def test_message_with_highlights():
         highlights=[highlight1, highlight2]
     )
     
-    assert message.id == "12345678-1234-5678-1234-567812345678"
+    assert message.id.root == "12345678-1234-5678-1234-567812345678"
     assert message.role == "assistant"
     assert message.content == "This is an important message with some highlighted text."
     assert len(message.highlights) == 2
-    assert message.highlights[0].root.color == "rgba(255, 255, 0, 0.3)"
-    assert message.highlights[0].root.text == "important"
-    assert message.highlights[1].root.color == "rgba(0, 0, 255, 0.3)"
-    assert message.highlights[1].root.startChar == 20
-    assert message.highlights[1].root.endChar == 30
+    assert message.highlights[0].root["color"] == "rgba(255, 255, 0, 0.3)"
+    assert message.highlights[0].root["text"] == "important"
+    assert message.highlights[1].root["color"] == "rgba(0, 0, 255, 0.3)"
+    assert message.highlights[1].root["startChar"] == 20
+    assert message.highlights[1].root["endChar"] == 30

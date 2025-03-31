@@ -4,8 +4,6 @@
     "Source",
     "StreamChunk",
     "PDFHighlight",
-    "UUID",
-    "Citation",
-    "MessageHighlight"
+    "UUID"
   ]
 }
