@@ -299,7 +299,7 @@ export const findFlexibleTextRanges = (textNodes: Text[], textToFind: string, ma
             ranges.push(range);
         }
     } else {
-        console.log(`No match found at threshold ${matchThreshold}. Best match score: ${bestMatchScore}`);
+        // console.log(`No match found at threshold ${matchThreshold}. Best match score: ${bestMatchScore}`);
     }
     
     return ranges;
@@ -475,7 +475,7 @@ export const findAndHighlightText = (
             const ranges = findFlexibleTextRanges(listItemTextNodes, textToFind, threshold);
             
             if (ranges.length > 0) {
-                console.log(`Found list item match for highlight ${highlightIndex} at threshold: ${threshold}`);
+                // console.log(`Found list item match for highlight ${highlightIndex} at threshold: ${threshold}`);
                 return createHighlightOverlays(container, ranges, highlightColor, highlightIndex, citationId, existingRanges);
             }
         }
@@ -486,7 +486,7 @@ export const findAndHighlightText = (
         const ranges = findFlexibleTextRanges(textNodes, textToFind, threshold);
         
         if (ranges.length > 0) {
-            console.log(`Found match for highlight ${highlightIndex} at threshold: ${threshold}`);
+            // console.log(`Found match for highlight ${highlightIndex} at threshold: ${threshold}`);
             return createHighlightOverlays(container, ranges, highlightColor, highlightIndex, citationId, existingRanges);
         }
     }
@@ -500,7 +500,7 @@ export const findAndHighlightText = (
         .map(word => word.toLowerCase());
         
     if (keyWords.length > 0) {
-        console.log(`Trying keyword matching for highlight ${highlightIndex} with:`, keyWords);
+        // console.log(`Trying keyword matching for highlight ${highlightIndex} with:`, keyWords);
         
         // Find the node that contains the most key words
         let bestNode = null;
@@ -523,7 +523,7 @@ export const findAndHighlightText = (
         }
         
         if (bestNode && bestKeywordCount > 0) {
-            console.log(`Found node with ${bestKeywordCount} keywords for highlight ${highlightIndex}`);
+            // console.log(`Found node with ${bestKeywordCount} keywords for highlight ${highlightIndex}`);
             const range = document.createRange();
             range.selectNode(bestNode);
             

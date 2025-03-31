@@ -619,6 +619,9 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
                 return;
             }
             
+            // Get existing citations to check for duplicates
+            const existingCitations = get(citationsAtom);
+            
             // Add sourceId and unique id to each citation
             const enhancedCitations = citationsData.map(citation => {
                 // Start with a base citation object
@@ -639,10 +642,24 @@ const setSelectedSourceAtom = atom(null, async (get, set, { action, response }: 
                 } as Citation;
             });
             
-            // Store citations in the dedicated atom (append to existing)
-            set(citationsAtom, [...get(citationsAtom), ...enhancedCitations]);
+            // Filter out any citations that might be duplicates
+            // A citation is considered a duplicate if it has the same sourceId, messageId, and sourceHighlight
+            const newCitations = enhancedCitations.filter(newCitation => {
+                return !existingCitations.some(existingCitation => 
+                    existingCitation.sourceId === newCitation.sourceId &&
+                    existingCitation.messageId === newCitation.messageId &&
+                    JSON.stringify(existingCitation.sourceHighlight) === JSON.stringify(newCitation.sourceHighlight)
+                );
+            });
             
-            return enhancedCitations;
+            if (newCitations.length !== enhancedCitations.length) {
+                console.warn(`Filtered out ${enhancedCitations.length - newCitations.length} duplicate citations`);
+            }
+            
+            // Store only new citations in the dedicated atom (append to existing)
+            set(citationsAtom, [...existingCitations, ...newCitations]);
+            
+            return newCitations;
         } catch (error) {
             console.error('Failed to process citations for source:', error);
             throw error;
@@ -780,13 +797,13 @@ export const dispatchAtom = atom(
             }
             // ---- Fetch additional data for certain actions ---
             if (action.type === 'SET_SELECTED_SOURCE') {
-                const source = get(retrievedSourcesAtom).find(source => source.id === action.sourceId);
+                const source = get(_retrievedSourcesAtom).find(source => source.id === action.sourceId);
                 if (source) {
                     action.sourceObject = source;
                 }
             }
 
-            const retrievedSources = get(retrievedSourcesAtom);
+            const retrievedSources = get(_retrievedSourcesAtom);
 
             // const activeSourcesIds = get(activeSourcesIdsAtom);
 
