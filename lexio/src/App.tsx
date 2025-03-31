@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ChatWindow,
   LexioProvider,
@@ -144,6 +144,8 @@ const MOCKED_SOURCES = [{
 }];
 
 function App() {
+  // Add state to track the last processed message ID
+  const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | undefined>(undefined);
 
   const contentSourceOptions = useMemo(() => ({
     buildFetchRequest: (_source: Source) => ({
@@ -197,6 +199,7 @@ function App() {
         // Process citations based on mocked data for now
         citations: Promise.resolve().then(async () => {
           try {
+            /* 
             // Mock some citations for demonstration
             const mockCitations = [
               {
@@ -253,9 +256,14 @@ function App() {
             ] as Omit<Citation, 'id'>[];
             
             return mockCitations;
+            */
             
-            /* 
-            // COMMENTED OUT: ExplanationProcessor implementation for future use
+            // Check if we've already processed this message
+            if (lastMessageId && lastMessageId === lastProcessedMessageId) {
+              console.log('Skipping explanation processing - message already processed');
+              return []; // Return empty array as citations are already displayed
+            }
+            
             // Start the full processing in the background
             const sourceWithData = await sourceDataPromise;
             const data = sourceWithData.data;
@@ -297,9 +305,14 @@ function App() {
 
             console.log('Explanation result:', explanationResult);
             
+            // Update the last processed message ID
+            if (lastMessageId) {
+              setLastProcessedMessageId(lastMessageId);
+            }
+            
             // Map explanation result to citations
             return mapExplanationResultToCitations(explanationResult, action.sourceId, lastMessageId);
-            */
+            
           } catch (error) {
             console.error("Error processing citations:", error);
             // Return empty citations array if there's an error
@@ -323,7 +336,7 @@ function App() {
       };
     }
 
-  }, [contentSource]);
+  }, [contentSource, lastProcessedMessageId]);
 
   return (
     <div className="app-container">
@@ -399,8 +412,6 @@ function App() {
   );
 }
 
-/* 
-// COMMENTED OUT: Helper function for future use
 // Helper function to map explanation result to citations
 function mapExplanationResultToCitations(explanationResult, sourceId, messageId) {
   if (!explanationResult.ideaSources || !explanationResult.ideaSources.length) {
@@ -447,6 +458,5 @@ function mapExplanationResultToCitations(explanationResult, sourceId, messageId)
     }
   }] as Omit<Citation, 'id'>[];
 }
-*/
 
 export default App;
