@@ -6,6 +6,11 @@
  * @property {object} [timeouts] - Optional timeout configuration settings
  * @property {number} [timeouts.stream] - Timeout between stream chunks in milliseconds
  * @property {number} [timeouts.request] - Overall request timeout in milliseconds
+ * @property {string} OPENAI_API_KEY - OpenAI API key (required)
+ * @property {string} [OPENAI_ENDPOINT="https://api.openai.com/v1"] - OpenAI API endpoint
+ * @property {"llm" | "heuristic"} [ideaSplittingMethod="llm"] - Method to split ideas:
+ *   - "llm": More accurate but uses API calls
+ *   - "heuristic": Faster and free, but less accurate
  */
 export interface ProviderConfig {
   timeouts?: {
@@ -15,6 +20,7 @@ export interface ProviderConfig {
   llms?: {
     OPENAI_API_KEY?: string;
     OPENAI_ENDPOINT?: string;
+    ideaSplittingMethod?: "llm" | "heuristic";
   }
 }
 
