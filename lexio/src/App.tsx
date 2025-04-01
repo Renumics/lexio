@@ -417,19 +417,31 @@ function App() {
   );
 }
 
+// Helper function to generate evenly distributed colors using HSL
+const generateHighlightColors = (count: number): { solid: string, transparent: string }[] => {
+  return Array.from({ length: count }, (_, i) => {
+    const hue = (i * 360) / count;
+    // Using higher saturation (80%) and lightness (60%) for better visibility
+    return {
+      solid: `hsl(${hue}, 80%, 60%)`,
+      transparent: `hsla(${hue}, 80%, 60%, 0.3)`
+    };
+  });
+};
+
 // Helper function to map explanation result to citations
 function mapExplanationResultToCitations(explanationResult, sourceId, messageId) {
   if (!explanationResult.ideaSources || !explanationResult.ideaSources.length) {
     return [];
   }
   
-  // Generate a color palette for different ideas
-  const colors = ['#ffeb3b', '#4caf50', '#2196f3', '#9c27b0', '#f44336', '#ff9800'];
+  // Generate colors for the number of ideas we have
+  const colors = generateHighlightColors(explanationResult.ideaSources.length);
   
   // Map each idea source to citations
   const processedCitations = explanationResult.ideaSources.flatMap((ideaSource, ideaIndex) => {
-    // Get color for this idea
-    const color = colors[ideaIndex % colors.length] + '80'; // Add 50% opacity
+    // Get color pair for this idea
+    const colorPair = colors[ideaIndex];
     
     // Map each supporting evidence to a citation
     return ideaSource.supporting_evidence
@@ -438,12 +450,13 @@ function mapExplanationResultToCitations(explanationResult, sourceId, messageId)
         sourceId: sourceId,
         messageId: messageId, // Add reference to the message
         messageHighlight: {
-          text: ideaSource.answer_idea
+          text: ideaSource.answer_idea,
+          color: colorPair.solid // Use solid color for message highlight
         },
         sourceHighlight: {
           page: evidence.highlight.page,
           rect: evidence.highlight.rect,
-          highlightColorRgba: color
+          highlightColorRgba: colorPair.transparent // Use transparent color for PDF highlight
         }
       }));
   });

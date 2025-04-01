@@ -482,6 +482,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                                 scale={scale}
                                 rotate={rotate}
                                 canvasDimensions={canvasDimensions}
+                                highlightColorRgba={highlight.highlightColorRgba}
                             />
                         ))}
                     </div>
