@@ -3,7 +3,6 @@ import {
     FC,
     forwardRef,
     Ref,
-    RefObject,
     useEffect,
     useImperativeHandle,
     useMemo,
@@ -28,7 +27,7 @@ import {
     calculateWidthOfColumn,
     calculateWidthOfFirstColumn,
     CellContent,
-    // DEFAULT_COLUMN_WIDTH,
+    DEFAULT_COLUMN_WIDTH,
     highlightCells,
     isCellInRange,
     sortSpreadsheetRange,
@@ -166,8 +165,8 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
     //we are using a slightly different virtualization strategy for columns (compared to virtual rows) in order to support dynamic row heights
     const columnVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableCellElement>({
         count: columns.length,
-        estimateSize: (index: number) => table.getVisibleLeafColumns()[index].getSize(), //estimate width of each column for accurate scrollbar dragging
-        // estimateSize: () => DEFAULT_COLUMN_WIDTH,
+        // estimateSize: (index: number) => table.getVisibleLeafColumns()[index].getSize(), //estimate width of each column for accurate scrollbar dragging
+        estimateSize: () => DEFAULT_COLUMN_WIDTH,
         getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
         horizontal: true,
         overscan: 5, //how many columns to render on each side off screen each way (adjust this for performance)
@@ -352,16 +351,11 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                     selectedCell={props.selectedCell}
                     selectedHeaderCells={selectedHeaderCells}
                     selectedHeaderRowCells={selectedHeaderRowCells}
-                    tableContainerRef={tableContainerRef}
                     virtualPaddingLeft={virtualPaddingLeft}
                     virtualPaddingRight={virtualPaddingRight}
                     selectedSheetName={selectedSheetName}
                     // @ts-ignore
                     handleCellSelection={handleCellClick}
-                    cellsStyles={props.cellsStyles ?? {}}
-                    headerStyles={props.headerStyles ?? {}}
-                    rowStyles={props.rowStyles ?? {}}
-                    mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
                     handleMouseUp={handleMouseUp}
                     handleMouseDown={handleMouseDown}
                     handleMouseEnter={handleMouseEnter}
@@ -547,14 +541,8 @@ type TableBodyProps<TData> = {
     selectedSheetName: string;
     selectedHeaderRowCells: number[];
     selectedHeaderCells: string[];
-    tableContainerRef: RefObject<HTMLDivElement>;
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
-    cellsStyles: Record<string, CSSProperties>;
-    headerStyles: Record<string, CSSProperties>;
-    rowStyles: Record<number, CSSProperties>;
-    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
-    // Events
     handleMouseDown: (cellAddress: string) => void;
     handleMouseEnter: (cellAddress: string) => void;
     handleCellSelection: (cell: Cell<TData, unknown>) => void;
@@ -567,17 +555,12 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
         columnVirtualizer,
         table,
         selectedCell,
-        // tableContainerRef,
         selectedSheetName,
         selectedHeaderRowCells,
         selectedHeaderCells,
         virtualPaddingLeft,
         virtualPaddingRight,
         handleCellSelection,
-        cellsStyles,
-        headerStyles,
-        rowStyles,
-        mergedGroupOfSelectedWorksheet,
         handleMouseUp,
         handleMouseDown,
         handleMouseEnter,
@@ -626,7 +609,6 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
                     key={row.id}
                     // @ts-ignore
                     row={row}
-                    rowCount={table.getRowCount()}
                     // @ts-ignore
                     handleCellClick={handleCellSelection}
                     selectedCell={selectedCell}
@@ -636,11 +618,7 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
                     virtualPaddingLeft={virtualPaddingLeft}
                     virtualPaddingRight={virtualPaddingRight}
                     virtualRow={virtualRow}
-                    cellsStyles={cellsStyles}
-                    headerStyles={headerStyles}
                     selectedSheetName={selectedSheetName}
-                    rowStyles={rowStyles}
-                    mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
                     handleMouseUp={handleMouseUp}
                     handleMouseDown={handleMouseDown}
                     handleMouseEnter={handleMouseEnter}
@@ -655,19 +633,12 @@ type TableBodyRowProps<TData> = {
     rowVirtualizer: Virtualizer<HTMLDivElement, HTMLTableRowElement>;
     columnVirtualizer: Virtualizer<HTMLDivElement, HTMLTableCellElement>;
     row: Row<TData>;
-    rowCount: number;
-    selectedCell?: SelectedCell | undefined;
     selectedSheetName: string;
     selectedHeaderRowCells: number[];
     selectedHeaderCells: string[];
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
     virtualRow: VirtualItem;
-    cellsStyles: Record<string, CSSProperties>;
-    headerStyles: Record<string, CSSProperties>;
-    rowStyles: Record<number, CSSProperties>;
-    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
-    // Events
     handleMouseDown: (cellAddress: string) => void;
     handleMouseEnter: (cellAddress: string) => void;
     handleCellClick: (cell: Cell<TData, unknown>) => void;
@@ -679,8 +650,6 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
         rowVirtualizer,
         columnVirtualizer,
         row,
-        rowCount,
-        // selectedCell,
         selectedHeaderRowCells,
         selectedSheetName,
         selectedHeaderCells,
@@ -688,10 +657,6 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
         virtualPaddingRight,
         virtualRow,
         handleCellClick,
-        cellsStyles,
-        headerStyles,
-        rowStyles,
-        mergedGroupOfSelectedWorksheet,
         handleMouseUp,
         handleMouseDown,
         handleMouseEnter,
@@ -744,21 +709,14 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                 // @ts-ignore
                 cell={cellOfFirstColumn}
                 key={cellOfFirstColumn.id}
-                rowCount={rowCount}
-                isLast={false}
                 isFirst={true}
                 isCellSelected={false}
                 selectedSheetName={selectedSheetName}
                 isFirstCellOfSelectedRow={(selectedHeaderRowCells.includes(cellOfFirstColumn.row.index)) ?? false}
                 // @ts-ignore
                 handleCellSelection={(cell) => handleCellClick(cell)}
-                cellsStyles={cellsStyles}
-                headerStyles={headerStyles}
-                rowStyles={rowStyles}
-                mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
-                shouldMerge={0 < visibleCells.length - 1 && cellOfFirstColumn.getValue() === visibleCells[1].getValue()}
             />
-            {virtualColumns.map((vc, cellIndex, array) => {
+            {virtualColumns.map((vc, cellIndex) => {
                 const cell = visibleCells[vc.index];
                 if (cell.column.id === "rowNo") return null;
                 return (
@@ -779,8 +737,6 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                         // @ts-ignore
                         cell={cell}
                         key={cell.id}
-                        rowCount={rowCount}
-                        isLast={cellIndex === array.length - 1}
                         isFirst={false}
                         isCellSelected={isCellSelected(cell, cellIndex)}
                         isHeaderCellSelected={selectedHeaderCells.includes(cell.column.id) && row.index === 0}
@@ -788,11 +744,6 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
                         selectedSheetName={selectedSheetName}
                         // @ts-ignore
                         handleCellSelection={(cell) => handleCellClick(cell)}
-                        cellsStyles={cellsStyles}
-                        headerStyles={headerStyles}
-                        rowStyles={rowStyles}
-                        mergedRangesOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
-                        shouldMerge={cellIndex < visibleCells.length - 1 && cell.getValue() === visibleCells[cellIndex].getValue()}
                         handleMouseUp={handleMouseUp}
                         handleMouseDown={handleMouseDown}
                         handleMouseEnter={handleMouseEnter}
@@ -810,18 +761,10 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
 type TableBodyCellProps<TData, TValue> = {
     cell: Cell<TData, TValue>;
     isFirst: boolean;
-    isLast: boolean;
     isFirstCellOfSelectedRow : boolean;
-    rowCount: number;
     isCellSelected: boolean;
     isHeaderCellSelected: boolean;
-    cellsStyles: Record<string, CSSProperties>;
-    headerStyles: Record<string, CSSProperties>;
-    rowStyles: Record<number, CSSProperties>;
-    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
-    shouldMerge: boolean;
     selectedSheetName: string;
-    // Events
     handleMouseUp?: () => void;
     handleMouseDown?: ((cellAddress: string) => void) | undefined;
     handleMouseEnter?: ((cellAddress: string) => void) | undefined;
@@ -835,17 +778,10 @@ const TableBodyCell = forwardRef(
     const {
         cell,
         isFirst,
-        // isLast,
         isCellSelected,
         isHeaderCellSelected,
-        // rowCount,
         isFirstCellOfSelectedRow,
         handleCellSelection,
-        // headerStyles,
-        // cellsStyles,
-        // rowStyles,
-        // mergedRangesOfSelectedWorksheet,
-        // shouldMerge,
         selectedSheetName,
         handleMouseUp,
         handleMouseDown,
