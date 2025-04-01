@@ -144,7 +144,7 @@ export type MessageWithOptionalId = Partial<Pick<Message, 'id'>> & Omit<Message,
  * @property {string} [href] - Optional link to the source
  * @property {string | Uint8Array} [data] - Optional content data of the source
  * @property {object} [metadata] - Optional metadata for the source
- * @property {PDFHighlight[]} [highlights] - Optional highlight annotations for PDF sources
+ * @property {PDFHighlight[] | SpreadsheetHighlight[]} [highlights] - Optional highlight annotations for PDF and Spreadsheet sources
  */
 export interface Source {
   readonly id: UUID;

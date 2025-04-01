@@ -345,7 +345,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       setEditorContent('');
       onChange?.('', []);
       adjustEditorHeight();
-      previousSourcesRef.current = sources;
+      previousSourcesRef.current = sources as Source[];
     }
   }, [sources, onChange, adjustEditorHeight, setActiveSources]);
 
@@ -361,7 +361,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     (source: Source) => {
       if (!editorRef.current || !cursorPosition) return;
       const sourceIndex = sources.findIndex(
-        s => getSourceId(s) === getSourceId(source)
+        s => getSourceId(s as Source) === getSourceId(source as Source)
       );
       if (sourceIndex === -1) return;
 
@@ -576,7 +576,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     if (e.key === 'Enter' && filteredSources.length > 0) {
       e.preventDefault();
       e.stopPropagation();
-      handleAddMention(filteredSources[selectedIndex]);
+      handleAddMention(filteredSources[selectedIndex] as Source);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex(prev =>
@@ -834,7 +834,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                           ? `1px solid ${addOpacity(style.borderColor || '#e5e7eb', 0.5)}`
                           : 'none',
                       }}
-                      onClick={() => handleAddMention(source)}
+                      onClick={() => handleAddMention(source as Source)}
                       onMouseEnter={() => setSelectedIndex(idx)}
                     >
                       <div className="flex flex-col max-w-full">

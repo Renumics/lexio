@@ -538,7 +538,7 @@ const searchSourcesAtom = atom(
             abortController.abort();
 
             // Roll back to the previous state.
-            set(_retrievedSourcesAtom, previousSources);
+            set(_retrievedSourcesAtom, previousSources as Source[]);
 
             // Store the error message in the global error state.
             set(
@@ -862,6 +862,7 @@ export const dispatchAtom = atom(
                     action,
                     get(completedMessagesAtom),
                     retrievedSources,
+                    // @ts-ignore
                     activeSources,
                     get(selectedSourceAtom)
                 )

@@ -82,7 +82,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
       <div className="w-full h-full overflow-hidden" style={style}>
         <FileViewerRenderer
             fileName={filename}
-            selectedSource={selectedSource}
+            selectedSource={selectedSource as Source}
         />
       </div>
   );
