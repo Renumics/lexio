@@ -45,7 +45,7 @@ export const MAX_TOKENS = 500;
 // Processing Configuration
 export const CONCURRENCY = 5;
 export const MAX_CHARS = 5000;
-export const IDEA_SPLITTING_METHOD = 'llm';
+export const IDEA_SPLITTING_METHOD = 'heuristic'; //'llm';
 export const FINAL_ANSWER = '';  // This will be overridden by App.tsx
 
 // Similarity Search Configuration

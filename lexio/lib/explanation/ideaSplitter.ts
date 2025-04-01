@@ -4,18 +4,73 @@ import { extractClauses } from './clause_extractor';
 
 /**
  * The simplest Heuristic-based splitting:
- * Splits on semicolons, colons, and further splits on the word "and" if the fragment is long.
+ * Splits text into meaningful ideas while preserving markdown structure and formatting.
  */
 export function splitIntoIdeasHeuristic(sentence: string): string[] {
-  // First split by semicolons and colons.
-  const parts = sentence.split(/;|:/);
+  // Store code blocks to preserve them
+  const codeBlocks: string[] = [];
+  let blockCounter = 0;
+  
+  // Replace code blocks with placeholders
+  const textWithPlaceholders = sentence.replace(/```[\s\S]*?```/g, (match) => {
+    const placeholder = `__CODE_BLOCK_${blockCounter}__`;
+    codeBlocks[blockCounter] = match;
+    blockCounter++;
+    return placeholder;
+  });
 
-  // Further split long parts by the conjunction "and" (this is a simple heuristic).
-  const furtherSplit = parts.flatMap(part =>
-    part.trim().length > 100 ? part.split(/\band\b/) : [part]
-  );
+  // Split the text into sections based on headers and major breaks
+  const sections = textWithPlaceholders
+    // First split on markdown headers (# or ## etc)
+    .split(/(?=(?:^|\n)#{1,6} )/g)
+    .flatMap(section => {
+      // For each section, split on double newlines (paragraph breaks)
+      return section.split(/\n\n+/).map(s => s.trim()).filter(Boolean);
+    });
 
-  return furtherSplit.map(p => p.trim()).filter(Boolean);
+  // Process each section to extract ideas
+  const ideas = sections.flatMap(section => {
+    // If it's a list, keep it as one unit unless very long
+    if (section.match(/^(?:[*-]|\d+\.)\s/m)) {
+      if (section.length > 200) {
+        // For long lists, split on list items but keep the markers
+        return section
+          .split(/(?=(?:^|\n)(?:[*-]|\d+\.)\s)/m)
+          .map(item => item.trim())
+          .filter(item => item.length > 0);
+      }
+      return [section];
+    }
+
+    // For normal text, split on sentence boundaries while preserving context
+    return section
+      .split(/(?<=[.!?])\s+(?=[A-Z])/g)
+      .map(sent => sent.trim())
+      .filter(sent => {
+        // Don't split if it's part of a common abbreviation
+        const commonAbbrev = /(?:Mr\.|Mrs\.|Dr\.|Prof\.|etc\.|e\.g\.|i\.e\.|vs\.|Fig\.|Eq\.|Sec\.)/i;
+        return sent.length > 0 && !commonAbbrev.test(sent);
+      });
+  });
+
+  // Restore code blocks and clean up
+  return ideas
+    .map(idea => {
+      let processed = idea.trim();
+      // Restore code blocks
+      codeBlocks.forEach((block, index) => {
+        processed = processed.replace(`__CODE_BLOCK_${index}__`, block);
+      });
+      return processed;
+    })
+    .filter(idea => {
+      // Enhanced filtering criteria
+      const meaningfulLength = idea.length > 15; // Increased minimum length
+      const hasLetters = /[a-zA-Z]/.test(idea);
+      const isNotJustPunctuation = !/^[^a-zA-Z0-9]*$/.test(idea);
+      const isNotPartialSentence = !idea.match(/^[a-z]/) || idea.match(/^[A-Z]/); // Should start with capital unless it's a code block
+      return meaningfulLength && hasLetters && isNotJustPunctuation && isNotPartialSentence;
+    });
 }
 
 /**
@@ -30,11 +85,6 @@ export async function splitIntoIdeasDependencyParsing(sentence: string): Promise
     console.error("Error in local dependency parsing splitting:", error);
     return [sentence];
   }
-}
-
-export interface IdeaWithSnippet {
-  full: string;
-  snippet: string;
 }
 
 /**
