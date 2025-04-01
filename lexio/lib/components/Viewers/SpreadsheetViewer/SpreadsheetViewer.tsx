@@ -1,12 +1,8 @@
 import {FC} from "react";
 import {useSpreadsheetViewerStore} from "./useSpreadsheetStore.tsx";
-// import {SpreadsheetTable} from "./SpreadsheetTable.tsx";
-// import {Cell} from "@tanstack/react-table";
-// import {CellContent} from "./utils";
 import {SpreadsheetSelection} from "./SpreadsheetSelection";
 import {LoaderCircle, Sigma} from "lucide-react";
 import ParentSizeObserver from "./ParentSizeObserver.tsx";
-// import { EyeOff, Eye } from "lucide-react";
 import {TableContainer} from "./RowAndColumnVirtualizer.tsx";
 import Tooltip from "./ui/Tooltip.tsx";
 import {SpreadsheetHighlight} from "../../../types.ts";
@@ -19,8 +15,6 @@ type Props = {
 }
 const SpreadsheetViewer: FC<Props> = (props) => {
     const { fileBufferArray, defaultSelectedSheet, rangesToHighlight } = props;
-
-    // const [showStyles, setShowStyles] = useState<boolean>(true);
 
     const {
         selectedWorksheetName,
@@ -120,15 +114,6 @@ const SpreadsheetViewer: FC<Props> = (props) => {
                         </Tooltip>
                     </div>
                 </div>
-                {/*<Tooltip*/}
-                {/*    tooltipContent={showStyles ? <div>Hide styles</div> : <div>Show styles</div>}*/}
-                {/*    onClick={() => setShowStyles((prev) => !prev)}*/}
-                {/*    className="flex gap-2 items-center text-xs cursor-pointer p-1.5 px-2 text-neutral-600 rounded-md"*/}
-                {/*>*/}
-                {/*    <div className="[&_svg]:size-5">*/}
-                {/*        {showStyles ? <EyeOff /> : <Eye />}*/}
-                {/*    </div>*/}
-                {/*</Tooltip>*/}
             </div>
             <div className="h-full w-full">
                 <div className="grid h-[inherit] w-full">

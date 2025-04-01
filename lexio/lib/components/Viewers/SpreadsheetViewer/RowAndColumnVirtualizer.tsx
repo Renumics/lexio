@@ -522,9 +522,9 @@ const TableHeadCell = <T, D>(props: TableHeadCellProps<T, D>) => {
                 borderLeft: isFirst ? "unset" : "1px solid #e5e7eb",
                 borderBottom: "1px solid #e5e7eb",
             }}
-            className={cn("py-2 w-full m-0 border-b border-r text-center bg-neutral-100 text-sm text-neutral-600 font-normal tracking-tight sticky left-0 top-[-1px] z-[10] select-none", {
-                "!font-bold !text-white !bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0": isSelected,
-            })}
+            className={cn("py-2 w-full m-0 border-b border-r text-center bg-neutral-100 text-sm text-neutral-600 font-normal tracking-tight sticky left-0 top-[-1px] z-[10] select-none",
+                `${isSelected ? "!font-bold !text-white !bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0" : ""}`,
+            )}
         >
             <div>
                 {flexRender(header.column.columnDef.header, header.getContext())}
@@ -837,10 +837,10 @@ const TableBodyCell = forwardRef(
                 } : {}),
             }}
             data-label={cell.column.columnDef.header}
-            className={cn({
-                "!bg-blue-500": isFirstCellOfSelectedRow,
-                "!bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0": isHeaderCellSelected,
-            })}
+            className={cn(
+                `${isFirstCellOfSelectedRow ? "!bg-blue-500" : ""}`,
+                `${isHeaderCellSelected ? "!bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0" : ""}`,
+            )}
             onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
             onMouseDown={handleMouseDown ? () => handleMouseDown(cellId) : undefined}
             onMouseEnter={handleMouseEnter ? () => handleMouseEnter(cellId) : undefined}
@@ -856,9 +856,9 @@ const TableBodyCell = forwardRef(
                     delete cellInnerContainerRefs.current[cellInnerContainerId];
                 }}
                 id={cellInnerContainerId}
-                className={cn({
-                    "border-[2px] !border-t-[2px] !border-b-[2px] !border-r-[2px] !border-l-[2px] !border-blue-500": isCellSelected,
-                })}
+                className={cn(
+                    `${isCellSelected ? "border-[2px] !border-t-[2px] !border-b-[2px] !border-r-[2px] !border-l-[2px] !border-blue-500" : ""}`,
+                )}
                 onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
                 style={{
                     // @ts-ignore
@@ -878,9 +878,9 @@ const TableBodyCell = forwardRef(
                         }}
                     >
                         <div
-                            className={cn({
-                                "!font-bold !text-white": isHeaderCellSelected || isFirstCellOfSelectedRow,
-                            })}
+                            className={cn(
+                                `${isHeaderCellSelected || isFirstCellOfSelectedRow ? "!font-bold !text-white" : ""}`,
+                            )}
                             style={{
                                 // @ts-ignore
                                 ...(cell.row.original[cellContentContainerId] ?? {}),

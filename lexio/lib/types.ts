@@ -162,16 +162,10 @@ export interface Source {
         _page?: number;
     };
     /**
-     * Highlight annotations in the PDF document. Only applicable for PDF sources.
-     * These highlights will be visually displayed in the PDF viewer.
+     * Highlight annotations in the PDF document and Microsoft Excel spreadsheet. Only applicable for PDF and Microsoft Excel sources.
+     * These highlights will be visually displayed in the PDF viewer and spreadsheet viewer.
      */
-    highlights?: PDFHighlight[];
-
-    /**
-     * Highlight ranges in the spreadsheet file. Only applicable for spreadsheet sources.
-     */
-    rangesHighlights?: SpreadsheetHighlight[];
-
+    highlights?: PDFHighlight[] | SpreadsheetHighlight[];
 }
 
 // ---- central state management types -----
@@ -311,33 +305,6 @@ export type ResetFilterSourcesAction = {
   type: 'RESET_FILTER_SOURCES';
   source: Component;
 };
-export interface PDFHighlight {
-    /**
-     * The page number where the highlight appears. Page numbers are 1-based.
-     */
-    page: number;
-    /**
-     * The rectangle coordinates of the highlight
-     */
-    rect: {
-        /**
-         * Top position of the highlight (relative to the page)
-         */
-        top: number;
-        /**
-         * Left position of the highlight (relative to the page)
-         */
-        left: number;
-        /**
-         * Width of the highlight (relative to the page width)
-         */
-        width: number;
-        /**
-         * Height of the highlight (relative to the page height)
-         */
-        height: number;
-    };
-}
 
 /**
  * Represents ranges to highlight on a sheet in a spreadsheet file.

@@ -5,7 +5,7 @@ import { MarkdownViewer } from "../Viewers/MarkdownViewer";
 import { useSources } from "../../hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import {SpreadsheetViewer} from "../Viewers/SpreadsheetViewer";
-import {Source} from "../../types.ts";
+import {PDFHighlight, Source, SpreadsheetHighlight} from "../../types.ts";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
@@ -54,7 +54,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
                                                    styleOverrides = {},
                                                    componentKey = undefined,
 }) => {
-  const { selectedSource, sources, selectedSourceId } = useSources(componentKey ? `ContentDisplay-${componentKey}` : 'ContentDisplay');
+  const { selectedSource } = useSources(componentKey ? `ContentDisplay-${componentKey}` : 'ContentDisplay');
 
   // use theme
   const theme = useContext(ThemeContext);
@@ -72,8 +72,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
     ...removeUndefined(styleOverrides),
   };
 
-  const source = selectedSourceId ? (sources.find((s) => s.id === selectedSourceId) ?? undefined) : undefined;
-  const filename = source?.title ?? "";
+  const filename = selectedSource?.title ?? "";
 
   if (!selectedSource) {
     return null;
@@ -107,7 +106,7 @@ const FileViewerRenderer: FC<PropsFileViewerRenderer> = (props) => {
         <PdfViewer
             data={selectedSource.data}
             page={page}
-            highlights={selectedSource.highlights}
+            highlights={selectedSource.highlights as PDFHighlight[]}
         />
     );
   }
@@ -129,14 +128,14 @@ const FileViewerRenderer: FC<PropsFileViewerRenderer> = (props) => {
       selectedSource.data &&
       selectedSource.data instanceof ArrayBuffer
   ) {
-    const {data, rangesHighlights} = selectedSource;
-    const defaultSheetName = rangesHighlights ? rangesHighlights[0].sheetName : undefined;
+    const {data, highlights} = selectedSource;
+    const defaultSheetName = highlights ? (highlights as SpreadsheetHighlight[])[0].sheetName : undefined;
 
     return (
         <SpreadsheetViewer
             fileName={fileName}
             fileBufferArray={data as ArrayBuffer}
-            rangesToHighlight={rangesHighlights}
+            rangesToHighlight={highlights as SpreadsheetHighlight[]}
             defaultSelectedSheet={defaultSheetName}
         />
     )

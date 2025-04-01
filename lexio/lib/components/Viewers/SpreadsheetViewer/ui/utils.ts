@@ -1,5 +1,10 @@
-import { clsx, type ClassValue } from "clsx"
+type ClassValue = ClassArray | ClassDictionary | string | number | bigint | null | boolean | undefined;
+type ClassDictionary = Record<string, unknown>;
+type ClassArray = ClassValue[];
 
 export const cn = (...inputs: ClassValue[]) => {
-    return clsx(inputs);
+    return inputs
+        .filter(Boolean)
+        .join(" ")
+        .trim();
 }

@@ -770,68 +770,6 @@ const getStyleOfWorksheet = (worksheet: ExcelJsWorksheet): WorksheetStyle => {
     }
 }
 
-// export const mergeCells = (
-//     merges: MergedRange[],
-//     cellRefs: Record<string, HTMLTableCellElement>,
-//     onCellMergeDone?: (() => void) | undefined,
-// ) => {
-//     if (merges.length === 0) return;
-//
-//     console.log("merges: ", merges);
-//     const rowsModified: number[] = [];
-//     const cellsModified: string[] = [];
-//
-//     merges.forEach((merge) => {
-//         const firstCellOfRange = `${merge.start.column}${merge.start.row}`;
-//         const lastCellOfRange = `${merge.end.column}${merge.end.row}`;
-//
-//         if (!firstCellOfRange || !lastCellOfRange) {
-//             console.warn("Invalid merge range. No cells found.");
-//             return;
-//         }
-//
-//         Object.entries(cellRefs).forEach(([cellAddress, cellRef]) => {
-//             if (!cellRef) return;
-//             const cellComponent = extractCellComponent(cellAddress);
-//             if (!cellComponent) return;
-//             if (merge.start.row !== cellComponent.row || merge.end.row !== cellComponent.row) return;
-//
-//             const isInRange = isCellInRange(cellComponent?.row, cellComponent.column, [firstCellOfRange, lastCellOfRange]);
-//
-//             if (!isInRange) return;
-//
-//             if (cellAddress === firstCellOfRange) {
-//                 rowsModified.push(cellComponent.row)
-//                 cellsModified.push(cellAddress);
-//                 const nextCell = cellRefs[`${utils.encode_col(utils.decode_col(cellComponent.column) + 1)}${cellComponent.row}`];
-//
-//                 console.log("Current cell: ", cellAddress);
-//
-//                 if (!nextCell) {
-//                     console.log("Next cell not found.");
-//                     return;
-//                 }
-//                 cellRef.style.setProperty(
-//                     "width",
-//                     `${Number(cellRef.style.width.split("px")[0]) + Number(nextCell.style.width.split("px")[0])}px`,
-//                     "important",
-//                 );
-//
-//                 nextCell.style.setProperty("display", "none", "important");
-//             }
-//         })
-//     });
-//
-//     console.log("rowsModified: ", rowsModified);
-//     console.log("cellsModified: ", cellsModified);
-//
-//     if (onCellMergeDone) {
-//         if (rowsModified.length > 0 || cellsModified.length > 0) {
-//             onCellMergeDone();
-//         }
-//     }
-// };
-
 export const mergeCells = (
     merges: MergedRange[],
     cellRefs: Record<string, HTMLTableCellElement>,
