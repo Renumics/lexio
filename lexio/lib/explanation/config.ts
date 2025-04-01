@@ -88,7 +88,7 @@ export default {
         request: DEFAULT_REQUEST_TIMEOUT
     },
     llms: {
-        OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+        OPENAI_API_KEY: import.meta.env.VITE_OPENAI_API_KEY || '',
         OPENAI_ENDPOINT: DEFAULT_OPENAI_ENDPOINT,
         ideaSplittingMethod: IDEA_SPLITTING_METHOD as "llm" | "heuristic"
     }
