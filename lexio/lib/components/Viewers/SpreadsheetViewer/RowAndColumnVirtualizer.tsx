@@ -179,12 +179,12 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                     selectedSheetName,
                     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
                 );
-                highlightCells(
-                    // @ts-ignore
-                    table.getRowModel().rows,
-                    rangesToSelect,
-                    cellAndInnerCellContainerRefs.current.cellRefs as Record<string, (HTMLTableCellElement | null)>,
-                );
+                // highlightCells(
+                //     // @ts-ignore
+                //     table.getRowModel().rows,
+                //     rangesToSelect,
+                //     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, (HTMLTableCellElement | null)>,
+                // );
             }
 
         },
@@ -201,7 +201,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
             navigator.userAgent.indexOf("Firefox") === -1
                 ? element => element?.getBoundingClientRect().height
                 : undefined,
-        overscan: 2,
+        overscan: 5,
         onChange: () => {
             // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
             // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
@@ -211,12 +211,12 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                     selectedSheetName,
                     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
                 );
-                highlightCells(
-                    // @ts-ignore
-                    table.getRowModel().rows,
-                    rangesToSelect,
-                    cellAndInnerCellContainerRefs.current.cellRefs as Record<string, (HTMLTableCellElement | null)>,
-                );
+                // highlightCells(
+                //     // @ts-ignore
+                //     table.getRowModel().rows,
+                //     rangesToSelect,
+                //     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, (HTMLTableCellElement | null)>,
+                // );
             }
         },
     });
