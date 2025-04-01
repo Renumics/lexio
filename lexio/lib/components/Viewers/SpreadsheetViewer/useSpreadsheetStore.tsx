@@ -501,7 +501,7 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                         margin: "0",
                         padding: "0",
                         position: "absolute",
-                        borderWidth: "2px",
+                        borderWidth: "0px",
                         borderColor: "transparent",
                         backgroundColor: getCellStyle(rowIndex, columnKey, cellStyles)?.backgroundColor,
                     },
