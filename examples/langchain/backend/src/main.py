@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List
+from typing import List, Optional, Any
 
 import uvicorn
 from dotenv import load_dotenv
@@ -15,7 +15,7 @@ import mimetypes
 import os.path
 
 # We import the necessary classes from lexio to interact with the frontend
-from lexio import SourceReference, RetrievalResult, Message
+# todo
 
 from src.indexing import DocumentIndexer
 from src.utils import convert_bboxes_to_highlights
@@ -36,17 +36,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-class MessageHistory(BaseModel):
-    """A model representing a chat conversation history.
-
-    Attributes:
-        messages: List of chat messages in chronological order
-    """
-
-    messages: List[Message]
-
 
 # Initialize components
 indexer = DocumentIndexer()
@@ -86,41 +75,80 @@ def format_docs(docs) -> str:
     return "\n\n".join(f"Document: {doc.page_content}" for doc in docs)
 
 
-@app.get("/retrieve")
-async def retrieve(query: str = Query(...)) -> List[RetrievalResult]:
-    """Retrieve relevant documents for a query."""
-    try:
-        results = db.similarity_search_with_score(query, k=4)
+# todo: replace with python/lexio types
+class Message(BaseModel):
+    role: str
+    content: str
 
-        retrieval_results = []
+class Source(BaseModel):
+    title: str
+    description: str
+    type: str
+    relevance: Optional[float] = None
+    metadata: Optional[object] = None
+    data: Optional[object] = None
+    highlights: Optional[List[Any]] = []
+
+class RequestBody(BaseModel):
+    message: str
+    messages: Optional[List[Message]] = []
+    sources: Optional[List[Source]] = []
+    activeSources: Optional[List[Source]] = []
+    selectedSource: Optional[Source] = None
+
+
+@app.get("/search")
+async def on_message(query: str = Query(None, description="Search query string"), k: int = Query(5, ge=1, description="Number of sources to retrieve")):
+    if not query:
+        raise HTTPException(status_code=400, detail="No query string provided.")
+
+    # Retrieve relevant documents
+    retrieval_results = []
+    retrieval_docs = []
+    try:
+        results = db.similarity_search_with_score(query, k=k)
         for doc, score in results:
             metadata = doc.metadata
             source = metadata.get("source", "unknown.pdf")
             page = metadata.get("page", 0) + 1
             highlights = convert_bboxes_to_highlights(page, metadata.get("text_bboxes", []))
 
-            result = SourceReference(
-                sourceReference=source.replace("data/", ""),
+            result = Source(
+                title=source.replace("data/", "").split(".")[0],
+                description=doc.page_content,
                 type="pdf",
-                metadata={"page": page},
-                relevanceScore=score,
+                relevance=score,
+                metadata={
+                    "page": page,
+                    "file": source.replace("data/", ""),
+                    "_href": f"sources/{source.replace('data/', '')}"
+                },
                 highlights=[h.model_dump() for h in highlights]
             )
             retrieval_results.append(result)
+            retrieval_docs.append(doc)
 
-        return retrieval_results
     except Exception as e:
         print(f"Error in retrieve: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+    return retrieval_results
 
-@app.get("/retrieve-and-generate")
-async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceResponse:
-    try:
-        message_history = MessageHistory.model_validate_json(messages)
-        query = message_history.messages[-1].content if message_history.messages else ""
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
+
+# todo: implement this endpoint -> add some logic to the on-message endpoint
+@app.post("/on-message")
+async def on_message(request: RequestBody) -> EventSourceResponse:
+    body = request.model_dump()
+    query = body.get("message")
+    message_history = body.get("messages")
+
+    # todo: use sources in workflow - create a tool workflow to either
+    #  search the db,
+    #  look into existing sources (also active and selected),
+    #  check if the answer can be answered with existing sources -> re-retrieve
+    sources = body.get("sources")
+    active_sources = body.get("activeSources")
+    selected_source = body.get("selectedSource")
 
     # Retrieve relevant documents
     retrieval_results = []
@@ -133,11 +161,16 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
             page = metadata.get("page", 0) + 1
             highlights = convert_bboxes_to_highlights(page, metadata.get("text_bboxes", []))
 
-            result = SourceReference(
-                sourceReference=source.replace("data/", ""),
+            result = Source(
+                title=source.replace("data/", "").split(".")[0],
+                description=doc.page_content,
                 type="pdf",
-                metadata={"page": page + 1},
-                relevanceScore=score,
+                relevance=score,
+                metadata={
+                    "page": page,
+                    "file": source.replace("data/", ""),
+                    "_href": f"sources/{source.replace('data/', '')}"
+                },
                 highlights=[h.model_dump() for h in highlights]
             )
             retrieval_results.append(result)
@@ -151,12 +184,12 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
     formatted_context = format_docs(retrieval_docs)
     formatted_prompt = prompt.format(
         context=formatted_context,
-        history="\n".join([f"{msg.role}: {msg.content}" for msg in message_history.messages[:-1]]),
+        history="\n".join([f"{msg['role']}: {msg['content']}" for msg in message_history]),
         input=query
     )
 
     async def stream():
-        # Yield the retrieval results first
+        # First yield the retrieval results
         yield {
             "data": json.dumps({
                 # We exclude Optional fields since we do not expect them in the frontend if missing
@@ -164,42 +197,12 @@ async def retrieve_and_generate(messages: str = Query(...)) -> EventSourceRespon
             })
         }
 
-        # Then yield the generated text
+        # Then stream the LLM response
         async for chunk in llm.astream(formatted_prompt):
-            # Convert AIMessageChunk to string before serialization,
-            # see https://python.langchain.com/v0.1/docs/expression_language/streaming/
             chunk_text = chunk.content if hasattr(chunk, 'content') else str(chunk)
             yield {"data": json.dumps({"content": chunk_text, "done": False})}
 
-        # Add a final chunk to indicate the end of the stream
-        yield {"data": json.dumps({"content": "", "done": True})}
-
-    return EventSourceResponse(stream())
-
-
-@app.get("/generate")
-async def generate_text(messages: str = Query(...)) -> EventSourceResponse:
-    try:
-        message_history = MessageHistory.model_validate_json(messages)
-        query = message_history.messages[-1].content if message_history.messages else ""
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
-
-    formatted_context = format_docs([])  # Placeholder for actual document retrieval logic
-    formatted_prompt = prompt.format(
-        context=formatted_context,
-        history="\n".join([f"{msg.role}: {msg.content}" for msg in message_history.messages[:-1]]),
-        input=query
-    )
-
-    async def stream():
-        async for chunk in llm.astream(formatted_prompt):
-            # Convert AIMessageChunk to string before serialization,
-            # see https://python.langchain.com/v0.1/docs/expression_language/streaming/
-            chunk_text = chunk.content if hasattr(chunk, 'content') else str(chunk)
-            yield {"data": json.dumps({"content": chunk_text, "done": False})}
-
-        # Add a final chunk to indicate the end of the stream
+        # Signal completion
         yield {"data": json.dumps({"content": "", "done": True})}
 
     return EventSourceResponse(stream())

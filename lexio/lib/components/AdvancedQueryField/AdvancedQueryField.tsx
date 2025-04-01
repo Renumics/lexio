@@ -16,6 +16,7 @@ import {
 } from '@floating-ui/react';
 import ReactDOM from 'react-dom';
 import useResizeObserver from '@react-hook/resize-observer';
+import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
 
 import {
   useSources,
@@ -26,6 +27,7 @@ import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import { Source } from '../../types.ts';
 import { UUID } from "../../types.ts";
+import { addOpacity, scaleFontSize } from '../../utils/scaleFontSize';
 
 /**
  * Styles interface for the AdvancedQueryField component
@@ -172,6 +174,12 @@ interface AdvancedQueryFieldProps {
    * Style overrides for the component
    */
   styleOverrides?: AdvancedQueryFieldStyles;
+  
+  /**
+   * Whether to show the "New Chat" button
+   * @default true
+   */
+  showNewChatButton?: boolean;
 }
 
 /**
@@ -215,7 +223,8 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   onChange,
   placeholder = 'Type @ to mention a source...',
   disabled = false,
-  styleOverrides = {}
+  styleOverrides = {},
+  showNewChatButton = true
 }) => {
   // Theme-based styling
   const theme = React.useContext(ThemeContext);
@@ -234,8 +243,8 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
     fontSize: typography.fontSizeBase,
     borderColor: '#e5e7eb',
     borderRadius: componentDefaults.borderRadius,
-    mentionChipBackground: '#bee3f8', // Light blue default // todo: check if using contrast makes sense
-    mentionChipColor: '#2c5282',      // Darker blue text
+    mentionChipBackground: colors.primary,
+    mentionChipColor: colors.contrast,
     inputBackgroundColor: 'white',
     inputBorderColor: colors.primary,
     buttonBackground: colors.primary,
@@ -268,7 +277,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
 
   // Lexio Hooks
   const { sources, setActiveSources } = useSources(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
-  const { addUserMessage } = useMessages(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
+  const { addUserMessage, clearMessages } = useMessages(componentKey ? `AdvancedQueryField-${componentKey}` : 'AdvancedQueryField');
 
   // Floating UI
   const { refs, context } = useFloating({
@@ -290,20 +299,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
 
   const getDisplayName = (source: Source): string => {
     return source.title;
-    // todo: maybe enable this again?
-    // if (source.sourceName) return source.sourceName;
-    // if (isSourceReference(source)) {
-    //   const metadataStr = source.metadata
-    //     ? Object.entries(source.metadata)
-    //         .map(([k, v]) => `${k}: ${v}`)
-    //         .join(', ')
-    //     : '';
-    //   return metadataStr
-    //     ? `${source.sourceReference} (${metadataStr})`
-    //     : source.sourceReference;
-    // }
-    // // For text-based results
-    // return source.text.slice(0, 20) + '...';
   };
 
   // Adjust editor height
@@ -358,12 +353,6 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
   const filteredSources = (sources ?? []).filter(source => {
     if (!source) return false;
     const textVal = source.title;
-    // let textVal: string;
-    // if (isSourceReference(source)) {
-    //   textVal = source.sourceName ?? source.sourceReference ?? '';
-    // } else {
-    //   textVal = source.sourceName ?? source.text ?? '';
-    // }
     return textVal.toLowerCase().includes(filterValue.toLowerCase());
   });
 
@@ -762,7 +751,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
           className="
             w-full resize-none px-3 py-2
             border rounded-lg
-            focus:ring-1 focus:ring-gray-300 focus:outline-none
+            focus:ring-0 focus:outline-none
             min-h-[2.5rem] max-h-[200px]
             empty:before:content-[attr(data-placeholder)]
             empty:before:text-gray-400
@@ -792,10 +781,12 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
               left: `${menuPosition.x}px`,
               top: `${menuPosition.y}px`,
               width: '256px',
+              maxHeight: '250px',
               zIndex: 50,
               backgroundColor: style.inputBackgroundColor,
               borderColor: style.inputBorderColor,
               color: style.color,
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
             }}
             className="rounded-lg shadow-lg border overflow-hidden"
             {...getFloatingProps()}
@@ -806,7 +797,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                 type="text"
                 className="
                   w-full px-2 py-1 border rounded
-                  focus:outline-none focus:ring-2
+                  focus:outline-none focus:ring-0
                 "
                 style={{
                   backgroundColor: style.inputBackgroundColor,
@@ -824,7 +815,7 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
             </div>
             <div className="max-h-48 overflow-y-auto">
               {filteredSources.length === 0 ? (
-                <div className="px-4 py-2 text-gray-500">No matches found</div>
+                <div className="px-4 py-2" style={{ color: addOpacity(style.color || '#6b7280', 0.7) }}>No matches found</div>
               ) : (
                 filteredSources.map((source, idx) => {
                   const displayText = source.title
@@ -835,6 +826,14 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                       className={`px-4 py-2 cursor-pointer ${
                         selectedIndex === idx ? 'bg-blue-50' : 'hover:bg-gray-50'
                       }`}
+                      style={{
+                        backgroundColor: selectedIndex === idx
+                          ? addOpacity(style.buttonBackground || style.mentionChipBackground || '#bee3f8', 0.15)
+                          : style.inputBackgroundColor,
+                        borderBottom: idx < filteredSources.length - 1
+                          ? `1px solid ${addOpacity(style.borderColor || '#e5e7eb', 0.5)}`
+                          : 'none',
+                      }}
                       onClick={() => handleAddMention(source)}
                       onMouseEnter={() => setSelectedIndex(idx)}
                     >
@@ -843,27 +842,35 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
                           className="truncate max-w-full"
                           title={displayText}
                           style={{
-                            fontSize: `calc(${style.fontSize} * 0.9)`,
-                            lineHeight: '1.1'
+                            fontSize: scaleFontSize(style.fontSize || '16px', 0.9),
+                            lineHeight: '1.1',
+                            color: style.color,
+                            fontWeight: selectedIndex === idx ? '500' : 'normal'
                           }}
                         >
                           {displayText}
                         </span>
                         <div className="flex items-center gap-2 mt-1">
                           {source.type && (
-                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded whitespace-nowrap"
-                                  style={{
-                                    fontSize: `calc(${style.fontSize} * 0.8)`
-                                  }}
+                            <span
+                              className="px-2 py-0.5 rounded whitespace-nowrap"
+                              style={{
+                                fontSize: scaleFontSize(style.fontSize || '12px', 0.8),
+                                backgroundColor: style.mentionChipBackground || '#bee3f8',
+                                color: style.mentionChipColor || '#2c5282',
+                                borderRadius: style.borderRadius || '0.25rem'
+                              }}
                             >
                               {source.type}
                             </span>
                           )}
                           {source.relevance && (
-                            <span className="text-gray-500 whitespace-nowrap"
-                                  style={{
-                                    fontSize: `calc(${style.fontSize} * 0.8)`
-                                  }}
+                            <span
+                              className="whitespace-nowrap"
+                              style={{
+                                fontSize: scaleFontSize(style.fontSize || '12px', 0.8),
+                                color: addOpacity(style.color || '#6b7280', 0.7)
+                              }}
                             >
                               Score: {Math.round(source.relevance * 100)}%
                             </span>
@@ -880,19 +887,25 @@ const AdvancedQueryField: React.FC<AdvancedQueryFieldProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-2">
-        <div className="flex items-center gap-2">
-          {/*/!* Instead of tailwind classes for color, use inline style from our merged theme *!/*/}
-          {/*<div*/}
-          {/*  className="h-2.5 w-2.5 rounded-full animate-pulse"*/}
-          {/*  style={{ backgroundColor: workflowStatus[workflowMode].color }}*/}
-          {/*/>*/}
-          {/*<span className="font-medium" style={{*/}
-          {/*    fontFamily: style.fontFamily,*/}
-          {/*    fontSize: `calc(${style.fontSize} * 0.85)`*/}
-          {/*}}>*/}
-          {/*  {workflowStatus[workflowMode].label}*/}
-          {/*</span>*/}
+      <div className="flex items-center justify-end gap-2 mt-2">
+        <div className="flex items-center">
+          {showNewChatButton && (
+            <button
+              type="button"
+              onClick={clearMessages}
+              className="p-2 rounded-full hover:opacity-90 transition-colors"
+              style={{
+                color: style.buttonTextColor,
+                backgroundColor: style.buttonBackground,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              title="New conversation"
+              aria-label="New conversation"
+            >
+              <DocumentPlusIcon className="size-5" />
+            </button>
+          )}
         </div>
         <button
           type="submit"

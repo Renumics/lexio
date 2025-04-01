@@ -1,6 +1,7 @@
 {
   "name": "lexio",
-  "version": "0.1.0",
+  "description": "Quickest way to production grade RAG UI.",
+  "version": "0.1.1",
   "type": "module",
   "license": "GPL-3.0-or-later",
   "module": "dist/lexio.es.js",
@@ -75,13 +76,16 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^3.0.8",
     "autoprefixer": "^10.4.20",
+    "compromise": "^14.14.4",
     "eslint": "^9.15.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
     "eslint-plugin-storybook": "^0.11.2",
     "globals": "^15.12.0",
+    "js-tiktoken": "^1.0.19",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.49",
+    "sbd": "^1.0.19",
     "storybook": "^8.6.0-alpha.0",
     "tailwindcss": "^3.4.16",
     "typescript": "~5.6.2",
@@ -97,5 +101,21 @@
     "extends": [
       "plugin:storybook/recommended"
     ]
-  }
+  },
+  "keywords": [
+    "lexio",
+    "react",
+    "ui",
+    "component-library",
+    "ui-components",
+    "ui-library",
+    "chat",
+    "chatbot",
+    "chatbot-ui",
+    "chatbot-framework",
+    "rag",
+    "rag-ui",
+    "rag-pipeline",
+    "renumics"
+  ]
 }

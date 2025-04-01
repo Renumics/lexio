@@ -144,7 +144,6 @@ const PdfViewerToolbar = ({
                                     style={{
                                         backgroundColor: style.toolbarChipInputBackground,
                                     }}
-                                    defaultValue={pageNumber || (numPages ? 1 : '--')}
                                     placeholder="Page"
                                     aria-label="Enter page number"
                                     aria-live="polite"

@@ -1,4 +1,4 @@
-<p align="center"><a href="https://renumics.com/lexio-ui"><img src="lexio/src/stories/assets/lexio logo transparent.png" alt="Gray shape shifter" height="80"/></a></p>
+<p align="center"><a href="https://renumics.com/lexio-ui"><img src="lexio/src/stories/assets/lexio logo transparent.png" alt="Lexio Logo" height="80"/></a></p>
 
 <p align="center">Quickest way to production grade RAG UI. </p>
 
@@ -20,7 +20,7 @@ It supports multiple document types (PDF, HTML, Markdown, Text) with advanced fe
 
 Developers can use ready-made components or easily build custom ones using React hooks and the flexible action handler pattern.
 
-![RAG UI Example](lexio/src/stories/assets/shot_lexio_llama_index.png)
+<p align="center"><a href="https://renumics.com/lexio-ui"><img src="lexio/src/assets/lexio-intro-video.gif" width="100%"/></a></p>
 
 ## Quick Start
 
@@ -33,15 +33,6 @@ npm install lexio
 To use the GUI components, you need to provide an action handler to the `LexioProvider` context:
 
 ```tsx
-import { 
-  LexioProvider, 
-  ChatWindow, 
-  AdvancedQueryField, 
-  SourcesDisplay, 
-  ContentDisplay, 
-  ErrorDisplay 
-} from 'lexio';
-
 const App = () => (
   <LexioProvider
     onAction={(action, messages, sources, activeSources, selectedSource) => {
@@ -49,51 +40,24 @@ const App = () => (
       if (action.type === 'ADD_USER_MESSAGE') {
         return {
           // Return sources as a Promise that resolves to Source[]
-          sources: Promise.resolve([
-            {
-              title: "Example Document",
-              type: "pdf",
-              relevance: 0.95,
-              metadata: {
-                author: "Documentation Team",
-                page: 3
-              }
-            }
-          ]),
+          sources: fetchSources(),
           // Return a response as a Promise or use streaming
           response: Promise.resolve("This is a sample response based on the retrieved documents.")
         };
       }
-      
       // Handle source selection
       if (action.type === 'SET_SELECTED_SOURCE' && action.sourceObject) {
         return {
           sourceData: fetchSourceContent(action.sourceObject.id)
         };
       }
-      
       return undefined;
     }}
-    config={{
-      timeouts: {
-        request: 30000,  // 30 seconds for entire operations
-        stream: 5000     // 5 seconds between stream chunks
-      }
-    }}
   >
-    <div className="flex flex-col h-screen">
-      <div className="flex-1">
-        <ChatWindow markdown={true} />
-      </div>
-      <div>
-        <AdvancedQueryField />
-      </div>
-      <div className="flex">
-        <SourcesDisplay />
-        <ContentDisplay />
-      </div>
-    </div>
-    <ErrorDisplay />
+    <ChatWindow markdown={true} />
+    <AdvancedQueryField />
+    <SourcesDisplay />
+    <ContentDisplay />
   </LexioProvider>
 );
 ```
@@ -186,35 +150,3 @@ Lexio provides a set of React hooks that allow you to interact with the state an
   </div>
 </div>
 
-## Target Groups
-
-<div align="center">
-  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; color: #000;">
-    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 15px; border-left: 4px solid #e74c3c;">
-      <h3>🚀 Startups</h3>
-      <ul>
-        <li style="color: #000;">Rapid prototyping capabilities</li>
-        <li style="color: #000;">Quick time-to-market</li>
-        <li style="color: #000;">Flexible customization options</li>
-      </ul>
-    </div>
-    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 15px; border-left: 4px solid #e74c3c;">
-      <h3>🌐 Enterprise</h3>
-      <ul>
-        <li style="color: #000;">Enterprise-grade reliability</li>
-        <li style="color: #000;">Seamless integration with existing systems</li>
-        <li style="color: #000;">Production-ready components</li>
-        <li style="color: #000;">Professional support options</li>
-      </ul>
-    </div>
-    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 15px; border-left: 4px solid #e74c3c;">
-      <h3>👨‍💻 AI Developers</h3>
-      <ul>
-        <li style="color: #000;">Full control over RAG pipeline</li>
-        <li style="color: #000;">Custom component development</li>
-        <li style="color: #000;">Advanced configuration options</li>
-        <li style="color: #000;">Direct access to underlying state</li>
-      </ul>
-    </div>
-  </div>
-</div>

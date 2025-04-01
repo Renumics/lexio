@@ -7,7 +7,7 @@
       "type": "object",
       "properties": {
         "id": {
-          "$ref": "#/definitions/UUID",
+          "$ref": "#/definitions/UUID_1",
           "title": "id"
         },
         "role": {
@@ -21,6 +21,13 @@
         "content": {
           "type": "string",
           "title": "content"
+        },
+        "highlights": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MessageHighlight"
+          },
+          "title": "highlights"
         }
       },
       "defaultProperties": [],
@@ -28,7 +35,8 @@
       "propertyOrder": [
         "id",
         "role",
-        "content"
+        "content",
+        "highlights"
       ],
       "required": [
         "content",
@@ -42,7 +50,7 @@
       "type": "object",
       "properties": {
         "id": {
-          "$ref": "#/definitions/UUID",
+          "$ref": "#/definitions/UUID_1",
           "title": "id"
         },
         "title": {
@@ -118,6 +126,7 @@
     },
     "StreamChunk": {
       "description": "Represents a chunk of streamed content.\nUsed for streaming responses from the assistant in real-time.",
+      "title": "StreamChunk",
       "type": "object",
       "properties": {
         "content": {
@@ -131,6 +140,23 @@
           },
           "title": "sources"
         },
+        "citations": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Citation"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Omit<Citation,\"id\">"
+              }
+            }
+          ],
+          "title": "citations"
+        },
         "done": {
           "type": "boolean",
           "title": "done"
@@ -141,11 +167,12 @@
       "propertyOrder": [
         "content",
         "sources",
+        "citations",
         "done"
       ]
     },
     "PDFHighlight": {
-      "description": "Represents a highlight annotation in a PDF document.",
+      "description": "Represents a highlight annotation in a PDF document.\nUsed to visually highlight text regions in PDF sources.",
       "title": "PDFHighlight",
       "type": "object",
       "properties": {
@@ -195,13 +222,19 @@
             "width"
           ],
           "title": "rect"
+        },
+        "highlightColorRgba": {
+          "description": "RGBA color string for the highlight",
+          "type": "string",
+          "title": "highlightColorRgba"
         }
       },
       "defaultProperties": [],
       "additionalProperties": false,
       "propertyOrder": [
         "page",
-        "rect"
+        "rect",
+        "highlightColorRgba"
       ],
       "required": [
         "page",

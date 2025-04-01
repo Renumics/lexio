@@ -226,7 +226,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                     borderColor: source.id === selectedSourceId
                       ? style.selectedSourceBorderColor
                       : activeSources && activeSources.includes(source)
-                        ? style.selectedSourceBorderColor
+                        ? style.activeSourceBorderColor
                         : style.inactiveSourceBorderColor,
                     opacity: activeSources && activeSources.length > 0 && !activeSources.includes(source) ? 0.6 : 1,
                     borderRadius: style.borderRadius,
@@ -294,7 +294,7 @@ const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
                   </div>
                   {showMetadata && source.metadata && Object.keys(source.metadata).length > 0 && (
                     <div className="pt-2 border-t" style={{ borderColor: style.inactiveSourceBorderColor }}>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 overflow-hidden">
                         {Object.entries(source.metadata)
                             .filter(([key]) => typeof key === "string" && !key.startsWith("_"))
                             .map(([key, value]) => (

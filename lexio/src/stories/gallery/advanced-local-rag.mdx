@@ -30,7 +30,7 @@ This repository demonstrates how to build a _complex Retrieval-Augmented Generat
    After indexing, each chunk is stored in LanceDB for later retrieval.
 
 2. **Streaming Responses**  
-   The backend uses Server-Sent Events (SSE) to stream tokens to the React frontend in real time, giving you partial answers as they’re generated.
+   The backend uses Server-Sent Events (SSE) to stream tokens to the React frontend in real time, giving you partial answers as they're generated.
 
 3. **Follow-up Questions**  
    You can keep asking questions in the same chat session, enabling the model to retain conversation context.
@@ -100,7 +100,7 @@ This repository demonstrates how to build a _complex Retrieval-Augmented Generat
    - The system will retrieve relevant chunks from LanceDB and stream a response from the local LLM.
 
 3. **View sources**  
-   - In the chat window, you’ll see clickable references.  
+   - In the chat window, you'll see clickable references.  
    - Click on any source link to open it in the content viewer on the right.
 
 4. **Ask follow-up questions**  
@@ -124,22 +124,22 @@ This repository demonstrates how to build a _complex Retrieval-Augmented Generat
   - `<ErrorDisplay />` to catch and display any errors.
 
 - **Source Handling**  
-  The function `getDataSource` fetches the content of a source (PDF, HTML, Markdown) from the backend (`/pdfs/<id>`). It then returns the appropriate content type to Lexio (e.g., PDF byte array, HTML string, or Markdown text).
+  The application uses `createRESTContentSource` to fetch the content of a source (PDF, HTML, Markdown) from the backend (`/pdfs/<id>`). It then returns the appropriate content type to Lexio (e.g., PDF byte array, HTML string, or Markdown text).
 
 - **Event Parsing**  
-  The `parseEvent` callback in `App.tsx` processes SSE messages from the backend. First, it extracts relevant source metadata, then it handles incoming token chunks from the LLM.
+  The `parseEvent` callback in the `chatConnectorOptions` processes SSE messages from the backend. It extracts relevant source metadata and handles incoming token chunks from the LLM.
 
-- **SSE Retrieval**  
-  `retrieveAndGenerate` calls `http://localhost:8000/api/retrieve-and-generate` via SSE to get partial results. This route is used for initial queries.
+- **SSE Communication**  
+  `createSSEConnector` is used to establish Server-Sent Events communication with the backend API endpoint `/api/chat`. This handles both initial queries and follow-up questions.
 
 ### Backend Highlights
 
 - **Main routes** are in `main.py`, using FastAPI:
-  1. **`/api/retrieve-and-generate`**  
-     - Takes a single query, computes its embedding, finds relevant chunks in LanceDB, returns them as a “sources” SSE message, then streams LLM output as tokens.
-  2. **`/api/generate`**  
-     - Allows follow-up queries with conversation history and an optional list of source IDs to limit retrieval.
-  3. **`/pdfs/{id}`**  
+  1. **`/api/chat`**  
+     - Handles both initial queries and follow-up questions with conversation history.
+     - Optionally accepts source IDs to limit retrieval to specific documents.
+     - Returns sources as a first SSE message, then streams LLM output as tokens.
+  2. **`/pdfs/{id}`**  
      - Serves the content of a document by ID (PDF, HTML, or Markdown).
 
 - **Embedding & Indexing**  

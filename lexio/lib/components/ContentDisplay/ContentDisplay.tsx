@@ -21,12 +21,12 @@ interface ContentDisplayProps {
 
 /**
  * A component for displaying various content types from selected sources.
- *
+ * 
  * ContentDisplay renders the content of the currently selected source, automatically
  * choosing the appropriate viewer based on the source type (PDF, HTML, Markdown or Excel spreadsheet).
  *
  * @component
- *
+ * 
  * Features:
  * - Automatic content type detection
  * - PDF viewer with navigation, zoom, and highlight support
@@ -35,9 +35,9 @@ interface ContentDisplayProps {
  * - Excel spreadsheet viewer with range highlighting
  * - Loading state indication
  * - Responsive design
- *
+ * 
  * @example
- *
+ * 
  * ```tsx
  * <ContentDisplay
  *   componentKey="main-content"
@@ -55,7 +55,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
                                                    componentKey = undefined,
 }) => {
   const { selectedSource } = useSources(componentKey ? `ContentDisplay-${componentKey}` : 'ContentDisplay');
-
+  
   // use theme
   const theme = useContext(ThemeContext);
   if (!theme) {
@@ -100,7 +100,7 @@ const FileViewerRenderer: FC<PropsFileViewerRenderer> = (props) => {
 
   if (selectedSource.type === 'pdf' && selectedSource.data && selectedSource.data instanceof Uint8Array) {
     // Prefer 'page' over '_page' if both are defined
-    const page = selectedSource.metadata?.page ?? selectedSource.metadata?._page;
+      const page = selectedSource.metadata?._pdfPageOverride ?? selectedSource.metadata?.page ?? selectedSource.metadata?._page;
 
     return (
         <PdfViewer
@@ -111,17 +111,17 @@ const FileViewerRenderer: FC<PropsFileViewerRenderer> = (props) => {
     );
   }
 
-  if (selectedSource.type === 'html' && selectedSource.data && typeof selectedSource.data === 'string') {
-    return <HtmlViewer htmlContent={selectedSource.data} />;
-  }
+    if (selectedSource.type === 'html' && selectedSource.data && typeof selectedSource.data === 'string') {
+      return <HtmlViewer htmlContent={selectedSource.data} />;
+    }
 
-  if (selectedSource.type === 'markdown' && selectedSource.data && typeof selectedSource.data === 'string') {
-    return <MarkdownViewer markdownContent={selectedSource.data} />;
-  }
+    if (selectedSource.type === 'markdown' && selectedSource.data && typeof selectedSource.data === 'string') {
+      return <MarkdownViewer markdownContent={selectedSource.data} />;
+    }
 
-  if (selectedSource.type === 'text' && selectedSource.data && typeof selectedSource.data === 'string') {
-    return <MarkdownViewer markdownContent={selectedSource.data} />;
-  }
+    if (selectedSource.type === 'text' && selectedSource.data && typeof selectedSource.data === 'string') {
+      return <MarkdownViewer markdownContent={selectedSource.data} />;
+    }
 
   if (
       selectedSource.type === "xlsx" &&
