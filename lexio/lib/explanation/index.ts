@@ -199,7 +199,7 @@ export class ExplanationProcessor {
             }
 
             const sentences = splitIntoSentences(response);
-            const answerIdeas: Array<{ idea: string, originalText: string }> = [];
+            const answerIdeas: Array<{ idea: string }> = [];
 
             for (const sentence of sentences) {
                 const ideas = config.IDEA_SPLITTING_METHOD === 'heuristic' ? splitIntoIdeasHeuristic(sentence)
@@ -219,20 +219,8 @@ export class ExplanationProcessor {
                         continue;
                     }
                     
-                    // Create a regex to find the specific part in the sentence
-                    const ideaRegex = new RegExp(
-                        cleanIdea
-                            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape regex special chars
-                            .replace(/\s+/g, '\\s+'), // Make whitespace flexible
-                        'i'
-                    );
-                    
-                    const match = sentence.match(ideaRegex);
-                    const originalText = match ? match[0] : sentence;
-
                     answerIdeas.push({
-                        idea: cleanIdea,
-                        originalText
+                        idea: cleanIdea
                     });
                 }
             }
