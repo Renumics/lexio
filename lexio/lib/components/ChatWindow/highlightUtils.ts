@@ -344,16 +344,7 @@ export const createHighlightOverlays = (
     const createdRects: {left: number, top: number, width: number, height: number}[] = [];
     
     for (const range of ranges) {
-        // Check for any overlap with existing ranges
-        const hasOverlap = existingRanges.some(
-            existingRange => rangesOverlap(range, existingRange)
-        );
-        
-        if (hasOverlap) {
-            console.warn(`Skipping highlight ${highlightIndex} due to overlap with existing highlight`);
-            continue;
-        }
-        
+        // Instead of checking entire range overlap, we'll check individual rects
         const rects = range.getClientRects();
         const containerRect = container.getBoundingClientRect();
         
@@ -373,7 +364,7 @@ export const createHighlightOverlays = (
             }
             
             // Check for overlapping rectangles we've already created
-            const rectOverlap = createdRects.some(existingRect => {
+            const overlappingRect = createdRects.find(existingRect => {
                 const horizontalOverlap = 
                     (rect.left < existingRect.left + existingRect.width) && 
                     (rect.left + rect.width > existingRect.left);
@@ -382,11 +373,21 @@ export const createHighlightOverlays = (
                     (rect.top < existingRect.top + existingRect.height) && 
                     (rect.top + rect.height > existingRect.top);
                     
-                return horizontalOverlap && verticalOverlap;
+                // Calculate overlap percentage
+                if (horizontalOverlap && verticalOverlap) {
+                    const overlapWidth = Math.min(rect.left + rect.width, existingRect.left + existingRect.width) - 
+                                      Math.max(rect.left, existingRect.left);
+                    const overlapHeight = Math.min(rect.top + rect.height, existingRect.top + existingRect.height) - 
+                                       Math.max(rect.top, existingRect.top);
+                    const overlapArea = overlapWidth * overlapHeight;
+                    const rectArea = rect.width * rect.height;
+                    return (overlapArea / rectArea) > 0.5; // Only consider significant overlaps (>50%)
+                }
+                return false;
             });
             
-            if (rectOverlap) {
-                continue;
+            if (overlappingRect) {
+                continue; // Skip only this rectangle, not the entire range
             }
             
             // Store this rect to check for future overlaps
