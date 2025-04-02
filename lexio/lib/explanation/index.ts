@@ -329,7 +329,6 @@ export class ExplanationProcessor {
                                     console.log(`Best matching sentence: "${match.sentence}"`);
                                     console.log(`Confidence score: ${match.similarity.toFixed(3)}`);
                                     console.log('Overlapping keywords:', matchedKeywords);
-                                    console.log('Context:', match.originalChunk.text.substring(0, 100) + '...');
                                 }
                                 
                                 let highlight: HighlightPosition | undefined;
