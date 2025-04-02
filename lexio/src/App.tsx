@@ -13,7 +13,7 @@ import {
   ActionHandlerResponse,
   Citation,
 } from '../lib/main';
-import { ExplanationProcessor } from '../lib/explanation';
+import { ExplanationProcessor, ExplanationResult, IdeaSource } from '../lib/explanation';
 import './App.css';
 
 // This is a temporary mocked response for testing purposes
@@ -21,115 +21,6 @@ import './App.css';
 const MOCKED_RESPONSE = {
   answer: "# Deep Learning for Traffic Data Imputation\n\nDeep learning improves traffic data imputation by **automatically learning patterns** without manual feature selection. The *Denoising Stacked Autoencoder* (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through:\n\n1. Layer-wise pre-training\n2. Fine-tuning\n\nCompared to traditional methods like ARIMA and k-NN, it maintains:\n- Higher accuracy\n- Stable error rates\n\nAcross different missing data levels, as demonstrated on Caltrans PeMS traffic data.\n\nThe DSAE model architecture consists of multiple layers that progressively encode the input data into a lower-dimensional representation before reconstructing it. This approach is particularly effective for handling the temporal and spatial correlations in traffic data.\n\n```python\n# Example code for DSAE implementation\nimport tensorflow as tf\n\ndef build_autoencoder(input_dim, encoding_dim):\n    # Define encoder\n    input_layer = tf.keras.layers.Input(shape=(input_dim,))\n    encoder = tf.keras.layers.Dense(encoding_dim, activation='relu')(input_layer)\n    \n    # Define decoder\n    decoder = tf.keras.layers.Dense(input_dim, activation='sigmoid')(encoder)\n    \n    # Define autoencoder\n    autoencoder = tf.keras.Model(inputs=input_layer, outputs=decoder)\n    return autoencoder\n```\n\nExperimental results show that DSAE outperforms traditional methods in both accuracy and computational efficiency. The model was validated using real-world traffic data from multiple highway segments."
 };
-
-const MOCKED_CITATIONS = [
-  // Page 1 citation - Title and introduction
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      text: "# Deep Learning for Traffic Data Imputation",
-      color: '#ffeb3b'  // Yellow
-    },
-    sourceHighlight: {
-      page: 1,
-      rect: {
-        top: 0.2,
-        left: 0.1,
-        width: 0.8,
-        height: 0.1
-      }
-    }
-  },
-  // Page 2 citation - DSAE approach
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      text: "The Denoising Stacked Autoencoder (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through",
-      color: '#4caf50'  // Green
-    },
-    sourceHighlight: {
-      page: 2,
-      rect: {
-        top: 0.3,
-        left: 0.2,
-        width: 0.7,
-        height: 0.15
-      }
-    }
-  },
-  // Page 3 citation - Comparison with traditional methods
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      startChar: 177,
-      endChar: 245,
-      color: '#2196f3'  // Blue
-    },
-    sourceHighlight: {
-      page: 3,
-      rect: {
-        top: 0.4,
-        left: 0.15,
-        width: 0.75,
-        height: 0.12
-      }
-    }
-  },
-  // Page 4 citation - DSAE architecture
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      startChar: 310,
-      endChar: 420,
-      color: '#9c27b0'  // Purple
-    },
-    sourceHighlight: {
-      page: 4,
-      rect: {
-        top: 0.25,
-        left: 0.1,
-        width: 0.8,
-        height: 0.2
-      }
-    }
-  },
-  // Page 5 citation - Code example
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      startChar: 500,
-      endChar: 650,
-      color: '#f44336'  // Red
-    },
-    sourceHighlight: {
-      page: 5,
-      rect: {
-        top: 0.5,
-        left: 0.1,
-        width: 0.8,
-        height: 0.3
-      }
-    }
-  },
-  // Page 6 citation - Experimental results
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      startChar: 700,
-      endChar: 830,
-      color: '#ff9800'  // Orange
-    },
-    sourceHighlight: {
-      page: 6,
-      rect: {
-        top: 0.6,
-        left: 0.2,
-        width: 0.7,
-        height: 0.15
-      }
-    }
-  }
-];
 
 const MOCKED_SOURCES = [{
   title: 'Deep Learning for Traffic Data Imputation',
@@ -139,7 +30,7 @@ const MOCKED_SOURCES = [{
     id: 'traffic-imputation.pdf',
     authors: 'Chen et al.',
     year: '2023',
-    pages: '6'  // Updated to reflect 6 pages
+    pages: '6'
   }
 }];
 
@@ -149,7 +40,6 @@ function App() {
 
   const contentSourceOptions = useMemo(() => ({
     buildFetchRequest: (_source: Source) => ({
-      // url: '/pdfs/deepseek.pdf',  
       url: '/pdfs/traffic.pdf',
       options: {
         method: 'GET',
@@ -173,7 +63,6 @@ function App() {
     _selectedSource: Source | null
   ): Promise<ActionHandlerResponse> => {
 
-
     if (action.type === 'SET_SELECTED_SOURCE') {
       if (!action.sourceObject) {
         return {};
@@ -196,68 +85,9 @@ function App() {
           return sourceWithData.data;
         }),
         
-        // Process citations based on mocked data for now
+        // Process citations based on explanation processor
         citations: Promise.resolve().then(async () => {
           try {
-            /* 
-            // Mock some citations for demonstration
-            const mockCitations = [
-              {
-                sourceId: action.sourceId,
-                messageId: lastMessageId, // Reference to the current/last message
-                messageHighlight: {
-                  text: "Deep learning improves traffic data imputation"
-                },
-                sourceHighlight: {
-                  page: 1,
-                  rect: {
-                    top: 0.38,
-                    left: 0.08,
-                    width: 0.40,
-                    height: 0.02
-                  },
-                  highlightColorRgba: 'rgba(255, 235, 59, 0.5)' // Yellow with 50% opacity
-                }
-              },
-              {
-                sourceId: action.sourceId,
-                messageId: lastMessageId, // Reference to the current/last message
-                messageHighlight: {
-                  text: "The Denoising Stacked Autoencoder (DSAE) approach"
-                },
-                sourceHighlight: {
-                  page: 2,
-                  rect: {
-                    top: 0.52,
-                    left: 0.51,
-                    width: 0.40,
-                    height: 0.04
-                  },
-                  highlightColorRgba: 'rgba(76, 175, 80, 0.5)' // Green with 50% opacity
-                }
-              },
-              {
-                sourceId: action.sourceId,
-                messageId: lastMessageId, // Reference to the current/last message
-                messageHighlight: {
-                  text: "Higher accuracy and stable error rates"
-                },
-                sourceHighlight: {
-                  page: 5,
-                  rect: {
-                    top: 0.45,
-                    left: 0.51,
-                    width: 0.40,
-                    height: 0.03
-                  },
-                  highlightColorRgba: 'rgba(33, 150, 243, 0.5)' // Blue with 50% opacity
-                }
-              }
-            ] as Omit<Citation, 'id'>[];
-            
-            return mockCitations;
-            */
-            
             // Check if we've already processed this message
             if (lastMessageId && lastMessageId === lastProcessedMessageId) {
               console.log('Skipping explanation processing - message already processed');
@@ -279,19 +109,7 @@ function App() {
               processableData = data;
             } else {
               console.error(`Unsupported data type: ${typeof data}`);
-              // Return initial citations if data type is unsupported
-              return [{
-                sourceId: action.sourceId,
-                sourceHighlight: {
-                  page: 1,
-                  rect: {
-                    top: 0.2,
-                    left: 0.1,
-                    width: 0.8,
-                    height: 0.1
-                  }
-                }
-              }] as Omit<Citation, 'id'>[];
+              return [];
             }
             
             // Get the last message content for context, or use empty string if no messages
@@ -325,14 +143,11 @@ function App() {
     if (action.type === 'ADD_USER_MESSAGE') {
       console.log('ADD_USER_MESSAGE action started');
 
-      // For now, use the mocked response
-      const ragResponse = MOCKED_RESPONSE.answer;
-      
-      // For now, return the mocked data
+      // For now, use the mocked response and sources, but let citations be generated
       return {
-        response: Promise.resolve(ragResponse),
+        response: Promise.resolve(MOCKED_RESPONSE.answer),
         sources: Promise.resolve(MOCKED_SOURCES),
-        citations: Promise.resolve(MOCKED_CITATIONS),
+        citations: Promise.resolve([]), // Empty citations - they'll be generated when source is selected
       };
     }
 
@@ -461,20 +276,7 @@ function mapExplanationResultToCitations(explanationResult, sourceId, messageId)
       }));
   });
   
-  // Return processed citations if available, otherwise return initial citations
-  return processedCitations.length > 0 ? processedCitations : [{
-    sourceId: sourceId,
-    messageId: messageId, // Add reference to the message
-    sourceHighlight: {
-      page: 1,
-      rect: {
-        top: 0.2,
-        left: 0.1,
-        width: 0.8,
-        height: 0.1
-      }
-    }
-  }] as Omit<Citation, 'id'>[];
+  return processedCitations;
 }
 
 export default App;
