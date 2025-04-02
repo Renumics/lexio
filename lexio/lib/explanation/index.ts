@@ -213,6 +213,11 @@ export class ExplanationProcessor {
                     const cleanIdea = idea
                         .replace(/^[-\s.]+|[-\s.]+$/g, '') // Remove leading/trailing dashes, spaces, periods
                         .replace(/^(It|This)\s+/i, ''); // Remove leading "It" or "This"
+
+                    // Skip if idea is too short
+                    if (cleanIdea.length < 6) {
+                        continue;
+                    }
                     
                     // Create a regex to find the specific part in the sentence
                     const ideaRegex = new RegExp(
@@ -302,38 +307,59 @@ export class ExplanationProcessor {
                     return {
                         answer_idea: idea,
                         color: '',
-                        supporting_evidence: topSentences.map(match => {
-                            // Find the original chunk
-                            const originalChunk = originalChunks.find(c => c.text === match.originalChunk.text);
-                            
-                            let highlight: HighlightPosition | undefined;
-                            
-                            if (originalChunk) {
-                                const positions = this.findSentencePosition(match.sentence, originalChunk);
-                                if (positions && positions.length > 0) {
-                                    const boundingRect = this.createBoundingRect(positions);
-                                    highlight = {
-                                        page: originalChunk.page || 0,
-                                        rect: boundingRect,
-                                        color: ''
-                                    };
-                                }
-                            }
+                        supporting_evidence: topSentences
+                            .sort((a, b) => b.similarity - a.similarity) // Sort by similarity score descending
+                            .map((match, index) => {
+                                // Find the original chunk
+                                const originalChunk = originalChunks.find(c => c.text === match.originalChunk.text);
+                                
+                                // Calculate matched keywords once
+                                const matchedKeywords = keyPhrases.filter(phrase => {
+                                    const phraseWords = phrase.toLowerCase().split(/\s+/);
+                                    const sentenceWords = match.sentence.toLowerCase().split(/\s+/);
+                                    return phraseWords.every(word => 
+                                        sentenceWords.some(sWord => 
+                                            sWord.includes(word) || word.includes(sWord)
+                                        )
+                                    );
+                                });
 
-                            return {
-                                source_sentence: match.sentence,
-                                similarity_score: match.similarity,
-                                context_chunk: match.originalChunk.text,
-                                highlight: highlight || {
-                                    page: 0,
-                                    rect: { top: 0, left: 0, width: 0, height: 0 },
-                                    color: ''
-                                },
-                                overlapping_keywords: keyPhrases.filter(phrase =>
-                                    match.sentence.toLowerCase().includes(phrase.toLowerCase())
-                                )
-                            };
-                        })
+                                // Debug logging for match quality
+                                if (index === 0) { // Only log for the best match
+                                    console.log(`Match details for idea: "${idea}"`);
+                                    console.log(`Best matching sentence: "${match.sentence}"`);
+                                    console.log(`Confidence score: ${match.similarity.toFixed(3)}`);
+                                    console.log('Overlapping keywords:', matchedKeywords);
+                                    console.log('Context:', match.originalChunk.text.substring(0, 100) + '...');
+                                }
+                                
+                                let highlight: HighlightPosition | undefined;
+                                
+                                // Only create highlight for the best match
+                                if (index === 0 && originalChunk) {
+                                    const positions = this.findSentencePosition(match.sentence, originalChunk);
+                                    if (positions && positions.length > 0) {
+                                        const boundingRect = this.createBoundingRect(positions);
+                                        highlight = {
+                                            page: originalChunk.page || 0,
+                                            rect: boundingRect,
+                                            color: ''
+                                        };
+                                    }
+                                }
+
+                                return {
+                                    source_sentence: match.sentence,
+                                    similarity_score: match.similarity,
+                                    context_chunk: match.originalChunk.text,
+                                    highlight: highlight || {
+                                        page: 0,
+                                        rect: { top: 0, left: 0, width: 0, height: 0 },
+                                        color: ''
+                                    },
+                                    overlapping_keywords: matchedKeywords
+                                };
+                            })
                     };
                 })
             );
