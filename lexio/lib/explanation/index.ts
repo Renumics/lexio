@@ -9,8 +9,11 @@ import {
 import {
     findTopKImproved,
     findTopSentencesGlobally,
+    findTopKHeuristic,
+    findTopSentencesGloballyHeuristic,
     extractKeyPhrases,
-    IChunkEmbedding
+    IChunkEmbedding,
+    IMatch
 } from './matching';
 import config from './config';
 
@@ -179,20 +182,21 @@ export class ExplanationProcessor {
             const chunks = await groupSentenceObjectsIntoChunks(cleanedSentences, config.MAX_TOKENS);
             console.log('Number of chunks:', chunks.length);
 
-            const rawChunkEmbeddings = await generateEmbeddingsForChunks(chunks);
-            
-            // Convert ProcessedChunk[] to IChunkEmbedding[]
-            const chunkEmbeddings: IChunkEmbedding[] = rawChunkEmbeddings
-                .filter((chunk): chunk is ProcessedChunk => chunk !== null && chunk.embedding !== null)
-                .map(chunk => ({
-                    chunk: chunk.chunk,
-                    embedding: chunk.embedding
-                }));
-            
-            console.log('Generated embeddings for chunks:', chunkEmbeddings.length);
-
             // Store the original chunks for later reference
             const originalChunks = chunks;
+
+            // Generate embeddings only if not using heuristic matching
+            let chunkEmbeddings: IChunkEmbedding[] = [];
+            if (config.MATCHING_METHOD !== 'heuristic') {
+                const rawChunkEmbeddings = await generateEmbeddingsForChunks(chunks);
+                chunkEmbeddings = rawChunkEmbeddings
+                    .filter((chunk): chunk is ProcessedChunk => chunk !== null && chunk.embedding !== null)
+                    .map(chunk => ({
+                        chunk: chunk.chunk,
+                        embedding: chunk.embedding
+                    }));
+                console.log('Generated embeddings for chunks:', chunkEmbeddings.length);
+            }
 
             const sentences = splitIntoSentences(response);
             const answerIdeas: Array<{ idea: string, originalText: string }> = [];
@@ -233,42 +237,67 @@ export class ExplanationProcessor {
             const ideaSources = await Promise.all(
                 answerIdeas.map(async ({ idea }) => {
                     const keyPhrases = await extractKeyPhrases(idea);
-                    const ideaEmbedding = await getEmbedding(idea);
                     
-                    if (!ideaEmbedding) {
-                        console.warn(`No embedding generated for idea: ${idea}`);
-                        return {
-                            answer_idea: idea,
-                            color: '',
-                            supporting_evidence: []
-                        };
-                    }
+                    let topMatches: IMatch[];
+                    let topSentences;
 
-                    if (chunkEmbeddings.length === 0) {
-                        console.warn('No valid chunk embeddings available');
-                        return {
-                            answer_idea: idea,
-                            color: '',
-                            supporting_evidence: []
-                        };
-                    }
+                    if (config.MATCHING_METHOD === 'heuristic') {
+                        // Use heuristic matching
+                        topMatches = findTopKHeuristic(
+                            idea,
+                            chunks,
+                            6, // Using default values
+                            0.3  // Lower threshold for heuristic matching
+                        );
 
-                    const topMatches = await findTopKImproved(
-                        ideaEmbedding,
-                        chunkEmbeddings,
-                        6, // Using default values since config might not have these
-                        0.75
-                    );
-
-                    const topSentences = await findTopSentencesGlobally(
-                        ideaEmbedding,
-                        topMatches,
-                        {
-                            topK: 5,
-                            minSimilarity: 0.5,
-                            minDistance: 0.05
+                        topSentences = findTopSentencesGloballyHeuristic(
+                            idea,
+                            topMatches,
+                            {
+                                topK: 5,
+                                minSimilarity: 0.2,  // Lower threshold for heuristic matching
+                                minDistance: 0.15
+                            }
+                        );
+                    } else {
+                        // Use embedding-based matching
+                        const ideaEmbedding = await getEmbedding(idea);
+                        
+                        if (!ideaEmbedding) {
+                            console.warn(`No embedding generated for idea: ${idea}`);
+                            return {
+                                answer_idea: idea,
+                                color: '',
+                                supporting_evidence: []
+                            };
                         }
-                    );
+
+                        if (chunkEmbeddings.length === 0) {
+                            console.warn('No valid chunk embeddings available');
+                            return {
+                                answer_idea: idea,
+                                color: '',
+                                supporting_evidence: []
+                            };
+                        }
+
+                        topMatches = await findTopKImproved(
+                            ideaEmbedding,
+                            chunkEmbeddings,
+                            6,
+                            0.75
+                        );
+
+                        topSentences = await findTopSentencesGlobally(
+                            ideaEmbedding,
+                            topMatches,
+                            {
+                                topK: 5,
+                                minSimilarity: 0.5,
+                                minDistance: 0.05
+                            }
+                        );
+                    }
 
                     return {
                         answer_idea: idea,
@@ -288,7 +317,6 @@ export class ExplanationProcessor {
                                         rect: boundingRect,
                                         color: ''
                                     };
-                                    // console.log(`Created highlight for "${match.sentence.substring(0, 50)}..."`);
                                 }
                             }
 
@@ -311,7 +339,7 @@ export class ExplanationProcessor {
             );
 
             return {
-                summary: `Processed PDF: ${chunks.length} chunks, embeddings generated for ${chunkEmbeddings.length} chunks, ${answerIdeas.length} answer ideas, and ${ideaSources.length} idea sources found.`,
+                summary: `Processed PDF: ${chunks.length} chunks, ${config.MATCHING_METHOD === 'heuristic' ? 'using heuristic matching' : `embeddings generated for ${chunkEmbeddings.length} chunks`}, ${answerIdeas.length} answer ideas, and ${ideaSources.length} idea sources found.`,
                 answer: response,
                 answerIdeas: answerIdeas.map((idea) => ({
                     text: idea.idea,

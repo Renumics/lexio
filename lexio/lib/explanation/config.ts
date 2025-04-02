@@ -11,6 +11,7 @@ export interface Config {
     CONCURRENCY: number;
     MAX_CHARS: number;
     IDEA_SPLITTING_METHOD: string;
+    MATCHING_METHOD: 'heuristic' | 'embedding';
     FINAL_ANSWER: string;
 
     // Similarity Search Configuration
@@ -46,6 +47,7 @@ export const MAX_TOKENS = 500;
 export const CONCURRENCY = 5;
 export const MAX_CHARS = 5000;
 export const IDEA_SPLITTING_METHOD = 'heuristic'; //'llm';
+export const MATCHING_METHOD = 'heuristic'; //'embedding' as const;
 export const FINAL_ANSWER = '';  // This will be overridden by App.tsx
 
 // Similarity Search Configuration
@@ -73,6 +75,7 @@ export default {
     CONCURRENCY,
     MAX_CHARS,
     IDEA_SPLITTING_METHOD,
+    MATCHING_METHOD,
     FINAL_ANSWER,
 
     // Similarity Search Configuration
