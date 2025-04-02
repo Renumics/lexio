@@ -57,9 +57,12 @@ export function splitIntoIdeasHeuristic(sentence: string): string[] {
             return content.length > 0;
           });
 
-        // If this is a list introduction followed by items, keep it together
-        if (paragraph.includes(':') && listItems.length > 1) {
-          return [paragraph];
+        // If this is a list with an introduction, separate intro and items
+        if (paragraph.includes(':')) {
+          const [intro, ...items] = paragraph.split(/(?<=:)/);
+          if (intro && items.length) {
+            return [intro.trim(), ...listItems];
+          }
         }
 
         return listItems;
@@ -79,6 +82,8 @@ export function splitIntoIdeasHeuristic(sentence: string): string[] {
       return sentences.reduce<string[]>((groups, sent, i, arr) => {
         const prevSent = arr[i - 1];
         const shouldGroup = prevSent && (
+          // Group if sentence is very short (likely a continuation)
+          sent.length < 30 ||
           // Group if second sentence starts with connecting words
           /^(However|Therefore|Thus|Additionally|Furthermore|Moreover|Also|This|These|Those|It|They)/i.test(sent) ||
           // Group if sentence contains parentheses or is part of a definition
