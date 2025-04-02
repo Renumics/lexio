@@ -9,12 +9,14 @@ import {
 import {
     findTopKImproved,
     findTopSentencesGlobally,
+    extractKeyPhrases,
+    IChunkEmbedding
+} from './embedding-matching';
+import {
     findTopKHeuristic,
     findTopSentencesGloballyHeuristic,
-    extractKeyPhrases,
-    IChunkEmbedding,
     IMatch
-} from './matching';
+} from './heuristic-matching';
 import config from './config';
 
 export interface ColoredIdea {
