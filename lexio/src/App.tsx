@@ -245,7 +245,11 @@ const generateHighlightColors = (count: number): { solid: string, transparent: s
 };
 
 // Helper function to map explanation result to citations
-function mapExplanationResultToCitations(explanationResult, sourceId, messageId) {
+function mapExplanationResultToCitations(
+  explanationResult: ExplanationResult,
+  sourceId: string,
+  messageId: string | undefined
+): Omit<Citation, 'id'>[] {
   if (!explanationResult.ideaSources || !explanationResult.ideaSources.length) {
     return [];
   }
@@ -254,26 +258,33 @@ function mapExplanationResultToCitations(explanationResult, sourceId, messageId)
   const colors = generateHighlightColors(explanationResult.ideaSources.length);
   
   // Map each idea source to citations
-  const processedCitations = explanationResult.ideaSources.flatMap((ideaSource, ideaIndex) => {
+  const processedCitations = explanationResult.ideaSources.flatMap((ideaSource: IdeaSource, ideaIndex: number) => {
     // Get color pair for this idea
     const colorPair = colors[ideaIndex];
     
     // Map each supporting evidence to a citation
     return ideaSource.supporting_evidence
-      .filter(evidence => evidence.highlight && evidence.highlight.page > 0)
+      .filter((evidence): evidence is typeof evidence & { highlight: NonNullable<typeof evidence.highlight> } => 
+        evidence.highlight != null && evidence.highlight.page > 0
+      )
       .map(evidence => ({
         sourceId: sourceId,
-        messageId: messageId, // Add reference to the message
+        messageId: messageId,
         messageHighlight: {
           text: ideaSource.answer_idea,
-          color: colorPair.solid // Use solid color for message highlight
+          color: colorPair.solid
         },
         sourceHighlight: {
           page: evidence.highlight.page,
-          rect: evidence.highlight.rect,
-          highlightColorRgba: colorPair.transparent // Use transparent color for PDF highlight
+          rect: evidence.highlight.rect || {
+            top: 0,
+            left: 0,
+            width: 0,
+            height: 0
+          },
+          highlightColorRgba: colorPair.transparent
         }
-      }));
+      } as Omit<Citation, 'id'>));
   });
   
   return processedCitations;
