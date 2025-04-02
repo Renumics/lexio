@@ -1,5 +1,11 @@
 import { parseAndCleanPdf, TextWithMetadata } from './preprocessing';
-import { groupSentenceObjectsIntoChunks, splitIntoSentences, Chunk, TextPosition } from './chunking';
+import { 
+    groupSentenceObjectsIntoChunks, 
+    groupSentenceObjectsIntoChunksHeuristic,
+    splitIntoSentences, 
+    Chunk, 
+    TextPosition 
+} from './chunking';
 import { getEmbedding, generateEmbeddingsForChunks, ProcessedChunk } from './embedding';
 import {
     splitIntoIdeasHeuristic,
@@ -181,7 +187,10 @@ export class ExplanationProcessor {
             const cleanedSentences = await parseAndCleanPdf(sourceFile);
             console.log('Cleaned sentences count:', Array.isArray(cleanedSentences) ? cleanedSentences.length : 'unknown');
 
-            const chunks = await groupSentenceObjectsIntoChunks(cleanedSentences, config.MAX_TOKENS);
+            // Use different chunking strategy based on matching method
+            const chunks = config.MATCHING_METHOD === 'heuristic'
+                ? await groupSentenceObjectsIntoChunksHeuristic(cleanedSentences)
+                : await groupSentenceObjectsIntoChunks(cleanedSentences, config.MAX_TOKENS);
             console.log('Number of chunks:', chunks.length);
 
             // Store the original chunks for later reference

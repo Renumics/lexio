@@ -125,3 +125,86 @@ export async function groupSentenceObjectsIntoChunks(
   console.log(`Chunk grouping complete: ${chunks.length} chunks created`);
   return chunks;
 }
+
+/**
+ * Groups sentences into chunks optimized for heuristic matching.
+ * This approach focuses on semantic coherence and natural language boundaries
+ * rather than strict token counts.
+ */
+export async function groupSentenceObjectsIntoChunksHeuristic(
+  sentences: TextWithMetadata[],
+  maxSentences: number = 10
+): Promise<Chunk[]> {
+  const chunks: Chunk[] = [];
+  let currentChunkSentences: TextWithMetadata[] = [];
+  let currentPage = sentences[0]?.metadata.page;
+
+  const shouldStartNewChunk = (
+    currentSentences: TextWithMetadata[],
+    nextSentence: TextWithMetadata
+  ): boolean => {
+    // Always start new chunk on page boundary
+    if (currentPage !== nextSentence.metadata.page) return true;
+    
+    // Start new chunk if we hit max sentences
+    if (currentSentences.length >= maxSentences) return true;
+    
+    // If this is the first sentence, don't start new chunk
+    if (currentSentences.length === 0) return false;
+    
+    const lastSentence = currentSentences[currentSentences.length - 1].text;
+    const nextSentenceText = nextSentence.text;
+    
+    // Start new chunk on topic shifts or semantic boundaries
+    const topicShiftIndicators = [
+      'However,', 'Nevertheless,', 'In contrast,', 'On the other hand,',
+      'Moving on', 'Furthermore,', 'Additionally,', 'Moreover,'
+    ];
+    
+    // Check for topic shift indicators
+    if (topicShiftIndicators.some(indicator => 
+      nextSentenceText.startsWith(indicator))) {
+      return true;
+    }
+    
+    // Check for semantic continuity using common key terms
+    const words1 = new Set(lastSentence.toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
+    const words2 = new Set(nextSentenceText.toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
+    const commonWords = [...words1].filter(word => words2.has(word));
+    
+    // Start new chunk if there's low word overlap
+    return commonWords.length < 2;
+  };
+
+  for (let i = 0; i < sentences.length; i++) {
+    const sentence = sentences[i];
+    const nextSentence = sentences[i + 1];
+
+    currentChunkSentences.push(sentence);
+    
+    if (
+      nextSentence && 
+      shouldStartNewChunk(currentChunkSentences, nextSentence)
+    ) {
+      chunks.push({
+        text: currentChunkSentences.map(s => s.text).join(" "),
+        sentences: currentChunkSentences,
+        page: currentPage
+      });
+      
+      currentChunkSentences = [];
+      currentPage = nextSentence.metadata.page;
+    }
+  }
+
+  // Handle remaining sentences
+  if (currentChunkSentences.length > 0) {
+    chunks.push({
+      text: currentChunkSentences.map(s => s.text).join(" "),
+      sentences: currentChunkSentences,
+      page: currentPage
+    });
+  }
+
+  return chunks;
+}
