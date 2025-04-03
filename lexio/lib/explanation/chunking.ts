@@ -133,7 +133,8 @@ export async function groupSentenceObjectsIntoChunks(
  */
 export async function groupSentenceObjectsIntoChunksHeuristic(
   sentences: TextWithMetadata[],
-  maxSentences: number = 10
+  maxSentences: number = 10,
+  minSentences: number = 2  // New parameter for minimum sentences per chunk
 ): Promise<Chunk[]> {
   const chunks: Chunk[] = [];
   let currentChunkSentences: TextWithMetadata[] = [];
@@ -149,6 +150,9 @@ export async function groupSentenceObjectsIntoChunksHeuristic(
     // Start new chunk if we hit max sentences
     if (currentSentences.length >= maxSentences) return true;
     
+    // If we haven't reached minimum sentence count, don't start a new chunk
+    if (currentSentences.length < minSentences) return false;
+    
     // If this is the first sentence, don't start new chunk
     if (currentSentences.length === 0) return false;
     
@@ -158,7 +162,8 @@ export async function groupSentenceObjectsIntoChunksHeuristic(
     // Start new chunk on topic shifts or semantic boundaries
     const topicShiftIndicators = [
       'However,', 'Nevertheless,', 'In contrast,', 'On the other hand,',
-      'Moving on', 'Furthermore,', 'Additionally,', 'Moreover,'
+      'Moving on', 'Furthermore,', 'Additionally,', 'Moreover,',
+      'First,', 'Second,', 'Third,', 'Finally,', 'In conclusion,'
     ];
     
     // Check for topic shift indicators
@@ -186,24 +191,38 @@ export async function groupSentenceObjectsIntoChunksHeuristic(
       nextSentence && 
       shouldStartNewChunk(currentChunkSentences, nextSentence)
     ) {
-      chunks.push({
-        text: currentChunkSentences.map(s => s.text).join(" "),
-        sentences: currentChunkSentences,
-        page: currentPage
-      });
-      
-      currentChunkSentences = [];
-      currentPage = nextSentence.metadata.page;
+      // Only create a chunk if we have minimum number of sentences
+      if (currentChunkSentences.length >= minSentences) {
+        chunks.push({
+          text: currentChunkSentences.map(s => s.text).join(" "),
+          sentences: currentChunkSentences,
+          page: currentPage
+        });
+        
+        currentChunkSentences = [];
+        currentPage = nextSentence.metadata.page;
+      }
     }
   }
 
   // Handle remaining sentences
   if (currentChunkSentences.length > 0) {
-    chunks.push({
-      text: currentChunkSentences.map(s => s.text).join(" "),
-      sentences: currentChunkSentences,
-      page: currentPage
-    });
+    // For the last chunk, be more lenient with the minimum requirement
+    // but if it's just a single sentence and very short, try to merge with previous chunk
+    if (currentChunkSentences.length === 1 && 
+        currentChunkSentences[0].text.length < 50 && 
+        chunks.length > 0) {
+      // Append this sentence to the last chunk
+      const lastChunk = chunks[chunks.length - 1];
+      lastChunk.sentences.push(currentChunkSentences[0]);
+      lastChunk.text += " " + currentChunkSentences[0].text;
+    } else {
+      chunks.push({
+        text: currentChunkSentences.map(s => s.text).join(" "),
+        sentences: currentChunkSentences,
+        page: currentPage
+      });
+    }
   }
 
   return chunks;

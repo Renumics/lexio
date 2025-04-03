@@ -296,11 +296,26 @@ export function findTopKHeuristic(
 ): IMatch[] {
   const similarities: IMatch[] = chunks.map(chunk => {
     const { similarity, overlappingKeywords } = calculateHeuristicSimilarity(query, chunk.text);
+    
+    // Calculate normalized score to prevent bias toward very short chunks
+    // Shorter chunks often score higher because they have less opportunity for irrelevant content
+    let normalizedSimilarity = similarity;
+    
+    // Only apply normalization to chunks that are significantly shorter than average
+    if (chunk.text.length < 100) {  // For very short chunks
+      // Apply modest penalty to very short chunks (less than 100 chars)
+      normalizedSimilarity = similarity * (0.8 + (chunk.text.length / 500));
+    }
+    
     return { 
       chunk, 
-      similarity, 
+      similarity: normalizedSimilarity, 
       embedding: [],
-      metadata: { overlappingKeywords }
+      metadata: { 
+        overlappingKeywords,
+        originalSimilarity: similarity, // Store original score for reference
+        textLength: chunk.text.length   // Store text length for debugging
+      }
     };
   });
 
@@ -339,6 +354,9 @@ export function findTopSentencesGloballyHeuristic(
 
   const allSentences: ISentenceResult[] = [];
   
+  // Track sentences we've already seen to avoid duplicates across chunks
+  const processedSentences = new Set<string>();
+
   for (const match of topChunks) {
     const { chunk } = match;
     if (!chunk) continue;
@@ -352,19 +370,31 @@ export function findTopSentencesGloballyHeuristic(
       }));
     }
 
+    // Process each sentence in the chunk
     const chunkSentences = chunk.sentences.map(sentenceObj => {
       const sentence = sentenceObj.text.trim();
-      if (sentence.length < 5) return null;
+      
+      // Skip very short sentences or sentences we've already processed
+      if (sentence.length < 10 || processedSentences.has(sentence)) return null;
+      processedSentences.add(sentence);
       
       const { similarity, overlappingKeywords } = calculateHeuristicSimilarity(query, sentence);
       
+      // Apply length normalization similar to chunk normalization
+      let normalizedSimilarity = similarity;
+      if (sentence.length < 40) {  // For very short sentences
+        normalizedSimilarity = similarity * (0.85 + (sentence.length / 200));
+      }
+      
       return {
         sentence,
-        similarity,
+        similarity: normalizedSimilarity,
         embedding: [],
         metadata: { 
           ...sentenceObj.metadata,
-          overlappingKeywords 
+          overlappingKeywords,
+          originalSimilarity: similarity,
+          sentenceLength: sentence.length
         },
         chunkIndex: topChunks.indexOf(match),
         originalChunk: chunk,
