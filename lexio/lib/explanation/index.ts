@@ -238,20 +238,26 @@ export class ExplanationProcessor {
                         // Use heuristic matching
                         topMatches = findTopKHeuristic(
                             idea,
-                            chunks,
-                            6, // Using default values
-                            0.3  // Lower threshold for heuristic matching
+                            chunks
                         );
+
+                        // Add debug logging for top matches
+                        console.log(`Potential chunk matches for idea: "${idea}"`);
+                        topMatches.slice(0, 3).forEach((match, idx) => {
+                            console.log(`Match ${idx+1} (score: ${match.similarity.toFixed(3)}): "${match.chunk?.text}"`);
+                        });
 
                         topSentences = findTopSentencesGloballyHeuristic(
                             idea,
-                            topMatches,
-                            {
-                                topK: 5,
-                                minSimilarity: 0.2,  // Lower threshold for heuristic matching
-                                minDistance: 0.15
-                            }
+                            topMatches
                         );
+
+                        // Add debug logging for all sentences found
+                        console.log(`All sentence matches for idea: "${idea}"`);
+                        topSentences.forEach((match, idx) => {
+                            console.log(`Sentence ${idx+1} (score: ${match.similarity.toFixed(3)}): "${match.sentence}"`);
+                            console.log(`Overlapping keywords: ${match.metadata?.overlappingKeywords?.join(', ') || 'none'}`);
+                        });
                     } else {
                         // Use embedding-based matching
                         const ideaEmbedding = await getEmbedding(idea);

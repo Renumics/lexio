@@ -199,10 +199,10 @@ export function calculateHeuristicSimilarity(text1: string, text2: string): {
     return originalTerm;
   });
 
-  // More lenient semantic score calculation with technical term boost
+  // More lenient semantic score calculation with increased technical term boost
   const semanticScore = (
     termIntersection.size / Math.min(terms1.size, terms2.size) +
-    (techTermIntersection.size > 0 ? 0.2 : 0)  // Boost if technical terms match
+    (techTermIntersection.size > 0 ? 0.3 : 0)  // Increased boost from 0.2 to 0.3
   );
 
   // Get words and create word sets with stemming for basic overlap
@@ -258,25 +258,25 @@ export function calculateHeuristicSimilarity(text1: string, text2: string): {
   // Combine scores with dynamic weights
   const combinedScore = isShortQuery ? (
     // For short queries, give more weight to exact matches
-    0.45 * semanticScore +     
-    0.35 * wordOverlapScore +  
-    0.15 * importanceScore +   
-    0.05 * phraseScore        
+    0.4 * semanticScore +     
+    0.3 * wordOverlapScore +  
+    0.2 * importanceScore +   
+    0.1 * phraseScore        
   ) : (
     // For longer queries, balance between semantic and word overlap
     0.35 * semanticScore +     
-    0.35 * wordOverlapScore +  
-    0.2 * importanceScore +    
+    0.3 * wordOverlapScore +  
+    0.25 * importanceScore +    
     0.1 * phraseScore         
   );
 
   // Boost score for matches with technical terms
   const boostedScore = hasTechnicalTerms ? 
-    combinedScore * 1.2 : 
+    combinedScore * 1.3 : // Increased boost from 1.2 to 1.3
     combinedScore;
 
   // Use adaptive power scaling based on score
-  const scalingFactor = boostedScore >= 0.5 ? 1.2 : 1.1;
+  const scalingFactor = boostedScore >= 0.5 ? 1.1 : 1.0; // Less aggressive scaling
   const finalScore = Math.pow(boostedScore, scalingFactor);
 
   return {
@@ -291,7 +291,7 @@ export function calculateHeuristicSimilarity(text1: string, text2: string): {
 export function findTopKHeuristic(
   query: string,
   chunks: IChunk[],
-  k: number = 3,
+  k: number = 6,
   threshold: number = 0.25
 ): IMatch[] {
   const similarities: IMatch[] = chunks.map(chunk => {
@@ -312,7 +312,7 @@ export function findTopKHeuristic(
     const bestScore = similarities[0].similarity;
     const adaptiveThreshold = Math.max(
       threshold,
-      bestScore * 0.4
+      bestScore * 0.3 // More lenient threshold for better recall
     );
 
     return similarities
@@ -332,9 +332,9 @@ export function findTopSentencesGloballyHeuristic(
   options: { topK?: number; minSimilarity?: number; minDistance?: number } = {}
 ): ISentenceResult[] {
   const {
-    topK = 3,
-    minSimilarity = 0.2,
-    minDistance = 0.1,
+    topK = 5,
+    minSimilarity = 0.3,
+    minDistance = 0.25,
   } = options;
 
   const allSentences: ISentenceResult[] = [];
