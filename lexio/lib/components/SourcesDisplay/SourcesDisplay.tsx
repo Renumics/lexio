@@ -2,8 +2,10 @@ import { useState, useContext } from "react";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import { ResetWrapper } from "../../utils/ResetWrapper";
 import { useSources} from "../../hooks";
-import { TrashIcon } from '@heroicons/react/24/outline';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import {
+  Trash2 as TrashIcon,
+  Search as MagnifyingGlassIcon,
+} from 'lucide-react';
 import {addOpacity, scaleFontSize} from "../../utils/scaleFontSize.tsx";
 
 export interface SourcesDisplayStyles extends React.CSSProperties {

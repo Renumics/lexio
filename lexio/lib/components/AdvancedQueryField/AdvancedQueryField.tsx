@@ -16,7 +16,7 @@ import {
 } from '@floating-ui/react';
 import ReactDOM from 'react-dom';
 import useResizeObserver from '@react-hook/resize-observer';
-import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
+import {FilePlus as DocumentPlusIcon} from 'lucide-react';
 
 import {
   useSources,

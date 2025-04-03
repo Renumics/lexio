@@ -1,5 +1,10 @@
 import React, { useState, useRef, KeyboardEvent, useContext } from 'react';
-import { HandThumbUpIcon, HandThumbDownIcon, ChatBubbleLeftIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import {
+  ThumbsUp as HandThumbUpIcon,
+  ThumbsDown as HandThumbDownIcon,
+  MessageSquare as ChatBubbleLeftIcon,
+  X as XMarkIcon,
+} from 'lucide-react';
 import {
   useFloating,
   useDismiss,

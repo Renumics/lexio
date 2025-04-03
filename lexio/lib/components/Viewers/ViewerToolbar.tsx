@@ -1,10 +1,10 @@
 import { useContext } from "react";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import {
-    ArrowsPointingOutIcon,
-    MagnifyingGlassMinusIcon,
-    MagnifyingGlassPlusIcon,
-} from "@heroicons/react/24/solid";
+    Expand as ArrowsPointingOutIcon,
+    ZoomOut as MagnifyingGlassMinusIcon,
+    ZoomIn as MagnifyingGlassPlusIcon,
+} from "lucide-react";
 import { ViewerToolbarProps } from "./types";
 
 export interface ViewerToolbarStyles extends React.CSSProperties {
