@@ -161,7 +161,18 @@ async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<Text
             let fullText = '';
             const itemPositions: { start: number; item: TextItem; }[] = [];
             
-            allTextItems.forEach(item => {
+            // Filter out likely header/footer items based on position
+            const filteredItems = allTextItems.filter(item => {
+                // Filter out items at very top or bottom of page (typical header/footer locations)
+                if (item.position.top < 0.1 || item.position.top > 0.9) {
+                    // Keep only if it looks like a meaningful page number
+                    const isPageNumber = /^\d+$/.test(item.text.trim());
+                    return isPageNumber;
+                }
+                return true;
+            });
+
+            filteredItems.forEach(item => {
                 const startPos = fullText.length;
                 fullText += item.text + ' ';
                 itemPositions.push({ start: startPos, item });
@@ -169,9 +180,20 @@ async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<Text
             
             // Clean the text while preserving original positions
             const cleanedText = fullText
-                .replace(/-\s*\n/g, '')
-                .replace(/\n+/g, ' ')
-                .replace(/\s+/g, ' ')
+                .replace(/-\s*\n/g, '')  // Remove hyphenation
+                .replace(/\n+/g, ' ')    // Replace newlines with spaces
+                .replace(/\s+/g, ' ')    // Normalize spaces
+                // Remove common PDF artifacts
+                .replace(/WWW\.[A-Z]+\.[A-Z]+/gi, '')  // Remove website URLs
+                .replace(/(?:©|Copyright)\s*\d{4}/gi, '')  // Remove copyright notices
+                .replace(/\b(?:Page|p\.?)\s*\d+\s*(?:of|\/)\s*\d+\b/gi, '')  // Remove "Page X of Y" format
+                .replace(/[A-Z\s]{5,}(?=\s|$)/g, (match) => {
+                    // Keep only if it contains a standalone page number
+                    return /^\d+$/.test(match.trim()) ? match : '';
+                })  // Remove all-caps headers/footers except standalone page numbers
+                .replace(/P\s*O\s*P\s*U\s*L\s*A\s*R\s*S\s*C\s*I\s*E\s*N\s*C\s*E/g, '')
+                .replace(/B\s*A\s*C\s*K\s*G\s*R\s*O\s*U\s*N\s*D/g, '')
+                .replace(/\(\d+\)\s*\d{4}/g, '')  // Remove "(X) YYYY" format
                 .trim();
             
             // Split into sentences using dynamically loaded SBD
