@@ -330,14 +330,89 @@ export class ExplanationProcessor {
                                 
                                 // Only create highlight for the best match
                                 if (index === 0 && originalChunk) {
-                                    const positions = this.findSentencePosition(match.sentence, originalChunk);
-                                    if (positions && positions.length > 0) {
-                                        const boundingRect = this.createBoundingRect(positions);
-                                        highlight = {
-                                            page: originalChunk.page || 0,
-                                            rect: boundingRect,
-                                            color: ''
-                                        };
+                                    // Find the best chunk match for this sentence
+                                    const bestChunkMatch = topMatches[0];
+                                    
+                                    console.log(`\nHighlight decision for idea: "${idea}"`);
+                                    console.log(`Best chunk score: ${bestChunkMatch?.similarity.toFixed(3)}`);
+                                    console.log(`Best sentence score: ${match.similarity.toFixed(3)}`);
+                                    
+                                    // If the best chunk has a higher score than the best sentence,
+                                    // use the entire chunk for highlighting
+                                    if (bestChunkMatch && bestChunkMatch.similarity > match.similarity && bestChunkMatch.chunk) {
+                                        // Calculate the percentage difference
+                                        const percentageDifference = ((bestChunkMatch.similarity - match.similarity) / match.similarity) * 100;
+                                        console.log(`Score difference: ${percentageDifference.toFixed(1)}%`);
+                                        
+                                        // Only use chunk if it's at least 10% better
+                                        if (percentageDifference >= 10) {
+                                            console.log('Decision: Using entire chunk for highlighting because chunk score is more than 10% higher');
+                                            console.log(`Chunk text: "${bestChunkMatch.chunk.text}"`);
+                                            
+                                            // Find the original chunk that matches the best chunk
+                                            const bestOriginalChunk = originalChunks.find(c => c.text === bestChunkMatch.chunk?.text);
+                                            
+                                            if (bestOriginalChunk) {
+                                                // Get all positions from the chunk's sentences
+                                                const allPositions = bestOriginalChunk.sentences
+                                                    .map(s => s.metadata?.linePositions)
+                                                    .filter((pos): pos is TextPosition[] => Array.isArray(pos))
+                                                    .flat();
+                                                    
+                                                if (allPositions.length > 0) {
+                                                    const boundingRect = this.createBoundingRect(allPositions);
+                                                    highlight = {
+                                                        page: bestOriginalChunk.page || 0,
+                                                        rect: boundingRect,
+                                                        color: ''
+                                                    };
+                                                    // Update the source sentence to use the entire chunk
+                                                    match.sentence = bestChunkMatch.chunk.text;
+                                                    console.log('Successfully created highlight for entire chunk');
+                                                    console.log(`Using chunk from page ${bestOriginalChunk.page}`);
+                                                } else {
+                                                    console.log('Warning: Could not find positions for chunk highlighting');
+                                                }
+                                            } else {
+                                                console.log('Warning: Could not find original chunk matching the best chunk match');
+                                            }
+                                        } else {
+                                            console.log('Decision: Using single sentence because chunk score is not 10% higher');
+                                            console.log(`Sentence text: "${match.sentence}"`);
+                                            
+                                            // Use original sentence-based highlighting
+                                            const positions = this.findSentencePosition(match.sentence, originalChunk);
+                                            if (positions && positions.length > 0) {
+                                                const boundingRect = this.createBoundingRect(positions);
+                                                highlight = {
+                                                    page: originalChunk.page || 0,
+                                                    rect: boundingRect,
+                                                    color: ''
+                                                };
+                                                console.log('Successfully created highlight for sentence');
+                                                console.log(`Using sentence from page ${originalChunk.page}`);
+                                            } else {
+                                                console.log('Warning: Could not find positions for sentence highlighting');
+                                            }
+                                        }
+                                    } else {
+                                        console.log('Decision: Using single sentence for highlighting because sentence score is higher or equal');
+                                        console.log(`Sentence text: "${match.sentence}"`);
+                                        
+                                        // Use original sentence-based highlighting
+                                        const positions = this.findSentencePosition(match.sentence, originalChunk);
+                                        if (positions && positions.length > 0) {
+                                            const boundingRect = this.createBoundingRect(positions);
+                                            highlight = {
+                                                page: originalChunk.page || 0,
+                                                rect: boundingRect,
+                                                color: ''
+                                            };
+                                            console.log('Successfully created highlight for sentence');
+                                            console.log(`Using sentence from page ${originalChunk.page}`);
+                                        } else {
+                                            console.log('Warning: Could not find positions for sentence highlighting');
+                                        }
                                     }
                                 }
 
