@@ -3,187 +3,229 @@ import { loadOpenAIChat } from './dependencies';
 import { extractClauses } from './clause_extractor';
 
 /**
- * The simplest Heuristic-based splitting:
- * Splits text into meaningful ideas while preserving markdown structure and formatting.
+ * Splits a block of text into an array of sentence strings,
+ * removing markdown formatting and bullet points while preserving content.
+ *
+ * @param text - The text to split.
+ * @returns An array of clean sentence strings without markdown formatting.
  */
-export function splitIntoIdeasHeuristic(sentence: string): string[] {
-  // Store code blocks to preserve them
-  const codeBlocks: string[] = [];
-  let blockCounter = 0;
-  
-  // Replace code blocks with placeholders
-  const textWithPlaceholders = sentence.replace(/```[\s\S]*?```/g, (match) => {
-    const placeholder = `__CODE_BLOCK_${blockCounter}__`;
-    codeBlocks[blockCounter] = match;
-    blockCounter++;
-    return placeholder + '\n';  // Add newline to ensure proper separation
-  });
+export function splitIntoSentences(text: string): string[] {
+  // First, preserve markdown sections by splitting on paragraph breaks
+  const paragraphs = text.split(/\n\n+/);
+  const segments: string[] = [];
 
-  // First, split on markdown headers while preserving them with their content
-  const headerSections = textWithPlaceholders
-    .split(/(?=(?:^|\n)#{1,6} )/g)
-    .map(section => section.trim())
-    .filter(Boolean);
-
-  // Process each header section
-  const ideas = headerSections.flatMap(section => {
-    // Split section into paragraphs, preserving code blocks
-    const paragraphs = section
-      .split(/\n\n+/)
-      .map(p => p.trim())
-      .filter(Boolean);
+  for (const paragraph of paragraphs) {
+    const trimmedParagraph = paragraph.trim();
     
-    return paragraphs.flatMap(paragraph => {
-      // Handle headers (as separate items)
-      if (paragraph.match(/^#{1,6} /)) {
-        return [paragraph];
-      }
-
-      // Handle code blocks (already replaced with placeholders)
-      if (paragraph.includes('__CODE_BLOCK_')) {
-        // Keep entire code block as one idea
-        return [paragraph];
-      }
-
-      // Handle lists - look for bullet points or numbered items
-      if (paragraph.match(/^(?:[*-]|\d+\.)\s/m)) {
-        // Split into list items while preserving the list markers
-        const listItems = paragraph
-          .split(/\n(?=(?:[*-]|\d+\.)\s)/)
-          .map(item => item.trim())
-          .filter(item => {
-            // Ensure the item has actual content beyond the marker
-            const content = item.replace(/^(?:[*-]|\d+\.)\s+/, '').trim();
-            return content.length > 0;
-          });
-
-        // If this is a list with an introduction, separate intro and items
-        if (paragraph.includes(':')) {
-          const [intro, ...items] = paragraph.split(/(?<=:)/);
-          if (intro && items.length) {
-            return [intro.trim(), ...listItems];
+    // Check if it's a markdown header and clean it
+    if (/^#{1,6}\s.+/.test(trimmedParagraph)) {
+      // Remove the heading markers (#) and extract content
+      const cleanHeader = trimmedParagraph.replace(/^#{1,6}\s+/, '');
+      segments.push(cleanHeader);
+      continue;
+    }
+    
+    // Check if it's a section with lists
+    if (trimmedParagraph.includes('\n')) {
+      const lines = trimmedParagraph.split('\n');
+      
+      // Check if this is a titled list or section
+      if (lines.length > 1 && (lines[0].endsWith(':') || /^[A-Z][a-z]+:$/.test(lines[0]))) {
+        // Add the title without the colon
+        const cleanTitle = lines[0].endsWith(':') ? 
+          lines[0].substring(0, lines[0].length - 1) : lines[0];
+        segments.push(cleanTitle);
+        
+        // Process the remaining lines
+        let currentSegment = '';
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          
+          // Check if this is a new list item or a section
+          if (/^\d+\./.test(line) || /^[-*+]/.test(line) || /^[A-Z][a-z]+:$/.test(line)) {
+            // Save previous segment if exists
+            if (currentSegment) {
+              segments.push(currentSegment);
+              currentSegment = '';
+            }
+            
+            // Clean the line: remove bullet points, numbers, etc.
+            let cleanLine = line;
+            if (/^\d+\./.test(line)) {
+              // Remove numbered list marker (e.g., "1. ")
+              cleanLine = line.replace(/^\d+\.\s*/, '');
+            } else if (/^[-*+]/.test(line)) {
+              // Remove bullet point list marker (e.g., "- ", "* ", "+ ")
+              cleanLine = line.replace(/^[-*+]\s*/, '');
+            } else if (/^[A-Z][a-z]+:$/.test(line)) {
+              // Remove colon from section header
+              cleanLine = line.substring(0, line.length - 1);
+            }
+            
+            currentSegment = cleanLine;
+          } else if (line && currentSegment) {
+            // Continue previous segment
+            currentSegment += ' ' + line;
+          } else if (line) {
+            // New standalone line
+            currentSegment = line;
           }
         }
-
-        return listItems;
-      }
-
-      // For normal text, split on sentence boundaries while preserving context
-      const sentences = paragraph
-        .split(/(?<=[.!?])(?:\s+|\n+)(?=[A-Z]|$)/g)
-        .map(sent => sent.trim())
-        .filter(sent => {
-          // Enhanced abbreviation handling
-          const commonAbbrev = /(?:Mr\.|Mrs\.|Dr\.|Prof\.|etc\.|e\.g\.|i\.e\.|vs\.|Fig\.|Eq\.|Sec\.|[A-Z]\.[A-Z]\.)/i;
-          return sent.length > 0 && !commonAbbrev.test(sent);
-        });
-
-      // Group closely related sentences
-      return sentences.reduce<string[]>((groups, sent, i, arr) => {
-        const prevSent = arr[i - 1];
-        const shouldGroup = prevSent && (
-          // Group if sentence is very short (likely a continuation)
-          sent.length < 30 ||
-          // Group if second sentence starts with connecting words
-          /^(However|Therefore|Thus|Additionally|Furthermore|Moreover|Also|This|These|Those|It|They)/i.test(sent) ||
-          // Group if sentence contains parentheses or is part of a definition
-          (sent.includes('(') && sent.includes(')')) ||
-          // Group if previous sentence ends with a colon or contains "through:"
-          prevSent.endsWith(':') ||
-          prevSent.includes('through:') ||
-          // Group if sentences share key terms
-          (prevSent && findCommonKeyTerms(prevSent, sent)) ||
-          // Group if sentences are short and related
-          (sent.length + prevSent.length < 100 && hasRelatedContent(prevSent, sent))
-        );
-
-        if (shouldGroup && groups.length > 0) {
-          groups[groups.length - 1] += ' ' + sent;
-        } else {
-          groups.push(sent);
+        
+        // Add the last segment
+        if (currentSegment) {
+          segments.push(currentSegment);
         }
-        return groups;
-      }, []);
-    });
-  });
-
-  // Restore code blocks and clean up
-  return ideas
-    .map(idea => {
-      let processed = idea.trim();
-      // Restore code blocks
-      codeBlocks.forEach((block, index) => {
-        processed = processed.replace(`__CODE_BLOCK_${index}__`, block);
-      });
-      return processed;
-    })
-    .filter(idea => {
-      // Enhanced filtering criteria
-      const meaningfulLength = idea.length > 15;
-      const hasLetters = /[a-zA-Z]/.test(idea);
-      const isNotJustPunctuation = !/^[^a-zA-Z0-9]*$/.test(idea);
-      const isNotPartialSentence = 
-        idea.includes('```') || // Allow code blocks
-        !idea.match(/^[a-z]/) || // Should start with capital
-        idea.match(/^[-*\d]/) || // Allow list items
-        idea.match(/^#{1,6} /);  // Allow headers
-      const hasCompleteThought = 
-        idea.match(/[.!?]$/) || // Ends with punctuation
-        idea.includes('```') || // Is a code block
-        idea.match(/^[-*\d]/) || // Is a list item
-        idea.match(/^#{1,6} /) || // Is a header
-        idea.includes(':'); // Ends with a colon for list introductions
+        continue;
+      }
+    }
+    
+    // Check if it's a markdown list and clean it
+    if (/^(\s*[-*+]|\s*\d+\.)\s/.test(trimmedParagraph)) {
+      const lines = trimmedParagraph.split('\n');
+      let currentItem = '';
       
-      return meaningfulLength && hasLetters && isNotJustPunctuation && 
-             isNotPartialSentence && hasCompleteThought;
-    });
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // Check if this is a new list item and clean it
+        if (/^\d+\./.test(trimmedLine) || /^[-*+]/.test(trimmedLine)) {
+          if (currentItem) {
+            segments.push(currentItem);
+          }
+          
+          // Clean the line by removing list markers
+          let cleanLine = trimmedLine;
+          if (/^\d+\./.test(trimmedLine)) {
+            cleanLine = trimmedLine.replace(/^\d+\.\s*/, '');
+          } else if (/^[-*+]/.test(trimmedLine)) {
+            cleanLine = trimmedLine.replace(/^[-*+]\s*/, '');
+          }
+          
+          currentItem = cleanLine;
+        } else if (trimmedLine) {
+          // Continue previous item
+          currentItem += ' ' + trimmedLine;
+        }
+      }
+      
+      // Add the last item
+      if (currentItem) {
+        segments.push(currentItem);
+      }
+      continue;
+    }
+    
+    // For regular paragraphs, split by sentences
+    const sentenceRegex = /[^.!?]+[.!?]+[\])'"'"]*/g;
+    const sentences = trimmedParagraph.match(sentenceRegex) || [];
+    
+    // If no sentences were found and the paragraph is not empty, add it as a whole
+    if (sentences.length === 0 && trimmedParagraph.length > 0) {
+      segments.push(trimmedParagraph);
+    } else {
+      segments.push(...sentences.map(s => s.trim()).filter(s => s.length > 0));
+    }
+  }
+
+  return segments;
 }
 
-// Helper function to find common key terms between sentences
-function findCommonKeyTerms(sent1: string, sent2: string): boolean {
-  // Extract significant words (nouns, verbs, adjectives)
-  const words1: string[] = sent1.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
-  const words2: string[] = sent2.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
-  
-  // Count common significant words
-  const commonWords = words1.filter(word => words2.includes(word));
-  return commonWords.length >= 2;
-}
-
-// Helper function to check if sentences have related content
-function hasRelatedContent(sent1: string, sent2: string): boolean {
-  // Check for parenthetical explanations
-  if (sent2.includes('(') && sent2.includes(')')) return true;
-  
-  // Check for list-like continuations
-  if (sent2.match(/^(such as|like|including|e\.g\.|i\.e\.)/i)) return true;
-  
-  // Check for subject continuity (e.g., "The model... It...")
-  const subjects = /(model|approach|method|system|algorithm|data|results?)/i;
-  if (sent1.match(subjects) && sent2.match(/\b(it|this|these|those)\b/i)) return true;
-  
-  return false;
+/**
+ * Heuristic-based idea splitting that uses our markdown-aware sentence splitting.
+ * Since splitIntoSentences already does the cleaning, this is just a wrapper.
+ */
+export async function splitIntoIdeasHeuristic(text: string): Promise<string[]> {
+  // Just use the markdown-aware sentence splitting with cleaning
+  return splitIntoSentences(text);
 }
 
 /**
  * Dependency parsing splitting:
- * Uses a dependency parser to split the sentence into clauses.
+ * Uses a dependency parser to extract sub-ideas from each sentence.
+ * This method provides more granular idea extraction than simple sentence splitting.
+ * For full documents, first splits into sentences using markdown-aware parsing,
+ * then further breaks down each sentence into smaller idea units.
  */
-export async function splitIntoIdeasDependencyParsing(sentence: string): Promise<string[]> {
+export async function splitIntoIdeasDependencyParsing(text: string): Promise<string[]> {
   try {
-    const clauses = await extractClauses(sentence);
-    return clauses && clauses.length ? clauses : [sentence];
+    // First split text into sentences using markdown-aware function
+    const sentences = splitIntoSentences(text);
+    
+    // Only apply dependency parsing to longer sentences that might contain multiple ideas
+    const ideasPromises = sentences.map(async (sentence) => {
+      // Skip further processing for headers, section titles and short sentences
+      if (sentence.length < 15) {
+        return [sentence];
+      }
+      
+      try {
+        const clauses = await extractClauses(sentence);
+        return clauses && clauses.length ? clauses : [sentence];
+      } catch (error) {
+        console.error("Error in dependency parsing for sentence:", error);
+        return [sentence];
+      }
+    });
+    
+    // Flatten the array of arrays into a single array of ideas
+    const results = await Promise.all(ideasPromises);
+    return results.flat();
   } catch (error) {
-    console.error("Error in local dependency parsing splitting:", error);
-    return [sentence];
+    console.error("Error in dependency parsing splitting:", error);
+    return [text];
   }
 }
 
 /**
- * LLM-based splitting:
- * Uses the OpenAI API to split the sentence into distinct ideas.
+ * LLM-based idea extraction:
+ * Uses an LLM to extract more granular ideas from each sentence.
+ * This is the most sophisticated method but requires API calls.
+ * For full documents, first splits into sentences using markdown-aware parsing,
+ * then uses an LLM to extract specific ideas from longer sentences.
  */
-export async function splitIntoIdeasUsingLLM(sentence: string): Promise<string[]> {
+export async function splitIntoIdeasUsingLLM(text: string): Promise<string[]> {
+  try {
+    // First split text into sentences using markdown-aware function
+    const sentences = splitIntoSentences(text);
+    
+    // For efficiency, only send reasonable-sized text chunks to the LLM
+    const MAX_CHARS = 1000; // Reasonable chunk size for LLM processing
+    
+    // Process each sentence with LLM
+    const allIdeas: string[] = [];
+    
+    for (const sentence of sentences) {
+      // Skip processing for short sentences - just use them as-is
+      if (sentence.length < 40) {
+        allIdeas.push(sentence);
+        continue;
+      }
+      
+      // For longer sentences, use LLM to extract ideas
+      if (sentence.length > MAX_CHARS) {
+        console.warn(`Sentence too long (${sentence.length} chars), truncating for LLM processing`);
+        // Process the truncated sentence
+        const truncatedSentence = sentence.substring(0, MAX_CHARS);
+        const ideas = await processWithLLM(truncatedSentence);
+        allIdeas.push(...ideas);
+      } else {
+        const ideas = await processWithLLM(sentence);
+        allIdeas.push(...ideas);
+      }
+    }
+    
+    return allIdeas;
+  } catch (error) {
+    console.error("Error in LLM idea splitting:", error);
+    return splitIntoSentences(text); // Fallback to sentence splitting
+  }
+}
+
+/**
+ * Helper function to process text with LLM for idea extraction
+ */
+async function processWithLLM(sentence: string): Promise<string[]> {
   const prompt = `Extract key phrases from this text that represent complete, distinct ideas. Each phrase must be an exact word-for-word match from the original text.
 
 Original text: "${sentence}"
@@ -227,9 +269,9 @@ Now extract phrases from the original text:`;
         return exists;
       });
 
-    return ideas;
+    return ideas.length > 0 ? ideas : [sentence];
   } catch (error) {
-    console.error("Error calling LLM for idea splitting:", error);
+    console.error("Error calling LLM for idea extraction:", error);
     return [sentence];
   }
 }

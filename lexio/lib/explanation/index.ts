@@ -2,7 +2,6 @@ import { parseAndCleanPdf, TextWithMetadata } from './preprocessing';
 import { 
     groupSentenceObjectsIntoChunks, 
     groupSentenceObjectsIntoChunksHeuristic,
-    splitIntoSentences, 
     Chunk, 
     TextPosition 
 } from './chunking';
@@ -209,32 +208,22 @@ export class ExplanationProcessor {
                 console.log('Generated embeddings for chunks:', chunkEmbeddings.length);
             }
 
-            const sentences = splitIntoSentences(response);
             const answerIdeas: Array<{ idea: string }> = [];
 
-            for (const sentence of sentences) {
-                const ideas = config.IDEA_SPLITTING_METHOD === 'heuristic' ? splitIntoIdeasHeuristic(sentence)
-                    : config.IDEA_SPLITTING_METHOD === 'dependency' ? await splitIntoIdeasDependencyParsing(sentence)
-                    : config.IDEA_SPLITTING_METHOD === 'llm' ? await splitIntoIdeasUsingLLM(sentence)
-                    : [sentence];
-                
-                // For each idea, find its specific part within the sentence
-                for (const idea of ideas) {
-                    // Clean up the idea text for better matching
-                    const cleanIdea = idea
-                        .replace(/^[-\s.]+|[-\s.]+$/g, '') // Remove leading/trailing dashes, spaces, periods
-                        .replace(/^(It|This)\s+/i, ''); // Remove leading "It" or "This"
-
-                    // Skip if idea is too short
-                    if (cleanIdea.length < 6) {
-                        continue;
-                    }
-                    
-                    answerIdeas.push({
-                        idea: cleanIdea
-                    });
-                }
+            // Use the appropriate idea splitting method directly on the full response
+            let allIdeas: string[] = [];
+            if (config.IDEA_SPLITTING_METHOD === 'heuristic') {
+                // The splitIntoIdeasHeuristic will now handle markdown parsing internally
+                allIdeas = await splitIntoIdeasHeuristic(response);
+            } else if (config.IDEA_SPLITTING_METHOD === 'dependency') {
+                allIdeas = await splitIntoIdeasDependencyParsing(response);
+            } else if (config.IDEA_SPLITTING_METHOD === 'llm') {
+                allIdeas = await splitIntoIdeasUsingLLM(response);
             }
+            
+            // Add all extracted ideas directly to answerIdeas without extra filtering or cleaning
+            answerIdeas.push(...allIdeas.map(idea => ({ idea })));
+            
             console.log('Number of answer ideas:', answerIdeas.length);
             console.log('Answer ideas:', answerIdeas);
 
