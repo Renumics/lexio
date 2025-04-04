@@ -186,7 +186,7 @@ const ExampleComponent = () => {
 };
 
 const meta = {
-  title: 'Basic Usage/Citations',
+  title: 'Additional Features/Citations',
   component: ExampleComponent,
   parameters: {
     layout: 'centered',
