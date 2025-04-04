@@ -5,11 +5,6 @@ import type { Message, Source, UserAction, PDFHighlight } from '../../../lib/mai
 import { ExplanationProcessor } from '../../../lib/explanation';
 import { useState } from 'react';
 
-interface ExplanationDemoProps {
-  matchingMethod: 'heuristic' | 'embedding';
-  ideaSplittingMethod: 'heuristic' | 'llm';
-}
-
 // Example response about Physics and Machine Learning
 const EXAMPLE_RESPONSE = `# Foundations of Machine Learning through Physics
 
@@ -42,148 +37,180 @@ const fetchPDF = async (): Promise<Uint8Array> => {
   }
 };
 
-const ExampleComponent = ({ matchingMethod, ideaSplittingMethod }: ExplanationDemoProps) => {
+// Helper function to generate evenly distributed colors using HSL
+const generateHighlightColors = (count: number): { solid: string, transparent: string }[] => {
+  return Array.from({ length: count }, (_, i) => {
+    const hue = (i * 360) / count;
+    // Using higher saturation (80%) and lightness (60%) for better visibility
+    return {
+      solid: `hsl(${hue}, 80%, 60%)`,
+      transparent: `hsla(${hue}, 80%, 60%, 0.3)`
+    };
+  });
+};
+
+// Memoize the colors to prevent regeneration on every render
+const memoizedGenerateHighlightColors = (count: number) => {
+  const colors = generateHighlightColors(count);
+  return colors;
+};
+
+const ExampleComponent = () => {
   const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
   const [highlights, setHighlights] = useState<PDFHighlight[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  // Memoize the LexioProvider onAction callback to prevent unnecessary re-renders
+  const handleAction = async (
+    action: UserAction,
+    messages: Message[],
+    sources: Source[],
+    activeSources: Source[] | null,
+    selectedSource: Source | null
+  ) => {
+    if (action.type === 'ADD_USER_MESSAGE') {
+      return {
+        sources: Promise.resolve([{
+          id: 'physics-prize-2024',
+          title: "The Nobel Prize in Physics 2024",
+          type: "pdf" as const,
+          relevance: 1,
+          metadata: {
+            authors: 'The Royal Swedish Academy of Sciences',
+            year: '2024',
+            pages: '8'
+          }
+        }]),
+        response: Promise.resolve(EXAMPLE_RESPONSE)
+      };
+    }
+
+    if (action.type === 'SET_SELECTED_SOURCE') {
+      try {
+        setIsProcessing(true);
+        // Fetch the actual PDF
+        const pdfData = await fetchPDF();
+        setPdfData(pdfData);
+        
+        // Process the explanation using the last message
+        const lastMessage = messages[messages.length - 1];
+        const explanationResult = await ExplanationProcessor.processResponse(
+          lastMessage?.content || '',
+          pdfData
+        );
+
+        // Generate colors for the number of ideas we have
+        const colors = memoizedGenerateHighlightColors(explanationResult.ideaSources.length);
+
+        // Map each idea source to highlights
+        const newHighlights = explanationResult.ideaSources.flatMap((source, index) => {
+          const colorPair = colors[index];
+          return source.supporting_evidence
+            .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
+            .map(evidence => {
+              // Update current page to the first highlight's page
+              if (index === 0) {
+                setCurrentPage(evidence.highlight!.page);
+              }
+              return {
+                page: evidence.highlight!.page,
+                rect: evidence.highlight!.rect || {
+                  top: 0.2 + (index * 0.1),
+                  left: 0.1,
+                  width: 0.8,
+                  height: 0.05
+                },
+                highlightColorRgba: colorPair.transparent
+              };
+            });
+        });
+
+        setHighlights(newHighlights);
+
+        return {
+          sourceData: Promise.resolve(pdfData),
+          citations: Promise.resolve(
+            explanationResult.ideaSources.flatMap((source, index) => {
+              const colorPair = colors[index];
+              return source.supporting_evidence
+                .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
+                .map(evidence => ({
+                  sourceId: action.sourceId,
+                  messageId: lastMessage?.id,
+                  messageHighlight: {
+                    text: source.answer_idea,
+                    color: colorPair.solid
+                  },
+                  sourceHighlight: {
+                    page: evidence.highlight!.page,
+                    rect: evidence.highlight!.rect || {
+                      top: 0.2 + (index * 0.1),
+                      left: 0.1,
+                      width: 0.8,
+                      height: 0.05
+                    },
+                    highlightColorRgba: colorPair.transparent
+                  }
+                }));
+            })
+          )
+        };
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+  };
 
   return (
     <div style={{ width: '100%', height: '800px', padding: '20px' }}>
       <LexioProvider
         config={{
           llms: {
-            ideaSplittingMethod: ideaSplittingMethod
+            ideaSplittingMethod: 'heuristic'
           }
         }}
-        onAction={async (
-          action: UserAction,
-          messages: Message[],
-          sources: Source[],
-          activeSources: Source[] | null,
-          selectedSource: Source | null
-        ) => {
-          if (action.type === 'ADD_USER_MESSAGE') {
-            return {
-              sources: Promise.resolve([{
-                id: 'physics-prize-2024',
-                title: "The Nobel Prize in Physics 2024",
-                type: "pdf" as const,
-                relevance: 1,
-                metadata: {
-                  authors: 'The Royal Swedish Academy of Sciences',
-                  year: '2024',
-                  pages: '8'
-                }
-              }]),
-              response: Promise.resolve(EXAMPLE_RESPONSE)
-            };
-          }
-
-          if (action.type === 'SET_SELECTED_SOURCE') {
-            // Fetch the actual PDF
-            const pdfData = await fetchPDF();
-            setPdfData(pdfData);
-            
-            // Process the explanation using the last message
-            const lastMessage = messages[messages.length - 1];
-            const explanationResult = await ExplanationProcessor.processResponse(
-              lastMessage?.content || '',
-              pdfData
-            );
-
-            // Generate highlight positions based on the actual PDF content
-            const getHighlightPosition = (index: number, total: number) => {
-              // These values are based on typical PDF page dimensions
-              const pageWidth = 612; // Standard US Letter width in points
-              const pageHeight = 792; // Standard US Letter height in points
-              const margin = 72; // 1-inch margin
-              
-              // Calculate position within the content area
-              const contentHeight = pageHeight - (2 * margin);
-              const sectionHeight = contentHeight / total;
-              const top = margin + (index * sectionHeight) + (Math.random() * 20);
-              
-              return {
-                top: top / pageHeight,  // Convert to relative values (0-1)
-                left: margin / pageWidth,
-                width: (pageWidth - (2 * margin)) / pageWidth,
-                height: (14 + (Math.random() * 6)) / pageHeight
-              };
-            };
-
-            const newHighlights = explanationResult.ideaSources.flatMap((source, index, array) => {
-              const color = `hsl(${(index * 360) / array.length}, 80%, 60%)`;
-              return source.supporting_evidence.map(evidence => ({
-                page: evidence.highlight?.page || 1,
-                rect: getHighlightPosition(index, array.length),
-                highlightColorRgba: `${color}40`
-              }));
-            });
-
-            setHighlights(newHighlights);
-            setCurrentPage(1);
-
-            return {
-              sourceData: Promise.resolve(pdfData),
-              citations: Promise.resolve(
-                explanationResult.ideaSources.flatMap((source, index, array) => {
-                  const color = `hsl(${(index * 360) / array.length}, 80%, 60%)`;
-                  return source.supporting_evidence.map(evidence => ({
-                    sourceId: action.sourceId,
-                    messageId: lastMessage?.id,
-                    messageHighlight: {
-                      text: source.answer_idea,
-                      color: color
-                    },
-                    sourceHighlight: {
-                      page: evidence.highlight?.page || 1,
-                      rect: getHighlightPosition(index, array.length),
-                      highlightColorRgba: `${color}40`
-                    }
-                  }));
-                })
-              )
-            };
-          }
-        }}
+        onAction={handleAction}
       >
-        <div className="flex flex-col h-full gap-4">
-          <div className="flex-1 flex flex-row gap-4">
-            {/* Left panel: Chat and Query */}
-            <div className="w-1/2 flex flex-col">
-              <div className="flex-1 overflow-auto border rounded-lg">
+        <div className="grid h-full gap-4" style={{ gridTemplateColumns: '40% 60%' }}>
+          {/* Left panel: Sources (top) and Chat (bottom) */}
+          <div className="flex flex-col gap-4">
+            {/* Sources on top */}
+            <div className="h-1/3 border rounded-lg overflow-auto bg-white">
+              <SourcesDisplay />
+            </div>
+            {/* Chat and Query on bottom */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1 overflow-auto border rounded-lg bg-white">
                 <ChatWindow />
               </div>
               <div className="mt-4">
-                <AdvancedQueryField />
-              </div>
-            </div>
-            
-            {/* Right panel: Sources and Content */}
-            <div className="w-1/2 flex flex-col gap-4">
-              <div className="flex-1 border rounded-lg overflow-auto">
-                <SourcesDisplay />
-              </div>
-              <div className="flex-1 border rounded-lg overflow-hidden">
-                {pdfData ? (
-                  <PdfViewer 
-                    data={pdfData}
-                    highlights={highlights}
-                    page={currentPage}
-                    styleOverrides={{
-                      contentBackground: '#f8f8f8',
-                    }}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    Select a source to view content
-                  </div>
-                )}
+                <AdvancedQueryField disabled={isProcessing} />
               </div>
             </div>
           </div>
-          <ErrorDisplay />
+          
+          {/* Right panel: Full height PDF viewer (60% width) */}
+          <div className="border rounded-lg overflow-hidden bg-white">
+            {pdfData ? (
+              <PdfViewer 
+                data={pdfData}
+                highlights={highlights}
+                page={currentPage}
+                styleOverrides={{
+                  contentBackground: '#ffffff',
+                  toolbarBackground: '#f8f9fa',
+                  borderRadius: '0.5rem'
+                }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                Select a source to view content
+              </div>
+            )}
+          </div>
         </div>
+        <ErrorDisplay />
       </LexioProvider>
     </div>
   );
@@ -204,15 +231,11 @@ The Explanation Mechanism is a core feature of Lexio that connects generated res
 ## Key Components
 
 **1. Idea Splitting**
-   - Breaks down responses into distinct ideas
-   - Two methods available:
-     - Heuristic: Uses rule-based text analysis for simpler content
-     - LLM: Employs language models for sophisticated splitting
+   - Breaks down responses into distinct ideas using rule-based text analysis
 
 **2. Source Matching**
-   - Two primary approaches:
-     - Heuristic Matching: Uses keyword and pattern-based matching
-     - Embedding-based Matching: Utilizes semantic similarity
+   - Uses pattern-based matching to connect ideas with source content
+   - Identifies relevant passages and their locations
 
 **3. Highlighting System**
    - Automatically generates color-coded highlights
@@ -227,7 +250,7 @@ Here's how to implement the explanation mechanism with the Lexio provider:
 <LexioProvider
   config={{
     llms: {
-      ideaSplittingMethod: 'llm'
+      ideaSplittingMethod: 'heuristic'
     }
   }}
   onAction={async (action) => {
@@ -274,13 +297,13 @@ Here's how to implement the explanation mechanism with the Lexio provider:
 
 1. **Response Processing**
    - Message content is analyzed
-   - Ideas are extracted using the configured method
+   - Ideas are extracted using rule-based analysis
    - Each idea is prepared for source matching
 
 2. **Source Analysis**
    - Documents are preprocessed
    - Content is chunked appropriately
-   - Embeddings are generated (if using embedding-based matching)
+   - Pattern matching is applied
 
 3. **Matching & Highlighting**
    - Ideas are matched with source content
@@ -290,58 +313,33 @@ Here's how to implement the explanation mechanism with the Lexio provider:
 
 ## Best Practices
 
-**1. Choose Appropriate Methods**
-   - Use LLM splitting for complex responses
-   - Prefer embedding matching for semantic accuracy
-   - Consider heuristic methods for speed
-
-**2. Configure Chunk Sizes**
+**1. Configure Chunk Sizes**
    - Adjust based on document structure
    - Balance precision vs. processing speed
 
-**3. Handle Highlighting**
+**2. Handle Highlighting**
    - Implement smooth scroll to highlights
    - Use distinct colors for different ideas
    - Provide clear visual feedback
 
-**4. Error Handling**
+**3. Error Handling**
    - Handle cases where matches aren't found
    - Provide fallback highlighting strategies
    - Log matching quality metrics
 
 ## Interactive Example
 
-Try different configurations using the controls below to see how the explanation mechanism processes the 2024 Nobel Prize in Physics with different settings!
-
-- Try different matching methods (Heuristic vs Embedding)
-- Experiment with idea splitting approaches (Heuristic vs LLM)
+This example demonstrates how the explanation mechanism processes the 2024 Nobel Prize in Physics, showing how ideas are matched with source content and highlighted in both the response and the document.
         `
       }
     }
   },
-  tags: ['autodocs'],
-  argTypes: {
-    matchingMethod: {
-      control: 'radio',
-      options: ['heuristic', 'embedding'],
-      description: 'Method used for matching ideas with source content',
-      defaultValue: 'embedding'
-    },
-    ideaSplittingMethod: {
-      control: 'radio',
-      options: ['heuristic', 'llm'],
-      description: 'Method used for splitting response into ideas',
-      defaultValue: 'llm'
-    }
-  }
+  tags: ['autodocs']
 } satisfies Meta<typeof ExampleComponent>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Docs: Story = {
-  args: {
-    matchingMethod: 'embedding',
-    ideaSplittingMethod: 'llm'
-  }
-}; 
+  args: {}
+};
