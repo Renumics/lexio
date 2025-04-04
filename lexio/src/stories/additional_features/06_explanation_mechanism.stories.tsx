@@ -5,6 +5,22 @@ import { ExplanationProcessor } from '../../../lib/explanation';
 import { useState, useEffect } from 'react';
 import { useCitations } from '../../../lib/hooks/hooks';
 
+// Base layout component for consistent story presentation
+const BaseLayout = ({ children }: { children: React.ReactNode }) => (
+  <div style={{ 
+    width: '100%', 
+    maxWidth: '1000px',
+    minWidth: '1000px',
+    height: '800px', 
+    margin: '0 auto',
+    padding: '20px',
+    boxSizing: 'border-box',
+    position: 'relative'
+  }}>
+    {children}
+  </div>
+);
+
 // Example response about Physics and Machine Learning
 const EXAMPLE_RESPONSE = `# Foundations of Machine Learning through Physics
 
@@ -198,7 +214,7 @@ const ExampleComponent = () => {
   };
 
   return (
-    <div style={{ width: '100%', height: '800px', padding: '20px' }}>
+    <BaseLayout>
       <LexioProvider
         config={{
           llms: {
@@ -207,32 +223,95 @@ const ExampleComponent = () => {
         }}
         onAction={handleAction}
       >
-        <div className="grid h-full gap-4" style={{ gridTemplateColumns: '40% 60%' }}>
+        <div style={{ 
+          display: 'grid',
+          height: '100%',
+          gridTemplateColumns: '3fr 4fr',
+          gridTemplateRows: '1fr',
+          gap: '20px',
+          width: '100%',
+          boxSizing: 'border-box',
+          minHeight: '760px',
+          overflow: 'visible'
+        }}>
           {/* Left panel: Sources (top) and Chat (bottom) */}
-          <div className="flex flex-col gap-4">
+          <div style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            height: '100%',
+            minWidth: '350px',
+            maxWidth: '350px',
+            width: '100%',
+            boxSizing: 'border-box',
+            flex: '0 0 auto'
+          }}>
             {/* Sources on top */}
-            <div className="h-1/3 border rounded-lg overflow-auto bg-white">
+            <div style={{ 
+              height: '30%',
+              minHeight: '200px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              overflow: 'auto',
+              backgroundColor: 'white',
+              width: '100%',
+              boxSizing: 'border-box',
+              flex: '0 0 auto'
+            }}>
               <SourcesDisplay />
             </div>
             {/* Chat and Query on bottom */}
-            <div className="flex-1 flex flex-col">
-              <div className="flex-1 overflow-auto border rounded-lg bg-white">
+            <div style={{ 
+              height: '70%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              width: '100%',
+              boxSizing: 'border-box',
+              flex: '0 0 auto'
+            }}>
+              <div style={{ 
+                flex: 1,
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                overflow: 'auto',
+                backgroundColor: 'white',
+                minHeight: '300px',
+                width: '100%',
+                boxSizing: 'border-box'
+              }}>
                 <ChatWindow />
               </div>
-              <div className="mt-4">
+              <div style={{ 
+                height: '80px',
+                width: '100%',
+                boxSizing: 'border-box',
+                flex: '0 0 auto'
+              }}>
                 <AdvancedQueryField disabled={isProcessing} />
               </div>
             </div>
           </div>
           
-          {/* Right panel: Full height PDF viewer (60% width) */}
-          <div className="border rounded-lg overflow-hidden bg-white">
+          {/* Right panel: Full height PDF viewer */}
+          <div style={{ 
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            overflow: 'auto',
+            backgroundColor: 'white',
+            height: '100%',
+            minWidth: '550px',
+            maxWidth: '550px',
+            width: '100%',
+            boxSizing: 'border-box',
+            flex: '0 0 auto'
+          }}>
             <ContentDisplay />
           </div>
         </div>
         <ErrorDisplay />
       </LexioProvider>
-    </div>
+    </BaseLayout>
   );
 };
 
