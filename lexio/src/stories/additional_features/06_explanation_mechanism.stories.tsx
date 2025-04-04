@@ -325,7 +325,21 @@ const meta = {
         component: `
 ## Introduction
 
-The Explanation Mechanism is a core feature of Lexio that connects generated responses with their source material through intelligent matching and highlighting. This example demonstrates how it works using the 2024 Nobel Prize in Physics as source material.
+Lexio's Explanation Mechanism helps connect generated responses with their source material through intelligent matching and highlighting.
+
+## Matching Approaches
+
+Lexio provides two methods for matching responses with sources:
+
+**1. Heuristic Matching**
+   - Fast, rule-based pattern matching
+   - Suitable for prototypes and demos
+   - No external API dependencies
+
+**2. API-Based Matching**
+   - Higher accuracy for production use
+   - Advanced semantic understanding
+   - Configurable matching parameters
 
 ## Key Components
 
