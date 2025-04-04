@@ -99,79 +99,92 @@ const ExampleComponent = () => {
           return {};
         }
 
-        // Fetch the actual PDF
-        const pdfData = await fetchPDF();
-        setPdfData(pdfData);
+        // Create a promise for fetching the source data
+        const sourceDataPromise = fetchPDF();
         
-        // Get the last message content for context
-        const lastMessageContent = messages.length > 0 ? messages[messages.length - 1].content : "";
-        
-        // Process the explanation using the last message
-        const explanationResult = await ExplanationProcessor.processResponse(
-          lastMessageContent,
-          pdfData
-        );
-
-        // Update the last processed message ID
-        if (lastMessageId) {
-          setLastProcessedMessageId(lastMessageId);
-        }
-
-        // Generate colors for the number of ideas we have
-        const colors = memoizedGenerateHighlightColors(explanationResult.ideaSources.length);
-
-        // Map each idea source to highlights
-        const newHighlights = explanationResult.ideaSources.flatMap((source, index) => {
-          const colorPair = colors[index];
-          return source.supporting_evidence
-            .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
-            .map(evidence => {
-              return {
-                page: evidence.highlight!.page,
-                rect: evidence.highlight!.rect || {
-                  top: 0.2 + (index * 0.1),
-                  left: 0.1,
-                  width: 0.8,
-                  height: 0.05
-                },
-                highlightColorRgba: colorPair.transparent
-              };
-            });
-        });
-
-        setHighlights(newHighlights);
-
-        // Map explanation result to citations
-        const citations = explanationResult.ideaSources.flatMap((source, index) => {
-          const colorPair = colors[index];
-          return source.supporting_evidence
-            .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
-            .map(evidence => ({
-              sourceId: action.sourceId,
-              messageId: lastMessageId,
-              messageHighlight: {
-                text: source.answer_idea,
-                color: colorPair.solid
-              },
-              sourceHighlight: {
-                page: evidence.highlight!.page,
-                rect: evidence.highlight!.rect || {
-                  top: 0.2 + (index * 0.1),
-                  left: 0.1,
-                  width: 0.8,
-                  height: 0.05
-                },
-                highlightColorRgba: colorPair.transparent
-              }
-            }));
-        });
-
+        // Return both sourceData and citations independently
         return {
-          sourceData: Promise.resolve(pdfData),
-          citations: Promise.resolve(citations)
+          // Return source data immediately after fetching
+          sourceData: sourceDataPromise,
+          
+          // Process citations based on explanation processor
+          citations: Promise.resolve().then(async () => {
+            try {
+              // Start the full processing in the background
+              const pdfData = await sourceDataPromise;
+              setPdfData(pdfData);
+              
+              // Get the last message content for context
+              const lastMessageContent = messages.length > 0 ? messages[messages.length - 1].content : "";
+              
+              // Process the document using ExplanationProcessor
+              const explanationResult = await ExplanationProcessor.processResponse(
+                lastMessageContent,
+                pdfData
+              );
+
+              // Update the last processed message ID
+              if (lastMessageId) {
+                setLastProcessedMessageId(lastMessageId);
+              }
+
+              // Generate colors for the number of ideas we have
+              const colors = memoizedGenerateHighlightColors(explanationResult.ideaSources.length);
+
+              // Map each idea source to highlights
+              const newHighlights = explanationResult.ideaSources.flatMap((source, index) => {
+                const colorPair = colors[index];
+                return source.supporting_evidence
+                  .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
+                  .map(evidence => {
+                    return {
+                      page: evidence.highlight!.page,
+                      rect: evidence.highlight!.rect || {
+                        top: 0.2 + (index * 0.1),
+                        left: 0.1,
+                        width: 0.8,
+                        height: 0.05
+                      },
+                      highlightColorRgba: colorPair.transparent
+                    };
+                  });
+              });
+
+              setHighlights(newHighlights);
+
+              // Map explanation result to citations
+              return explanationResult.ideaSources.flatMap((source, index) => {
+                const colorPair = colors[index];
+                return source.supporting_evidence
+                  .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
+                  .map(evidence => ({
+                    sourceId: action.sourceId,
+                    messageId: lastMessageId,
+                    messageHighlight: {
+                      text: source.answer_idea,
+                      color: colorPair.solid
+                    },
+                    sourceHighlight: {
+                      page: evidence.highlight!.page,
+                      rect: evidence.highlight!.rect || {
+                        top: 0.2 + (index * 0.1),
+                        left: 0.1,
+                        width: 0.8,
+                        height: 0.05
+                      },
+                      highlightColorRgba: colorPair.transparent
+                    }
+                  }));
+              });
+            } catch (error) {
+              console.error("Error processing citations:", error);
+              // Return empty citations array if there's an error
+              return [];
+            }
+          })
         };
       } catch (error) {
-        console.error("Error processing explanation:", error);
+        console.error("Error in SET_SELECTED_SOURCE handler:", error);
         // Return empty response if there's an error
         return {};
       } finally {
