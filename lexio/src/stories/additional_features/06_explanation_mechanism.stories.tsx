@@ -79,7 +79,8 @@ const ExampleComponent = () => {
           metadata: {
             authors: 'The Royal Swedish Academy of Sciences',
             year: '2024',
-            pages: '8'
+            pages: '8',
+            page: 1
           }
         }]),
         response: Promise.resolve(EXAMPLE_RESPONSE)
@@ -96,7 +97,10 @@ const ExampleComponent = () => {
         // Check if we've already processed this message
         if (lastMessageId && lastMessageId === lastProcessedMessageId) {
           console.log('Skipping explanation processing - message already processed');
-          return {};
+          // Return source data with page 1 even when skipping processing
+          return {
+            sourceData: fetchPDF()
+          };
         }
 
         // Create a promise for fetching the source data
