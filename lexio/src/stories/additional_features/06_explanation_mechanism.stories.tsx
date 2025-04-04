@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { LexioProvider, ChatWindow, AdvancedQueryField, ErrorDisplay, SourcesDisplay } from '../../../lib/main';
-import { PdfViewer } from '../../../lib/components/Viewers/PdfViewer';
-import type { Message, Source, UserAction, PDFHighlight } from '../../../lib/main';
+import { LexioProvider, ChatWindow, AdvancedQueryField, ErrorDisplay, SourcesDisplay, ContentDisplay } from '../../../lib/main';
+import type { Message, Source, UserAction, PDFHighlight, Citation, Component } from '../../../lib/main';
 import { ExplanationProcessor } from '../../../lib/explanation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useCitations } from '../../../lib/hooks/hooks';
 
 // Example response about Physics and Machine Learning
 const EXAMPLE_RESPONSE = `# Foundations of Machine Learning through Physics
@@ -58,8 +58,8 @@ const memoizedGenerateHighlightColors = (count: number) => {
 const ExampleComponent = () => {
   const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
   const [highlights, setHighlights] = useState<PDFHighlight[]>([]);
-  const [currentPage, setCurrentPage] = useState<number>(1);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | undefined>(undefined);
 
   // Memoize the LexioProvider onAction callback to prevent unnecessary re-renders
   const handleAction = async (
@@ -89,16 +89,33 @@ const ExampleComponent = () => {
     if (action.type === 'SET_SELECTED_SOURCE') {
       try {
         setIsProcessing(true);
+        
+        // Get the ID of the last message to use as messageId in citations
+        const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : undefined;
+        
+        // Check if we've already processed this message
+        if (lastMessageId && lastMessageId === lastProcessedMessageId) {
+          console.log('Skipping explanation processing - message already processed');
+          return {};
+        }
+
         // Fetch the actual PDF
         const pdfData = await fetchPDF();
         setPdfData(pdfData);
         
+        // Get the last message content for context
+        const lastMessageContent = messages.length > 0 ? messages[messages.length - 1].content : "";
+        
         // Process the explanation using the last message
-        const lastMessage = messages[messages.length - 1];
         const explanationResult = await ExplanationProcessor.processResponse(
-          lastMessage?.content || '',
+          lastMessageContent,
           pdfData
         );
+
+        // Update the last processed message ID
+        if (lastMessageId) {
+          setLastProcessedMessageId(lastMessageId);
+        }
 
         // Generate colors for the number of ideas we have
         const colors = memoizedGenerateHighlightColors(explanationResult.ideaSources.length);
@@ -109,10 +126,6 @@ const ExampleComponent = () => {
           return source.supporting_evidence
             .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
             .map(evidence => {
-              // Update current page to the first highlight's page
-              if (index === 0) {
-                setCurrentPage(evidence.highlight!.page);
-              }
               return {
                 page: evidence.highlight!.page,
                 rect: evidence.highlight!.rect || {
@@ -128,34 +141,39 @@ const ExampleComponent = () => {
 
         setHighlights(newHighlights);
 
+        // Map explanation result to citations
+        const citations = explanationResult.ideaSources.flatMap((source, index) => {
+          const colorPair = colors[index];
+          return source.supporting_evidence
+            .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
+            .map(evidence => ({
+              sourceId: action.sourceId,
+              messageId: lastMessageId,
+              messageHighlight: {
+                text: source.answer_idea,
+                color: colorPair.solid
+              },
+              sourceHighlight: {
+                page: evidence.highlight!.page,
+                rect: evidence.highlight!.rect || {
+                  top: 0.2 + (index * 0.1),
+                  left: 0.1,
+                  width: 0.8,
+                  height: 0.05
+                },
+                highlightColorRgba: colorPair.transparent
+              }
+            }));
+        });
+
         return {
           sourceData: Promise.resolve(pdfData),
-          citations: Promise.resolve(
-            explanationResult.ideaSources.flatMap((source, index) => {
-              const colorPair = colors[index];
-              return source.supporting_evidence
-                .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
-                .map(evidence => ({
-                  sourceId: action.sourceId,
-                  messageId: lastMessage?.id,
-                  messageHighlight: {
-                    text: source.answer_idea,
-                    color: colorPair.solid
-                  },
-                  sourceHighlight: {
-                    page: evidence.highlight!.page,
-                    rect: evidence.highlight!.rect || {
-                      top: 0.2 + (index * 0.1),
-                      left: 0.1,
-                      width: 0.8,
-                      height: 0.05
-                    },
-                    highlightColorRgba: colorPair.transparent
-                  }
-                }));
-            })
-          )
+          citations: Promise.resolve(citations)
         };
+      } catch (error) {
+        console.error("Error processing explanation:", error);
+        // Return empty response if there's an error
+        return {};
       } finally {
         setIsProcessing(false);
       }
@@ -192,22 +210,7 @@ const ExampleComponent = () => {
           
           {/* Right panel: Full height PDF viewer (60% width) */}
           <div className="border rounded-lg overflow-hidden bg-white">
-            {pdfData ? (
-              <PdfViewer 
-                data={pdfData}
-                highlights={highlights}
-                page={currentPage}
-                styleOverrides={{
-                  contentBackground: '#ffffff',
-                  toolbarBackground: '#f8f9fa',
-                  borderRadius: '0.5rem'
-                }}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                Select a source to view content
-              </div>
-            )}
+            <ContentDisplay />
           </div>
         </div>
         <ErrorDisplay />
