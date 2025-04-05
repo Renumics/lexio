@@ -193,20 +193,20 @@ const meta = {
     docs: {
       description: {
         component: 
-`Citations in Lexio can be returned in two ways:
+`Citations allow Lexio to connect AI responses with their source material, providing transparency and verifiability to users. By highlighting text in both the response and source document, citations create visual links that help users verify information and explore supporting evidence.
+
+Citations in Lexio can be returned in two ways:
 
 1. Promise-Based Response (shown in this example)
 
 \`\`\`typescript
 return {
-  response: Promise.resolve({
-    content: "Your content",
-    citations: [{
-      sourceId: "doc-1",
-      messageHighlight: { ... },
-      sourceHighlight: { ... }
-    }]
-  })
+  response: Promise.resolve(responseText),
+  citations: Promise.resolve([{
+    sourceId: "doc-1",
+    messageHighlight: { text: "...", color: "..." },
+    sourceHighlight: { page: 1, rect: {...}, highlightColorRgba: "..." }
+  }])
 }
 \`\`\`
 
@@ -217,11 +217,11 @@ return {
   response: (async function* () {
     yield {
       content: "Part 1",
-      citations: [{ ... }]
+      citations: [{ sourceId: "...", messageHighlight: {...}, sourceHighlight: {...} }]
     };
     yield {
       content: "Part 2",
-      citations: [{ ... }]
+      citations: [{ sourceId: "...", messageHighlight: {...}, sourceHighlight: {...} }]
     };
   })()
 }
@@ -231,25 +231,25 @@ Citation Structure:
 
 \`\`\`typescript
 {
-  sourceId: string;
+  sourceId: string;           // ID of the source document
   messageHighlight: {
-    text: string;    // Text to highlight in response
-    color: string;   // Highlight color
+    text: string;             // Text to highlight in response
+    color: string;            // Highlight color
   };
   sourceHighlight: {
-    page: number;    // Source page number
-    rect: {          // Location in source (0-1 range)
+    page: number;             // Source page number
+    rect: {                   // Location in source (0-1 range)
       top: number;
       left: number;
       width: number;
       height: number;
     };
-    highlightColorRgba: string;
+    highlightColorRgba: string; // Matching highlight color with transparency
   };
 }
 \`\`\`
 
-This example shows promise-based citations with the 2024 Nobel Prize in Physics document, demonstrating how response text connects to source content.`
+This example demonstrates promise-based citations with the 2024 Nobel Prize in Physics document, showing how AI responses connect to their source material.`
       }
     }
   },
