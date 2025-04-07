@@ -28,13 +28,7 @@ Key Contributions:
 1. Hopfield Networks – using energy landscapes to recover patterns
 2. Boltzmann Machines – applying statistical physics to neural design
 3. Deep Learning – integrating physics principles into modern AI
-
-Impact:
-- Improved pattern recognition and memory
-- Enhanced data retrieval from partial inputs
-- Revolutionized NLP and computer vision
-
-These contributions continue to drive AI innovation.`;
+`;
 
 // Helper function to generate evenly distributed colors using HSL
 const generateHighlightColors = (count: number): { solid: string, transparent: string }[] => {
@@ -125,7 +119,7 @@ const ExampleComponent = () => {
         <div style={{ 
           display: 'grid',
           height: '100%',
-          gridTemplateColumns: '350px 1fr',
+          gridTemplateColumns: '2fr 3fr',
           gap: '20px',
           width: '100%',
           boxSizing: 'border-box',
@@ -138,14 +132,16 @@ const ExampleComponent = () => {
             flexDirection: 'column',
             gap: '20px',
             height: '100%',
-            width: '100%'
+            width: '100%',
+            overflow: 'auto'
           }}>
             <div style={{ 
               height: '30%', 
               minHeight: '200px',
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              flex: '0 0 auto'
             }}>
               <SourcesDisplay />
             </div>
@@ -153,17 +149,22 @@ const ExampleComponent = () => {
               height: '70%',
               display: 'flex',
               flexDirection: 'column',
-              gap: '20px'
+              gap: '20px',
+              flex: '0 0 auto'
             }}>
               <div style={{ 
                 flex: 1,
                 border: '1px solid #e5e7eb',
                 borderRadius: '8px',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                minHeight: '300px'
               }}>
                 <ChatWindow />
               </div>
-              <div style={{ height: '80px' }}>
+              <div style={{ 
+                height: '80px',
+                flex: '0 0 auto'
+              }}>
                 <AdvancedQueryField disabled={isProcessing} />
               </div>
             </div>
@@ -171,10 +172,16 @@ const ExampleComponent = () => {
 
           {/* Right panel */}
           <div style={{ 
-            height: '100%',
             border: '1px solid #e5e7eb',
             borderRadius: '8px',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            backgroundColor: 'white',
+            height: '100%',
+            width: '100%',
+            boxSizing: 'border-box',
+            flex: '0 0 auto',
+            position: 'sticky',
+            top: 0
           }}>
             <ContentDisplay />
           </div>

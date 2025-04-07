@@ -188,67 +188,51 @@ const ExampleComponent = () => {
         <div style={{ 
           display: 'grid',
           height: '100%',
-          gridTemplateColumns: '3fr 4fr',
-          gridTemplateRows: '1fr',
+          gridTemplateColumns: '2fr 3fr',
           gap: '20px',
           width: '100%',
           boxSizing: 'border-box',
           minHeight: '760px',
-          overflow: 'visible'
+          overflow: 'hidden'
         }}>
-          {/* Left panel: Sources (top) and Chat (bottom) */}
+          {/* Left panel */}
           <div style={{ 
             display: 'flex',
             flexDirection: 'column',
             gap: '20px',
             height: '100%',
-            minWidth: '350px',
-            maxWidth: '350px',
             width: '100%',
-            boxSizing: 'border-box',
-            flex: '0 0 auto'
+            overflow: 'auto' // Make left panel scrollable
           }}>
-            {/* Sources on top */}
             <div style={{ 
               height: '30%', 
               minHeight: '200px',
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
-              overflow: 'auto',
-              backgroundColor: 'white',
-              width: '100%',
-              boxSizing: 'border-box',
-              flex: '0 0 auto'
+              overflow: 'hidden',
+              flex: '0 0 auto' // Prevent flex shrinking
             }}>
               <SourcesDisplay />
             </div>
-            {/* Chat and Query on bottom */}
             <div style={{ 
               height: '70%',
               display: 'flex',
               flexDirection: 'column',
               gap: '20px',
-              width: '100%',
-              boxSizing: 'border-box',
-              flex: '0 0 auto'
+              flex: '0 0 auto' // Prevent flex shrinking
             }}>
               <div style={{ 
                 flex: 1,
                 border: '1px solid #e5e7eb',
                 borderRadius: '8px',
-                overflow: 'auto',
-                backgroundColor: 'white',
-                minHeight: '300px',
-                width: '100%',
-                boxSizing: 'border-box'
+                overflow: 'hidden',
+                minHeight: '300px' // Ensure minimum height
               }}>
                 <ChatWindow />
               </div>
               <div style={{ 
                 height: '80px',
-                width: '100%',
-                boxSizing: 'border-box',
-                flex: '0 0 auto'
+                flex: '0 0 auto' // Prevent flex shrinking
               }}>
                 <AdvancedQueryField disabled={isProcessing} />
               </div>
@@ -259,14 +243,14 @@ const ExampleComponent = () => {
           <div style={{ 
             border: '1px solid #e5e7eb',
             borderRadius: '8px',
-            overflow: 'auto',
+            overflow: 'hidden',
             backgroundColor: 'white',
             height: '100%',
-            minWidth: '550px',
-            maxWidth: '550px',
             width: '100%',
             boxSizing: 'border-box',
-            flex: '0 0 auto'
+            flex: '0 0 auto',
+            position: 'sticky',
+            top: 0
           }}>
             <ContentDisplay />
           </div>
