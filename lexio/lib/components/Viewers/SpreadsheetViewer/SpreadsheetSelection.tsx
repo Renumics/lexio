@@ -1,5 +1,3 @@
-import {FC} from "react";
-
 type Tab = {
     value: string,
     onClick: () => void;
@@ -11,12 +9,14 @@ type PropsSpreadsheetSelection = {
     parentWidth?: number | undefined;
     parentHeight?: number | undefined;
 }
-const SpreadsheetSelection: FC<PropsSpreadsheetSelection> = (props) => {
-    const {
+const SpreadsheetSelection = (
+    {
         spreadsheets,
         selectedSpreadsheet,
         setSelectedSpreadsheet,
-    } = props;
+        parentWidth,
+        parentHeight,
+    }: PropsSpreadsheetSelection) => {
 
     const tabs: Tab[] = spreadsheets.map((key) => ({
         value: key,
@@ -27,8 +27,8 @@ const SpreadsheetSelection: FC<PropsSpreadsheetSelection> = (props) => {
         <div
             className="bg-gray-100 rounded-md"
             style={{
-                width: props.parentWidth ? `${props.parentWidth}px` : "100%",
-                height: props.parentHeight ? `${props.parentHeight}px` : "100%",
+                width: parentWidth ? `${parentWidth}px` : "100%",
+                height: parentHeight ? `${parentHeight}px` : "100%",
             }}
         >
             <div

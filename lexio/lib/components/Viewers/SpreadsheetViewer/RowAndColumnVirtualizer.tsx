@@ -1,14 +1,4 @@
-import {
-    CSSProperties,
-    FC,
-    forwardRef,
-    Ref,
-    useEffect,
-    useImperativeHandle,
-    useMemo,
-    useRef,
-    useState,
-} from "react"
+import {CSSProperties, forwardRef, Ref, useEffect, useImperativeHandle, useMemo, useRef, useState,} from "react"
 import {
     Cell,
     ColumnDef,
@@ -68,23 +58,26 @@ type Props<TData, TValue> = {
     setSelectedRange: (range?: Range | undefined) => void;
 }
 
-export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
-    const {
+export const TableContainer = <TData, TValue>(
+    {
         data,
         columns,
         parentContainerHeight,
         mergedGroupOfSelectedWorksheet,
         selectedSheetName,
         setSelectedRange,
+        selectedCell,
         setSelectedCell,
-    } = props;
+        headerStyles,
+        rangesToSelect: rangesToSelectProp,
+    }: Props<TData, TValue>) => {
 
     const rangesToSelect = useMemo(() => {
-        if (props.rangesToSelect.length === 0 || props.rangesToSelect.length === 1) {
+        if (rangesToSelectProp.length === 0 || rangesToSelectProp.length === 1) {
             return [["A0", "A0"]] as Range[];
         }
-        return props.rangesToSelect;
-    }, [props.rangesToSelect]);
+        return rangesToSelectProp;
+    }, [rangesToSelectProp]);
 
     const tableId = useMemo(() => {
         return `${selectedSheetName.replace(" ", "")}${(new Date()).getTime()}`;
@@ -144,7 +137,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
     }, [rangesToSelect, table]);
 
     useEffect(() => {
-        if (!props.selectedCell) return;
+        if (!selectedCell) return;
         const startColumn = utils.encode_col(selectedHeaderCells.map((header) => utils.decode_col(header)).sort((a, b) => a - b)[0]);
         const startRow = selectedHeaderRowCells.sort((a, b) => a - b)[0];
         const startCell = `${startColumn}${startRow}`
@@ -156,7 +149,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
         const rangeToSelect: Range | undefined = startCell && endCell ? [startCell, endCell] : undefined;
 
         setSelectedRange(rangeToSelect);
-    }, [props.selectedCell, selectedHeaderCells, selectedHeaderRowCells, setSelectedRange]);
+    }, [selectedCell, selectedHeaderCells, selectedHeaderRowCells, setSelectedRange]);
 
 
     // The virtualizers need to know the scrollable container element
@@ -246,19 +239,19 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
 
     // Set selected header and header row cells
     useEffect(() => {
-         if (!props.selectedCell || !mergedGroupOfSelectedWorksheet) return;
+         if (!selectedCell || !mergedGroupOfSelectedWorksheet) return;
         // return an array of header cells and header row cells present in the mergedGroupOfSelectedWorksheet when prop.selected cell is within that range
         const headerCells: string[] = [];
         const headerRowCells: number[] = [];
         mergedGroupOfSelectedWorksheet.mergedRanges.forEach((range) => {
-               if (!props.selectedCell) return;
+               if (!selectedCell) return;
                const startColumn = utils.decode_col(range.start.column);
                const endColumn = utils.decode_col(range.end.column);
 
                const startRow = range.start.row;
                const endRow = range.end.row;
 
-               if (isCellInRange(props.selectedCell.row, props.selectedCell.column, [`${range.start.column}${range.start.row}`,`${range.end.column}${range.end.row}`])) {
+               if (isCellInRange(selectedCell.row, selectedCell.column, [`${range.start.column}${range.start.row}`,`${range.end.column}${range.end.row}`])) {
                    // Columns
                    for (let i = startColumn; i < endColumn + 1; i++) {
                        headerCells.push(utils.encode_col(i));
@@ -271,10 +264,10 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                }
         });
         if (headerCells.length === 0) {
-            headerCells.push(props.selectedCell.column)
+            headerCells.push(selectedCell.column)
         }
         if (headerRowCells.length === 0) {
-            headerRowCells.push(props.selectedCell.row)
+            headerRowCells.push(selectedCell.row)
         }
         setSelectedHeaderCells(headerCells);
         setSelectedHeaderRowCells(headerRowCells);
@@ -283,7 +276,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
             setSelectedHeaderCells([]);
             setSelectedHeaderRowCells([]);
         };
-    }, [mergedGroupOfSelectedWorksheet, props.selectedCell]);
+    }, [mergedGroupOfSelectedWorksheet, selectedCell]);
 
     const virtualColumns = columnVirtualizer.getVirtualItems()
 
@@ -339,7 +332,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                     selectedHeaderCells={selectedHeaderCells}
                     virtualPaddingLeft={virtualPaddingLeft}
                     virtualPaddingRight={virtualPaddingRight}
-                    headerStyles={props.headerStyles}
+                    headerStyles={headerStyles}
                 />
                 <TableBody
                     ref={cellAndInnerCellContainerRefs}
@@ -348,7 +341,7 @@ export const TableContainer = <TData, TValue>(props: Props<TData, TValue>) => {
                     columnVirtualizer={columnVirtualizer}
                     // @ts-ignore
                     table={table}
-                    selectedCell={props.selectedCell}
+                    selectedCell={selectedCell}
                     selectedHeaderCells={selectedHeaderCells}
                     selectedHeaderRowCells={selectedHeaderRowCells}
                     virtualPaddingLeft={virtualPaddingLeft}
@@ -375,15 +368,15 @@ type TableHeadProps = {
     headerStyles?: Record<string, CSSProperties> | undefined;
 }
 
-const TableHead: FC<TableHeadProps> = (props) => {
-    const {
+const TableHead = (
+    {
         columnVirtualizer,
         table,
         selectedHeaderCells,
         virtualPaddingLeft,
         virtualPaddingRight,
         headerStyles,
-    } = props;
+    }: TableHeadProps) => {
 
     return (
         <thead
@@ -424,8 +417,8 @@ type TableHeadRowProps<TData> = {
     virtualPaddingRight: number | undefined;
     headerStyles?: Record<string, CSSProperties> | undefined;
 }
-const TableHeadRow = <T, >(props: TableHeadRowProps<T>) => {
-    const {
+const TableHeadRow = <T, >(
+    {
         rowCount,
         columnVirtualizer,
         headerGroup,
@@ -434,8 +427,7 @@ const TableHeadRow = <T, >(props: TableHeadRowProps<T>) => {
         virtualPaddingLeft,
         virtualPaddingRight,
         headerStyles,
-    } = props;
-
+    }: TableHeadRowProps<T>) => {
     const virtualColumns = columnVirtualizer.getVirtualItems();
 
     // const firstTableHeadCell = headerGroup.headers[0];
@@ -549,8 +541,8 @@ type TableBodyProps<TData> = {
     handleMouseUp: () => void;
 }
 
-const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCellContainerRefType> | undefined) => {
-    const {
+const TableBody = forwardRef(<T, >(
+    {
         rowVirtualizer,
         columnVirtualizer,
         table,
@@ -564,8 +556,7 @@ const TableBody = forwardRef(<T, >(props: TableBodyProps<T>, ref: Ref<CellAndCel
         handleMouseUp,
         handleMouseDown,
         handleMouseEnter,
-    } = props;
-
+    }: TableBodyProps<T>, ref: Ref<CellAndCellContainerRefType> | undefined) => {
     const { rows } = table.getRowModel();
 
     const virtualRows = rowVirtualizer.getVirtualItems();
@@ -645,8 +636,8 @@ type TableBodyRowProps<TData> = {
     handleMouseUp: () => void;
 }
 // @ts-ignore
-const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellAndCellContainerRefType> | undefined) => {
-    const {
+const TableBodyRow = forwardRef(<T,>(
+    {
         rowVirtualizer,
         columnVirtualizer,
         row,
@@ -660,8 +651,7 @@ const TableBodyRow = forwardRef(<T,>(props: TableBodyRowProps<T>, ref: Ref<CellA
         handleMouseUp,
         handleMouseDown,
         handleMouseEnter,
-    } = props;
-
+    }: TableBodyRowProps<T>, ref: Ref<CellAndCellContainerRefType> | undefined) => {
     const visibleCells = row.getVisibleCells();
 
     const cellOfFirstColumn = visibleCells[0];
@@ -772,21 +762,20 @@ type TableBodyCellProps<TData, TValue> = {
 }
 const TableBodyCell = forwardRef(
     <T, V>(
-        props: TableBodyCellProps<T, V>,
+        {
+            cell,
+            isFirst,
+            isCellSelected,
+            isHeaderCellSelected,
+            isFirstCellOfSelectedRow,
+            handleCellSelection,
+            selectedSheetName,
+            handleMouseUp,
+            handleMouseDown,
+            handleMouseEnter,
+        }: TableBodyCellProps<T, V>,
         ref: Ref<CellAndCellContainerRefType> | undefined
     ) => {
-    const {
-        cell,
-        isFirst,
-        isCellSelected,
-        isHeaderCellSelected,
-        isFirstCellOfSelectedRow,
-        handleCellSelection,
-        selectedSheetName,
-        handleMouseUp,
-        handleMouseDown,
-        handleMouseEnter,
-    } = props;
 
     const cellRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
 

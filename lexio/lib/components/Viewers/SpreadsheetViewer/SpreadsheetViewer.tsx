@@ -1,4 +1,3 @@
-import {FC} from "react";
 import {useSpreadsheetViewerStore} from "./useSpreadsheetStore.tsx";
 import {SpreadsheetSelection} from "./SpreadsheetSelection";
 import {LoaderCircle, Sigma} from "lucide-react";
@@ -13,9 +12,7 @@ type Props = {
     defaultSelectedSheet?: string | undefined;
     rangesToHighlight?: SpreadsheetHighlight[] | undefined;
 }
-const SpreadsheetViewer: FC<Props> = (props) => {
-    const { fileBufferArray, defaultSelectedSheet, rangesToHighlight } = props;
-
+const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighlight }: Props) => {
     const {
         selectedWorksheetName,
         rangeToSelect,

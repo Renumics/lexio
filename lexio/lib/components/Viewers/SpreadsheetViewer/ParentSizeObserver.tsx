@@ -1,4 +1,4 @@
-import {FC, ReactNode, useCallback, useEffect, useRef, useState} from "react";
+import {ReactNode, useCallback, useEffect, useRef, useState} from "react";
 
 export type ContainerSize = {
     width: number;
@@ -15,9 +15,7 @@ type Props = {
     debounceTime?: number | undefined;
     children?: ((parentSize: ContainerSize) => ReactNode) | undefined;
 }
-const ParentSizeObserver: FC<Props> = (props) => {
-
-    const { className, debounceTime = 100, children } = props;
+const ParentSizeObserver = ({ className, debounceTime = 100, children }: Props) => {
 
     const [parentSize, setParentSize] = useState<ContainerSize>(DEFAULT_PARENT_SIZE);
 

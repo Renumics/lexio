@@ -1,12 +1,17 @@
-import {ComponentProps, FC, ReactNode, useState} from "react";
+import {ComponentProps, ReactNode, useState} from "react";
 
 type Props = ComponentProps<"div"> & {
     tooltipContent: ReactNode;
     // Sets when the tooltip content should not be displayed. E.g when children is empty
     shouldNotDisplayCondition?: boolean | undefined;
 }
-const Tooltip: FC<Props> = (props) => {
-    const { children, tooltipContent, shouldNotDisplayCondition = false, ...divProps } = props;
+const Tooltip = (
+    {
+        children,
+        tooltipContent,
+        shouldNotDisplayCondition = false,
+        ...divProps
+    }: Props) => {
     const [isVisible, setIsVisible] = useState(false);
 
     return (
