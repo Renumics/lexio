@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { LexioProvider, ChatWindow, AdvancedQueryField, ErrorDisplay, SourcesDisplay, ContentDisplay } from '../../../lib/main';
-import type { Message, Source, UserAction, PDFHighlight, Citation } from '../../../lib/main';
+import type { Message, Source, UserAction } from '../../../lib/main';
 import { useState } from 'react';
 
 // Base layout component for consistent story presentation

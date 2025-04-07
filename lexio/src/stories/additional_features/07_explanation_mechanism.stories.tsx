@@ -1,9 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { LexioProvider, ChatWindow, AdvancedQueryField, ErrorDisplay, SourcesDisplay, ContentDisplay } from '../../../lib/main';
-import type { Message, Source, UserAction, PDFHighlight, Citation, Component } from '../../../lib/main';
+import type { Message, Source, UserAction } from '../../../lib/main';
 import { ExplanationProcessor } from '../../../lib/explanation';
-import { useState, useEffect } from 'react';
-import { useCitations } from '../../../lib/hooks/hooks';
+import { useState } from 'react';
 
 // Base layout component for consistent story presentation
 const BaseLayout = ({ children }: { children: React.ReactNode }) => (
@@ -38,10 +37,11 @@ Impact:
 
 These contributions continue to drive AI innovation.`;
 
-// Fetch the PDF from the local file
+// Fetch the PDF
 const fetchPDF = async (): Promise<Uint8Array> => {
   try {
     const response = await fetch('/pdfs/physicsprize2024.pdf');
+    //const response = await fetch('https://www.nobelprize.org/uploads/2024/10/popular-physicsprize2024-2.pdf');
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
     }
@@ -65,19 +65,10 @@ const generateHighlightColors = (count: number): { solid: string, transparent: s
   });
 };
 
-// Memoize the colors to prevent regeneration on every render
-const memoizedGenerateHighlightColors = (count: number) => {
-  const colors = generateHighlightColors(count);
-  return colors;
-};
-
 const ExampleComponent = () => {
-  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
-  const [highlights, setHighlights] = useState<PDFHighlight[]>([]);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | undefined>(undefined);
 
-  // Memoize the LexioProvider onAction callback to prevent unnecessary re-renders
   const handleAction = async (
     action: UserAction,
     messages: Message[],
@@ -92,6 +83,8 @@ const ExampleComponent = () => {
           title: "The Nobel Prize in Physics 2024",
           type: "pdf" as const,
           relevance: 1,
+          description: "Popular science background on the 2024 Nobel Prize in Physics",
+          href: "https://www.nobelprize.org/uploads/2024/10/popular-physicsprize2024-2.pdf",
           metadata: {
             authors: 'The Royal Swedish Academy of Sciences',
             year: '2024',
@@ -132,7 +125,6 @@ const ExampleComponent = () => {
             try {
               // Start the full processing in the background
               const pdfData = await sourceDataPromise;
-              setPdfData(pdfData);
               
               // Get the last message content for context
               const lastMessageContent = messages.length > 0 ? messages[messages.length - 1].content : "";
@@ -148,33 +140,10 @@ const ExampleComponent = () => {
                 setLastProcessedMessageId(lastMessageId);
               }
 
-              // Generate colors for the number of ideas we have
-              const colors = memoizedGenerateHighlightColors(explanationResult.ideaSources.length);
-
-              // Map each idea source to highlights
-              const newHighlights = explanationResult.ideaSources.flatMap((source, index) => {
-                const colorPair = colors[index];
-                return source.supporting_evidence
-                  .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
-                  .map(evidence => {
-                    return {
-                      page: evidence.highlight!.page,
-                      rect: evidence.highlight!.rect || {
-                        top: 0.2 + (index * 0.1),
-                        left: 0.1,
-                        width: 0.8,
-                        height: 0.05
-                      },
-                      highlightColorRgba: colorPair.transparent
-                    };
-                  });
-              });
-
-              setHighlights(newHighlights);
-
-              // Map explanation result to citations
+              // Map explanation results to citations with color coding
               return explanationResult.ideaSources.flatMap((source, index) => {
-                const colorPair = colors[index];
+                const colorPair = generateHighlightColors(explanationResult.ideaSources.length)[index];
+                
                 return source.supporting_evidence
                   .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
                   .map(evidence => ({
@@ -186,12 +155,7 @@ const ExampleComponent = () => {
                     },
                     sourceHighlight: {
                       page: evidence.highlight!.page,
-                      rect: evidence.highlight!.rect || {
-                        top: 0.2 + (index * 0.1),
-                        left: 0.1,
-                        width: 0.8,
-                        height: 0.05
-                      },
+                      rect: evidence.highlight!.rect,
                       highlightColorRgba: colorPair.transparent
                     }
                   }));
@@ -203,14 +167,12 @@ const ExampleComponent = () => {
             }
           })
         };
-      } catch (error) {
-        console.error("Error in SET_SELECTED_SOURCE handler:", error);
-        // Return empty response if there's an error
-        return {};
       } finally {
         setIsProcessing(false);
       }
     }
+
+    return {};
   };
 
   return (
@@ -248,7 +210,7 @@ const ExampleComponent = () => {
           }}>
             {/* Sources on top */}
             <div style={{ 
-              height: '30%',
+              height: '30%', 
               minHeight: '200px',
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
@@ -292,7 +254,7 @@ const ExampleComponent = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Right panel: Full height PDF viewer */}
           <div style={{ 
             border: '1px solid #e5e7eb',
