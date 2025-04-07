@@ -76,7 +76,10 @@ const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighl
         )
     }
 
-    if (error) console.error(error);
+    if (error) {
+        console.error(error);
+        return <div className="text-red-600">Failed to load spreadsheet</div>
+    }
 
     return (
         <div className="grid grid-rows-[max-content_1fr_max-content] h-full">
