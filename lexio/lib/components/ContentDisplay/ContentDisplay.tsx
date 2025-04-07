@@ -1,4 +1,4 @@
-import React, {FC, useContext} from "react";
+import React, {useContext} from "react";
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { MarkdownViewer } from "../Viewers/MarkdownViewer";
@@ -92,12 +92,7 @@ type PropsFileViewerRenderer = {
   fileName: string;
   selectedSource: Source;
 }
-const FileViewerRenderer: FC<PropsFileViewerRenderer> = (props) => {
-  const {
-    fileName,
-    selectedSource,
-  } = props;
-
+const FileViewerRenderer = ({ fileName, selectedSource }: PropsFileViewerRenderer) => {
   if (selectedSource.type === 'pdf' && selectedSource.data && selectedSource.data instanceof Uint8Array) {
     // Prefer 'page' over '_page' if both are defined
       const page = selectedSource.metadata?._pdfPageOverride ?? selectedSource.metadata?.page ?? selectedSource.metadata?._page;

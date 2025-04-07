@@ -16,7 +16,6 @@ type Props = {
     children?: ((parentSize: ContainerSize) => ReactNode) | undefined;
 }
 const ParentSizeObserver = ({ className, debounceTime = 100, children }: Props) => {
-
     const [parentSize, setParentSize] = useState<ContainerSize>(DEFAULT_PARENT_SIZE);
 
     const parentRef = useRef<HTMLDivElement | null>(null);
@@ -45,15 +44,19 @@ const ParentSizeObserver = ({ className, debounceTime = 100, children }: Props) 
         let timeout: NodeJS.Timeout | undefined = undefined;
 
         const resizeObserver = new ResizeObserver((entries) => {
-            timeout = setTimeout(() => handleResize(entries), debounceTime);
+            timeout = setTimeout(() => {
+                handleResize(entries);
+            }, debounceTime as number);
         });
 
         resizeObserver.observe(parentRef.current as Element);
 
-        window.addEventListener("resize", () => {
+        function resizeParentContainer() {
             if (!parentRef.current) return;
             resizeObserver.observe(parentRef.current as Element);
-        })
+        }
+
+        window.addEventListener("resize", resizeParentContainer)
 
         return () => {
             if (animationFrameId.current) {
@@ -61,15 +64,11 @@ const ParentSizeObserver = ({ className, debounceTime = 100, children }: Props) 
                 animationFrameId.current = null;
             }
 
-            if (timeout) {
-                clearTimeout(timeout as NodeJS.Timeout);
-            }
+            clearTimeout(timeout);
 
             resizeObserver.disconnect();
 
-            window.removeEventListener("resize", () => {
-                resizeObserver.disconnect();
-            });
+            window.removeEventListener("resize", resizeObserver.disconnect);
         }
     }, [debounceTime, parentRef, children, handleResize]);
 
