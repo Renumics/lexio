@@ -75,30 +75,30 @@ const ExampleComponent = () => {
         }]),
         response: Promise.resolve(EXAMPLE_RESPONSE),
         citations: Promise.resolve([
-          {
-            sourceId: 'physics-prize-2024',
-            messageHighlight: {
-              text: "Hopfield Networks – using energy landscapes to recover patterns",
-              color: colors[0].solid
-            },
-            sourceHighlight: {
-              page: 1,
-              rect: { top: 0.2, left: 0.1, width: 0.8, height: 0.05 },
-              highlightColorRgba: colors[0].transparent
-            }
-          },
-          {
-            sourceId: 'physics-prize-2024',
-            messageHighlight: {
-              text: "Boltzmann Machines – applying statistical physics to neural design",
-              color: colors[1].solid
-            },
-            sourceHighlight: {
-              page: 2,
-              rect: { top: 0.3, left: 0.1, width: 0.8, height: 0.05 },
-              highlightColorRgba: colors[1].transparent
-            }
-          }
+      {
+        sourceId: 'physics-prize-2024',
+        messageHighlight: {
+          text: "Hopfield Networks – using energy landscapes to recover patterns",
+          color: colors[0].solid
+        },
+        sourceHighlight: {
+          page: 1,
+          rect: { top: 0.2, left: 0.1, width: 0.8, height: 0.05 },
+          highlightColorRgba: colors[0].transparent
+        }
+      },
+      {
+        sourceId: 'physics-prize-2024',
+        messageHighlight: {
+          text: "Boltzmann Machines – applying statistical physics to neural design",
+          color: colors[1].solid
+        },
+        sourceHighlight: {
+          page: 2,
+          rect: { top: 0.3, left: 0.1, width: 0.8, height: 0.05 },
+          highlightColorRgba: colors[1].transparent
+        }
+      }
         ])
       };
     }
@@ -197,7 +197,9 @@ const meta = {
 
 Citations in Lexio can be returned in two ways:
 
-1. Promise-Based Response (shown in this example)
+## 1. Promise-Based Response (shown in this example)
+
+Best for responses where all citations are known upfront:
 
 \`\`\`typescript
 return {
@@ -210,7 +212,9 @@ return {
 }
 \`\`\`
 
-2. Stream-Based Response
+## 2. Stream-Based Response
+
+Ideal for real-time citation generation during streaming:
 
 \`\`\`typescript
 return {
@@ -227,27 +231,34 @@ return {
 }
 \`\`\`
 
-Citation Structure:
+## Citation Structure
 
 \`\`\`typescript
-{
-  sourceId: string;           // ID of the source document
+interface Citation {
+  // Identifies the source document
+  sourceId: string;
+  
+  // Defines how to highlight text in the response
   messageHighlight: {
-    text: string;             // Text to highlight in response
-    color: string;            // Highlight color
+    text: string;      // Text to highlight
+    color: string;     // CSS color value
   };
+  
+  // Defines where to highlight in the source
   sourceHighlight: {
-    page: number;             // Source page number
-    rect: {                   // Location in source (0-1 range)
+    page: number;      // Page number in source
+    rect: {            // Rectangle coordinates (0-1 range)
       top: number;
       left: number;
       width: number;
       height: number;
     };
-    highlightColorRgba: string; // Matching highlight color with transparency
+    highlightColorRgba: string;  // Semi-transparent highlight color
   };
 }
 \`\`\`
+
+## Example
 
 This example demonstrates promise-based citations with the 2024 Nobel Prize in Physics document, showing how AI responses connect to their source material.`
       }
