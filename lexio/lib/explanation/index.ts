@@ -344,9 +344,9 @@ export class ExplanationProcessor {
                                         const percentageDifference = ((bestChunkMatch.similarity - match.similarity) / match.similarity) * 100;
                                         console.log(`Score difference: ${percentageDifference.toFixed(1)}%`);
                                         
-                                        // Only use chunk if it's at least 10% better
-                                        if (percentageDifference >= 10) {
-                                            console.log('Decision: Using entire chunk for highlighting because chunk score is more than 10% higher');
+                                        // Only use chunk if it's at least 5% better
+                                        if (percentageDifference >= 5) {
+                                            console.log('Decision: Using entire chunk for highlighting because chunk score is more than 5% higher');
                                             console.log(`Chunk text: "${bestChunkMatch.chunk.text}"`);
                                             
                                             // Find the original chunk that matches the best chunk
