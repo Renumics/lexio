@@ -1,13 +1,4 @@
-import {
-    Alignment,
-    BorderStyle,
-    CellErrorValue,
-    CellFormulaValue,
-    CellHyperlinkValue,
-    CellRichTextValue,
-    CellValue,
-    ValueType,
-} from "exceljs";
+import {Alignment, BorderStyle,} from "exceljs";
 import {CSSProperties} from "react";
 import {CellRange, Range} from "./useSpreadsheetStore.tsx";
 import {cn} from "./ui/utils.ts";
