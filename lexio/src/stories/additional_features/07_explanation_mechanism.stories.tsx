@@ -21,27 +21,13 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => (
 );
 
 // Example response about Physics and Machine Learning
-const EXAMPLE_RESPONSE = `# Foundations of Machine Learning through Physics
+const EXAMPLE_RESPONSE = "# Attention Is All You Need\n\nThe Transformer eliminates recurrence and convolution by using only attention mechanisms, leading to faster training and enhanced parallelism.\n\nCore Components:\n\n1. Self-Attention utilizes Scaled Dot-Product Attention and Multi-Head Attention for constant sequential operations.\n\n2. Encoder-Decoder Architecture stacks self-attention with position-wise feed-forward networks, residual connections, and layer normalization.\n\n3. Positional Encoding adds order information to embeddings using sine and cosine functions.\n\nImpact:\n\n• Sets new state-of-the-art BLEU scores on WMT 2014 machine translation tasks.\n\n• Reduces training time and cost while generalizing well to tasks like English constituency parsing.\n\nOverall, the Transformer shows that attention alone is sufficient for effective sequence transduction."
 
-Physics has shaped AI, as highlighted by the 2024 Nobel Prize in Physics.
-
-Key Contributions:
-1. Hopfield Networks – using energy landscapes to recover patterns
-2. Boltzmann Machines – applying statistical physics to neural design
-3. Deep Learning – integrating physics principles into modern AI
-
-Impact:
-- Improved pattern recognition and memory
-- Enhanced data retrieval from partial inputs
-- Revolutionized NLP and computer vision
-
-These contributions continue to drive AI innovation.`;
 
 // Fetch the PDF
 const fetchPDF = async (): Promise<Uint8Array> => {
   try {
-    const response = await fetch('/pdfs/physicsprize2024.pdf');
-    //const response = await fetch('https://www.nobelprize.org/uploads/2024/10/popular-physicsprize2024-2.pdf');
+    const response = await fetch('https://arxiv.org/pdf/1706.03762');
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
     }
@@ -79,16 +65,16 @@ const ExampleComponent = () => {
     if (action.type === 'ADD_USER_MESSAGE') {
       return {
         sources: Promise.resolve([{
-          id: 'physics-prize-2024',
-          title: "The Nobel Prize in Physics 2024",
+          id: 'attention-paper',
+          title: "Attention Is All You Need",
           type: "pdf" as const,
           relevance: 1,
-          description: "Popular science background on the 2024 Nobel Prize in Physics",
-          href: "https://www.nobelprize.org/uploads/2024/10/popular-physicsprize2024-2.pdf",
+          description: "The original Transformer paper that revolutionized natural language processing",
+          href: "https://arxiv.org/pdf/1706.03762.pdf",
           metadata: {
-            authors: 'The Royal Swedish Academy of Sciences',
-            year: '2024',
-            pages: '8',
+            authors: 'Vaswani et al.',
+            year: '2017',
+            pages: '11',
             page: 1
           }
         }]),
