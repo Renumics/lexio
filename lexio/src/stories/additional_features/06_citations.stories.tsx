@@ -20,15 +20,7 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => (
 );
 
 // Example response about Physics and Machine Learning
-const EXAMPLE_RESPONSE = `# Foundations of Machine Learning through Physics
-
-Physics has shaped AI, as highlighted by the 2024 Nobel Prize in Physics.
-
-Key Contributions:
-1. Hopfield Networks – using energy landscapes to recover patterns
-2. Boltzmann Machines – applying statistical physics to neural design
-3. Deep Learning – integrating physics principles into modern AI
-`;
+const EXAMPLE_RESPONSE = "# Attention Is All You Need\n\nCore Components:\n\n1. Self-Attention utilizes Scaled Dot-Product Attention and Multi-Head Attention for constant sequential operations.\n\n2. Encoder-Decoder Architecture stacks self-attention with position-wise feed-forward networks, residual connections, and layer normalization.\n\n3. Positional Encoding adds order information to embeddings using sine and cosine functions.\n\n";
 
 // Helper function to generate evenly distributed colors using HSL
 const generateHighlightColors = (count: number): { solid: string, transparent: string }[] => {
@@ -57,42 +49,45 @@ const ExampleComponent = () => {
       // Return response with citations directly
       return {
         sources: Promise.resolve([{
-          id: 'physics-prize-2024',
-          title: "The Nobel Prize in Physics 2024",
+          id: 'attention-paper',
+          title: "Attention Is All You Need",
           type: "pdf" as const,
           relevance: 1,
+          description: "The original Transformer paper that revolutionized natural language processing",
+          href: "https://arxiv.org/pdf/1706.03762.pdf",
           metadata: {
-            authors: 'The Royal Swedish Academy of Sciences',
-            year: '2024',
-            pages: '8'
+            authors: 'Vaswani et al.',
+            year: '2017',
+            pages: '11',
+            page: 1
           }
         }]),
         response: Promise.resolve(EXAMPLE_RESPONSE),
         citations: Promise.resolve([
-      {
-        sourceId: 'physics-prize-2024',
-        messageHighlight: {
-          text: "Hopfield Networks – using energy landscapes to recover patterns",
-          color: colors[0].solid
-        },
-        sourceHighlight: {
-          page: 1,
-          rect: { top: 0.2, left: 0.1, width: 0.8, height: 0.05 },
-          highlightColorRgba: colors[0].transparent
-        }
-      },
-      {
-        sourceId: 'physics-prize-2024',
-        messageHighlight: {
-          text: "Boltzmann Machines – applying statistical physics to neural design",
-          color: colors[1].solid
-        },
-        sourceHighlight: {
-          page: 2,
-          rect: { top: 0.3, left: 0.1, width: 0.8, height: 0.05 },
-          highlightColorRgba: colors[1].transparent
-        }
-      }
+          {
+            sourceId: 'attention-paper',
+            messageHighlight: {
+              text: "Self-Attention utilizes Scaled Dot-Product Attention and Multi-Head Attention for constant sequential operations",
+              color: colors[0].solid
+            },
+            sourceHighlight: {
+              page: 4,
+              rect: { top: 0.34, left: 0.17, width: 0.67, height: 0.04 },
+              highlightColorRgba: colors[0].transparent
+            }
+          },
+          {
+            sourceId: 'attention-paper',
+            messageHighlight: {
+              text: "Encoder-Decoder Architecture stacks self-attention with position-wise feed-forward networks",
+              color: colors[1].solid
+            },
+            sourceHighlight: {
+              page: 3,
+              rect: { top: 0.54, left: 0.17, width: 0.67, height: 0.06 },
+              highlightColorRgba: colors[1].transparent
+            }
+          }
         ])
       };
     }
@@ -101,7 +96,7 @@ const ExampleComponent = () => {
       setIsProcessing(true);
       try {
         return {
-          sourceData: fetch('https://www.nobelprize.org/uploads/2024/11/press-physicsprize2024-2.pdf')
+          sourceData: fetch('https://arxiv.org/pdf/1706.03762')
             .then(res => res.arrayBuffer())
             .then(buffer => new Uint8Array(buffer))
         };
