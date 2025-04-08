@@ -53,6 +53,7 @@ const generateHighlightColors = (count: number): { solid: string, transparent: s
 
 const ExampleComponent = () => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPdfLoaded, setIsPdfLoaded] = useState(false);
   const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | undefined>(undefined);
 
   const handleAction = async (
@@ -82,11 +83,16 @@ const ExampleComponent = () => {
       };
     }
 
+    
     if (action.type === 'SET_SELECTED_SOURCE') {
       try {
-        setIsProcessing(true);
+        // First load the PDF
+        const sourceDataPromise = fetchPDF();
+        const sourceData = await sourceDataPromise;
         
-        // Get the ID of the last message to use as messageId in citations
+        // Set PDF as loaded
+        setIsPdfLoaded(true);
+        
         const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : undefined;
         
         // Check if we've already processed this message
@@ -94,67 +100,60 @@ const ExampleComponent = () => {
           console.log('Skipping explanation processing - message already processed');
           // Return source data with page 1 even when skipping processing
           return {
-            sourceData: fetchPDF()
+            sourceData: Promise.resolve(sourceData)
           };
         }
 
-        // Create a promise for fetching the source data
-        const sourceDataPromise = fetchPDF();
-        
-        // Return both sourceData and citations independently
-        return {
-          // Return source data immediately after fetching
-          sourceData: sourceDataPromise,
-          
-          // Process citations based on explanation processor
-          citations: Promise.resolve().then(async () => {
-            try {
-              // Start the full processing in the background
-              const pdfData = await sourceDataPromise;
-              
-              // Get the last message content for context
-              const lastMessageContent = messages.length > 0 ? messages[messages.length - 1].content : "";
-              
-              // Process the document using ExplanationProcessor
-              const explanationResult = await ExplanationProcessor.processResponse(
-                lastMessageContent,
-                pdfData
-              );
+        // Return source data immediately and process citations in parallel
+        const citationsPromise = Promise.resolve().then(async () => {
+          try {
+            setIsProcessing(true);
+            
+            const lastMessageContent = messages.length > 0 ? messages[messages.length - 1].content : "";
+            
+            const explanationResult = await ExplanationProcessor.processResponse(
+              lastMessageContent,
+              sourceData
+            );
 
-              // Update the last processed message ID
-              if (lastMessageId) {
-                setLastProcessedMessageId(lastMessageId);
-              }
-
-              // Map explanation results to citations with color coding
-              return explanationResult.ideaSources.flatMap((source, index) => {
-                const colorPair = generateHighlightColors(explanationResult.ideaSources.length)[index];
-                
-                return source.supporting_evidence
-                  .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
-                  .map(evidence => ({
-                    sourceId: action.sourceId,
-                    messageId: lastMessageId,
-                    messageHighlight: {
-                      text: source.answer_idea,
-                      color: colorPair.solid
-                    },
-                    sourceHighlight: {
-                      page: evidence.highlight!.page,
-                      rect: evidence.highlight!.rect,
-                      highlightColorRgba: colorPair.transparent
-                    }
-                  }));
-              });
-            } catch (error) {
-              console.error("Error processing citations:", error);
-              // Return empty citations array if there's an error
-              return [];
+            if (lastMessageId) {
+              setLastProcessedMessageId(lastMessageId);
             }
-          })
+
+            return explanationResult.ideaSources.flatMap((source, index) => {
+              const colorPair = generateHighlightColors(explanationResult.ideaSources.length)[index];
+              
+              return source.supporting_evidence
+                .filter(evidence => evidence.highlight?.page && evidence.highlight.page > 0)
+                .map(evidence => ({
+                  sourceId: action.sourceId,
+                  messageId: lastMessageId,
+                  messageHighlight: {
+                    text: source.answer_idea,
+                    color: colorPair.solid
+                  },
+                  sourceHighlight: {
+                    page: evidence.highlight!.page,
+                    rect: evidence.highlight!.rect,
+                    highlightColorRgba: colorPair.transparent
+                  }
+                }));
+            });
+          } catch (error) {
+            console.error("Error processing citations:", error);
+            return [];
+          } finally {
+            setIsProcessing(false);
+          }
+        });
+
+        return {
+          sourceData: Promise.resolve(sourceData), // Return source data immediately
+          citations: citationsPromise // Process citations in parallel
         };
-      } finally {
-        setIsProcessing(false);
+      } catch (error) {
+        console.error("Error in SET_SELECTED_SOURCE handler:", error);
+        throw error;
       }
     }
 
@@ -235,13 +234,63 @@ const ExampleComponent = () => {
             width: '100%',
             boxSizing: 'border-box',
             flex: '0 0 auto',
-            position: 'sticky',
+            position: 'relative',
             top: 0
           }}>
             <ContentDisplay />
+            {isPdfLoaded && isProcessing && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(255, 255, 255, 0.85)', // More opaque
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 99999999, // Much higher z-index
+                pointerEvents: 'all' // Ensure the overlay captures clicks
+              }}>
+                <div style={{
+                  padding: '16px 24px',
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{ 
+                    width: '24px', 
+                    height: '24px', 
+                    border: '2px solid #f3f3f3',
+                    borderTop: '2px solid #3498db',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  <div style={{
+                    color: '#1a1a1a',
+                    fontSize: '14px',
+                    fontWeight: 500
+                  }}>Searching for message ideas in source...</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <ErrorDisplay />
+        
+        {/* Keep the keyframe animation */}
+        <style>
+          {`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}
+        </style>
       </LexioProvider>
     </BaseLayout>
   );
