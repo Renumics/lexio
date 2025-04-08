@@ -4,6 +4,19 @@ type ClassArray = ClassValue[];
 
 export const cn = (...inputs: ClassValue[]) => {
     return inputs
+        .flatMap<string>((arg: ClassValue): string[] => {
+            if (!arg) return [];
+            if (typeof arg === "string") return [arg];
+            if (Array.isArray(arg)) return cn(...arg).split(" ");
+            if (typeof arg === "object") {
+                return Object.entries(arg)
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    .filter(([_, value]) => Boolean(value))
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    .map(([key, _]) => key);
+            }
+            return [];
+        })
         .filter(Boolean)
         .join(" ")
         .trim();
