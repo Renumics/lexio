@@ -128,130 +128,81 @@ export const excelBorderToCss = (excelBorderStyle?: BorderStyle, argbColor?: str
 }
 
 export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSProperties => {
-    const cssAlignment: CSSProperties = {};
-    switch (alignment?.horizontal) {
-        case "left":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.textAlign = "left";
-            // In case the cell html element has display: flex as css attribute set.
-            cssAlignment.justifyItems = "flex-start";
-            cssAlignment.justifyContent = "flex-start";
-            // In case the cell html element has display: grid as css attribute set.
-            cssAlignment.justifyItems = "start";
-            cssAlignment.justifyContent = "start";
-            break;
-        case "center":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.textAlign = "center";
-            // In case the cell html element has display: flex or display: grid as css attribute set.
-            cssAlignment.justifyItems = "center";
-            cssAlignment.justifyContent = "center";
-            break;
-        case "centerContinuous":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.textAlign = "center";
-            // In case the cell html element has display: flex or display: grid as css attribute set.
-            cssAlignment.justifyItems = "center";
-            cssAlignment.justifyContent = "center";
-            break;
-        case "right":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.textAlign = "right";
-            // In case the cell html element has display: flex as css attribute set.
-            cssAlignment.justifyItems = "flex-end";
-            cssAlignment.justifyContent = "flex-end";
-            // In case the cell html element has display: grid as css attribute set.
-            cssAlignment.justifyItems = "end";
-            cssAlignment.justifyContent = "end";
-            break;
-        case "justify":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.textAlign = "justify";
-            // In case the cell html element has display: flex or display: grid as css attribute set.
-            cssAlignment.justifyItems = "center";
-            cssAlignment.justifyContent = "center";
-            break;
-        case "distributed":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.textAlign = "left";
-            // In case the cell html element has display: flex as css attribute set.
-            cssAlignment.justifyItems = "flex-start";
-            cssAlignment.justifyContent = "flex-start";
-            // In case the cell html element has display: grid as css attribute set.
-            cssAlignment.justifyItems = "start";
-            cssAlignment.justifyContent = "start";
-            break;
-        case "fill":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.textAlign = "left";
-            // In case the cell html element has display: flex as css attribute set.
-            cssAlignment.justifyItems = "flex-start";
-            cssAlignment.justifyContent = "flex-start";
-            // In case the cell html element has display: grid as css attribute set.
-            cssAlignment.justifyItems = "start";
-            cssAlignment.justifyContent = "start";
-            break;
-        default:
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.textAlign = "left";
-            // In case the cell html element has display: flex as css attribute set.
-            cssAlignment.justifyItems = "flex-start";
-            cssAlignment.justifyContent = "flex-start";
-            // In case the cell html element has display: grid as css attribute set.
-            cssAlignment.justifyItems = "start";
-            cssAlignment.justifyContent = "start";
-            break;
+    let cssAlignment: CSSProperties = {};
+
+    const horizontalAlignmentMap: Record<string, CSSProperties> = {
+        left: {
+            textAlign: "left",
+            justifyItems: "start",
+            justifyContent: "start",
+        },
+        right: {
+            textAlign: "right",
+            justifyItems: "end",
+            justifyContent: "end",
+        },
+        center: {
+            textAlign: "center",
+            justifyItems: "center",
+            justifyContent: "center",
+        },
+        centerContinuous: {
+            textAlign: "center",
+            justifyItems: "center",
+            justifyContent: "center",
+        },
+        justify: {
+            textAlign: "justify",
+            justifyItems: "center",
+            justifyContent: "center",
+        },
+        distributed: {
+            textAlign: "left",
+            justifyItems: "start",
+            justifyContent: "start",
+        },
+        fill: {
+            textAlign: "left",
+            justifyItems: "start",
+            justifyContent: "start",
+        },
+        default: {
+            textAlign: "left",
+            justifyItems: "start",
+            justifyContent: "start",
+        },
+    };
+
+    const verticalAlignmentMap: Record<string, CSSProperties> = {
+        top: {
+            verticalAlign: "top",
+            alignItems: "start"
+        },
+        middle: {
+            verticalAlign: "middle",
+            alignItems: "center"
+        },
+        bottom: {
+            verticalAlign: "bottom",
+            alignItems: "end"
+        },
+        justify: {
+            verticalAlign: "middle",
+            alignItems: "center"
+        },
+        default: {
+            verticalAlign: "bottom",
+            alignItems: "end"
+        },
     }
 
-    switch (alignment?.vertical) {
-        case "top":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.verticalAlign = "top";
-            // In case the cell html element has display: flex as css attribute set.
-            cssAlignment.alignItems = "flex-start";
-            // In case the cell html element has display: grid as css attribute set.
-            cssAlignment.alignItems = "start";
-            break;
-        case "middle":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.verticalAlign = "middle";
-            // In case the cell html element has display: flex or display: grid as css attribute set.
-            cssAlignment.alignItems = "center";
-            break;
-        case "bottom":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.verticalAlign = "bottom";
-            // In case the cell html element has display: flex as css attribute set.
-            cssAlignment.alignItems = "flex-end";
-            // In case the cell html element has display: grid as css attribute set.
-            cssAlignment.alignItems = "end";
-            break;
-        case "justify":
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.verticalAlign = "middle";
-            // In case the cell html element has display: flex or display: flex display: grid as css attribute set.
-            cssAlignment.alignItems = "center";
-            break;
-        default:
-            // In case the cell html element has display: inline, inline-block or is table-cell as css attribute set.
-            cssAlignment.verticalAlign = "bottom";
-            // In case the cell html element has display: flex as css attribute set.
-            cssAlignment.alignItems = "flex-end";
-            // In case the cell html element has display: grid as css attribute set.
-            cssAlignment.alignItems = "end";
-            break;
+    cssAlignment = {
+        ...cssAlignment,
+        ...(horizontalAlignmentMap[alignment?.horizontal ?? "left"]),
+        ...(verticalAlignmentMap[alignment?.vertical ?? "bottom"]),
+        whiteSpace: alignment?.wrapText ? "normal" : "nowrap",
+        paddingLeft: `${ptToPixel(alignment?.indent)}px`,
     }
-
-    switch (alignment?.wrapText) {
-        case true:
-            cssAlignment.whiteSpace = "normal";
-            break;
-        default:
-            cssAlignment.whiteSpace = "nowrap";
-            break;
-    }
-
-    cssAlignment.paddingLeft = `${ptToPixel(alignment?.indent)}px`
 
     return cssAlignment;
 };

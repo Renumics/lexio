@@ -356,7 +356,6 @@ const TableHead = (
                 position: "sticky",
                 top: 0,
                 zIndex: Z_INDEX_OF_STICKY_HEADER_ROW,
-                // height: `${TABLE_HEAD_ROW_HEIGHT}px`,
                 visibility: "hidden",
             }}
             className={"bg-neutral-100"}
