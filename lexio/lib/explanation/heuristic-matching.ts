@@ -8,6 +8,7 @@ export interface IChunk {
 }
 
 
+
 export interface IMatch {
   chunk?: IChunk;
   embedding: number[];
@@ -196,6 +197,64 @@ function extractKeyTerms(text: string): { terms: Set<string>, technicalTerms: Se
 }
 
 /**
+ * Analyzes sentence structure to determine if it's explanatory vs attributive
+ */
+function analyzeSentenceStructure(text: string): {
+  isExplanatory: boolean;
+  structureScore: number;
+} {
+  const doc = nlp(text);
+  let structureScore = 0;
+
+  // Check for subject-verb-object structure (explanatory pattern)
+  const svoMatches = doc.match('#Noun+ #Verb+ #Noun+');
+  if (svoMatches.length > 0) {
+    structureScore += 0.3;
+  }
+
+  // Check for causal/explanatory relationships
+  const causalMatches = doc.match('(leads|results|enables|allows|reduces|improves|causes|helps|makes)');
+  if (causalMatches.length > 0) {
+    structureScore += 0.2;
+  }
+
+  // Check for technical relationships
+  const technicalRelations = doc.match('(uses|utilizes|through|via|using|with|by)');
+  if (technicalRelations.length > 0) {
+    structureScore += 0.2;
+  }
+
+  // Detect attributive patterns (lower the score)
+  const attributivePatterns = [
+    doc.match('^#ProperNoun'), // Starts with name
+    doc.match('(proposed|suggested|introduced|created|developed|designed)'),
+    doc.match('(by|from|at) #ProperNoun')
+  ];
+  
+  const hasAttributivePattern = attributivePatterns.some(pattern => pattern.length > 0);
+  if (hasAttributivePattern) {
+    structureScore -= 0.3;
+  }
+
+  // Detect comparative/analytical structure
+  const analyticalMatches = doc.match('(compared|versus|rather|than|while|whereas|however|instead)');
+  if (analyticalMatches.length > 0) {
+    structureScore += 0.2;
+  }
+
+  // Look for quantitative/measurable statements
+  const quantitativeMatches = doc.match('#Value #Noun+');
+  if (quantitativeMatches.length > 0) {
+    structureScore += 0.1;
+  }
+
+  return {
+    isExplanatory: structureScore > 0,
+    structureScore: Math.max(-1, Math.min(1, structureScore)) // Normalize to [-1, 1]
+  };
+}
+
+/**
  * Calculates semantic similarity using compromise, stemming, and enhanced heuristics
  */
 export function calculateHeuristicSimilarity(text1: string, text2: string): { 
@@ -279,6 +338,14 @@ export function calculateHeuristicSimilarity(text1: string, text2: string): {
   const phraseScore = longestCommonSubstring(normalizedText1, normalizedText2) / 
     Math.max(3, Math.min(normalizedText1.length, normalizedText2.length));
 
+  // Add structure analysis
+  const structure1 = analyzeSentenceStructure(text1);
+  const structure2 = analyzeSentenceStructure(text2);
+  
+  // Boost score if both texts are explanatory
+  const structureBoost = (structure1.isExplanatory && structure2.isExplanatory) ? 
+    0.2 * (structure1.structureScore + structure2.structureScore) / 2 : 0;
+
   // Adjust weights based on query length and technical content
   const queryLength = text1.split(' ').length;
   const isShortQuery = queryLength <= 3;
@@ -290,13 +357,15 @@ export function calculateHeuristicSimilarity(text1: string, text2: string): {
     0.4 * semanticScore +     
     0.3 * wordOverlapScore +  
     0.2 * importanceScore +   
-    0.1 * phraseScore        
+    0.1 * phraseScore +
+    0.1 * structureBoost  // Add structure component
   ) : (
     // For longer queries, balance between semantic and word overlap
     0.35 * semanticScore +     
     0.3 * wordOverlapScore +  
     0.25 * importanceScore +    
-    0.1 * phraseScore         
+    0.15 * phraseScore +
+    0.1 * structureBoost  // Add structure component
   );
 
   // Boost score for matches with technical terms and operational relationships
@@ -416,9 +485,15 @@ export function findTopSentencesGloballyHeuristic(
       seenContent.add(contentKey);
       
       const { similarity, overlappingKeywords } = calculateHeuristicSimilarity(query, sentence);
+      const { structureScore } = analyzeSentenceStructure(sentence);
       
-      // Boost score for sentences with more technical term matches
+      // Modify similarity score based on sentence structure
       let normalizedSimilarity = similarity * (1 + (overlappingKeywords.length * 0.1));
+      
+      // Boost explanatory sentences
+      if (structureScore > 0) {
+        normalizedSimilarity *= (1 + (structureScore * 0.2));
+      }
       
       // Apply length normalization
       if (sentence.length < 40) {
