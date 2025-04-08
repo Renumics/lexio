@@ -432,6 +432,18 @@ export class ExplanationProcessor {
                 })
             );
 
+
+            console.log('==========================================\n');
+
+            console.log('\n=== Best Matches ===');
+            ideaSources.forEach(source => {
+                const bestEvidence = source.supporting_evidence[0];
+                if (bestEvidence) {
+                    console.log(`idea: "${source.answer_idea}" -> source: "${bestEvidence.source_sentence}"`);
+                }
+            });
+            console.log('==========================================\n');
+
             return {
                 summary: `Processed PDF: ${chunks.length} chunks, ${config.MATCHING_METHOD === 'heuristic' ? 'using heuristic matching' : `embeddings generated for ${chunkEmbeddings.length} chunks`}, ${answerIdeas.length} answer ideas, and ${ideaSources.length} idea sources found.`,
                 answer: response,

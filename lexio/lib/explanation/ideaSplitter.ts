@@ -17,6 +17,9 @@ export function splitIntoSentences(text: string): string[] {
   for (const paragraph of paragraphs) {
     const trimmedParagraph = paragraph.trim();
     
+    // Skip empty paragraphs
+    if (!trimmedParagraph) continue;
+    
     // Check if it's a markdown header and clean it
     if (/^#{1,6}\s.+/.test(trimmedParagraph)) {
       // Remove the heading markers (#) and extract content
@@ -25,59 +28,51 @@ export function splitIntoSentences(text: string): string[] {
       continue;
     }
     
+    // Check if it's a section header (single line ending with colon)
+    if (!trimmedParagraph.includes('\n') && trimmedParagraph.endsWith(':')) {
+      continue;  // Skip section headers
+    }
+    
     // Check if it's a section with lists
     if (trimmedParagraph.includes('\n')) {
       const lines = trimmedParagraph.split('\n');
+      let currentSegment = '';
       
-      // Check if this is a titled list or section
-      if (lines.length > 1 && (lines[0].endsWith(':') || /^[A-Z][a-z]+:$/.test(lines[0]))) {
-        // Add the title without the colon
-        const cleanTitle = lines[0].endsWith(':') ? 
-          lines[0].substring(0, lines[0].length - 1) : lines[0];
-        segments.push(cleanTitle);
+      // Skip the first line if it's a section header
+      const startIndex = (lines[0].endsWith(':') && lines[1].trim() === '') ? 2 : 0;
+      
+      for (let i = startIndex; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;  // Skip empty lines
         
-        // Process the remaining lines
-        let currentSegment = '';
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          
-          // Check if this is a new list item or a section
-          if (/^\d+\./.test(line) || /^[-*+]/.test(line) || /^[A-Z][a-z]+:$/.test(line)) {
-            // Save previous segment if exists
-            if (currentSegment) {
-              segments.push(currentSegment);
-              currentSegment = '';
-            }
-            
-            // Clean the line: remove bullet points, numbers, etc.
-            let cleanLine = line;
-            if (/^\d+\./.test(line)) {
-              // Remove numbered list marker (e.g., "1. ")
-              cleanLine = line.replace(/^\d+\.\s*/, '');
-            } else if (/^[-*+]/.test(line)) {
-              // Remove bullet point list marker (e.g., "- ", "* ", "+ ")
-              cleanLine = line.replace(/^[-*+]\s*/, '');
-            } else if (/^[A-Z][a-z]+:$/.test(line)) {
-              // Remove colon from section header
-              cleanLine = line.substring(0, line.length - 1);
-            }
-            
-            currentSegment = cleanLine;
-          } else if (line && currentSegment) {
-            // Continue previous segment
-            currentSegment += ' ' + line;
-          } else if (line) {
-            // New standalone line
-            currentSegment = line;
+        // Check if this is a new list item
+        if (/^\d+\./.test(line) || /^[-*+]/.test(line)) {
+          // Save previous segment if exists
+          if (currentSegment) {
+            segments.push(currentSegment);
+            currentSegment = '';
           }
+          
+          // Clean the line: remove bullet points, numbers, etc.
+          if (/^\d+\./.test(line)) {
+            currentSegment = line.replace(/^\d+\.\s*/, '');
+          } else {
+            currentSegment = line.replace(/^[-*+]\s*/, '');
+          }
+        } else if (currentSegment) {
+          // Continue previous segment
+          currentSegment += ' ' + line;
+        } else {
+          // New standalone line
+          currentSegment = line;
         }
-        
-        // Add the last segment
-        if (currentSegment) {
-          segments.push(currentSegment);
-        }
-        continue;
       }
+      
+      // Add the last segment
+      if (currentSegment) {
+        segments.push(currentSegment);
+      }
+      continue;
     }
     
     // Check if it's a markdown list and clean it
