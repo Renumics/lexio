@@ -7,6 +7,7 @@ export interface IChunk {
   [key: string]: any;
 }
 
+
 export interface IMatch {
   chunk?: IChunk;
   embedding: number[];
@@ -96,10 +97,11 @@ function isLikelyCode(text: string): boolean {
 /**
  * Extracts key terms and entities from text using compromise and applies stemming
  */
-function extractKeyTerms(text: string): { terms: Set<string>, technicalTerms: Set<string> } {
+function extractKeyTerms(text: string): { terms: Set<string>, technicalTerms: Set<string>, conceptPairs: Set<string> } {
   const doc = nlp(text);
   const terms = new Set<string>();
   const technicalTerms = new Set<string>();
+  const conceptPairs = new Set<string>();  // Track related concept pairs
 
   // Technical term patterns - focusing on structure rather than specific domains
   const technicalPatterns = [
@@ -107,7 +109,15 @@ function extractKeyTerms(text: string): { terms: Set<string>, technicalTerms: Se
     /\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b/,  // CamelCase terms
     /\b[a-z]+(?:[-_][a-z]+)+\b/,  // Hyphenated or snake_case terms
     /\b(?:\d+(?:\.\d+)?%?|\d+(?:st|nd|rd|th))\b/,  // Numbers with optional decimals, percentages, or ordinals
-    /\b[a-z]+\d+[a-z]*\b/i  // Alphanumeric combinations (e.g., h1, utf8, 3d)
+    /\b[a-z]+\d+[a-z]*\b/i,  // Alphanumeric combinations (e.g., h1, utf8, 3d)
+    // Domain-agnostic technical patterns
+    /\b(?:[a-z]+(?:ing|tion|ment|ity|ism|or|er|ic))\b/i,  // Common technical suffixes
+    /\b(?:[a-z]+-(?:based|driven|oriented|specific|level))\b/i,  // Common technical compound patterns
+    /\b(?:high|low|multi|inter|intra|pre|post|sub|super)-[a-z]+\b/i,  // Common technical prefixes
+    /\b[a-z]+(?:wise|fold|type|mode|space|time)\b/i,  // Common technical suffixes
+    /\b(?:non|semi|pseudo|auto|co|re)-[a-z]+\b/i,  // Additional technical prefixes
+    /\b[a-z]+(?:ability|ization|ification|ology|ometry|onomy)\b/i,  // Additional academic suffixes
+    /\b(?:micro|macro|meta|proto|poly|mono|uni|bi|tri)-[a-z]+\b/i  // Scientific prefixes
   ];
 
   // Get nouns and apply stemming
@@ -123,49 +133,66 @@ function extractKeyTerms(text: string): { terms: Set<string>, technicalTerms: Se
       technicalTerms.add(stemmed);
     }
 
-    // Multi-word technical terms detection
+    // Multi-word technical terms detection with improved heuristics
     if (text.split(/\s+/).length > 1) {
-      // Check if it contains numbers or special characters
-      if (/[\d\-_.]/.test(text)) {
+      // Check for technical compound terms
+      if (
+        // Terms with technical prepositions
+        /\b(?:of|in|for|to|by|with|between|through|via)\b/.test(text) ||
+        // Terms with measurements or units
+        /\b(?:rate|level|degree|factor|index|ratio|scale|constant|coefficient|parameter)\b/i.test(text) ||
+        // Terms with academic/scientific words
+        /\b(?:theory|method|process|system|mechanism|structure|function|analysis|model)\b/i.test(text) ||
+        // Terms with numbers or special characters
+        /[\d\-_.]/.test(text) ||
+        // Terms with common academic prepositions
+        /\b(?:based|dependent|invariant|relative)\s+(?:on|to|in)\b/i.test(text)
+      ) {
         technicalTerms.add(text);
         technicalTerms.add(stemmed);
-      }
-      // Check for repeated words indicating technical nature
-      // e.g., "time series", "decision tree", "neural network"
-      const words = text.split(/\s+/);
-      if (words.some(word => words.filter(w => w === word).length > 1)) {
-        technicalTerms.add(text);
-        technicalTerms.add(stemmed);
+        
+        // Also add individual parts of hyphenated terms
+        if (text.includes('-')) {
+          text.split('-').forEach(part => {
+            if (part.length > 2) {
+              technicalTerms.add(part);
+              technicalTerms.add(porterStem(part));
+            }
+          });
+        }
       }
     }
   });
-  
+
+  // Find operational relationships between technical terms
+  const words = text.toLowerCase().split(/\s+/);
+  for (let i = 0; i < words.length - 1; i++) {
+    const pair = words[i] + ' ' + words[i + 1];
+    // Look for terms connected by operational words
+    if (/(?:uses?|utilizes?|with|through|via|by|for|between|among)\s+\w+/.test(pair)) {
+      conceptPairs.add(pair);
+    }
+    // Look for terms in subject-verb-object relationships
+    if (/(?:reduces?|improves?|enhances?|enables?|allows?|achieves?|produces?|generates?|transforms?)\s+\w+/.test(pair)) {
+      conceptPairs.add(pair);
+    }
+  }
+
   // Get verbs in infinitive form and apply stemming
   doc.verbs().toInfinitive().forEach(v => {
     const text = v.text().toLowerCase();
     const stemmed = porterStem(text);
     terms.add(stemmed);
     terms.add(text);
-  });
-  
-  // Get technical terms and acronyms
-  doc.match('#Acronym').forEach(a => {
-    const text = a.text().toLowerCase();
-    terms.add(text);
-    technicalTerms.add(text);
-  });
-  
-  // Get numbers and values
-  doc.numbers().forEach(n => {
-    const text = n.text().toLowerCase();
-    terms.add(text);
-    // Add to technical terms if part of a larger phrase
-    if (n.text().length > 1 && /[a-z]/i.test(n.text())) {
+    
+    // Check for technical verbs
+    if (/(?:process|compute|normalize|encode|decode|stack|connect|train|learn|reduce|improve|enable|allow)/i.test(text)) {
       technicalTerms.add(text);
+      technicalTerms.add(stemmed);
     }
   });
 
-  return { terms, technicalTerms };
+  return { terms, technicalTerms, conceptPairs };
 }
 
 /**
@@ -185,12 +212,13 @@ export function calculateHeuristicSimilarity(text1: string, text2: string): {
   const normalizedText2 = normalize(text2);
 
   // Extract key terms and technical terms
-  const { terms: terms1, technicalTerms: techTerms1 } = extractKeyTerms(text1);
-  const { terms: terms2, technicalTerms: techTerms2 } = extractKeyTerms(text2);
+  const { terms: terms1, technicalTerms: techTerms1, conceptPairs: pairs1 } = extractKeyTerms(text1);
+  const { terms: terms2, technicalTerms: techTerms2, conceptPairs: pairs2 } = extractKeyTerms(text2);
 
   // Calculate semantic term overlap with technical term boosting
   const termIntersection = new Set([...terms1].filter(x => terms2.has(x)));
   const techTermIntersection = new Set([...techTerms1].filter(x => techTerms2.has(x)));
+  const conceptPairIntersection = new Set([...pairs1].filter(x => pairs2.has(x)));
   
   // Calculate overlapping keywords (technical terms)
   const overlappingKeywords = [...techTermIntersection].map(term => {
@@ -202,7 +230,8 @@ export function calculateHeuristicSimilarity(text1: string, text2: string): {
   // More lenient semantic score calculation with increased technical term boost
   const semanticScore = (
     termIntersection.size / Math.min(terms1.size, terms2.size) +
-    (techTermIntersection.size > 0 ? 0.3 : 0)  // Increased boost from 0.2 to 0.3
+    (techTermIntersection.size > 0 ? 0.5 : 0) +  // Technical term boost
+    (conceptPairIntersection.size > 0 ? 0.3 : 0)  // Boost for matching operational relationships
   );
 
   // Get words and create word sets with stemming for basic overlap
@@ -270,9 +299,9 @@ export function calculateHeuristicSimilarity(text1: string, text2: string): {
     0.1 * phraseScore         
   );
 
-  // Boost score for matches with technical terms
-  const boostedScore = hasTechnicalTerms ? 
-    combinedScore * 1.3 : // Increased boost from 1.2 to 1.3
+  // Boost score for matches with technical terms and operational relationships
+  const boostedScore = (hasTechnicalTerms || conceptPairIntersection.size > 0) ? 
+    combinedScore * (1.3 + (conceptPairIntersection.size * 0.1)) : // Additional boost for operational matches
     combinedScore;
 
   // Use adaptive power scaling based on score
@@ -349,13 +378,12 @@ export function findTopSentencesGloballyHeuristic(
   const {
     topK = 5,
     minSimilarity = 0.3,
-    minDistance = 0.25,
+    minDistance = 0.4,  // Increased from 0.25 to 0.4 for better diversity
   } = options;
 
   const allSentences: ISentenceResult[] = [];
-  
-  // Track sentences we've already seen to avoid duplicates across chunks
   const processedSentences = new Set<string>();
+  const seenContent = new Set<string>();  // Track semantic content
 
   for (const match of topChunks) {
     const { chunk } = match;
@@ -376,14 +404,30 @@ export function findTopSentencesGloballyHeuristic(
       
       // Skip very short sentences or sentences we've already processed
       if (sentence.length < 10 || processedSentences.has(sentence)) return null;
+      
+      // Extract key terms for content similarity check
+      const { terms: sentenceTerms } = extractKeyTerms(sentence);
+      const contentKey = Array.from(sentenceTerms).sort().join(' ');
+      
+      // Skip if we've seen very similar content
+      if (seenContent.has(contentKey)) return null;
+      
       processedSentences.add(sentence);
+      seenContent.add(contentKey);
       
       const { similarity, overlappingKeywords } = calculateHeuristicSimilarity(query, sentence);
       
-      // Apply length normalization similar to chunk normalization
-      let normalizedSimilarity = similarity;
-      if (sentence.length < 40) {  // For very short sentences
-        normalizedSimilarity = similarity * (0.85 + (sentence.length / 200));
+      // Boost score for sentences with more technical term matches
+      let normalizedSimilarity = similarity * (1 + (overlappingKeywords.length * 0.1));
+      
+      // Apply length normalization
+      if (sentence.length < 40) {
+        normalizedSimilarity *= (0.85 + (sentence.length / 200));
+      }
+      
+      // Penalize conclusion sentences unless they contain highly relevant technical details
+      if (/^Conclusion|In conclusion|To conclude|Finally,/i.test(sentence) && overlappingKeywords.length < 3) {
+        normalizedSimilarity *= 0.7;
       }
       
       return {

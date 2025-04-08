@@ -344,10 +344,29 @@ export class ExplanationProcessor {
                                         const percentageDifference = ((bestChunkMatch.similarity - match.similarity) / match.similarity) * 100;
                                         console.log(`Score difference: ${percentageDifference.toFixed(1)}%`);
                                         
-                                        // Only use chunk if it's at least 5% better
-                                        if (percentageDifference >= 5) {
-                                            console.log('Decision: Using entire chunk for highlighting because chunk score is more than 5% higher');
-                                            console.log(`Chunk text: "${bestChunkMatch.chunk.text}"`);
+                                        // Require higher difference for longer chunks
+                                        const chunkLength = bestChunkMatch.chunk.text.length;
+                                        const sentenceLength = match.sentence.length;
+                                        const lengthRatio = chunkLength / sentenceLength;
+                                        
+                                        // Required difference scales with length ratio
+                                        const requiredDifference = Math.min(
+                                            20 + Math.floor(lengthRatio * 5), // Base 20% + 5% per length ratio
+                                            40 // Cap at 40%
+                                        );
+                                        
+                                        // Check if chunk has more relevant technical terms
+                                        const chunkKeywords = bestChunkMatch.metadata?.overlappingKeywords || [];
+                                        const sentenceKeywords = match.metadata?.overlappingKeywords || [];
+                                        const hasMoreTechnicalTerms = chunkKeywords.length > sentenceKeywords.length + 1;
+                                        
+                                        // Only use chunk if score difference exceeds required threshold
+                                        // AND either the chunk isn't too long OR it has significantly more technical terms
+                                        if (percentageDifference >= requiredDifference && 
+                                            (lengthRatio < 4 || hasMoreTechnicalTerms)) {
+                                            console.log(`Decision: Using entire chunk because score is ${percentageDifference.toFixed(1)}% higher and length ratio is ${lengthRatio.toFixed(1)}`);
+                                            console.log(`Chunk keywords: ${chunkKeywords.join(', ')}`);
+                                            console.log(`Sentence keywords: ${sentenceKeywords.join(', ')}`);
                                             
                                             // Find the original chunk that matches the best chunk
                                             const bestOriginalChunk = originalChunks.find(c => c.text === bestChunkMatch.chunk?.text);
@@ -459,4 +478,5 @@ export class ExplanationProcessor {
         }
     }
 }
+
 
