@@ -33,8 +33,6 @@ export const TABLE_HEAD_ROW_HEIGHT = 35 as const;
 
 export const Z_INDEX_OF_STICKY_HEADER_ROW = 10 as const;
 
-// export const Z_INDEX_OF_STICKY_HEADER_COLUMN = 9 as const;
-
 export const extractCellComponent = (cellName: string): { column: string, row: number } | null => {
     const match = cellName.match(/^([A-Z]+)(\d+)$/);
     if (!match) return null;
@@ -65,11 +63,6 @@ export const isCellInRange = (row: number, column: string, range: Range): boolea
 
     if (row > componentOfLastCellOfRange.row) return false;
     if (row < componentOfFirstCellOfRange.row) return false;
-    // const cellRange = `${column.toUpperCase()}${row}`;
-    // if (column < componentOfFirstCellOfRange.column || column > componentOfLastCellOfRange.column) return false;
-
-    // if (range[0] <= cellRange) return true;
-    // return cellRange <= range[1];
 
     if (utils.decode_col(column) < utils.decode_col(componentOfFirstCellOfRange.column)) return false;
     return utils.decode_col(column) <= utils.decode_col(componentOfLastCellOfRange.column);
@@ -80,14 +73,6 @@ export const validateExcelRange = (range: string): boolean => {
     const regex = /^[A-Z]+[1-9]\d*:[A-Z]+[1-9]\d*$/;
     return regex.test(range);
 }
-
-// export const getRowEntryWitMostColumns = (data: RowList): CellContentEntry[] => {
-//     return data.reduce((acc: CellContentEntry[], currentRow: Row) => {
-//         const entries = Object.entries(currentRow).sort((a, b) => a[0].localeCompare(b[0])) as [string, CellContent][];
-//         if (acc.length < entries.length) return entries;
-//         return acc;
-//     }, []);
-// };
 
 export const sortSpreadsheetColumnsComparator = (current: string, next: string): number => {
     if (current.length !== next.length) {
@@ -108,61 +93,6 @@ export const sortSpreadsheetRange = (cells: string[]): string[] => {
         }
         return rowA - rowB;
     });
-}
-
-export const resolveCellFormat = (value: CellValue, type: ValueType, numberFormat: string): CellContent => {
-    switch (type) {
-        case ValueType.Null: return "";
-        case ValueType.Number: return Number(value);
-        case ValueType.String: return String(value);
-        case ValueType.Hyperlink: {
-            const hyperLInkValue = value as CellHyperlinkValue;
-            return hyperLInkValue.text;
-        }
-        case ValueType.Date: return formatDate(value as Date, numberFormat);
-        case ValueType.Formula: {
-            const result = (value as CellFormulaValue).result;
-            if (!result) return "";
-            if (isDate(result)) return formatDate(result as Date, numberFormat);
-            if ((result as CellErrorValue).error) return (result as CellErrorValue).error;
-            return result.toString();
-        }
-        case ValueType.RichText: {
-            const richText = (value as CellRichTextValue).richText;
-            if (!richText || richText.length) return "";
-            return richText.join("\n ");
-        }
-        case ValueType.Error: return (value as CellErrorValue).error;
-        default: return String(value);
-    }
-}
-
-type DateFormaterKey = "YYYY" | "MM" | "DD" | "HH" | "hh" | "mm" | "ss" | "SSS";
-
-const formatDate = (rawDate: Date, format: string): string => {
-    const utcDate = new Date(rawDate.toISOString());
-
-    const formatters: Record<DateFormaterKey, string> = {
-        "YYYY": String(utcDate.getUTCFullYear()),
-        "MM": String(utcDate.getUTCMonth() + 1).padStart(2, "0"),
-        "DD": String(utcDate.getUTCDate()).padStart(2, "0"),
-        "HH": String(utcDate.getUTCHours()).padStart(2, "0"),
-        "hh": String(utcDate.getUTCHours() % 12 || 12).padStart(2, "0"),
-        "mm": String(utcDate.getUTCMinutes()).padStart(2, "0"),
-        "ss": String(utcDate.getUTCSeconds()).padStart(2, "0"),
-        "SSS": String(utcDate.getUTCMilliseconds()).padStart(3, "0")
-    };
-
-    return format
-        .replace(
-            /\b(?:YYYY|MM|DD|HH|hh|mm|ss|SSS)\b/g,
-            (match) => formatters[(match as DateFormaterKey)]
-        );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isDate = (obj: any): boolean => {
-    return obj instanceof Date;
 }
 
 export const ptFontSizeToPixel = (pt?: number): number => {

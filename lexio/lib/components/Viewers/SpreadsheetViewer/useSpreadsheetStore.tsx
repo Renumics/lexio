@@ -621,61 +621,11 @@ export const useSpreadsheetViewerStore = (input: InputSpreadsheetViewerStore): O
                 }
             }
 
-            // Cell merge
-            // const cellStylesWithCellMerges = applyCellMerges(mergedGroupOfSelectedWorksheet.mergedRanges, cellStyles);
-            // const cellStylesWithCellMerges = Object.entries(cellStyles).map((cellStyleEntry) => {
-            //     const [cellAddress, basicStyles] = cellStyleEntry;
-                // if (
-                //     cellAddress.includes("-content-container") ||
-                //     cellAddress.includes("-content-wrapper-container")
-                // ) {
-                //     return {
-                //         [cellAddress]: {
-                //             ...basicStyles as Partial<CSSProperties>,
-                //         }
-                //     }
-                // }
-                // if (cellAddress.includes("-inner-container")) {
-                //     return {
-                //         [cellAddress]: {
-                //             ...basicStyles as Partial<CSSProperties>,
-                //             // width: "",
-                //             // height: "",
-                //             // visibility: "hidden",
-                //             // borderBottom: "",
-                //             // borderLeft: ""
-                //         }
-                //     }
-                // }
-                // return {
-                //     [cellAddress]: {
-                //         ...basicStyles as Partial<CSSProperties>,
-                //         // width: "",
-                //         // height: "",
-                //         // visibility: "hidden",
-                //     },
-                // }
-            // }).reduce((acc, currentKey) => {
-            //     return { ...acc, ...currentKey };
-            // }, {});
-
             return {
                 ...rawRow,
                 ...stylesOfCells,
             } as Row
         }
-
-        // const cellStylesOfAllRows = rawRowData.map(applyStylesToCells);
-        //
-        // const allCellStyles = cellStylesOfAllRows
-        //     .reduce((acc, curr) => {
-        //         return {
-        //             ...acc,
-        //             ...curr,
-        //         }
-        //     }, {}) as Record<string, Partial<CSSProperties>>;
-
-        // const rowsWithMergedCells = applyCellMerges(mergedGroupOfSelectedWorksheet?.mergedRanges ?? [], allCellStyles)
         setRowData(rawRowData.map(applyStylesToCells));
     }, [rawRowData, rowStyles, headerStyles, cellStyles, selectedWorksheetName, mergedGroupOfSelectedWorksheet]);
 
@@ -833,102 +783,7 @@ export const mergeCells = (
         innerContainerOfStartCell.style.width = `${totalWidth}px`;
         innerContainerOfStartCell.style.borderBottom = "1px solid #e5e7eb";
         innerContainerOfStartCell.style.borderRight = "1px solid #e5e7eb";
-        // startCell.style.height = `${totalHeight}px`;
     });
 
     onCellMergeDone?.();
 };
-
-// export const applyCellMerges = (
-//     merges: MergedRange[],
-//     cellRefs: Record<string, Partial<CSSProperties>>,
-// ): Record<string, Partial<CSSProperties>> => {
-//
-//     const result = cellRefs;
-//
-//     if (merges.length === 0 || Object.keys(result).length === 0) {
-//         return result;
-//     }
-//
-//     merges.forEach((merge) => {
-//         const cellId = `${merge.start.column}${merge.start.row}`;
-//         const cellInnerContainerId = `${merge.start.column}${merge.start.row}-inner-container`;
-//         const startCell = result[cellId];
-//         const innerContainerOfStartCell = result[cellInnerContainerId];
-//
-//         if (!startCell) return;
-//         // if (startCell.colSpan > 1) return;
-//         // if (startCell.colSpan > 1) return;
-//         const cellComponent = extractCellComponent(cellId);
-//         if (!cellComponent) return;
-//         if (!isCellInRange(cellComponent.row, cellComponent.column, [`${merge.start.column}${merge.start.row}`, `${merge.end.column}${merge.end.row}`])) return;
-//
-//         // const colSpan = utils.decode_col(merge.end.column) - utils.decode_col(merge.start.column) + 1;
-//         // const rowSpan = merge.end.row - merge.start.row + 1;
-//
-//         // startCell.colSpan = colSpan;
-//         // startCell.rowSpan = rowSpan;
-//
-//         let totalWidth = parseFloat(`${startCell.width}`);
-//         let totalHeight = parseFloat(`${startCell.height}`);
-//
-//         // Merge columns
-//         for (let col = utils.decode_col(merge.start.column) + 1; col <= utils.decode_col(merge.end.column); col++) {
-//             const idOfCellToMerge = `${utils.encode_col(col)}${merge.start.row}`;
-//             const cellToMerge = result[idOfCellToMerge];
-//             if (cellToMerge) {
-//                 totalWidth += parseFloat(`${cellToMerge.width}`);
-//                 cellToMerge.visibility = "hidden";
-//                 result[idOfCellToMerge] = cellToMerge;
-//             }
-//         }
-//
-//         // Merge rows
-//         for (let row = merge.start.row + 1; row <= merge.end.row; row++) {
-//             const cellToMerge = result[`${merge.start.column}${row}`];
-//             console.log("`${merge.start.column}${row}`: ",`${merge.start.column}${row}`);
-//             console.log("result: ", result);
-//
-//             if (cellToMerge) {
-//                 // Iterates over all cells in the row starting with merge.start.column till merge.end.column
-//                 for (let col = utils.decode_col(merge.start.column); col <= utils.decode_col(merge.end.column); col++) {
-//                     const idOfCell = `${utils.encode_col(col)}${row}`;
-//                     const cellToMerge = result[idOfCell];
-//                     if (cellToMerge) {
-//                         cellToMerge.visibility = "hidden";
-//                         // cellToMerge.onclick = startCell.onclick;
-//                         result[idOfCell] = cellToMerge;
-//                     }
-//                 }
-//                 console.log("cellToMerge.height: ", cellToMerge.height);
-//                 totalHeight += parseFloat(`${cellToMerge.height}`);
-//                 // cellToMerge.style.display = "none";
-//             }
-//         }
-//
-//         // startCell.style.width = `${totalWidth}px`;
-//
-//         startCell.borderTop = "none";
-//         startCell.borderRight = "none";
-//         startCell.borderBottom = "none";
-//         startCell.borderLeft = "none";
-//         if (!innerContainerOfStartCell) return;
-//         innerContainerOfStartCell.height = totalHeight;
-//         innerContainerOfStartCell.width = totalWidth;
-//         innerContainerOfStartCell.borderBottom = "1px solid #e5e7eb";
-//         innerContainerOfStartCell.borderRight = "1px solid #e5e7eb";
-//         // startCell.style.height = `${totalHeight}px`;
-//
-//         result[cellId] = startCell;
-//         result[cellInnerContainerId] = innerContainerOfStartCell;
-//
-//         if (cellId === "E5") {
-//             console.log("startCell: ", startCell);
-//             console.log("innerContainerOfStartCell: ", innerContainerOfStartCell);
-//             console.log("result: ", result);
-//             console.log("totalHeight: ", totalHeight);
-//         }
-//     });
-//
-//     return result;
-// };

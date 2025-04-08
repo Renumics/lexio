@@ -151,42 +151,29 @@ export const TableContainer = <TData, TValue>(
         setSelectedRange(rangeToSelect);
     }, [selectedCell, selectedHeaderCells, selectedHeaderRowCells, setSelectedRange]);
 
-
-    // The virtualizers need to know the scrollable container element
     const tableContainerRef = useRef<HTMLDivElement | null>(null);
 
-    //we are using a slightly different virtualization strategy for columns (compared to virtual rows) in order to support dynamic row heights
     const columnVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableCellElement>({
         count: columns.length,
-        // estimateSize: (index: number) => table.getVisibleLeafColumns()[index].getSize(), //estimate width of each column for accurate scrollbar dragging
         estimateSize: () => DEFAULT_COLUMN_WIDTH,
         getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
         horizontal: true,
-        overscan: 5, //how many columns to render on each side off screen each way (adjust this for performance)
+        overscan: 5,
         onChange: () => {
-            // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
-            // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
             if (cellAndInnerCellContainerRefs.current) {
                 applyMergesToCells(
                     mergedGroupOfSelectedWorksheet,
                     selectedSheetName,
                     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
                 );
-                // highlightCells(
-                //     // @ts-ignore
-                //     table.getRowModel().rows,
-                //     rangesToSelect,
-                //     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, (HTMLTableCellElement | null)>,
-                // );
             }
 
         },
     });
 
-    // dynamic row height virtualization - alternatively you could use a simpler fixed row height strategy without the need for `measureElement`
     const rowVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
         count: table.getRowCount(),
-        estimateSize: () => 35, //estimate row height for accurate scrollbar dragging
+        estimateSize: () => 35,
         getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
         //measure dynamic row height, except in firefox because it measures table border height incorrectly
         measureElement:
@@ -196,20 +183,12 @@ export const TableContainer = <TData, TValue>(
                 : undefined,
         overscan: 5,
         onChange: () => {
-            // We call highlightCells() here so that the highlight styles get applied again since the virtualizer deletes(remove) rows which are out of the viewport of the scroll element.
-            // Without this, the reference of cells gets lost and the highlight styles get lost when they are out of the view port.
             if (cellAndInnerCellContainerRefs.current) {
                 applyMergesToCells(
                     mergedGroupOfSelectedWorksheet,
                     selectedSheetName,
                     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
                 );
-                // highlightCells(
-                //     // @ts-ignore
-                //     table.getRowModel().rows,
-                //     rangesToSelect,
-                //     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, (HTMLTableCellElement | null)>,
-                // );
             }
         },
     });
@@ -240,7 +219,6 @@ export const TableContainer = <TData, TValue>(
     // Set selected header and header row cells
     useEffect(() => {
          if (!selectedCell || !mergedGroupOfSelectedWorksheet) return;
-        // return an array of header cells and header row cells present in the mergedGroupOfSelectedWorksheet when prop.selected cell is within that range
         const headerCells: string[] = [];
         const headerRowCells: number[] = [];
         mergedGroupOfSelectedWorksheet.mergedRanges.forEach((range) => {
@@ -280,7 +258,6 @@ export const TableContainer = <TData, TValue>(
 
     const virtualColumns = columnVirtualizer.getVirtualItems()
 
-    //different virtualization strategy for columns - instead of absolute and translateY, we add empty columns to the left and right
     let virtualPaddingLeft: number | undefined
     let virtualPaddingRight: number | undefined
 
@@ -293,12 +270,6 @@ export const TableContainer = <TData, TValue>(
 
     // Event Handlers
     const handleCellClick = (cell: Cell<TData, TValue>) => {
-        // Clear previous cell selection states
-        // setMouseSelectedRange(undefined);
-        // clearCellHighlights(
-        //     table.getRowModel().rows,
-        //     getTableCellRefs(selectedSheetName, tableId),
-        // );
         setSelectedCell({ row: cell.row.index, column: cell.column.id });
     }
 
@@ -430,26 +401,12 @@ const TableHeadRow = <T, >(
     }: TableHeadRowProps<T>) => {
     const virtualColumns = columnVirtualizer.getVirtualItems();
 
-    // const firstTableHeadCell = headerGroup.headers[0];
-
     return (
         <tr key={headerGroup.id} style={{display: "flex", width: "100%", height: 0 }}>
             {virtualPaddingLeft ? (
                 //fake empty column to the left for virtualization scroll padding
                 <th style={{display: "flex", width: virtualPaddingLeft}}/>
             ) : null}
-            {/*{firstTableHeadCell ?*/}
-            {/*    <TableHeadCell*/}
-            {/*        key={firstTableHeadCell.id}*/}
-            {/*        // @ts-ignoref*/}
-            {/*        header={firstTableHeadCell}*/}
-            {/*        rowCount={rowCount}*/}
-            {/*        isSelected={false}*/}
-            {/*        isFirst={true}*/}
-            {/*        isLast={false}*/}
-            {/*        headerStyles={headerStyles}*/}
-            {/*    /> : null*/}
-            {/*}*/}
             {virtualColumns.map((virtualColumn, colIndex, array) => {
                 const header = headerGroup.headers[virtualColumn.index];
                 // if (header.id === "rowNo") return null;
@@ -673,7 +630,6 @@ const TableBodyRow = forwardRef(<T,>(
         cellInnerContainerRefs: {},
     });
 
-    // Sends all cell refs and cell inner container refs of row to the parent component
     useImperativeHandle(ref, () => ({
         cellRefs: cellAndCellContainerRefsOfRow.current.cellRefs,
         cellInnerContainerRefs: cellAndCellContainerRefsOfRow.current.cellInnerContainerRefs,
@@ -791,7 +747,6 @@ const TableBodyCell = forwardRef(
 
     const cellBorderContainerId = `${cell.column.id}${cell.row.index}-border-container`;
 
-    // Sends all cell refs to the parent component
     useImperativeHandle(ref, () => ({
         cellRefs: cellRefs.current,
         cellInnerContainerRefs: cellInnerContainerRefs.current,
@@ -799,7 +754,6 @@ const TableBodyCell = forwardRef(
 
     useEffect(() => {
         return () => {
-            // Clear cell reference and cell inner container reference when component unmounts to prevent unnecessary memory allocation
             cellRefs.current = {};
             cellInnerContainerRefs.current = {};
         };
