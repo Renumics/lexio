@@ -329,7 +329,6 @@ export const rangesOverlap = (range1: Range, range2: Range): boolean => {
  * @param highlightColor Color for the highlight
  * @param highlightIndex Index of the highlight
  * @param citationId Optional citation ID
- * @param existingRanges Existing ranges to check for overlap
  * @returns Array of created ranges
  */
 export const createHighlightOverlays = (
@@ -338,7 +337,6 @@ export const createHighlightOverlays = (
     highlightColor: string,
     highlightIndex: number,
     citationId?: string,
-    existingRanges: Range[] = []
 ): Range[] => {
     const createdRanges: Range[] = [];
     const createdRects: {left: number, top: number, width: number, height: number}[] = [];
@@ -438,7 +436,6 @@ export const createHighlightOverlays = (
  * @param highlightColor Color for the highlight
  * @param highlightIndex Index of the highlight
  * @param citationId Optional citation ID
- * @param existingRanges Existing ranges to check for overlap
  * @returns Array of created ranges
  */
 export const findAndHighlightText = (
@@ -446,8 +443,7 @@ export const findAndHighlightText = (
     textToFind: string, 
     highlightColor: string,
     highlightIndex: number,
-    citationId?: string,
-    existingRanges: Range[] = []
+    citationId?: string
 ): Range[] => {
     // Get all text nodes in the container
     const textNodes = getAllTextNodes(container);
@@ -477,7 +473,7 @@ export const findAndHighlightText = (
             
             if (ranges.length > 0) {
                 // console.log(`Found list item match for highlight ${highlightIndex} at threshold: ${threshold}`);
-                return createHighlightOverlays(container, ranges, highlightColor, highlightIndex, citationId, existingRanges);
+                return createHighlightOverlays(container, ranges, highlightColor, highlightIndex, citationId);
             }
         }
     }
@@ -488,7 +484,7 @@ export const findAndHighlightText = (
         
         if (ranges.length > 0) {
             // console.log(`Found match for highlight ${highlightIndex} at threshold: ${threshold}`);
-            return createHighlightOverlays(container, ranges, highlightColor, highlightIndex, citationId, existingRanges);
+            return createHighlightOverlays(container, ranges, highlightColor, highlightIndex, citationId);
         }
     }
     
@@ -528,17 +524,7 @@ export const findAndHighlightText = (
             const range = document.createRange();
             range.selectNode(bestNode);
             
-            // Check for significant overlap with existing ranges
-            const hasSignificantOverlap = existingRanges.some(
-                existingRange => rangesOverlap(range, existingRange)
-            );
-            
-            if (hasSignificantOverlap) {
-                console.warn(`Skipping keyword-based highlight ${highlightIndex} due to significant overlap with existing highlight`);
-                return [];
-            }
-            
-            return createHighlightOverlays(container, [range], highlightColor, highlightIndex, citationId, existingRanges);
+            return createHighlightOverlays(container, [range], highlightColor, highlightIndex, citationId);
         }
     }
     
@@ -569,9 +555,6 @@ export const useHighlightManager = (
         // Clear existing highlights
         const existingHighlights = container.querySelectorAll('.highlight-overlay');
         existingHighlights.forEach(el => el.remove());
-        
-        // Keep track of all ranges to check for overlaps
-        const allRanges: Range[] = [];
         
         // Sort highlights by size (smallest first) to prioritize more specific highlights
         const sortedHighlights = [...highlightsToUse].sort((a, b) => {
@@ -610,17 +593,13 @@ export const useHighlightManager = (
             }
             
             // Find this text in the rendered DOM and get the created ranges
-            const newRanges = findAndHighlightText(
+            findAndHighlightText(
                 container, 
                 textToHighlight, 
                 highlight.color || '#ffeb3b', 
                 index, 
-                highlight.citationId,
-                allRanges
+                highlight.citationId
             );
-            
-            // Add the new ranges to our collection
-            allRanges.push(...newRanges);
         });
         
         // Add click handler
