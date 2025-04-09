@@ -20,7 +20,7 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-// Example response about Physics and Machine Learning
+// Example response about the Transformer architecture
 const EXAMPLE_RESPONSE = "# Attention Is All You Need\n\nThe Transformer eliminates recurrence and convolution by using only attention mechanisms, leading to faster training and enhanced parallelism.\n\nCore Components:\n\n1. Self-Attention utilizes Scaled Dot-Product Attention and Multi-Head Attention for constant sequential operations.\n\n2. Encoder-Decoder Architecture stacks self-attention with position-wise feed-forward networks, residual connections, and layer normalization.\n\n3. Positional Encoding adds order information to embeddings using sine and cosine functions.\n\nImpact:\n\n• Sets new state-of-the-art BLEU scores on WMT 2014 machine translation tasks.\n\n• Reduces training time and cost while generalizing well to tasks like English constituency parsing.\n\nOverall, the Transformer shows that attention alone is sufficient for effective sequence transduction."
 
 
@@ -224,6 +224,7 @@ const ExampleComponent = () => {
             </div>
           </div>
 
+
           {/* Right panel: Full height PDF viewer */}
           <div style={{ 
             border: '1px solid #e5e7eb',
@@ -313,28 +314,31 @@ Lexio's Explanation Mechanism helps connect generated responses with their sourc
 Lexio provides two methods for matching responses with sources:
 
 **1. Heuristic Matching**
-   - Fast, rule-based pattern matching
-   - Suitable for prototypes and demos
+   - Pattern-based text analysis
    - No external API dependencies
+   - Suitable for prototypes and self-contained demos
 
 **2. API-Based Matching**
-   - Higher accuracy for production use
+   - High accuracy for complex idea matching
    - Advanced semantic understanding
-   - Configurable matching parameters
+   - Configurable matching parameters 
 
 ## Key Components
 
 **1. Idea Splitting**
-   - Breaks down responses into distinct ideas using rule-based text analysis
+   - Breaks down responses into distinct ideas using either:
+     - Markdown-aware sentence splitting (heuristic method)
+     - LLM-based idea extraction (for more precise analysis)
 
 **2. Source Matching**
    - Uses pattern-based matching to connect ideas with source content
    - Identifies relevant passages and their locations
 
 **3. Highlighting System**
-   - Automatically generates color-coded highlights
-   - Links response segments to source document locations
-   - Provides visual feedback for source verification
+   - Automatically generates color-coded highlights for easy source verification
+   - Enables click-to-navigate from response ideas to corresponding source locations
+   - Synchronizes highlights between response and source content
+   - Provides instant visual feedback and source verification
 
 ## Implementation Example
 
@@ -391,8 +395,8 @@ Here's how to implement the explanation mechanism with the Lexio provider:
 
 1. **Response Processing**
    - Message content is analyzed
-   - Ideas are extracted using rule-based analysis
-   - Each idea is prepared for source matching
+   - Ideas are extracted using either markdown-aware sentence splitting (heuristic) or LLM-based idea extraction
+   - Each idea is prepared for source matching 
 
 2. **Source Analysis**
    - Documents are preprocessed
@@ -423,7 +427,7 @@ Here's how to implement the explanation mechanism with the Lexio provider:
 
 ## Interactive Example
 
-This example demonstrates how the explanation mechanism processes the 2024 Nobel Prize in Physics, showing how ideas are matched with source content and highlighted in both the response and the document.
+This example demonstrates how the explanation mechanism processes the Transformer paper "Attention Is All You Need", showing how ideas are matched with source content and highlighted in both the response and the document.
         `
       }
     }
