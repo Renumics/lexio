@@ -1,5 +1,4 @@
 import React, { useContext } from 'react';
-import { Citation as CitationType } from '../../types';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { addOpacity } from '../../utils/scaleFontSize';
 

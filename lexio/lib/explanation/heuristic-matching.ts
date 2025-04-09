@@ -72,34 +72,10 @@ function countVowelConsonantSequences(word: string): number {
 }
 
 /**
- * Detects if a text is likely to be code based on various heuristics
- */
-function isLikelyCode(text: string): boolean {
-  // Common code indicators
-  const codePatterns = [
-    /[{}\[\]()=><]/g,  // Common code symbols
-    /\b(function|const|let|var|return|import|from)\b/g,  // Common keywords
-    /[a-zA-Z]+\([^)]*\)/g,  // Function calls
-    /\b\w+\s*=\s*[^;]+;/g,  // Assignment patterns
-    /^\s*#/m,  // Python-style comments
-    /[a-zA-Z_]\w*\.[a-zA-Z_]\w*/g  // Object property access
-  ];
-
-  // Count matches for each pattern
-  const matches = codePatterns.reduce((count, pattern) => {
-    const matches = text.match(pattern);
-    return count + (matches ? matches.length : 0);
-  }, 0);
-
-  // If we have multiple code indicators, consider it code
-  return matches >= 2;
-}
-
-/**
  * Extracts key terms and entities from text using compromise and applies stemming
  */
 function extractKeyTerms(text: string): { terms: Set<string>, technicalTerms: Set<string>, conceptPairs: Set<string> } {
-  const doc = nlp(text);
+  const doc: any = nlp(text);
   const terms = new Set<string>();
   const technicalTerms = new Set<string>();
   const conceptPairs = new Set<string>();  // Track related concept pairs
@@ -122,7 +98,7 @@ function extractKeyTerms(text: string): { terms: Set<string>, technicalTerms: Se
   ];
 
   // Get nouns and apply stemming
-  doc.nouns().forEach(n => {
+  doc.nouns().forEach((n: any) => {
     const text = n.text().toLowerCase();
     const stemmed = porterStem(text);
     terms.add(stemmed);
@@ -154,7 +130,7 @@ function extractKeyTerms(text: string): { terms: Set<string>, technicalTerms: Se
         
         // Also add individual parts of hyphenated terms
         if (text.includes('-')) {
-          text.split('-').forEach(part => {
+          text.split('-').forEach((part: string) => {
             if (part.length > 2) {
               technicalTerms.add(part);
               technicalTerms.add(porterStem(part));
@@ -180,7 +156,7 @@ function extractKeyTerms(text: string): { terms: Set<string>, technicalTerms: Se
   }
 
   // Get verbs in infinitive form and apply stemming
-  doc.verbs().toInfinitive().forEach(v => {
+  doc.verbs().toInfinitive().forEach((v: any) => {
     const text = v.text().toLowerCase();
     const stemmed = porterStem(text);
     terms.add(stemmed);
@@ -203,7 +179,7 @@ function analyzeSentenceStructure(text: string): {
   isExplanatory: boolean;
   structureScore: number;
 } {
-  const doc = nlp(text);
+  const doc: any = nlp(text);
   let structureScore = 0;
 
   // Check for subject-verb-object structure (explanatory pattern)
