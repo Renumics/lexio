@@ -35,8 +35,7 @@ function porterStem(word: string): string {
   // Step 1a
   word = word.replace(/sses$/, 'ss')
              .replace(/ies$/, 'i')
-             .replace(/ss$/, 'ss')
-             .replace(/s$/, '');
+             .replace(/s$/, match => match === 'ss' ? 'ss' : '');
 
   // Step 1b
   if (word.match(/(eed|eedly)$/)) {
@@ -477,7 +476,7 @@ export function findTopSentencesGloballyHeuristic(
       }
       
       // Penalize conclusion sentences unless they contain highly relevant technical details
-      if (/^Conclusion|In conclusion|To conclude|Finally,/i.test(sentence) && overlappingKeywords.length < 3) {
+      if (/^(?:Conclusion|In conclusion|To conclude|Finally,)/i.test(sentence) && overlappingKeywords.length < 3) {
         normalizedSimilarity *= 0.7;
       }
       

@@ -202,8 +202,8 @@ function isSectionHeader(item: TextItem, allItems: TextItem[]): boolean {
   
   // Add paper title detection patterns
   const paperTitlePatterns = [
-    // Common paper title formats
-    /^(?:[A-Z][a-z]*(?:\s+(?:[A-Z][a-z]*|[A-Z]+|[a-z]+|is|the|and|or|in|on|of|to|for|with|by))*[:.!?]?)$/,
+    // Common paper title formats - with atomic groups and limited repetition
+    /^(?:[A-Z][a-z]+(?:\s+(?:(?:[A-Z][a-z]+)|(?:[A-Z]{2,})|(?:is|the|and|or|in|on|of|to|for|with|by))){0,15}[:.!?]?)$/,
     // Specific well-known paper titles
     /^Attention Is All You Need$/,
     /^BERT:/,
