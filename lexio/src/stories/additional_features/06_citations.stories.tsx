@@ -35,6 +35,7 @@ const generateHighlightColors = (count: number): { solid: string, transparent: s
 
 const ExampleComponent = () => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPdfLoaded, setIsPdfLoaded] = useState(false);
 
   const handleAction = async (
     action: UserAction,
@@ -95,11 +96,24 @@ const ExampleComponent = () => {
     if (action.type === 'SET_SELECTED_SOURCE') {
       setIsProcessing(true);
       try {
+        const sourceDataPromise = fetch('https://arxiv.org/pdf/1706.03762')
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`Failed to fetch PDF: ${res.status} ${res.statusText}`);
+            }
+            return res.arrayBuffer();
+          })
+          .then(buffer => new Uint8Array(buffer));
+
+        // Set PDF as loaded when data is available
+        sourceDataPromise.then(() => setIsPdfLoaded(true));
+        
         return {
-          sourceData: fetch('https://arxiv.org/pdf/1706.03762')
-            .then(res => res.arrayBuffer())
-            .then(buffer => new Uint8Array(buffer))
+          sourceData: sourceDataPromise
         };
+      } catch (error) {
+        console.error("Error loading PDF:", error);
+        throw error;
       } finally {
         setIsProcessing(false);
       }
@@ -262,7 +276,7 @@ interface Citation {
 
 ## Example
 
-This example demonstrates promise-based citations with the 2024 Nobel Prize in Physics document, showing how AI responses connect to their source material.`
+This example demonstrates promise-based citations with the "Attention Is All You Need" paper, showing how AI responses can be connected to their source material through synchronized highlighting between the response and the original paper.`
       }
     }
   },
