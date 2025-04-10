@@ -1,6 +1,14 @@
 // preprocessing.ts
 import { pdfjs } from 'react-pdf';
 import { loadSbd } from './dependencies';
+import config from './config';
+
+// Debug logging utility
+const debugLog = (...args: any[]) => {
+    if (config.DEBUG) {
+        console.log(...args);
+    }
+};
 
 // Set the pdfjs worker source from the CDN
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -59,14 +67,14 @@ function applyTransform(point: [number, number], transform: number[]): [number, 
  * Parses a PDF file using pdfjs from react-pdf.
  */
 export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
-  console.log(`Starting PDF parsing: ${file.name}`);
+  debugLog(`Starting PDF parsing: ${file.name}`);
 
   const arrayBuffer = await file.arrayBuffer();
   const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
   const pdf = await loadingTask.promise;
   const numPages = pdf.numPages;
 
-  console.log(`PDF loaded successfully. Total pages: ${numPages}`);
+  debugLog(`PDF loaded successfully. Total pages: ${numPages}`);
 
   const blocks: ParseResult['blocks'] = {
     block_type: "Document",
@@ -75,13 +83,10 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
 
   // Process each page
   for (let i = 1; i <= numPages; i++) {
-    // console.log(`Processing page ${i}/${numPages}`);
-    
+
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const viewport = page.getViewport({ scale: 1.0 });
-
-    // console.log(`Page ${i}: Found ${content.items.length} text items`);
 
     // Group text items by their vertical position to form lines
     const lines: TextItem[][] = [];
@@ -122,8 +127,6 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
       lines.push(currentLine);
     }
 
-    // console.log(`Page ${i}: Formed ${lines.length} lines from text items`);
-
     // Create a block for the page
     blocks.children.push({
       id: `page_${i}`,
@@ -139,7 +142,7 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
     fileName: file.name,
   };
 
-  console.log('PDF parsing completed successfully');
+  debugLog('PDF parsing completed successfully');
   return { blocks, metadata };
 }
 

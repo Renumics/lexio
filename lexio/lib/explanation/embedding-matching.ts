@@ -3,6 +3,14 @@ import { getEmbedding } from './embedding';
 import { splitIntoSentences } from './chunking';
 import { PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
 import { IChunk, IMatch, ISentenceResult } from './heuristic-matching';
+import config from './config';
+
+// Debug logging utility
+const debugLog = (...args: any[]) => {
+    if (config.DEBUG) {
+        console.log(...args);
+    }
+};
 
 export interface IChunkEmbedding {
   chunk: IChunk;
@@ -157,7 +165,7 @@ export async function findTopSentencesGlobally(
   for (const match of topChunks) {
     const { chunk } = match;
     if (!chunk) {
-      console.log("No chunk found in match", match);
+      debugLog("No chunk found in match", match);
       continue;
     }
 
@@ -171,7 +179,7 @@ export async function findTopSentencesGlobally(
     }
 
     if (chunk.sentences.length === 0) {
-      console.log("No sentences could be extracted from chunk", chunk);
+      debugLog("No sentences could be extracted from chunk", chunk);
       continue;
     }
 

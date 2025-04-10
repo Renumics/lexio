@@ -13,6 +13,7 @@ export interface Config {
     IDEA_SPLITTING_METHOD: string;
     MATCHING_METHOD: 'heuristic' | 'embedding';
     FINAL_ANSWER: string;
+    DEBUG: boolean;  // Debug flag to control logging
 
     // Similarity Search Configuration
     TOP_K_MATCHES: number;
@@ -49,6 +50,7 @@ export const MAX_CHARS = 5000;
 export const IDEA_SPLITTING_METHOD = 'heuristic'; //'llm';
 export const MATCHING_METHOD = 'heuristic'; //'embedding' as const;
 export const FINAL_ANSWER = '';  // This will be overridden by App.tsx
+export const DEBUG = false;  // Debug flag, defaults to false
 
 // Similarity Search Configuration
 export const TOP_K_MATCHES = 6;
@@ -77,6 +79,7 @@ export default {
     IDEA_SPLITTING_METHOD,
     MATCHING_METHOD,
     FINAL_ANSWER,
+    DEBUG,  // Add debug flag
 
     // Similarity Search Configuration
     TOP_K_MATCHES,

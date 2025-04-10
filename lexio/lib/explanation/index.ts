@@ -24,6 +24,13 @@ import {
 } from './heuristic-matching';
 import config from './config';
 
+// Debug logging utility
+const debugLog = (...args: any[]) => {
+    if (config.DEBUG) {
+        console.log(...args);
+    }
+};
+
 export interface ColoredIdea {
     text: string;
     color: string;
@@ -184,13 +191,13 @@ export class ExplanationProcessor {
                 : new File([sourceData], 'document.pdf', { type: 'application/pdf' });
 
             const cleanedSentences = await parseAndCleanPdf(sourceFile);
-            console.log('Cleaned sentences count:', Array.isArray(cleanedSentences) ? cleanedSentences.length : 'unknown');
+            debugLog('Cleaned sentences count:', Array.isArray(cleanedSentences) ? cleanedSentences.length : 'unknown');
 
             // Use different chunking strategy based on matching method
             const chunks = config.MATCHING_METHOD === 'heuristic'
                 ? await groupSentenceObjectsIntoChunksHeuristic(cleanedSentences)
                 : await groupSentenceObjectsIntoChunks(cleanedSentences, config.MAX_TOKENS);
-            console.log('Number of chunks:', chunks.length);
+            debugLog('Number of chunks:', chunks.length);
 
             // Store the original chunks for later reference
             const originalChunks = chunks;
@@ -205,7 +212,7 @@ export class ExplanationProcessor {
                         chunk: chunk.chunk,
                         embedding: chunk.embedding
                     }));
-                console.log('Generated embeddings for chunks:', chunkEmbeddings.length);
+                debugLog('Generated embeddings for chunks:', chunkEmbeddings.length);
             }
 
             const answerIdeas: Array<{ idea: string }> = [];
@@ -213,7 +220,6 @@ export class ExplanationProcessor {
             // Use the appropriate idea splitting method directly on the full response
             let allIdeas: string[] = [];
             if (config.IDEA_SPLITTING_METHOD === 'heuristic') {
-                // The splitIntoIdeasHeuristic will now handle markdown parsing internally
                 allIdeas = await splitIntoIdeasHeuristic(response);
             } else if (config.IDEA_SPLITTING_METHOD === 'dependency') {
                 allIdeas = await splitIntoIdeasDependencyParsing(response);
@@ -224,8 +230,8 @@ export class ExplanationProcessor {
             // Add all extracted ideas directly to answerIdeas without extra filtering or cleaning
             answerIdeas.push(...allIdeas.map(idea => ({ idea })));
             
-            console.log('Number of answer ideas:', answerIdeas.length);
-            console.log('Answer ideas:', answerIdeas);
+            debugLog('Number of answer ideas:', answerIdeas.length);
+            debugLog('Answer ideas:', answerIdeas);
 
             const ideaSources = await Promise.all(
                 answerIdeas.map(async ({ idea }) => {
@@ -242,9 +248,9 @@ export class ExplanationProcessor {
                         );
 
                         // Add debug logging for top matches
-                        console.log(`Potential chunk matches for idea: "${idea}"`);
+                        debugLog(`Potential chunk matches for idea: "${idea}"`);
                         topMatches.slice(0, 3).forEach((match, idx) => {
-                            console.log(`Match ${idx+1} (score: ${match.similarity.toFixed(3)}): "${match.chunk?.text}"`);
+                            debugLog(`Match ${idx+1} (score: ${match.similarity.toFixed(3)}): "${match.chunk?.text}"`);
                         });
 
                         topSentences = findTopSentencesGloballyHeuristic(
@@ -253,10 +259,10 @@ export class ExplanationProcessor {
                         );
 
                         // Add debug logging for all sentences found
-                        console.log(`All sentence matches for idea: "${idea}"`);
+                        debugLog(`All sentence matches for idea: "${idea}"`);
                         topSentences.forEach((match, idx) => {
-                            console.log(`Sentence ${idx+1} (score: ${match.similarity.toFixed(3)}): "${match.sentence}"`);
-                            console.log(`Overlapping keywords: ${match.metadata?.overlappingKeywords?.join(', ') || 'none'}`);
+                            debugLog(`Sentence ${idx+1} (score: ${match.similarity.toFixed(3)}): "${match.sentence}"`);
+                            debugLog(`Overlapping keywords: ${match.metadata?.overlappingKeywords?.join(', ') || 'none'}`);
                         });
                     } else {
                         // Use embedding-based matching
@@ -320,10 +326,10 @@ export class ExplanationProcessor {
 
                                 // Debug logging for match quality
                                 if (index === 0) { // Only log for the best match
-                                    console.log(`Match details for idea: "${idea}"`);
-                                    console.log(`Best matching sentence: "${match.sentence}"`);
-                                    console.log(`Confidence score: ${match.similarity.toFixed(3)}`);
-                                    console.log('Overlapping keywords:', matchedKeywords);
+                                    debugLog(`Match details for idea: "${idea}"`);
+                                    debugLog(`Best matching sentence: "${match.sentence}"`);
+                                    debugLog(`Confidence score: ${match.similarity.toFixed(3)}`);
+                                    debugLog('Overlapping keywords:', matchedKeywords);
                                 }
                                 
                                 let highlight: HighlightPosition | undefined;
@@ -333,16 +339,16 @@ export class ExplanationProcessor {
                                     // Find the best chunk match for this sentence
                                     const bestChunkMatch = topMatches[0];
                                     
-                                    console.log(`\nHighlight decision for idea: "${idea}"`);
-                                    console.log(`Best chunk score: ${bestChunkMatch?.similarity.toFixed(3)}`);
-                                    console.log(`Best sentence score: ${match.similarity.toFixed(3)}`);
+                                    debugLog(`\nHighlight decision for idea: "${idea}"`);
+                                    debugLog(`Best chunk score: ${bestChunkMatch?.similarity.toFixed(3)}`);
+                                    debugLog(`Best sentence score: ${match.similarity.toFixed(3)}`);
                                     
                                     // If the best chunk has a higher score than the best sentence,
                                     // use the entire chunk for highlighting
                                     if (bestChunkMatch && bestChunkMatch.similarity > match.similarity && bestChunkMatch.chunk) {
                                         // Calculate the percentage difference
                                         const percentageDifference = ((bestChunkMatch.similarity - match.similarity) / match.similarity) * 100;
-                                        console.log(`Score difference: ${percentageDifference.toFixed(1)}%`);
+                                        debugLog(`Score difference: ${percentageDifference.toFixed(1)}%`);
                                         
                                         // Require higher difference for longer chunks
                                         const chunkLength = bestChunkMatch.chunk.text.length;
@@ -364,9 +370,9 @@ export class ExplanationProcessor {
                                         // AND either the chunk isn't too long OR it has significantly more technical terms
                                         if (percentageDifference >= requiredDifference && 
                                             (lengthRatio < 4 || hasMoreTechnicalTerms)) {
-                                            console.log(`Decision: Using entire chunk because score is ${percentageDifference.toFixed(1)}% higher and length ratio is ${lengthRatio.toFixed(1)}`);
-                                            console.log(`Chunk keywords: ${chunkKeywords.join(', ')}`);
-                                            console.log(`Sentence keywords: ${sentenceKeywords.join(', ')}`);
+                                            debugLog(`Decision: Using entire chunk because score is ${percentageDifference.toFixed(1)}% higher and length ratio is ${lengthRatio.toFixed(1)}`);
+                                            debugLog(`Chunk keywords: ${chunkKeywords.join(', ')}`);
+                                            debugLog(`Sentence keywords: ${sentenceKeywords.join(', ')}`);
                                             
                                             // Find the original chunk that matches the best chunk
                                             const bestOriginalChunk = originalChunks.find(c => c.text === bestChunkMatch.chunk?.text);
@@ -387,17 +393,17 @@ export class ExplanationProcessor {
                                                     };
                                                     // Update the source sentence to use the entire chunk
                                                     match.sentence = bestChunkMatch.chunk.text;
-                                                    console.log('Successfully created highlight for entire chunk');
-                                                    console.log(`Using chunk from page ${bestOriginalChunk.page}`);
+                                                    debugLog('Successfully created highlight for entire chunk');
+                                                    debugLog(`Using chunk from page ${bestOriginalChunk.page}`);
                                                 } else {
-                                                    console.log('Warning: Could not find positions for chunk highlighting');
+                                                    debugLog('Warning: Could not find positions for chunk highlighting');
                                                 }
                                             } else {
-                                                console.log('Warning: Could not find original chunk matching the best chunk match');
+                                                debugLog('Warning: Could not find original chunk matching the best chunk match');
                                             }
                                         } else {
-                                            console.log('Decision: Using single sentence because chunk score is not 10% higher');
-                                            console.log(`Sentence text: "${match.sentence}"`);
+                                            debugLog('Decision: Using single sentence because chunk score is not 10% higher');
+                                            debugLog(`Sentence text: "${match.sentence}"`);
                                             
                                             // Use original sentence-based highlighting
                                             const positions = this.findSentencePosition(match.sentence, originalChunk);
@@ -408,15 +414,15 @@ export class ExplanationProcessor {
                                                     rect: boundingRect,
                                                     color: ''
                                                 };
-                                                console.log('Successfully created highlight for sentence');
-                                                console.log(`Using sentence from page ${originalChunk.page}`);
+                                                debugLog('Successfully created highlight for sentence');
+                                                debugLog(`Using sentence from page ${originalChunk.page}`);
                                             } else {
-                                                console.log('Warning: Could not find positions for sentence highlighting');
+                                                debugLog('Warning: Could not find positions for sentence highlighting');
                                             }
                                         }
                                     } else {
-                                        console.log('Decision: Using single sentence for highlighting because sentence score is higher or equal');
-                                        console.log(`Sentence text: "${match.sentence}"`);
+                                        debugLog('Decision: Using single sentence for highlighting because sentence score is higher or equal');
+                                        debugLog(`Sentence text: "${match.sentence}"`);
                                         
                                         // Use original sentence-based highlighting
                                         const positions = this.findSentencePosition(match.sentence, originalChunk);
@@ -427,10 +433,10 @@ export class ExplanationProcessor {
                                                 rect: boundingRect,
                                                 color: ''
                                             };
-                                            console.log('Successfully created highlight for sentence');
-                                            console.log(`Using sentence from page ${originalChunk.page}`);
+                                            debugLog('Successfully created highlight for sentence');
+                                            debugLog(`Using sentence from page ${originalChunk.page}`);
                                         } else {
-                                            console.log('Warning: Could not find positions for sentence highlighting');
+                                            debugLog('Warning: Could not find positions for sentence highlighting');
                                         }
                                     }
                                 }
@@ -451,17 +457,16 @@ export class ExplanationProcessor {
                 })
             );
 
+            debugLog('==========================================\n');
 
-            console.log('==========================================\n');
-
-            console.log('\n=== Best Matches ===');
+            debugLog('\n=== Best Matches ===');
             ideaSources.forEach(source => {
                 const bestEvidence = source.supporting_evidence[0];
                 if (bestEvidence) {
-                    console.log(`idea: "${source.answer_idea}" -> source: "${bestEvidence.source_sentence}"`);
+                    debugLog(`idea: "${source.answer_idea}" -> source: "${bestEvidence.source_sentence}"`);
                 }
             });
-            console.log('==========================================\n');
+            debugLog('==========================================\n');
 
             return {
                 summary: `Processed PDF: ${chunks.length} chunks, ${config.MATCHING_METHOD === 'heuristic' ? 'using heuristic matching' : `embeddings generated for ${chunkEmbeddings.length} chunks`}, ${answerIdeas.length} answer ideas, and ${ideaSources.length} idea sources found.`,

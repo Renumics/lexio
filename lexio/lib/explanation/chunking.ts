@@ -2,6 +2,14 @@
 // import { SentenceTokenizer } from "natural"; // not browser-friendly library
 import { countTokens } from "./tokenizer";
 import { TextWithMetadata } from "./preprocessing"; // Import the interface we need
+import config from './config';
+
+// Debug logging utility
+const debugLog = (...args: any[]) => {
+    if (config.DEBUG) {
+        console.log(...args);
+    }
+};
 
 // Define interfaces for sentence objects and chunks.
 export interface TextPosition {
@@ -65,7 +73,7 @@ export async function groupSentenceObjectsIntoChunks(
   sentences: TextWithMetadata[],
   maxTokens: number = 500
 ): Promise<Chunk[]> {
-  console.log(`Starting chunk grouping with ${sentences.length} sentences`);
+  debugLog(`Starting chunk grouping with ${sentences.length} sentences`);
   const chunks: Chunk[] = [];
   let currentChunkSentences: TextWithMetadata[] = [];
   let currentTokenCount = 0;
@@ -97,7 +105,7 @@ export async function groupSentenceObjectsIntoChunks(
         page: Math.min(...Array.from(chunkPages)) // Use the first page as reference
       });
 
-      console.log(`Created chunk with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
+      debugLog(`Created chunk with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
       
       currentChunkSentences = [];
       currentTokenCount = 0;
@@ -119,10 +127,10 @@ export async function groupSentenceObjectsIntoChunks(
       page: Math.min(...Array.from(chunkPages)) // Use the first page as reference
     });
 
-    console.log(`Created final chunk with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
+    debugLog(`Created final chunk with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
   }
 
-  console.log(`Chunk grouping complete: ${chunks.length} chunks created`);
+  debugLog(`Chunk grouping complete: ${chunks.length} chunks created`);
   return chunks;
 }
 

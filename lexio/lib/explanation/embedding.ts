@@ -1,7 +1,14 @@
 // embedding.ts
-
 // Remove dotenv, fs, and path since these are Node‑only.
 import { loadCompromise, loadOpenAIEmbeddings } from './dependencies';
+import config from './config';
+
+// Debug logging utility
+const debugLog = (...args: any[]) => {
+    if (config.DEBUG) {
+        console.log(...args);
+    }
+};
 
 // No need for direct API key access here anymore
 let embeddingsClient: Awaited<ReturnType<typeof loadOpenAIEmbeddings>> | null = null;
@@ -92,7 +99,7 @@ export async function generateEmbeddingsForChunks(
 
   while (index < totalChunks) {
     const batch = chunks.slice(index, index + concurrency);
-    console.log(`Processing batch ${index + 1}-${Math.min(index + concurrency, totalChunks)} of ${totalChunks}...`);
+    debugLog(`Processing batch ${index + 1}-${Math.min(index + concurrency, totalChunks)} of ${totalChunks}...`);
 
     const results = await Promise.all(
       batch.map(async (chunkObj, i): Promise<ProcessedChunk | null> => {
@@ -110,7 +117,7 @@ export async function generateEmbeddingsForChunks(
           processedChunk = chunkText.slice(0, MAX_CHARS);
         }
 
-        console.log(`Generating embedding for chunk ${index + i + 1}/${totalChunks}`);
+        debugLog(`Generating embedding for chunk ${index + i + 1}/${totalChunks}`);
         let embedding = await getEmbedding(processedChunk);
 
         // Retry once if the first attempt fails
