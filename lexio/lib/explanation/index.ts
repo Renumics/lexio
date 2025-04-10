@@ -22,12 +22,18 @@ import {
     findTopSentencesGloballyHeuristic,
     IMatch
 } from './heuristic-matching';
+import {
+    extractKeyPhrasesAsync,
+    findTopKHeuristicAsync,
+    findTopSentencesGloballyHeuristicAsync,
+    terminateWorker
+} from './workerWrapper';
 import config from './config';
 
 // Debug logging utility
 const debugLog = (...args: any[]) => {
     if (config.DEBUG) {
-        console.log(...args);
+        console.log('[ExplanationProcessor]', ...args);
     }
 };
 
@@ -235,31 +241,39 @@ export class ExplanationProcessor {
 
             const ideaSources = await Promise.all(
                 answerIdeas.map(async ({ idea }) => {
-                    const keyPhrases = await extractKeyPhrases(idea);
+                    debugLog(`Processing idea: "${idea}"`);
+                    const startTime = performance.now();
+                    
+                    const keyPhrases = await extractKeyPhrasesAsync(idea);
+                    debugLog(`Found ${keyPhrases.length} key phrases`);
                     
                     let topMatches: IMatch[];
                     let topSentences;
 
                     if (config.MATCHING_METHOD === 'heuristic') {
-                        // Use heuristic matching
-                        topMatches = findTopKHeuristic(
+                        debugLog('Using heuristic matching with web worker');
+                        // Use heuristic matching with web worker
+                        topMatches = await findTopKHeuristicAsync(
                             idea,
                             chunks
                         );
 
                         // Add debug logging for top matches
-                        debugLog(`Potential chunk matches for idea: "${idea}"`);
+                        debugLog(`Found ${topMatches.length} potential chunk matches`);
                         topMatches.slice(0, 3).forEach((match, idx) => {
                             debugLog(`Match ${idx+1} (score: ${match.similarity.toFixed(3)}): "${match.chunk?.text}"`);
                         });
 
-                        topSentences = findTopSentencesGloballyHeuristic(
+                        topSentences = await findTopSentencesGloballyHeuristicAsync(
                             idea,
                             topMatches
                         );
 
+                        const duration = performance.now() - startTime;
+                        debugLog(`Completed processing idea in ${duration.toFixed(2)}ms`);
+
                         // Add debug logging for all sentences found
-                        debugLog(`All sentence matches for idea: "${idea}"`);
+                        debugLog(`Found ${topSentences.length} sentence matches`);
                         topSentences.forEach((match, idx) => {
                             debugLog(`Sentence ${idx+1} (score: ${match.similarity.toFixed(3)}): "${match.sentence}"`);
                             debugLog(`Overlapping keywords: ${match.metadata?.overlappingKeywords?.join(', ') || 'none'}`);
@@ -468,6 +482,9 @@ export class ExplanationProcessor {
             });
             debugLog('==========================================\n');
 
+            // Clean up worker
+            terminateWorker();
+
             return {
                 summary: `Processed PDF: ${chunks.length} chunks, ${config.MATCHING_METHOD === 'heuristic' ? 'using heuristic matching' : `embeddings generated for ${chunkEmbeddings.length} chunks`}, ${answerIdeas.length} answer ideas, and ${ideaSources.length} idea sources found.`,
                 answer: response,
@@ -478,10 +495,13 @@ export class ExplanationProcessor {
                 ideaSources: ideaSources.filter(Boolean)
             };
         } catch (error) {
+            // Clean up worker in case of error
+            terminateWorker();
             console.error('Error processing explanation:', error);
             throw error;
         }
     }
 }
+
 
 

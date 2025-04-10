@@ -20,6 +20,9 @@ export default defineConfig({
       preventAssignment: true
     })
   ],
+  worker: {
+    format: 'es'
+  },
   build: {
     copyPublicDir: false,
     outDir: 'dist',
