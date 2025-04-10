@@ -14,14 +14,11 @@ import {
 import {
     findTopKImproved,
     findTopSentencesGlobally,
-    extractKeyPhrases,
     IChunkEmbedding
-} from './embedding-matching';
+} from './matching_advanced';
 import {
-    findTopKHeuristic,
-    findTopSentencesGloballyHeuristic,
     IMatch
-} from './heuristic-matching';
+} from './matching_heuristic';
 import {
     extractKeyPhrasesAsync,
     findTopKHeuristicAsync,
@@ -332,7 +329,7 @@ export class ExplanationProcessor {
                                     const phraseWords = phrase.toLowerCase().split(/\s+/);
                                     const sentenceWords = match.sentence.toLowerCase().split(/\s+/);
                                     return phraseWords.every(word => 
-                                        sentenceWords.some(sWord => 
+                                        sentenceWords.some((sWord: string) => 
                                             sWord.includes(word) || word.includes(sWord)
                                         )
                                     );

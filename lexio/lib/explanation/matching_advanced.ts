@@ -2,7 +2,7 @@ import { loadCompromise } from './dependencies';
 import { getEmbedding } from './embedding';
 import { splitIntoSentences } from './chunking';
 import { PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
-import { IChunk, IMatch, ISentenceResult } from './heuristic-matching';
+import { IChunk, IMatch, ISentenceResult } from './matching_heuristic';
 import config from './config';
 
 // Debug logging utility

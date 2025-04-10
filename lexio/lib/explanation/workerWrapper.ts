@@ -1,7 +1,7 @@
 import * as Comlink from 'comlink';
 import type { WorkerAPI } from './worker';
 import { Chunk } from './chunking';
-import { IMatch } from './heuristic-matching';
+import { IMatch } from './matching_heuristic';
 import config from './config';
 
 // Debug logging utility

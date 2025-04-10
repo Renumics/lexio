@@ -3,9 +3,8 @@ import {
     calculateHeuristicSimilarity,
     findTopKHeuristic,
     findTopSentencesGloballyHeuristic,
-    IMatch,
-    IChunk
-} from './heuristic-matching';
+    IMatch
+} from './matching_heuristic';
 import { Chunk } from './chunking';
 import config from './config';
 
