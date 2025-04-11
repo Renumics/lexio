@@ -17,11 +17,6 @@ export interface ProviderConfig {
     stream?: number; // Timeout between stream chunks in ms
     request?: number; // Overall request timeout in ms
   };
-  llms?: {
-    OPENAI_API_KEY?: string;
-    OPENAI_ENDPOINT?: string;
-    ideaSplittingMethod?: "llm" | "heuristic";
-  }
 }
 
 /**
