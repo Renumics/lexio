@@ -170,11 +170,6 @@ function App() {
         config={{
           timeouts: {
             stream: 10000
-          },
-          llms: {
-            OPENAI_API_KEY: import.meta.env.VITE_OPENAI_API_KEY,
-            OPENAI_ENDPOINT: 'https://api.openai.com/v1',
-            ideaSplittingMethod: 'llm' as const
           }
         }}
       >
