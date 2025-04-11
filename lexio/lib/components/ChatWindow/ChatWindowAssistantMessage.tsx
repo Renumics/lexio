@@ -13,6 +13,101 @@ import { useCitations } from '../../hooks/hooks';
 import { useHighlightManager } from './highlightUtils';
 
 /**
+ * Props for the SourcesFootnote component.
+ * @typedef {Object} SourcesFootnoteProps
+ * @property {MessageHighlight[]} highlights - Array of highlight specifications.
+ * @property {ChatWindowStyles} style - Styling options for the chat window.
+ */
+interface SourcesFootnoteProps {
+    highlights: MessageHighlight[];
+    style: ChatWindowStyles;
+}
+
+/**
+ * Renders a simple preview of sources as footnotes when highlights are present.
+ * Shows up to 3 sources and abbreviates if there are more.
+ *
+ * @param {SourcesFootnoteProps} props - The props for the component.
+ * @returns {JSX.Element | null} The rendered sources footnote or null if no highlights with citationId.
+ */
+const SourcesFootnote: React.FC<SourcesFootnoteProps> = ({ 
+    highlights,
+    style 
+}) => {
+    const { getCitationById, navigateToCitation } = useCitations('ChatWindow');
+    
+    // Filter highlights that have citationIds
+    const highlightsWithCitations = highlights.filter(h => h.citationId);
+    
+    if (highlightsWithCitations.length === 0) {
+        return null;
+    }
+    
+    // Take only the first 3 for display
+    const displayHighlights = highlightsWithCitations.slice(0, 3);
+    const hasMoreHighlights = highlightsWithCitations.length > 3;
+
+    // Helper to truncate long titles
+    const truncateTitle = (title: string, maxLength: number = 30) => {
+        return title.length > maxLength 
+            ? title.substring(0, maxLength) + '...' 
+            : title;
+    };
+    
+    return (
+        <div className="text-xs mt-2 text-gray-500" style={{ 
+            fontSize: scaleFontSize(style.messageFontSize || '1rem', 0.7),
+        }}>
+            <div className="font-medium mb-1">Sources:</div>
+            {displayHighlights.map((highlight, index) => {
+                const citation = highlight.citationId ? getCitationById(highlight.citationId) : null;
+                
+                // Try to get a source name for display
+                let sourceName = 'Source ' + (index + 1);
+                if (citation) {
+                    if ('sourceId' in citation && citation.sourceId) {
+                        // Use last part of sourceId if it has slashes or dots
+                        if (citation.sourceId.includes('/') || citation.sourceId.includes('.')) {
+                            const parts = citation.sourceId.split(/[\/\.]/);
+                            sourceName = parts[parts.length - 1];
+                        } else {
+                            sourceName = citation.sourceId;
+                        }
+                    }
+                }
+                
+                return (
+                    <div 
+                        key={index} 
+                        className="cursor-pointer hover:underline flex items-center"
+                        style={{ 
+                            borderLeft: `2px solid ${highlight.color}`,
+                            paddingLeft: '6px',
+                            marginBottom: '4px'
+                        }}
+                        onClick={() => {
+                            if (highlight.citationId) {
+                                navigateToCitation(highlight.citationId);
+                            }
+                        }}
+                    >
+                        <span>{truncateTitle(sourceName)}</span>
+                        {citation?.sourceHighlight?.page && (
+                            <span className="ml-1 text-gray-400">p.{citation.sourceHighlight.page}</span>
+                        )}
+                    </div>
+                );
+            })}
+            {hasMoreHighlights && (
+                <div className="text-gray-400 font-medium mt-1">
+                    +{highlightsWithCitations.length - 3} more sources
+                </div>
+            )}
+        </div>
+    );
+};
+
+/**
  * Props for the AssistantMarkdownContent component.
  * @typedef {Object} AssistantMarkdownContentProps
  * @property {string} content - The markdown content to render.
@@ -273,6 +368,14 @@ const ChatWindowAssistantMessage: React.FC<ChatWindowAssistantMessageProps> = ({
                         <div className="inline whitespace-pre-wrap">
                             {messageContent}
                         </div>
+                    )}
+                    
+                    {/* Show sources footnote when highlights with citations are present */}
+                    {!isStreaming && messageHighlights.length > 0 && messageHighlights.some(h => h.citationId) && (
+                        <SourcesFootnote 
+                            highlights={messageHighlights} 
+                            style={style} 
+                        />
                     )}
                 </div>
                 {messageId && !isStreaming && (

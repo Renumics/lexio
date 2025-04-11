@@ -6,16 +6,14 @@
  * @property {object} [timeouts] - Optional timeout configuration settings
  * @property {number} [timeouts.stream] - Timeout between stream chunks in milliseconds
  * @property {number} [timeouts.request] - Overall request timeout in milliseconds
+ *   - "llm": More accurate but uses API calls
+ *   - "heuristic": Faster and free, but less accurate
  */
 export interface ProviderConfig {
   timeouts?: {
     stream?: number; // Timeout between stream chunks in ms
     request?: number; // Overall request timeout in ms
   };
-  llms?: {
-    OPENAI_API_KEY?: string;
-    OPENAI_ENDPOINT?: string;
-  }
 }
 
 /**
@@ -576,3 +574,4 @@ export interface StreamChunk {
   citations?: Citation[] | Omit<Citation, 'id'>[];
   done?: boolean;
 }
+

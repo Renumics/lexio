@@ -1,6 +1,14 @@
 // preprocessing.ts
 import { pdfjs } from 'react-pdf';
 import { loadSbd } from './dependencies';
+import config from './config';
+
+// Debug logging utility
+const debugLog = (...args: any[]) => {
+    if (config.DEBUG) {
+        console.log(...args);
+    }
+};
 
 // Set the pdfjs worker source from the CDN
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -10,6 +18,7 @@ export interface TextPosition {
   left: number;
   width: number;
   height: number;
+  isTitle?: boolean;
 }
 
 export interface TextItem {
@@ -58,14 +67,14 @@ function applyTransform(point: [number, number], transform: number[]): [number, 
  * Parses a PDF file using pdfjs from react-pdf.
  */
 export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
-  console.log(`Starting PDF parsing: ${file.name}`);
+  debugLog(`Starting PDF parsing: ${file.name}`);
 
   const arrayBuffer = await file.arrayBuffer();
   const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
   const pdf = await loadingTask.promise;
   const numPages = pdf.numPages;
 
-  console.log(`PDF loaded successfully. Total pages: ${numPages}`);
+  debugLog(`PDF loaded successfully. Total pages: ${numPages}`);
 
   const blocks: ParseResult['blocks'] = {
     block_type: "Document",
@@ -74,13 +83,10 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
 
   // Process each page
   for (let i = 1; i <= numPages; i++) {
-    // console.log(`Processing page ${i}/${numPages}`);
-    
+
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const viewport = page.getViewport({ scale: 1.0 });
-
-    // console.log(`Page ${i}: Found ${content.items.length} text items`);
 
     // Group text items by their vertical position to form lines
     const lines: TextItem[][] = [];
@@ -121,8 +127,6 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
       lines.push(currentLine);
     }
 
-    // console.log(`Page ${i}: Formed ${lines.length} lines from text items`);
-
     // Create a block for the page
     blocks.children.push({
       id: `page_${i}`,
@@ -138,8 +142,96 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
     fileName: file.name,
   };
 
-  console.log('PDF parsing completed successfully');
+  debugLog('PDF parsing completed successfully');
   return { blocks, metadata };
+}
+
+/**
+ * Checks if a text item appears to be a section header based on various characteristics
+ */
+function isSectionHeader(item: TextItem, allItems: TextItem[]): boolean {
+  // Check if it's followed by a period and number (e.g., "1. Introduction")
+  const hasSectionNumber = /^\d+\.\s+/.test(item.text);
+  
+  // Check if it's a short phrase followed by a period
+  const isShortHeader = item.text.length < 50 && item.text.trim().endsWith('.');
+  
+  // Check if it's in a larger font or bold (based on relative height and width)
+  const avgHeight = allItems.reduce((sum, i) => sum + i.position.height, 0) / allItems.length;
+  const avgWidth = allItems.reduce((sum, i) => {
+    // Calculate average character width for this item
+    const charWidth = i.position.width / i.text.length;
+    return sum + charWidth;
+  }, 0) / allItems.length;
+  
+  // Calculate this item's average character width
+  const thisCharWidth = item.position.width / item.text.length;
+  
+  // Text is likely bold if its character width is significantly larger than average
+  const isBold = thisCharWidth > avgWidth * 1.2;
+  const isLargerFont = item.position.height > avgHeight * 1.2;
+  
+  // Check for common section header patterns
+  const headerPattern = /^(?:[A-Z][a-z]+\s*)+[:.]\s*|^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$/;
+  const isHeaderFormat = headerPattern.test(item.text.trim());
+  
+  // Check if this item starts a new line by looking at its position
+  const isNewLine = allItems.every(other => {
+    if (other === item) return true;
+    
+    // Check if there's any text item directly to the left of this one
+    // Use a small threshold for vertical position comparison
+    const sameVerticalPosition = Math.abs(other.position.top - item.position.top) < 0.01;
+    const isToTheLeft = other.position.left + other.position.width < item.position.left;
+    
+    return !sameVerticalPosition || !isToTheLeft;
+  });
+  
+  // Additional patterns for academic paper section headers
+  const academicHeaderPatterns = [
+    /^Abstract\b/,
+    /^Introduction\b/,
+    /^Related Work\b/,
+    /^Method\b/,
+    /^Experiments?\b/,
+    /^Results?\b/,
+    /^Discussion\b/,
+    /^Conclusion\b/,
+    /^References\b/,
+    /^(?:(?:[A-Z][a-z]+\s*)+Learning)\b/, // Matches "Self-supervised Learning", "Unsupervised Learning", etc.
+  ];
+  
+  const isAcademicHeader = academicHeaderPatterns.some(pattern => pattern.test(item.text.trim()));
+  
+  // Add paper title detection patterns
+  const paperTitlePatterns = [
+    // Common paper title formats - with atomic groups and limited repetition
+    /^(?:[A-Z][a-z]+(?:\s+(?:(?:[A-Z][a-z]+)|(?:[A-Z]{2,})|(?:is|the|and|or|in|on|of|to|for|with|by))){0,15}[:.!?]?)$/,
+    // Specific well-known paper titles
+    /^Attention Is All You Need$/,
+    /^BERT:/,
+    /^GPT:/,
+    /^Transformer:/
+  ];
+  
+  const isPaperTitle = paperTitlePatterns.some(pattern => pattern.test(item.text.trim()));
+  
+  // Consider it a paper title if:
+  // 1. It matches paper title patterns AND
+  // 2. It's either larger or bolder than normal text AND
+  // 3. It appears near the top of the page
+  const isNearTop = item.position.top < 0.3; // Top 30% of page
+  
+  const isPaperTitleHeader = isPaperTitle && isNearTop && (isLargerFont || isBold);
+  
+  // Consider it a section header if:
+  // 1. It has a section number, or
+  // 2. It matches academic header patterns and starts a new line, or
+  // 3. It's a short header with either larger font or bold text and starts a new line
+  return hasSectionNumber || 
+         (isAcademicHeader && isNewLine) ||
+         (isShortHeader && isNewLine && (isLargerFont || isBold || isHeaderFormat)) ||
+         isPaperTitleHeader;
 }
 
 /**
@@ -161,7 +253,83 @@ async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<Text
             let fullText = '';
             const itemPositions: { start: number; item: TextItem; }[] = [];
             
-            allTextItems.forEach(item => {
+            // Filter out likely header/footer items based on position
+            const filteredItems = allTextItems.filter(item => {
+                // Filter out items at very top or bottom of page (typical header/footer locations)
+                if (item.position.top < 0.1 || item.position.top > 0.9) {
+                    // Keep only if it looks like a meaningful page number
+                    const isPageNumber = /^\d+$/.test(item.text.trim());
+                    return isPageNumber;
+                }
+                
+                // Check if it's a paper title
+                const isPaperTitle = isSectionHeader(item, allTextItems) && 
+                item.position.top < 0.3 && // Near top of page
+                /^(?!(?:\d+\.|Abstract|Introduction|References))[A-Z]/.test(item.text); // Starts with capital, not a regular section
+
+                // If it's a paper title, we want to keep it but mark it for special handling
+                if (isPaperTitle) {
+                // Calculate the vertical adjustment
+                // PDF coordinates are from bottom-up, but we want top-down coordinates
+                const exactPosition = {
+                ...item.position,
+                // Adjust the vertical position by moving it up
+                top: Math.max(0, item.position.top - item.position.height),
+                isTitle: true
+                };
+
+                textsWithMetadata.push({
+                text: item.text.trim(),
+                metadata: {
+                page: pageBlock.page,
+                position: exactPosition,
+                linePositions: [exactPosition]
+                }
+                });
+                // Remove it from regular text processing
+                return false;
+                } 
+                
+                // Filter out regular section headers
+                if (isSectionHeader(item, allTextItems)) {
+                    return false;
+                }
+                
+                return true;
+            });
+
+            // Pre-clean individual text items before joining
+            const cleanedItems = filteredItems.map(item => {
+                let cleanedText = item.text
+                    // Remove standalone numbers at start of text
+                    .replace(/^(?:\d+\s+)/, '')
+                    // Remove common artifacts
+                    .replace(/(?:\*|†|‡)\s*/g, '')
+                    // Move PDF artifact removal to item level
+                    .replace(/WWW\.[A-Z]+\.[A-Z]+/gi, '')
+                    .replace(/(?:©|Copyright)\s*\d{4}/gi, '')
+                    .replace(/\b(?:Page|p\.?)\s*\d+\s*(?:of|\/)\s*\d+\b/gi, '')
+                    .replace(/(?:[A-Za-z0-9._%+-]+(?:@|\.(?:com|edu|org|net|gov))\b)[^\n.]*,?\s*/gi, '')
+                    .replace(/\[\d+(?:,\s*\d+)*\]/g, '')  // Remove citation references
+                    .replace(/\b(?:Fig\.|Figure|Table|Algorithm)\s+\d+/gi, '')  // Remove figure/table references
+                    .trim();
+                
+                // Calculate position adjustment based on removed prefix content
+                const prefixDiff = item.text.length - cleanedText.length;
+                const charWidth = item.position.width / item.text.length;
+
+                return {
+                    ...item,
+                    text: cleanedText,
+                    position: {
+                        ...item.position,
+                        left: item.position.left + (prefixDiff * charWidth),
+                        width: cleanedText.length * charWidth
+                    }
+                };
+            }).filter(item => item.text.length > 0);  // Remove empty items after cleaning
+
+            cleanedItems.forEach(item => {
                 const startPos = fullText.length;
                 fullText += item.text + ' ';
                 itemPositions.push({ start: startPos, item });
@@ -169,17 +337,24 @@ async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<Text
             
             // Clean the text while preserving original positions
             const cleanedText = fullText
-                .replace(/-\s*\n/g, '')
-                .replace(/\n+/g, ' ')
-                .replace(/\s+/g, ' ')
+                .replace(/\n+/g, ' ')    // Replace newlines with spaces
+                .replace(/\s+/g, ' ')    // Normalize spaces
                 .trim();
             
             // Split into sentences using dynamically loaded SBD
             const sentences = sbd.sentences(cleanedText, { newline_boundaries: true });
             
             for (const sentence of sentences) {
-                const cleanedSentence = sentence.trim();
+                let cleanedSentence = sentence.trim();
                 if (!cleanedSentence) continue;
+                
+                // Additional sentence-level cleaning
+                cleanedSentence = cleanedSentence
+                    // Remove any remaining numbers at start of sentence
+                    .replace(/^(?:\d+\s+)/, '')
+                    // Remove "In this" at start if present
+                    .replace(/^In\s+this\s+/, '')
+                    .trim();
                 
                 // Find all occurrences of this sentence
                 let searchText = cleanedSentence;
@@ -195,6 +370,24 @@ async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<Text
                         if (prefix.trim().toLowerCase() === 'the') {
                             sentenceStart -= 4;
                             searchText = cleanedSentence; // Restore original search text
+                        }
+                    }
+                }
+                
+                if (sentenceStart === -1) {
+                    // Try fuzzy matching if exact match fails
+                    const words = searchText.split(/\s+/);
+                    const firstWords = words.slice(0, 3).join(' ');
+                    sentenceStart = cleanedText.indexOf(firstWords);
+                    
+                    if (sentenceStart !== -1) {
+                        // Find the best matching end position
+                        const lastWords = words.slice(-3).join(' ');
+                        const approxEnd = sentenceStart + searchText.length;
+                        const context = cleanedText.slice(sentenceStart, approxEnd + 20);
+                        const endMatch = context.indexOf(lastWords);
+                        if (endMatch !== -1) {
+                            searchText = context.slice(0, endMatch + lastWords.length);
                         }
                     }
                 }
@@ -258,7 +451,7 @@ async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<Text
                     });
                     
                     textsWithMetadata.push({
-                        text: searchText,
+                        text: cleanedSentence,  // Use the fully cleaned sentence
                         metadata: {
                             page: pageBlock.page,
                             linePositions

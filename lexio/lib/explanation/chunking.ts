@@ -2,6 +2,14 @@
 // import { SentenceTokenizer } from "natural"; // not browser-friendly library
 import { countTokens } from "./tokenizer";
 import { TextWithMetadata } from "./preprocessing"; // Import the interface we need
+import config from './config';
+
+// Debug logging utility
+const debugLog = (...args: any[]) => {
+    if (config.DEBUG) {
+        console.log(...args);
+    }
+};
 
 // Define interfaces for sentence objects and chunks.
 export interface TextPosition {
@@ -65,7 +73,7 @@ export async function groupSentenceObjectsIntoChunks(
   sentences: TextWithMetadata[],
   maxTokens: number = 500
 ): Promise<Chunk[]> {
-  console.log(`Starting chunk grouping with ${sentences.length} sentences`);
+  debugLog(`Starting chunk grouping with ${sentences.length} sentences`);
   const chunks: Chunk[] = [];
   let currentChunkSentences: TextWithMetadata[] = [];
   let currentTokenCount = 0;
@@ -97,7 +105,7 @@ export async function groupSentenceObjectsIntoChunks(
         page: Math.min(...Array.from(chunkPages)) // Use the first page as reference
       });
 
-      console.log(`Created chunk with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
+      debugLog(`Created chunk with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
       
       currentChunkSentences = [];
       currentTokenCount = 0;
@@ -119,9 +127,111 @@ export async function groupSentenceObjectsIntoChunks(
       page: Math.min(...Array.from(chunkPages)) // Use the first page as reference
     });
 
-    console.log(`Created final chunk with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
+    debugLog(`Created final chunk with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
   }
 
-  console.log(`Chunk grouping complete: ${chunks.length} chunks created`);
+  debugLog(`Chunk grouping complete: ${chunks.length} chunks created`);
+  return chunks;
+}
+
+/**
+ * Groups sentences into chunks optimized for heuristic matching.
+ * This approach focuses on semantic coherence and natural language boundaries
+ * rather than strict token counts.
+ */
+export async function groupSentenceObjectsIntoChunksHeuristic(
+  sentences: TextWithMetadata[],
+  maxSentences: number = 10,
+  minSentences: number = 2  // New parameter for minimum sentences per chunk
+): Promise<Chunk[]> {
+  const chunks: Chunk[] = [];
+  let currentChunkSentences: TextWithMetadata[] = [];
+  let currentPage = sentences[0]?.metadata.page;
+
+  const shouldStartNewChunk = (
+    currentSentences: TextWithMetadata[],
+    nextSentence: TextWithMetadata
+  ): boolean => {
+    // Always start new chunk on page boundary
+    if (currentPage !== nextSentence.metadata.page) return true;
+    
+    // Start new chunk if we hit max sentences
+    if (currentSentences.length >= maxSentences) return true;
+    
+    // If we haven't reached minimum sentence count, don't start a new chunk
+    if (currentSentences.length < minSentences) return false;
+    
+    // If this is the first sentence, don't start new chunk
+    if (currentSentences.length === 0) return false;
+    
+    const lastSentence = currentSentences[currentSentences.length - 1].text;
+    const nextSentenceText = nextSentence.text;
+    
+    // Start new chunk on topic shifts or semantic boundaries
+    const topicShiftIndicators = [
+      'However,', 'Nevertheless,', 'In contrast,', 'On the other hand,',
+      'Moving on', 'Furthermore,', 'Additionally,', 'Moreover,',
+      'First,', 'Second,', 'Third,', 'Finally,', 'In conclusion,'
+    ];
+    
+    // Check for topic shift indicators
+    if (topicShiftIndicators.some(indicator => 
+      nextSentenceText.startsWith(indicator))) {
+      return true;
+    }
+    
+    // Check for semantic continuity using common key terms
+    const words1 = new Set(lastSentence.toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
+    const words2 = new Set(nextSentenceText.toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
+    const commonWords = [...words1].filter(word => words2.has(word));
+    
+    // Start new chunk if there's low word overlap
+    return commonWords.length < 2;
+  };
+
+  for (let i = 0; i < sentences.length; i++) {
+    const sentence = sentences[i];
+    const nextSentence = sentences[i + 1];
+
+    currentChunkSentences.push(sentence);
+    
+    if (
+      nextSentence && 
+      shouldStartNewChunk(currentChunkSentences, nextSentence)
+    ) {
+      // Only create a chunk if we have minimum number of sentences
+      if (currentChunkSentences.length >= minSentences) {
+        chunks.push({
+          text: currentChunkSentences.map(s => s.text).join(" "),
+          sentences: currentChunkSentences,
+          page: currentPage
+        });
+        
+        currentChunkSentences = [];
+        currentPage = nextSentence.metadata.page;
+      }
+    }
+  }
+
+  // Handle remaining sentences
+  if (currentChunkSentences.length > 0) {
+    // For the last chunk, be more lenient with the minimum requirement
+    // but if it's just a single sentence and very short, try to merge with previous chunk
+    if (currentChunkSentences.length === 1 && 
+        currentChunkSentences[0].text.length < 50 && 
+        chunks.length > 0) {
+      // Append this sentence to the last chunk
+      const lastChunk = chunks[chunks.length - 1];
+      lastChunk.sentences.push(currentChunkSentences[0]);
+      lastChunk.text += " " + currentChunkSentences[0].text;
+    } else {
+      chunks.push({
+        text: currentChunkSentences.map(s => s.text).join(" "),
+        sentences: currentChunkSentences,
+        page: currentPage
+      });
+    }
+  }
+
   return chunks;
 }

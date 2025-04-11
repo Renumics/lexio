@@ -1,37 +1,20 @@
-// similarity.ts
 import { loadCompromise } from './dependencies';
 import { getEmbedding } from './embedding';
 import { splitIntoSentences } from './chunking';
 import { PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
+import { IChunk, IMatch, ISentenceResult } from './matching_heuristic';
+import config from './config';
 
-export interface IChunk {
-  text: string;
-  sentences: { text: string; metadata: any }[];
-  [key: string]: any;
-}
-
-export interface IMatch {
-  chunk?: IChunk;
-  embedding: number[];
-  similarity: number;
-  metadata?: any;
-  sentence?: string;
-  originalChunk?: IChunk;
-  [key: string]: any;
-}
+// Debug logging utility
+const debugLog = (...args: any[]) => {
+    if (config.DEBUG) {
+        console.log(...args);
+    }
+};
 
 export interface IChunkEmbedding {
   chunk: IChunk;
   embedding: number[];
-}
-
-export interface ISentenceResult {
-  sentence: string;
-  similarity: number;
-  embedding: number[];
-  metadata: any;
-  chunkIndex: number;
-  originalChunk: IChunk;
 }
 
 export interface Entities {
@@ -44,6 +27,22 @@ export interface Entities {
 export interface IOverlappingEntity {
   type: string;
   entities: string[];
+}
+
+export interface PDFHighlight {
+  rect: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  };
+}
+
+export interface IHighlight {
+  text: string;
+  color: string;
+  page?: number;
+  rect?: PDFHighlight["rect"];
 }
 
 export interface IExplanationResult {
@@ -64,22 +63,6 @@ export interface IExplanationResult {
       semantic_coherence: number;
     };
   };
-}
-
-export interface PDFHighlight {
-  rect: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  };
-}
-
-interface IHighlight {
-  text: string;
-  color: string;
-  page?: number;
-  rect?: PDFHighlight["rect"];
 }
 
 export interface IHighlightedExplanation extends IExplanationResult {
@@ -182,7 +165,7 @@ export async function findTopSentencesGlobally(
   for (const match of topChunks) {
     const { chunk } = match;
     if (!chunk) {
-      console.log("No chunk found in match", match);
+      debugLog("No chunk found in match", match);
       continue;
     }
 
@@ -196,11 +179,9 @@ export async function findTopSentencesGlobally(
     }
 
     if (chunk.sentences.length === 0) {
-      console.log("No sentences could be extracted from chunk", chunk);
+      debugLog("No sentences could be extracted from chunk", chunk);
       continue;
     }
-
-    //console.log(`Processing ${chunk.sentences.length} sentences for chunk`, chunk);
 
     if (!chunk || !chunk.sentences) continue;
     const chunkSentences = await Promise.all(
@@ -211,7 +192,6 @@ export async function findTopSentencesGlobally(
         const sentenceEmbedding = await getEmbedding(sentence);
         if (!sentenceEmbedding) return null;
         const similarity = cosineSimilarity(queryEmbedding, sentenceEmbedding);
-        //console.log(`Sentence: "${sentence}" | Similarity: ${similarity}`);
 
         return {
           sentence,
@@ -290,7 +270,7 @@ export async function explainAnswerSegmentWithEntities(
       color: '', // Color will be assigned by the ExplanationProcessor
       page: bestMatch.metadata?.page,
       rect: bestMatch.metadata?.rect
-    });
+    } as IHighlight);
   }
 
   return {
@@ -358,7 +338,9 @@ export function highlightOverlap(finalSentence: string, matchedChunk: string): s
   return highlightedChunk;
 }
 
-// todo: it feels like this UI logic should be somewhere else.
+/**
+ * Finds text bounds in a PDF page for highlighting.
+ */
 export async function findTextBoundsInPdf(
   page: PDFPageProxy,
   searchText: string
@@ -386,4 +368,4 @@ export async function findTextBoundsInPdf(
     console.error('Error finding text bounds:', error);
   }
   return null;
-}
+} 

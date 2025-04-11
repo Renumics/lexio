@@ -6,6 +6,7 @@ coverage
 
 # Environment Variables
 .env.local
+.env
 
 # PDF Files
 pdfs/

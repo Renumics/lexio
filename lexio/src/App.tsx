@@ -13,123 +13,21 @@ import {
   ActionHandlerResponse,
   Citation,
 } from '../lib/main';
-import { ExplanationProcessor } from '../lib/explanation';
+import { ExplanationProcessor, ExplanationResult, IdeaSource } from '../lib/explanation';
 import './App.css';
 
 // This is a temporary mocked response for testing purposes
 // In the future, this will be replaced with a real response from the RAG system
 const MOCKED_RESPONSE = {
-  answer: "# Deep Learning for Traffic Data Imputation\n\nDeep learning improves traffic data imputation by **automatically learning patterns** without manual feature selection. The *Denoising Stacked Autoencoder* (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through:\n\n1. Layer-wise pre-training\n2. Fine-tuning\n\nCompared to traditional methods like ARIMA and k-NN, it maintains:\n- Higher accuracy\n- Stable error rates\n\nAcross different missing data levels, as demonstrated on Caltrans PeMS traffic data.\n\nThe DSAE model architecture consists of multiple layers that progressively encode the input data into a lower-dimensional representation before reconstructing it. This approach is particularly effective for handling the temporal and spatial correlations in traffic data.\n\n```python\n# Example code for DSAE implementation\nimport tensorflow as tf\n\ndef build_autoencoder(input_dim, encoding_dim):\n    # Define encoder\n    input_layer = tf.keras.layers.Input(shape=(input_dim,))\n    encoder = tf.keras.layers.Dense(encoding_dim, activation='relu')(input_layer)\n    \n    # Define decoder\n    decoder = tf.keras.layers.Dense(input_dim, activation='sigmoid')(encoder)\n    \n    # Define autoencoder\n    autoencoder = tf.keras.Model(inputs=input_layer, outputs=decoder)\n    return autoencoder\n```\n\nExperimental results show that DSAE outperforms traditional methods in both accuracy and computational efficiency. The model was validated using real-world traffic data from multiple highway segments."
-};
-
-const MOCKED_CITATIONS = [
-  // Page 1 citation - Title and introduction
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      text: "# Deep Learning for Traffic Data Imputation",
-      color: '#ffeb3b'  // Yellow
-    },
-    sourceHighlight: {
-      page: 1,
-      rect: {
-        top: 0.2,
-        left: 0.1,
-        width: 0.8,
-        height: 0.1
-      }
-    }
-  },
-  // Page 2 citation - DSAE approach
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      text: "The Denoising Stacked Autoencoder (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through",
-      color: '#4caf50'  // Green
-    },
-    sourceHighlight: {
-      page: 2,
-      rect: {
-        top: 0.3,
-        left: 0.2,
-        width: 0.7,
-        height: 0.15
-      }
-    }
-  },
-  // Page 3 citation - Comparison with traditional methods
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      startChar: 177,
-      endChar: 245,
-      color: '#2196f3'  // Blue
-    },
-    sourceHighlight: {
-      page: 3,
-      rect: {
-        top: 0.4,
-        left: 0.15,
-        width: 0.75,
-        height: 0.12
-      }
-    }
-  },
-  // Page 4 citation - DSAE architecture
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      startChar: 310,
-      endChar: 420,
-      color: '#9c27b0'  // Purple
-    },
-    sourceHighlight: {
-      page: 4,
-      rect: {
-        top: 0.25,
-        left: 0.1,
-        width: 0.8,
-        height: 0.2
-      }
-    }
-  },
-  // Page 5 citation - Code example
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      startChar: 500,
-      endChar: 650,
-      color: '#f44336'  // Red
-    },
-    sourceHighlight: {
-      page: 5,
-      rect: {
-        top: 0.5,
-        left: 0.1,
-        width: 0.8,
-        height: 0.3
-      }
-    }
-  },
-  // Page 6 citation - Experimental results
-  {
-    sourceIndex: 0,
-    messageHighlight: {
-      startChar: 700,
-      endChar: 830,
-      color: '#ff9800'  // Orange
-    },
-    sourceHighlight: {
-      page: 6,
-      rect: {
-        top: 0.6,
-        left: 0.2,
-        width: 0.7,
-        height: 0.15
-      }
-    }
-  }
-];
+  //answer: "# Deep Learning for Traffic Data Imputation\n\nDeep learning improves traffic data imputation by **automatically learning patterns** without manual feature selection. The *Denoising Stacked Autoencoder* (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through:\n\n1. Layer-wise pre-training\n2. Fine-tuning\n\nCompared to traditional methods like ARIMA and k-NN, it maintains:\n- Higher accuracy\n- Stable error rates\n\nAcross different missing data levels, as demonstrated on Caltrans PeMS traffic data.\n\nThe DSAE model architecture consists of multiple layers that progressively encode the input data into a lower-dimensional representation before reconstructing it. This approach is particularly effective for handling the temporal and spatial correlations in traffic data.\n\n```python\n# Example code for DSAE implementation\nimport tensorflow as tf\n\ndef build_autoencoder(input_dim, encoding_dim):\n    # Define encoder\n    input_layer = tf.keras.layers.Input(shape=(input_dim,))\n    encoder = tf.keras.layers.Dense(encoding_dim, activation='relu')(input_layer)\n    \n    # Define decoder\n    decoder = tf.keras.layers.Dense(input_dim, activation='sigmoid')(encoder)\n    \n    # Define autoencoder\n    autoencoder = tf.keras.Model(inputs=input_layer, outputs=decoder)\n    return autoencoder\n```\n\nExperimental results show that DSAE outperforms traditional methods in both accuracy and computational efficiency. The model was validated using real-world traffic data from multiple highway segments."
+  //answer: "# Deep Learning for Retrieval-Augmented Generation\n\nDeep learning improves retrieval-augmented generation by **jointly optimizing retrieval and generation** using expected utility maximization. The *Stochastic RAG* framework addresses limitations of traditional RAG models by enabling end-to-end differentiable training through:\n\n1. Modeling retrieval as **sampling without replacement**\n2. Applying **straight-through Gumbel-top-k** for gradient-based learning\n\nCompared to pipeline-based methods, it achieves:\n- Higher task-specific performance (EM, BLEU, F1)\n- Improved relevance and fluency of generated outputs\n\nAcross diverse NLP tasks like open-domain QA, fact verification, and dialogue (KILT benchmark).\n\nThe Stochastic RAG architecture integrates retrieval scores and generation in a unified loop, approximating gradients through sampling to update both retriever and generator.\n\n```python\n# Example: Expected Utility Maximization with Gumbel-top-k\nfor x, y_true in training_data:\n    scores = R_phi(x)  # retrieval scores\n    docs = gumbel_top_k(scores, k)\n    y_pred = G_theta(x, docs)\n    utility = U(y_pred, y_true)\n    loss = -utility\n    backpropagate(loss)\n```"
+  //answer: "# Gravitational Waves and the Legacy of LIGO\n\nKip Thorne's Nobel Lecture chronicles decades of breakthroughs in gravitational-wave detection using laser interferometers. His narrative emphasizes:\n\n1. Innovative Detection Methods\n - Development of laser interferometers to detect minuscule spacetime distortions.\n - Overcoming noise challenges with advanced techniques like frequency-dependent squeezed vacuum.\n\n2. Advances in Numerical Relativity and Data Analysis\n - Utilization of simulation tools (e.g., SpEC) to predict gravitational waveforms.\n - Integration of numerical and quasi-analytic models for precise data extraction.\n\n3. Collaborative Scientific Endeavors\n - Synergistic efforts between theorists and experimentalists, paving the way for multi-messenger astronomy.\n - A transformative era in astronomy with unprecedented insights into cosmic phenomena.\n\nThis comprehensive approach has revolutionized our understanding of the universe and continues to drive forward the field of gravitational-wave astronomy."
+  //answer: "# Foundations of Machine Learning through Physics\n\nPhysics has shaped AI, as highlighted by the 2024 Nobel Prize in Physics.\n\nKey Contributions:\n1. Hopfield Networks – using energy landscapes to recover patterns\n2. Boltzmann Machines – applying statistical physics to neural design\n3. Deep Learning – integrating physics principles into modern AI\n\nImpact:\n- Improved pattern recognition and memory\n- Enhanced data retrieval from partial inputs\n- Revolutionized NLP and computer vision\n\nThese contributions continue to drive AI innovation."
+  //answer: "# Real-Time Object Detection Revolutionized by YOLO\n\nYOLO (You Only Look Once) transformed object detection by treating it as a **single regression task**, enabling real-time performance.\n\nKey Innovations:\n1. Unified Detection Model – one network predicts boxes and probabilities directly\n2. End-to-End Optimization – joint training system for optimal detection\n3. Real-Time Processing – achieves 45-155 FPS while maintaining accuracy\n\nImpact:\n- Context-aware detection reducing false positives\n- Improved generalization across diverse domains\n- Enabled real-time applications in robotics and autonomous systems\n\nYOLO's approach continues to influence modern computer vision systems." 
+  //answer: "# LIMU-BERT: Unleashing the Potential of Unlabeled IMU Data\n\nLIMU-BERT proposes a **lightweight self-supervised learning model** for mobile sensing that extracts **general features** from **unlabeled IMU data**, enabling strong performance with limited labeled data.\n\nKey Contributions:\n1. Inspired by BERT – adapts the Masked Language Model (MLM) concept to IMU time-series data\n2. Fusion + Normalization – processes accelerometer, gyroscope, and magnetometer data while preserving distribution information\n3. Span Masking Mechanism – masks subsequences instead of individual points for richer context learning\n4. Lightweight + Efficient – designed for mobile devices, with low parameter count and fast inference\n\nImpact:\n- Achieves ~10%+ improvement over state-of-the-art on HAR and DPC tasks\n- Requires only 1% labeled data for training classifiers with high accuracy\n- Learns generalizable representations transferable across datasets\n- Publicly available code and pretrained models accelerate adoption"
+  //answer: "# Physics Foundations of Machine Learning\n\nThe 2024 Nobel Prize in Physics recognized Hopfield and Hinton for pioneering work linking physics and AI.\n\nCore Ideas:\n\n1. Hopfield Networks: memory as energy minimization in neural systems.\n2. Boltzmann Machines: learning from noise via statistical physics.\n3. Deep Learning: built on physical models, enabling modern AI.\n\nImpact:\n\n• Revolutionized memory, perception, and optimization in AI.\n\n• Unified insights from physics, biology, and computation.\n\nThese ideas reshaped both how we understand the brain and how we build intelligent machines."
+  answer: "# Attention Is All You Need\n\nThe Transformer eliminates recurrence and convolution by using only attention mechanisms, leading to faster training and enhanced parallelism.\n\nCore Components:\n\n1. Self-Attention utilizes Scaled Dot-Product Attention and Multi-Head Attention for constant sequential operations.\n\n2. Encoder-Decoder Architecture stacks self-attention with position-wise feed-forward networks, residual connections, and layer normalization.\n\n3. Positional Encoding adds order information to embeddings using sine and cosine functions.\n\nImpact:\n\n• Sets new state-of-the-art BLEU scores on WMT 2014 machine translation tasks.\n\n• Reduces training time and cost while generalizing well to tasks like English constituency parsing.\n\nOverall, the Transformer shows that attention alone is sufficient for effective sequence transduction."
+}; 
 
 const MOCKED_SOURCES = [{
   title: 'Deep Learning for Traffic Data Imputation',
@@ -139,7 +37,7 @@ const MOCKED_SOURCES = [{
     id: 'traffic-imputation.pdf',
     authors: 'Chen et al.',
     year: '2023',
-    pages: '6'  // Updated to reflect 6 pages
+    pages: '6'
   }
 }];
 
@@ -149,8 +47,10 @@ function App() {
 
   const contentSourceOptions = useMemo(() => ({
     buildFetchRequest: (_source: Source) => ({
-      // url: '/pdfs/deepseek.pdf',  
-      url: '/pdfs/traffic.pdf',
+      //url: '/pdfs/physicsprize2024.pdf',  //'/pdfs/kahnemann-lecture.pdf', 
+      //url: 'https://arxiv.org/pdf/2412.18030',
+      //url: 'https://arxiv.org/pdf/1805.01978',
+      url: 'https://arxiv.org/pdf/1706.03762',
       options: {
         method: 'GET',
         headers: {
@@ -172,7 +72,6 @@ function App() {
     _activeSources: Source[] | null,
     _selectedSource: Source | null
   ): Promise<ActionHandlerResponse> => {
-
 
     if (action.type === 'SET_SELECTED_SOURCE') {
       if (!action.sourceObject) {
@@ -196,68 +95,9 @@ function App() {
           return sourceWithData.data;
         }),
         
-        // Process citations based on mocked data for now
+        // Process citations based on explanation processor
         citations: Promise.resolve().then(async () => {
           try {
-            /* 
-            // Mock some citations for demonstration
-            const mockCitations = [
-              {
-                sourceId: action.sourceId,
-                messageId: lastMessageId, // Reference to the current/last message
-                messageHighlight: {
-                  text: "Deep learning improves traffic data imputation"
-                },
-                sourceHighlight: {
-                  page: 1,
-                  rect: {
-                    top: 0.38,
-                    left: 0.08,
-                    width: 0.40,
-                    height: 0.02
-                  },
-                  highlightColorRgba: 'rgba(255, 235, 59, 0.5)' // Yellow with 50% opacity
-                }
-              },
-              {
-                sourceId: action.sourceId,
-                messageId: lastMessageId, // Reference to the current/last message
-                messageHighlight: {
-                  text: "The Denoising Stacked Autoencoder (DSAE) approach"
-                },
-                sourceHighlight: {
-                  page: 2,
-                  rect: {
-                    top: 0.52,
-                    left: 0.51,
-                    width: 0.40,
-                    height: 0.04
-                  },
-                  highlightColorRgba: 'rgba(76, 175, 80, 0.5)' // Green with 50% opacity
-                }
-              },
-              {
-                sourceId: action.sourceId,
-                messageId: lastMessageId, // Reference to the current/last message
-                messageHighlight: {
-                  text: "Higher accuracy and stable error rates"
-                },
-                sourceHighlight: {
-                  page: 5,
-                  rect: {
-                    top: 0.45,
-                    left: 0.51,
-                    width: 0.40,
-                    height: 0.03
-                  },
-                  highlightColorRgba: 'rgba(33, 150, 243, 0.5)' // Blue with 50% opacity
-                }
-              }
-            ] as Omit<Citation, 'id'>[];
-            
-            return mockCitations;
-            */
-            
             // Check if we've already processed this message
             if (lastMessageId && lastMessageId === lastProcessedMessageId) {
               console.log('Skipping explanation processing - message already processed');
@@ -279,19 +119,7 @@ function App() {
               processableData = data;
             } else {
               console.error(`Unsupported data type: ${typeof data}`);
-              // Return initial citations if data type is unsupported
-              return [{
-                sourceId: action.sourceId,
-                sourceHighlight: {
-                  page: 1,
-                  rect: {
-                    top: 0.2,
-                    left: 0.1,
-                    width: 0.8,
-                    height: 0.1
-                  }
-                }
-              }] as Omit<Citation, 'id'>[];
+              return [];
             }
             
             // Get the last message content for context, or use empty string if no messages
@@ -325,14 +153,11 @@ function App() {
     if (action.type === 'ADD_USER_MESSAGE') {
       console.log('ADD_USER_MESSAGE action started');
 
-      // For now, use the mocked response
-      const ragResponse = MOCKED_RESPONSE.answer;
-      
-      // For now, return the mocked data
+      // For now, use the mocked response and sources, but let citations be generated
       return {
-        response: Promise.resolve(ragResponse),
+        response: Promise.resolve(MOCKED_RESPONSE.answer),
         sources: Promise.resolve(MOCKED_SOURCES),
-        citations: Promise.resolve(MOCKED_CITATIONS),
+        citations: Promise.resolve([]), // Empty citations - they'll be generated when source is selected
       };
     }
 
@@ -345,7 +170,7 @@ function App() {
         config={{
           timeouts: {
             stream: 10000
-          },
+          }
         }}
       >
         <div
@@ -412,51 +237,62 @@ function App() {
   );
 }
 
+// Helper function to generate evenly distributed colors using HSL
+const generateHighlightColors = (count: number): { solid: string, transparent: string }[] => {
+  return Array.from({ length: count }, (_, i) => {
+    const hue = (i * 360) / count;
+    // Using higher saturation (80%) and lightness (60%) for better visibility
+    return {
+      solid: `hsl(${hue}, 80%, 60%)`,
+      transparent: `hsla(${hue}, 80%, 60%, 0.3)`
+    };
+  });
+};
+
 // Helper function to map explanation result to citations
-function mapExplanationResultToCitations(explanationResult, sourceId, messageId) {
+function mapExplanationResultToCitations(
+  explanationResult: ExplanationResult,
+  sourceId: string,
+  messageId: string | undefined
+): Omit<Citation, 'id'>[] {
   if (!explanationResult.ideaSources || !explanationResult.ideaSources.length) {
     return [];
   }
   
-  // Generate a color palette for different ideas
-  const colors = ['#ffeb3b', '#4caf50', '#2196f3', '#9c27b0', '#f44336', '#ff9800'];
+  // Generate colors for the number of ideas we have
+  const colors = generateHighlightColors(explanationResult.ideaSources.length);
   
   // Map each idea source to citations
-  const processedCitations = explanationResult.ideaSources.flatMap((ideaSource, ideaIndex) => {
-    // Get color for this idea
-    const color = colors[ideaIndex % colors.length] + '80'; // Add 50% opacity
+  const processedCitations = explanationResult.ideaSources.flatMap((ideaSource: IdeaSource, ideaIndex: number) => {
+    // Get color pair for this idea
+    const colorPair = colors[ideaIndex];
     
     // Map each supporting evidence to a citation
     return ideaSource.supporting_evidence
-      .filter(evidence => evidence.highlight && evidence.highlight.page > 0)
+      .filter((evidence): evidence is typeof evidence & { highlight: NonNullable<typeof evidence.highlight> } => 
+        evidence.highlight != null && evidence.highlight.page > 0
+      )
       .map(evidence => ({
         sourceId: sourceId,
-        messageId: messageId, // Add reference to the message
+        messageId: messageId,
         messageHighlight: {
-          text: ideaSource.answer_idea
+          text: ideaSource.answer_idea,
+          color: colorPair.solid
         },
         sourceHighlight: {
           page: evidence.highlight.page,
-          rect: evidence.highlight.rect,
-          highlightColorRgba: color
+          rect: evidence.highlight.rect || {
+            top: 0,
+            left: 0,
+            width: 0,
+            height: 0
+          },
+          highlightColorRgba: colorPair.transparent
         }
-      }));
+      } as Omit<Citation, 'id'>));
   });
   
-  // Return processed citations if available, otherwise return initial citations
-  return processedCitations.length > 0 ? processedCitations : [{
-    sourceId: sourceId,
-    messageId: messageId, // Add reference to the message
-    sourceHighlight: {
-      page: 1,
-      rect: {
-        top: 0.2,
-        left: 0.1,
-        width: 0.8,
-        height: 0.1
-      }
-    }
-  }] as Omit<Citation, 'id'>[];
+  return processedCitations;
 }
 
 export default App;
