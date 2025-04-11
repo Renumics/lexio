@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 import { extractComponentDescriptionHelper} from './helper';
 import { UserIcon, SparklesIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
 import * as DocBlocks from "@storybook/blocks";
-import { Citation } from '../../../lib/components/Citation/Citation';
 
 // use for testing markdown support
 const markdownResponse = `# Data Analysis Report
@@ -116,11 +115,6 @@ const CitationGroup = ({ citations, isOpen, onToggle }: { citations: typeof SAMP
         <DocumentTextIcon className="w-4 h-4" />
         <span>{citations.length} sources</span>
       </button>
-      <div className={`mt-2 space-y-2 transition-all duration-200 ease-out ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 hidden'}`}>
-        {citations.map((citation) => (
-          <Citation key={citation.id} {...citation} />
-        ))}
-      </div>
     </div>
   );
 };

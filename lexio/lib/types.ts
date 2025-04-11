@@ -574,3 +574,4 @@ export interface StreamChunk {
   citations?: Citation[] | Omit<Citation, 'id'>[];
   done?: boolean;
 }
+
