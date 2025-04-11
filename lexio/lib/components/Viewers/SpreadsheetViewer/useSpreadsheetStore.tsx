@@ -298,9 +298,8 @@ export const useSpreadsheetViewerStore = (
             const [firstCell, lastCell] = range.toUpperCase().split(":");
             rangesToSet = [...rangesToSet, [firstCell, lastCell]];
         });
-        setRangeToSelect([]);
         setRangeToSelect(rangesToSet);
-    }, [rangesToHighlight, selectedWorksheetName, setRangeToSelect]);
+    }, [rangesToHighlight, selectedWorksheetName]);
 
     useEffect(() => {
         if (isLoading && (!sheetJsWorkbook || !selectedSheetJsWorksheet)) return;

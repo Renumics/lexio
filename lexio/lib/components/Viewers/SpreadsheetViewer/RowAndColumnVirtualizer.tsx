@@ -1,4 +1,14 @@
-import {CSSProperties, forwardRef, Ref, useEffect, useImperativeHandle, useMemo, useRef, useState} from "react"
+import {
+    CSSProperties,
+    forwardRef,
+    Ref,
+    useCallback,
+    useEffect,
+    useImperativeHandle,
+    useMemo,
+    useRef,
+    useState
+} from "react"
 import * as ReactTable from "@tanstack/react-table";
 import * as ReactVirtual from "@tanstack/react-virtual";
 import {mergeCells, MergeGroup, Range, SelectedCell} from "./useSpreadsheetStore";
@@ -66,20 +76,13 @@ export const TableContainer = <TData, TValue>(
         selectedCell,
         setSelectedCell,
         headerStyles,
-        rangesToSelect: rangesToSelectProp,
+        rangesToSelect,
         tanstackTable,
         tanstackVirtual,
         sheetJs,
     }: Props<TData, TValue>) => {
 
     const { utils } = sheetJs;
-
-    const rangesToSelect = useMemo(() => {
-        if (rangesToSelectProp.length === 0 || rangesToSelectProp.length === 1) {
-            return [["A0", "A0"]] as Range[];
-        }
-        return rangesToSelectProp;
-    }, [rangesToSelectProp]);
 
     const tableId = useMemo(() => {
         return `${selectedSheetName.replace(" ", "")}${(new Date()).getTime()}`;
@@ -122,21 +125,34 @@ export const TableContainer = <TData, TValue>(
         setSelectedRange(mouseSelectedRange);
     }, [mouseSelectedRange, selectedSheetName, setSelectedCell, setSelectedRange, table, tableId]);
 
+    const applyHighlights = useCallback(() => {
+        if (!cellAndInnerCellContainerRefs.current || rangesToSelect.length === 0) return;
+        highlightCells(
+            table.getRowModel().rows,
+            rangesToSelect,
+            cellAndInnerCellContainerRefs.current.cellRefs as Record<string, (HTMLTableCellElement | null)>,
+        );
+    }, [rangesToSelect, table, cellAndInnerCellContainerRefs]);
+    
+    const applyCellMerges = useCallback(() => {
+        if (!cellAndInnerCellContainerRefs.current) return;
+        applyMergesToCells(
+            mergedGroupOfSelectedWorksheet,
+            selectedSheetName,
+            cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
+            sheetJs,
+        );
+    }, [mergedGroupOfSelectedWorksheet, selectedSheetName, sheetJs]);
+    
     // Highlight
     useEffect(() => {
         const timeout = setTimeout(() => {
-            if (!cellAndInnerCellContainerRefs.current) return;
-            highlightCells(
-                // @ts-ignore
-                table.getRowModel().rows,
-                rangesToSelect,
-                cellAndInnerCellContainerRefs.current.cellRefs as Record<string, (HTMLTableCellElement | null)>,
-            );
+            applyHighlights();
         }, 1000);
         return () => {
             clearTimeout(timeout);
         }
-    }, [rangesToSelect, table]);
+    }, [applyHighlights]);
 
     useEffect(() => {
         if (!selectedCell) return;
@@ -162,14 +178,8 @@ export const TableContainer = <TData, TValue>(
         horizontal: true,
         overscan: 5,
         onChange: () => {
-            if (cellAndInnerCellContainerRefs.current) {
-                applyMergesToCells(
-                    mergedGroupOfSelectedWorksheet,
-                    selectedSheetName,
-                    cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
-                    sheetJs,
-                );
-            }
+            applyCellMerges();
+            applyHighlights();
 
         },
     });
@@ -186,14 +196,8 @@ export const TableContainer = <TData, TValue>(
                 : undefined,
         overscan: 5,
         onChange: () => {
-            if (cellAndInnerCellContainerRefs.current) {
-                applyMergesToCells(
-                    mergedGroupOfSelectedWorksheet,
-                    selectedSheetName,
-                    cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
-                    sheetJs,
-                );
-            }
+            applyCellMerges();
+            applyHighlights();
         },
     });
 
@@ -205,21 +209,14 @@ export const TableContainer = <TData, TValue>(
         const WAIT_TIME_FOR_CELL_REFS = 500;
 
         const timeout = setTimeout(() => {
-            if (cellAndInnerCellContainerRefs.current) {
-                applyMergesToCells(
-                    mergedGroupOfSelectedWorksheet,
-                    selectedSheetName,
-                    cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
-                    sheetJs,
-                );
-            }
+            applyCellMerges()
         }, WAIT_TIME_FOR_CELL_REFS);
 
         return () => {
             cellAndInnerCellContainerRefs.current = null;
             clearTimeout(timeout);
         };
-    }, [mergedGroupOfSelectedWorksheet, selectedSheetName]);
+    }, [applyCellMerges, columnVirtualizer, rowVirtualizer]);
 
     // Set selected header and header row cells
     useEffect(() => {
