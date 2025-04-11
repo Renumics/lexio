@@ -1,16 +1,6 @@
-import {CSSProperties, forwardRef, Ref, useEffect, useImperativeHandle, useMemo, useRef, useState,} from "react"
-import {
-    Cell,
-    ColumnDef,
-    flexRender,
-    getCoreRowModel,
-    Header,
-    HeaderGroup,
-    Row,
-    Table,
-    useReactTable,
-} from "@tanstack/react-table";
-import {useVirtualizer, VirtualItem, Virtualizer} from "@tanstack/react-virtual";
+import {CSSProperties, forwardRef, Ref, useEffect, useImperativeHandle, useMemo, useRef, useState} from "react"
+import * as ReactTable from "@tanstack/react-table";
+import * as ReactVirtual from "@tanstack/react-virtual";
 import {mergeCells, MergeGroup, Range, SelectedCell} from "./useSpreadsheetStore";
 import {cn} from "./ui/utils.ts";
 import {
@@ -23,9 +13,13 @@ import {
     sortSpreadsheetRange,
     Z_INDEX_OF_STICKY_HEADER_ROW
 } from "./utils.ts";
-import {utils} from "xlsx";
+import type * as SheetJs from "xlsx";
 
-const applyMergesToCells = (mergeGroup: MergeGroup | undefined, sheetName: string, allCellRefs: Record<string, HTMLTableCellElement>) => {
+const applyMergesToCells = (
+    mergeGroup: MergeGroup | undefined,
+    sheetName: string, allCellRefs: Record<string, HTMLTableCellElement>,
+    sheetJs: typeof SheetJs,
+) => {
     if (sheetName.length === 0) return;
     if (!mergeGroup) return;
     if (mergeGroup.sheetName !== sheetName) return;
@@ -33,7 +27,7 @@ const applyMergesToCells = (mergeGroup: MergeGroup | undefined, sheetName: strin
 
     if (Object.entries(allCellRefs).length === 0) return;
 
-    mergeCells(mergeGroup.mergedRanges, allCellRefs);
+    mergeCells(mergeGroup.mergedRanges, allCellRefs, sheetJs);
 }
 
 type CellAndCellContainerRefType = {
@@ -42,7 +36,7 @@ type CellAndCellContainerRefType = {
 }
 
 type Props<TData, TValue> = {
-    columns: ColumnDef<TData, TValue>[];
+    columns: ReactTable.ColumnDef<TData, TValue>[];
     data: TData[];
     showStyles: boolean;
     headerStyles?: Record<string, CSSProperties> | undefined;
@@ -56,6 +50,9 @@ type Props<TData, TValue> = {
     mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
     selectedSheetName: string;
     setSelectedRange: (range?: Range | undefined) => void;
+    tanstackTable: typeof ReactTable;
+    tanstackVirtual: typeof ReactVirtual;
+    sheetJs: typeof SheetJs;
 }
 
 export const TableContainer = <TData, TValue>(
@@ -70,7 +67,12 @@ export const TableContainer = <TData, TValue>(
         setSelectedCell,
         headerStyles,
         rangesToSelect: rangesToSelectProp,
+        tanstackTable,
+        tanstackVirtual,
+        sheetJs,
     }: Props<TData, TValue>) => {
+
+    const { utils } = sheetJs;
 
     const rangesToSelect = useMemo(() => {
         if (rangesToSelectProp.length === 0 || rangesToSelectProp.length === 1) {
@@ -84,11 +86,11 @@ export const TableContainer = <TData, TValue>(
     }, [selectedSheetName]);
 
     // Initialize the table instance
-    const table = useReactTable<TData>({
+    const table = tanstackTable.useReactTable<TData>({
         data,
         columns,
         enableRowSelection: true,
-        getCoreRowModel: getCoreRowModel(),
+        getCoreRowModel: ReactTable.getCoreRowModel(),
     });
 
     const cellAndInnerCellContainerRefs = useRef<CellAndCellContainerRefType | null>(null);
@@ -153,7 +155,7 @@ export const TableContainer = <TData, TValue>(
 
     const tableContainerRef = useRef<HTMLDivElement | null>(null);
 
-    const columnVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableCellElement>({
+    const columnVirtualizer = tanstackVirtual.useVirtualizer<HTMLDivElement, HTMLTableCellElement>({
         count: columns.length,
         estimateSize: () => DEFAULT_COLUMN_WIDTH,
         getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
@@ -165,13 +167,14 @@ export const TableContainer = <TData, TValue>(
                     mergedGroupOfSelectedWorksheet,
                     selectedSheetName,
                     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
+                    sheetJs,
                 );
             }
 
         },
     });
 
-    const rowVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
+    const rowVirtualizer = tanstackVirtual.useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
         count: table.getRowCount(),
         estimateSize: () => 35,
         getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
@@ -188,6 +191,7 @@ export const TableContainer = <TData, TValue>(
                     mergedGroupOfSelectedWorksheet,
                     selectedSheetName,
                     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
+                    sheetJs,
                 );
             }
         },
@@ -206,6 +210,7 @@ export const TableContainer = <TData, TValue>(
                     mergedGroupOfSelectedWorksheet,
                     selectedSheetName,
                     cellAndInnerCellContainerRefs.current.cellRefs as Record<string, HTMLTableCellElement>,
+                    sheetJs,
                 );
             }
         }, WAIT_TIME_FOR_CELL_REFS);
@@ -269,7 +274,7 @@ export const TableContainer = <TData, TValue>(
     }
 
     // Event Handlers
-    const handleCellClick = (cell: Cell<TData, TValue>) => {
+    const handleCellClick = (cell: ReactTable.Cell<TData, TValue>) => {
         setSelectedCell({ row: cell.row.index, column: cell.column.id });
     }
 
@@ -330,8 +335,8 @@ export const TableContainer = <TData, TValue>(
 }
 
 type TableHeadProps = {
-    columnVirtualizer: Virtualizer<HTMLDivElement, HTMLTableCellElement>;
-    table: Table<unknown>;
+    columnVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>;
+    table: ReactTable.Table<unknown>;
     selectedCell?: SelectedCell | undefined;
     selectedHeaderCells: string[];
     virtualPaddingLeft: number | undefined;
@@ -378,10 +383,9 @@ const TableHead = (
 }
 
 type TableHeadRowProps<TData> = {
-    columnVirtualizer: Virtualizer<HTMLDivElement, HTMLTableCellElement>;
-    headerGroup: HeaderGroup<TData>;
+    columnVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>;
+    headerGroup: ReactTable.HeaderGroup<TData>;
     rowCount: number;
-    // selectedCell?: SelectedCell | undefined;
     selectedHeaderCells: string[];
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
@@ -392,7 +396,6 @@ const TableHeadRow = <T, >(
         rowCount,
         columnVirtualizer,
         headerGroup,
-        // selectedCell,
         selectedHeaderCells,
         virtualPaddingLeft,
         virtualPaddingRight,
@@ -431,7 +434,7 @@ const TableHeadRow = <T, >(
 }
 
 type TableHeadCellProps<TData, TValue> = {
-    header: Header<TData, TValue>;
+    header: ReactTable.Header<TData, TValue>;
     isSelected: boolean;
     isFirst: boolean;
     isLast: boolean;
@@ -451,7 +454,6 @@ const TableHeadCell = <T, D>(props: TableHeadCellProps<T, D>) => {
 
     const computeWidthOfHeadCell = (): number => {
         if (isFirst) return calculateWidthOfFirstColumn(rowCount);
-        // return header.getSize();
         return calculateWidthOfColumn(header.column.id, headerStyles);
     }
 
@@ -475,16 +477,16 @@ const TableHeadCell = <T, D>(props: TableHeadCellProps<T, D>) => {
             )}
         >
             <div>
-                {flexRender(header.column.columnDef.header, header.getContext())}
+                {ReactTable.flexRender(header.column.columnDef.header, header.getContext())}
             </div>
         </th>
     )
 }
 
 type TableBodyProps<TData> = {
-    rowVirtualizer: Virtualizer<HTMLDivElement, HTMLTableRowElement>;
-    columnVirtualizer: Virtualizer<HTMLDivElement, HTMLTableCellElement>;
-    table: Table<TData>;
+    rowVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableRowElement>;
+    columnVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>;
+    table: ReactTable.Table<TData>;
     selectedCell?: SelectedCell | undefined;
     selectedSheetName: string;
     selectedHeaderRowCells: number[];
@@ -493,7 +495,7 @@ type TableBodyProps<TData> = {
     virtualPaddingRight: number | undefined;
     handleMouseDown: (cellAddress: string) => void;
     handleMouseEnter: (cellAddress: string) => void;
-    handleCellSelection: (cell: Cell<TData, unknown>) => void;
+    handleCellSelection: (cell: ReactTable.Cell<TData, unknown>) => void;
     handleMouseUp: () => void;
 }
 
@@ -536,7 +538,7 @@ const TableBody = forwardRef(<T, >(
             }}
         >
         {virtualRows.map(virtualRow => {
-            const row = rows[virtualRow.index] as Row<unknown>
+            const row = rows[virtualRow.index] as ReactTable.Row<unknown>
             return (
                 <TableBodyRow
                     ref={(el) => {
@@ -577,18 +579,18 @@ const TableBody = forwardRef(<T, >(
 })
 
 type TableBodyRowProps<TData> = {
-    rowVirtualizer: Virtualizer<HTMLDivElement, HTMLTableRowElement>;
-    columnVirtualizer: Virtualizer<HTMLDivElement, HTMLTableCellElement>;
-    row: Row<TData>;
+    rowVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableRowElement>;
+    columnVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>;
+    row: ReactTable.Row<TData>;
     selectedSheetName: string;
     selectedHeaderRowCells: number[];
     selectedHeaderCells: string[];
     virtualPaddingLeft: number | undefined;
     virtualPaddingRight: number | undefined;
-    virtualRow: VirtualItem;
+    virtualRow: ReactVirtual.VirtualItem;
     handleMouseDown: (cellAddress: string) => void;
     handleMouseEnter: (cellAddress: string) => void;
-    handleCellClick: (cell: Cell<TData, unknown>) => void;
+    handleCellClick: (cell: ReactTable.Cell<TData, unknown>) => void;
     handleMouseUp: () => void;
 }
 // @ts-ignore
@@ -612,11 +614,9 @@ const TableBodyRow = forwardRef(<T,>(
 
     const cellOfFirstColumn = visibleCells[0];
 
-    // const visibleCellsWithoutFirstColumn = visibleCells.slice(1);
-
     const virtualColumns = columnVirtualizer.getVirtualItems();
 
-    const isCellSelected = (cell: Cell<T, CellContent>, cellIndex: number): boolean => {
+    const isCellSelected = (cell: ReactTable.Cell<T, CellContent>, cellIndex: number): boolean => {
         return (
             selectedHeaderRowCells.includes(cell.row.index) &&
             selectedHeaderCells.includes(cell.column.id) &&
@@ -704,7 +704,7 @@ const TableBodyRow = forwardRef(<T,>(
 });
 
 type TableBodyCellProps<TData, TValue> = {
-    cell: Cell<TData, TValue>;
+    cell: ReactTable.Cell<TData, TValue>;
     isFirst: boolean;
     isFirstCellOfSelectedRow : boolean;
     isCellSelected: boolean;
@@ -713,7 +713,7 @@ type TableBodyCellProps<TData, TValue> = {
     handleMouseUp?: () => void;
     handleMouseDown?: ((cellAddress: string) => void) | undefined;
     handleMouseEnter?: ((cellAddress: string) => void) | undefined;
-    handleCellSelection: (cell: Cell<TData, TValue>) => void;
+    handleCellSelection: (cell: ReactTable.Cell<TData, TValue>) => void;
 }
 const TableBodyCell = forwardRef(
     <T, V>(
@@ -828,7 +828,7 @@ const TableBodyCell = forwardRef(
                                 ...(cell.row.original[cellContentContainerId] ?? {}),
                             }}
                         >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            {ReactTable.flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </div>
                     </div>
                 </div>

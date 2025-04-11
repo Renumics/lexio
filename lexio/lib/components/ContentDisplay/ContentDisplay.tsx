@@ -97,11 +97,14 @@ const FileViewerRenderer = ({ fileName, selectedSource }: PropsFileViewerRendere
     // Prefer 'page' over '_page' if both are defined
       const page = selectedSource.metadata?._pdfPageOverride ?? selectedSource.metadata?.page ?? selectedSource.metadata?._page;
 
+      const isPDFHighlightArray = (arr: unknown[] | undefined): arr is PDFHighlight[] => {
+        return Array.isArray(arr) && arr.every((item) => Object.prototype.hasOwnProperty.call(item, "page") && Object.prototype.hasOwnProperty.call(item, "rect"));
+      }
     return (
         <PdfViewer
             data={selectedSource.data}
             page={page}
-            highlights={selectedSource.highlights as PDFHighlight[]}
+            highlights={isPDFHighlightArray(selectedSource.highlights) ? selectedSource.highlights : undefined}
         />
     );
   }

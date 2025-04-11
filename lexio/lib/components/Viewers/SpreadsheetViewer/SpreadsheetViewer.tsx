@@ -5,6 +5,11 @@ import ParentSizeObserver from "./ParentSizeObserver.tsx";
 import {TableContainer} from "./RowAndColumnVirtualizer.tsx";
 import Tooltip from "./ui/Tooltip.tsx";
 import {SpreadsheetHighlight} from "../../../types.ts";
+import {DependenciesLoader} from "./DependenciesLoader.tsx";
+import * as ReactTable from "@tanstack/react-table";
+import * as ReactVirtual from "@tanstack/react-virtual";
+import type * as ExcelJs from "exceljs";
+import type * as SheetJs from "xlsx";
 
 type Props = {
     fileName?: string | undefined;
@@ -13,6 +18,44 @@ type Props = {
     rangesToHighlight?: SpreadsheetHighlight[] | undefined;
 }
 const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighlight }: Props) => {
+    return (
+        <DependenciesLoader>
+            {(dependencies) =>
+                <SpreadsheetWrapper
+                    fileBufferArray={fileBufferArray}
+                    defaultSelectedSheet={defaultSelectedSheet}
+                    rangesToHighlight={rangesToHighlight}
+                    tanstackVirtual={dependencies.tanstackVirtual}
+                    tanstackTable={dependencies.tanstackTable}
+                    excelJs={dependencies.excelJs}
+                    sheetJs={dependencies.sheetJs}
+                />
+            }
+        </DependenciesLoader>
+    );
+};
+SpreadsheetViewer.displayName = "SpreadsheetViewer";
+
+type SpeadsheetWrapperProps = {
+    fileName?: string | undefined;
+    fileBufferArray: ArrayBuffer;
+    defaultSelectedSheet?: string | undefined;
+    rangesToHighlight?: SpreadsheetHighlight[] | undefined;
+    tanstackTable: typeof ReactTable;
+    tanstackVirtual: typeof ReactVirtual;
+    excelJs: typeof ExcelJs;
+    sheetJs: typeof SheetJs;
+}
+const SpreadsheetWrapper = (
+    {
+        fileBufferArray,
+        defaultSelectedSheet,
+        rangesToHighlight,
+        tanstackVirtual,
+        tanstackTable,
+        excelJs,
+        sheetJs,
+    }: SpeadsheetWrapperProps) => {
     const {
         selectedWorksheetName,
         rangeToSelect,
@@ -35,6 +78,9 @@ const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighl
         fileBufferArray,
         defaultSelectedSheet,
         rangesToHighlight,
+        tanstackTable: tanstackTable,
+        excelJs: excelJs,
+        sheetJs: sheetJs,
     });
 
     const switchSpreadsheet = (spreadsheet: string) => {
@@ -133,6 +179,9 @@ const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighl
                                 mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
                                 selectedSheetName={selectedWorksheetName}
                                 setSelectedRange={setSelectedRange}
+                                tanstackTable={tanstackTable}
+                                tanstackVirtual={tanstackVirtual}
+                                sheetJs={sheetJs}
                             />
                         }
                     </ParentSizeObserver>
@@ -156,6 +205,6 @@ const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighl
         </div>
     );
 };
-SpreadsheetViewer.displayName = "SpreadsheetViewer";
+SpreadsheetWrapper.displayName = "SpreadsheetWrapper";
 
 export {SpreadsheetViewer};
