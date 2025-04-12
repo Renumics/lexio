@@ -11,9 +11,10 @@ import {
 } from "react"
 import * as ReactTable from "@tanstack/react-table";
 import * as ReactVirtual from "@tanstack/react-virtual";
-import {mergeCells, MergeGroup, Range, SelectedCell} from "./useSpreadsheetStore";
+import {MergeGroup, Range, SelectedCell} from "./useSpreadsheetStore";
 import {cn} from "./ui/utils.ts";
 import {
+    applyMergesToCells,
     calculateWidthOfColumn,
     calculateWidthOfFirstColumn,
     CellContent,
@@ -25,37 +26,47 @@ import {
 } from "./utils.ts";
 import type * as SheetJs from "xlsx";
 
-const applyMergesToCells = (
-    mergeGroup: MergeGroup | undefined,
-    sheetName: string, allCellRefs: Record<string, HTMLTableCellElement>,
-    sheetJs: typeof SheetJs,
-) => {
-    if (sheetName.length === 0) return;
-    if (!mergeGroup) return;
-    if (mergeGroup.sheetName !== sheetName) return;
-    if (mergeGroup.mergedRanges.length === 0) return;
-
-    if (Object.entries(allCellRefs).length === 0) return;
-
-    mergeCells(mergeGroup.mergedRanges, allCellRefs, sheetJs);
-}
-
+/**
+ * Reference type of cells
+ *
+ * @type CellAndCellContainerRefType
+ * @property {Record<string, HTMLTableCellElement | null>} cellRefs - References to individual table cell elements.
+ * @property {Record<string, HTMLDivElement | null>} cellInnerContainerRefs - References to the inner container elements of table cells.
+ */
 type CellAndCellContainerRefType = {
     cellRefs: Record<string, HTMLTableCellElement | null>,
     cellInnerContainerRefs: Record<string, HTMLDivElement | null>,
 }
 
-type Props<TData, TValue> = {
+/**
+ * Props for the TableContainer component
+ *
+ * @type TableContainerProps
+ * @template TData
+ * @template TValue
+ * @property {ReactTable.ColumnDef<TData, TValue>[]} columns - Column definitions for the table.
+ * @property {TData[]} data - Data to be displayed in the table.
+ * @property {boolean} showStyles - Whether to apply specific styles for the table.
+ * @property {Record<string, CSSProperties> | undefined} headerStyles - Styles for table headers.
+ * @property {SelectedCell | undefined} selectedCell - The currently selected cell in the table.
+ * @property {(cell: SelectedCell | undefined) => void} setSelectedCell - Callback to update the selected cell.
+ * @property {Range[]} rangesToSelect - Ranges of cells to highlight in the table.
+ * @property {number | undefined} parentContainerHeight - The height of the parent container (in pixels) if it doesn't have a fixed size.
+ * @property {MergeGroup | undefined} mergedGroupOfSelectedWorksheet - Merged group of selected worksheet ranges (loaded from spreadsheet file).
+ * @property {string} selectedSheetName - Name of the selected sheet.
+ * @property {(range?: Range | undefined) => void} setSelectedRange - Callback to update the selected range.
+ * @property {typeof ReactTable} tanstackTable - Instance of TanStack Table library.
+ * @property {typeof ReactVirtual} tanstackVirtual - Instance of TanStack Virtualization library.
+ * @property {typeof SheetJs} sheetJs - Instance of SheetJs library utilities.
+ */
+type TableContainerProps<TData, TValue> = {
     columns: ReactTable.ColumnDef<TData, TValue>[];
     data: TData[];
     showStyles: boolean;
     headerStyles?: Record<string, CSSProperties> | undefined;
-    rowStyles?: Record<number, CSSProperties> | undefined;
-    cellsStyles?: Record<string, CSSProperties> | undefined
     selectedCell?: SelectedCell | undefined;
     setSelectedCell: (cell: SelectedCell | undefined) => void;
     rangesToSelect: Range[];
-    // The height of the parent in case the parent doesn't have a fix size (value in pixel).
     parentContainerHeight?: number | undefined;
     mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
     selectedSheetName: string;
@@ -65,6 +76,15 @@ type Props<TData, TValue> = {
     sheetJs: typeof SheetJs;
 }
 
+/**
+ * A container component for rendering a virtualized and interactive table
+ * with support for cell selection, merging, and custom styles.
+ *
+ * @template TData
+ * @template TValue
+ * @param {TableContainerProps<TData, TValue>} props - The props for the component.
+ * @returns {JSX.Element} The rendered table container component.
+ */
 export const TableContainer = <TData, TValue>(
     {
         data,
@@ -80,7 +100,7 @@ export const TableContainer = <TData, TValue>(
         tanstackTable,
         tanstackVirtual,
         sheetJs,
-    }: Props<TData, TValue>) => {
+    }: TableContainerProps<TData, TValue>) => {
 
     const { utils } = sheetJs;
 
@@ -88,7 +108,6 @@ export const TableContainer = <TData, TValue>(
         return `${selectedSheetName.replace(" ", "")}${(new Date()).getTime()}`;
     }, [selectedSheetName]);
 
-    // Initialize the table instance
     const table = tanstackTable.useReactTable<TData>({
         data,
         columns,
@@ -144,7 +163,7 @@ export const TableContainer = <TData, TValue>(
         );
     }, [mergedGroupOfSelectedWorksheet, selectedSheetName, sheetJs]);
     
-    // Highlight
+    // Cell Highlight on mount
     useEffect(() => {
         const timeout = setTimeout(() => {
             applyHighlights();
@@ -270,7 +289,6 @@ export const TableContainer = <TData, TValue>(
             (virtualColumns[virtualColumns.length - 1]?.end ?? 0)
     }
 
-    // Event Handlers
     const handleCellClick = (cell: ReactTable.Cell<TData, TValue>) => {
         setSelectedCell({ row: cell.row.index, column: cell.column.id });
     }
@@ -331,6 +349,18 @@ export const TableContainer = <TData, TValue>(
     )
 }
 
+/**
+ * Props for the TableHead component.
+ *
+ * @type TableHeadProps
+ * @property {ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>} columnVirtualizer - Virtualizer instance for managing column virtualization.
+ * @property {ReactTable.Table<unknown>} table - The table instance created using React Table.
+ * @property {SelectedCell | undefined} selectedCell - The currently selected cell in the table headers.
+ * @property {string[]} selectedHeaderCells - Array of selected header cell addresses.
+ * @property {number | undefined} virtualPaddingLeft - Padding to the left of the virtualized columns.
+ * @property {number | undefined} virtualPaddingRight - Padding to the right of the virtualized columns.
+ * @property {Record<string, CSSProperties> | undefined} headerStyles - Styles for specific table headers.
+*/
 type TableHeadProps = {
     columnVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>;
     table: ReactTable.Table<unknown>;
@@ -341,6 +371,13 @@ type TableHeadProps = {
     headerStyles?: Record<string, CSSProperties> | undefined;
 }
 
+/**
+ * A functional component that renders the table's header section
+ * with support for virtualization and custom styles.
+ *
+ * @param {TableHeadProps} props - The props for the TableHead component.
+ * @returns {JSX.Element} The rendered table header element.
+ */
 const TableHead = (
     {
         columnVirtualizer,
@@ -379,6 +416,19 @@ const TableHead = (
     )
 }
 
+/**
+ * Props for the TableHeadRow component.
+ *
+ * @type TableHeadRowProps
+ * @template TData
+ * @property {ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>} columnVirtualizer - Virtualizer instance for managing column virtualization.
+ * @property {ReactTable.HeaderGroup<TData>} headerGroup - The header group for this row, containing the column headers.
+ * @property {number} rowCount - The total number of rows in the table.
+ * @property {string[]} selectedHeaderCells - Array of selected header cell addresses.
+ * @property {number | undefined} virtualPaddingLeft - Padding to the left of the virtualized columns.
+ * @property {number | undefined} virtualPaddingRight - Padding to the right of the virtualized columns.
+ * @property {Record<string, CSSProperties> | undefined} headerStyles - Styles for specific table headers.
+ */
 type TableHeadRowProps<TData> = {
     columnVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>;
     headerGroup: ReactTable.HeaderGroup<TData>;
@@ -388,6 +438,13 @@ type TableHeadRowProps<TData> = {
     virtualPaddingRight: number | undefined;
     headerStyles?: Record<string, CSSProperties> | undefined;
 }
+
+/**
+ * Renders a row in the table head, using virtualization for columns.
+ *
+ * @param {TableHeadRowProps<T>} props - The props for the TableHeadRow component.
+ * @returns {JSX.Element} The rendered table header row element.
+ */
 const TableHeadRow = <T, >(
     {
         rowCount,
@@ -430,6 +487,19 @@ const TableHeadRow = <T, >(
     )
 }
 
+/**
+ * Props for the TableHeadCell component.
+ *
+ * @type TableHeadCellProps
+ * @template TData
+ * @template TValue
+ * @property {ReactTable.Header<TData, TValue>} header -  The header object containing column definition.
+ * @property {boolean} isSelected - Whether the header cell is selected or not.
+ * @property {boolean} isFirst - Whether the header cell is the first in the row.
+ * @property {boolean} isLast - Whether the header cell is the last in the row.
+ * @property {number} rowCount - The total number of rows in the table.
+ * @property {Record<string, CSSProperties> | undefined} headerStyles - Styles for specific table headers.
+ */
 type TableHeadCellProps<TData, TValue> = {
     header: ReactTable.Header<TData, TValue>;
     isSelected: boolean;
@@ -438,6 +508,13 @@ type TableHeadCellProps<TData, TValue> = {
     rowCount: number;
     headerStyles?: Record<string, CSSProperties> | undefined;
 }
+
+/**
+ * Renders a single header cell.
+ *
+ * @param {TableHeadCellProps<T, D>} props - The props for the TableHeadCell component.
+ * @returns {JSX.Element} The rendered table header cell element.
+ */
 const TableHeadCell = <T, D>(props: TableHeadCellProps<T, D>) => {
     const {
         header,
@@ -480,6 +557,25 @@ const TableHeadCell = <T, D>(props: TableHeadCellProps<T, D>) => {
     )
 }
 
+/**
+ * Props of the TableBody component
+ *
+ * @type TableBodyProps
+ * @template TData
+ * @property {ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableRowElement>} rowVirtualizer - Virtualizer instance for managing row virtualization.
+ * @property {ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>} columnVirtualizer - Virtualizer instance for managing column virtualization.
+ * @property {ReactTable.Table<TData>} table - The table instance created using React Table.
+ * @property {SelectedCell | undefined} selectedCell - The currently selected cell in the table body.
+ * @property {string} selectedSheetName - The name of the selected sheet.
+ * @property {number[]} selectedHeaderRowCells - Array of selected header row indices.
+ * @property {string[]} selectedHeaderCells - Array of selected header cell addresses.
+ * @property {number | undefined} virtualPaddingLeft - Padding to the left of the virtualized columns.
+ * @property {number | undefined} virtualPaddingRight - Padding to the right of the virtualized columns.
+ * @property {(cellAddress: string) => void} handleMouseDown - Handler function for mouse down events on a cell.
+ * @property {(cellAddress: string) => void} handleMouseEnter - Handler function for mouse enter events on a cell.
+ * @property {(cell: ReactTable.Cell<TData, unknown>) => void} handleCellSelection - Handler function for cell selection.
+ * @property {() => void} handleMouseUp - Handler function for mouse up events.
+ */
 type TableBodyProps<TData> = {
     rowVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableRowElement>;
     columnVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>;
@@ -496,6 +592,14 @@ type TableBodyProps<TData> = {
     handleMouseUp: () => void;
 }
 
+/**
+ * Renders the body of the table, using virtualization for both rows and columns.
+ *
+ * @template T
+ * @param {TableBodyProps<T>} props - The props for the TableBody component.
+ * @param {Ref<CellAndCellContainerRefType> | undefined} ref - Forwarded ref for accessing cell references and forwarding them to the parent component.
+ * @returns {JSX.Element} The rendered table body element.
+ */
 const TableBody = forwardRef(<T, >(
     {
         rowVirtualizer,
@@ -575,6 +679,25 @@ const TableBody = forwardRef(<T, >(
     )
 })
 
+/**
+ * Prop for the TableBodyRow component.
+ *
+ * @type TableBodyRowProps
+ * @template TData
+ * @property {ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableRowElement>} rowVirtualizer - Virtualizer instance for managing row virtualization.
+ * @property {ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>} columnVirtualizer - Virtualizer instance for managing column virtualization.
+ * @property {ReactTable.Row<TData>} row - The row data for current row.
+ * @property {string} selectedSheetName - The name of the selected sheet.
+ * @property {number[]} selectedHeaderRowCells - Array of selected header row indices.
+ * @property {string[]} selectedHeaderCells - Array of selected header cell addresses.
+ * @property {number | undefined} virtualPaddingLeft - Padding to the left of the virtualized columns.
+ * @property {number | undefined} virtualPaddingRight - Padding to the right of the virtualized columns.
+ * @property {ReactVirtual.VirtualItem} virtualRow - The virtual item representing this row.
+ * @property {(cellAddress: string) => void} handleMouseDown - Handler function for mouse down events on a cell.
+ * @property {(cellAddress: string) => void} handleMouseEnter - Handler function for mouse enter events on a cell.
+ * @property {(cell: ReactTable.Cell<TData, unknown>) => void} handleCellClick - Handler function for cell selection.
+ * @property {() => void} handleMouseUp - Handler function for mouse up events.
+ */
 type TableBodyRowProps<TData> = {
     rowVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableRowElement>;
     columnVirtualizer: ReactVirtual.Virtualizer<HTMLDivElement, HTMLTableCellElement>;
@@ -590,6 +713,13 @@ type TableBodyRowProps<TData> = {
     handleCellClick: (cell: ReactTable.Cell<TData, unknown>) => void;
     handleMouseUp: () => void;
 }
+/**
+ * Renders a row in the table body, using virtualization for both rows and columns.
+ *
+ * @param {TableBodyRowProps<T>} props - The props for the TableBodyRow component.
+ * @param {Ref<CellAndCellContainerRefType> | undefined} ref - Forwarded ref for accessing cell references and forwarding them to the parent component.
+ * @returns {JSX.Element} The rendered table row element.
+ */
 // @ts-ignore
 const TableBodyRow = forwardRef(<T,>(
     {
@@ -700,6 +830,23 @@ const TableBodyRow = forwardRef(<T,>(
     )
 });
 
+/**
+ * Props of the TableBodyCell component.
+ *
+ * @type TableBodyCellProps
+ * @template TData
+ * @template TValue
+ * @property {ReactTable.Cell<TData, TValue>} cell - The cell data for the current cell.
+ * @property {boolean} isFirst - Whether the current cell is the first cell in the row.
+ * @property {boolean} isFirstCellOfSelectedRow - Whether the current cell is the first cell of a selected row.
+ * @property {boolean} isCellSelected - Whether the current cell is the first cell of a selected row.
+ * @property {boolean} isHeaderCellSelected - Whether the header cell for the current column is selected.
+ * @property {string} selectedSheetName - The name of the selected sheet.
+ * @property {(() => void) | undefined} handleMouseUp - Handler function for mouse up events.
+ * @property {((cellAddress: string) => void) | undefined} handleMouseDown - Handler function for mouse down events on a cell.
+ * @property {((cellAddress: string) => void) | undefined} handleMouseEnter -  Handler function for mouse enter events on a cell.
+ * @property {(cell: ReactTable.Cell<TData, TValue>) => void} handleCellSelection - Handler function for cell selection.
+ */
 type TableBodyCellProps<TData, TValue> = {
     cell: ReactTable.Cell<TData, TValue>;
     isFirst: boolean;
@@ -707,11 +854,18 @@ type TableBodyCellProps<TData, TValue> = {
     isCellSelected: boolean;
     isHeaderCellSelected: boolean;
     selectedSheetName: string;
-    handleMouseUp?: () => void;
+    handleMouseUp?: (() => void) | undefined;
     handleMouseDown?: ((cellAddress: string) => void) | undefined;
     handleMouseEnter?: ((cellAddress: string) => void) | undefined;
     handleCellSelection: (cell: ReactTable.Cell<TData, TValue>) => void;
 }
+/**
+ * Renders a single cell in the table body.
+ *
+ * @param {TableBodyCellProps<T, V>} props - The props for the TableBodyCell component.
+ * @param {Ref<CellAndCellContainerRefType> | undefined} ref - Forwarded ref for accessing cell references.
+ * @returns {JSX.Element} The rendered table cell element.
+ */
 const TableBodyCell = forwardRef(
     <T, V>(
         {
@@ -783,7 +937,6 @@ const TableBodyCell = forwardRef(
             onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
             onMouseDown={handleMouseDown ? () => handleMouseDown(cellId) : undefined}
             onMouseEnter={handleMouseEnter ? () => handleMouseEnter(cellId) : undefined}
-            // onMouseLeave={undefined}
             onMouseUp={handleMouseUp ? () => handleMouseUp() : undefined}
         >
             <div

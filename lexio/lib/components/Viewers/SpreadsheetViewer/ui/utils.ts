@@ -2,6 +2,12 @@ type ClassValue = ClassArray | ClassDictionary | string | number | bigint | null
 type ClassDictionary = Record<string, unknown>;
 type ClassArray = ClassValue[];
 
+/**
+ * Utility function to merge tailwind utility classes
+ *
+ * @remarks
+ * - Calling cn("pb-1 text-white", { "rounded-md": true, "truncate": false }) will return "pb-1 text-white rounded-md"
+ */
 export const cn = (...inputs: ClassValue[]) => {
     return inputs
         .flatMap<string>((arg: ClassValue): string[] => {

@@ -1,43 +1,26 @@
-import {
-    Cell as ExcelJsWorksheetCell,
-    FillPattern,
-    Row as ExelJsWorksheetRow,
-    Workbook as ExcelJsWorkbook,
-    Worksheet as ExcelJsWorksheet
-} from "exceljs";
+import type * as ExcelJs from "exceljs";
+import {Workbook as ExcelJsWorkbook} from "exceljs";
 import {CSSProperties, useEffect, useState} from "react";
+import * as ReactTable from "@tanstack/react-table";
 import {ColumnDef} from "@tanstack/react-table";
 import {
     calculateHeightOfRow,
     calculateWidthOfColumn,
     calculateWidthOfFirstColumn,
     CellContent,
-    convertArgbToHex,
-    excelAlignmentToCss,
-    excelBorderToCss,
-    extractCellComponent,
     generateSpreadsheetColumns,
     getCellStyle,
-    getCellStyleOfCellContent,
-    isCellInRange,
-    ptFontSizeToPixel,
-    ptToPixel,
+    getCellStyleOfCellContent, getStyleOfWorksheet,
     RawRow,
     Row,
     RowList,
-    sortSpreadsheetColumnsComparator, TABLE_HEAD_ROW_HEIGHT,
+    sortSpreadsheetColumnsComparator,
+    TABLE_HEAD_ROW_HEIGHT,
     validateExcelRange,
 } from "./utils.ts";
-import {
-    ParsingOptions,
-    Sheet2JSONOpts,
-    WorkBook as SheetJsWorkbook,
-    WorkSheet as SheetJsWorkSheet,
-} from "xlsx";
-import {SpreadsheetHighlight} from "../../../types.ts";
-import * as ReactTable from "@tanstack/react-table";
-import type * as ExcelJs from "exceljs";
 import type * as SheetJs from "xlsx";
+import {ParsingOptions, Sheet2JSONOpts, WorkBook as SheetJsWorkbook, WorkSheet as SheetJsWorkSheet,} from "xlsx";
+import {SpreadsheetHighlight} from "../../../types.ts";
 
 export type SelectedCell = {
     row: number,
@@ -331,9 +314,9 @@ export const useSpreadsheetViewerStore = (
 
         sortedWorksheetColumns.forEach((column) => {
             //@ts-ignore
-           const columnKeyExists = !!rows.find((row) => row.hasOwnProperty(column));
-           if (columnKeyExists) return;
-           missingColumnKeysInRows.push(column);
+            const columnKeyExists = !!rows.find((row) => row.hasOwnProperty(column));
+            if (columnKeyExists) return;
+            missingColumnKeysInRows.push(column);
         });
 
         const rowsWithAllColumnKeys = rows.map((row) => {
@@ -603,8 +586,8 @@ export const useSpreadsheetViewerStore = (
             })
                 // @ts-ignore
                 .reduce((acc, currentKey) => {
-                return { ...acc, ...currentKey };
-            }, {}) as Record<string, Partial<CSSProperties>>;
+                    return { ...acc, ...currentKey };
+                }, {}) as Record<string, Partial<CSSProperties>>;
 
             if (
                 selectedWorksheetName.length === 0 ||
@@ -654,133 +637,5 @@ export const useSpreadsheetViewerStore = (
         getMetaDataOfSelectedCell,
         selectedRange,
         setSelectedRange,
-    }
-}
-
-export const mergeCells = (
-    merges: MergedRange[],
-    cellRefs: Record<string, HTMLTableCellElement>,
-    sheetJs: typeof SheetJs,
-    onCellMergeDone?: (() => void) | undefined,
-) => {
-    if (merges.length === 0 || Object.keys(cellRefs).length === 0) {
-        onCellMergeDone?.();
-        return;
-    }
-
-    const { utils } = sheetJs;
-
-    merges.forEach((merge) => {
-        const startCell = cellRefs[`${merge.start.column}${merge.start.row}`];
-        if (!startCell) return;
-        if (startCell.colSpan > 1) return;
-        if (startCell.colSpan > 1) return;
-        const cellComponent = extractCellComponent(startCell.id);
-        if (!cellComponent) return;
-        if (!isCellInRange(cellComponent.row, cellComponent.column, [`${merge.start.column}${merge.start.row}`, `${merge.end.column}${merge.end.row}`])) return;
-
-        const colSpan = utils.decode_col(merge.end.column) - utils.decode_col(merge.start.column) + 1;
-        const rowSpan = merge.end.row - merge.start.row + 1;
-
-        startCell.colSpan = colSpan;
-        startCell.rowSpan = rowSpan;
-
-        let totalWidth = parseFloat(startCell.style.width) || startCell.offsetWidth;
-        let totalHeight = parseFloat(startCell.style.height) || startCell.offsetHeight;
-
-        // Merge columns
-        for (let col = utils.decode_col(merge.start.column) + 1; col <= utils.decode_col(merge.end.column); col++) {
-            const cellToMerge = cellRefs[`${utils.encode_col(col)}${merge.start.row}`];
-            if (cellToMerge) {
-                totalWidth += parseFloat(cellToMerge.style.width) || cellToMerge.offsetWidth;
-                cellToMerge.style.visibility = "hidden";
-            }
-        }
-
-        // Merge rows
-        for (let row = merge.start.row + 1; row <= merge.end.row; row++) {
-            const cellToMerge = cellRefs[`${merge.start.column}${row}`];
-            if (cellToMerge) {
-                // Iterates over all cells in the row starting with merge.start.column till merge.end.column
-                for (let col = utils.decode_col(merge.start.column); col <= utils.decode_col(merge.end.column); col++) {
-                    const cellToMerge = cellRefs[`${utils.encode_col(col)}${row}`];
-                    if (cellToMerge) {
-                        cellToMerge.style.visibility = "hidden";
-                    }
-                }
-                totalHeight += parseFloat(cellToMerge.style.height) || cellToMerge.offsetHeight;
-            }
-        }
-
-        startCell.style.setProperty("border", "none", "important");
-        const innerContainerOfStartCell = startCell.children[0] as HTMLDivElement | null;
-        if (!innerContainerOfStartCell) return;
-        innerContainerOfStartCell.style.height = `${totalHeight}px`;
-        innerContainerOfStartCell.style.width = `${totalWidth}px`;
-        innerContainerOfStartCell.style.borderBottom = "1px solid #e5e7eb";
-        innerContainerOfStartCell.style.borderRight = "1px solid #e5e7eb";
-    });
-
-    onCellMergeDone?.();
-};
-type WorksheetStyle = {
-    headerStyles: Record<string, CSSProperties>;
-    rowStyles: Record<number, CSSProperties>;
-    cellStyles: Record<string, CSSProperties>;
-}
-
-const getStyleOfWorksheet = (worksheet: ExcelJsWorksheet): WorksheetStyle => {
-    const headerStyles: Record<string, CSSProperties> = {};
-    const rowStyles: Record<number, CSSProperties> = {};
-    const cellStyles: Record<string, CSSProperties> = {};
-
-    worksheet.eachRow({ includeEmpty: true }, (row: ExelJsWorksheetRow, rowIndex: number) => {
-        row.eachCell({ includeEmpty: true }, (cell: ExcelJsWorksheetCell) => {
-            const columnId = extractCellComponent(cell.address)?.column;
-            if (!columnId) return;
-
-            const columnKey = extractCellComponent(cell.address)?.column ?? "";
-
-            const colWidth = columnKey.length === 0 ? "40px" : `${ptToPixel(worksheet.getColumn(columnKey).width)}px`;
-
-            headerStyles[columnKey] = {
-                minWidth: colWidth,
-            };
-
-            rowStyles[`${rowIndex}`] = {
-                height: `${ptToPixel(row.height)}px`,
-                // Borders
-                borderTop: `${excelBorderToCss(row.border?.top?.style, row.border?.top?.color?.argb)}`,
-                borderRight: `${excelBorderToCss(row.border?.right?.style, row.border?.right?.color?.argb)}`,
-                borderBottom: `${excelBorderToCss(row.border?.bottom?.style, row.border?.bottom?.color?.argb)}`,
-                borderLeft: `${excelBorderToCss(row.border?.left?.style, row.border?.left?.color?.argb)}`,
-            };
-
-            cellStyles[`${cell.address}`] = {
-                // colors
-                backgroundColor: convertArgbToHex((cell.fill as FillPattern)?.fgColor?.argb),
-                color: convertArgbToHex(cell.font?.color?.argb),
-                // Font
-                fontFamily: cell.font?.name,
-                fontSize: `${ptFontSizeToPixel(cell.font?.size)}px`,
-                fontWeight: cell.font?.bold ? "600" : undefined,
-                fontStyle: cell.font?.italic ? "italic" : undefined,
-                minWidth: colWidth,
-                ...excelAlignmentToCss(cell.alignment),
-                // Borders
-                borderTop: `${excelBorderToCss(cell.border?.top?.style, cell.border?.top?.color?.argb)}`,
-                borderRight: `${excelBorderToCss(cell.border?.right?.style, cell.border?.right?.color?.argb)}`,
-                borderBottom: `${excelBorderToCss(cell.border?.bottom?.style, cell.border?.bottom?.color?.argb)}`,
-                borderLeft: `${excelBorderToCss(cell.border?.left?.style, cell.border?.left?.color?.argb)}`,
-                // Padding
-                padding: "0px 3px",
-            };
-        });
-    });
-
-    return {
-        headerStyles,
-        rowStyles,
-        cellStyles,
     }
 }

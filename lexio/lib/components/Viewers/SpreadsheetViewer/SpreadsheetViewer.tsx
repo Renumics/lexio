@@ -67,8 +67,6 @@ const SpreadsheetWrapper = (
         error,
         columns,
         rowData,
-        cellStyles,
-        rowStyles,
         headerStyles,
         mergedGroupOfSelectedWorksheet,
         getMetaDataOfSelectedCell,
@@ -169,8 +167,6 @@ const SpreadsheetWrapper = (
                                 columns={columns}
                                 data={rowData.filter(r => r)}
                                 showStyles={true}
-                                cellsStyles={cellStyles}
-                                rowStyles={rowStyles}
                                 headerStyles={headerStyles}
                                 selectedCell={selectedCell}
                                 rangesToSelect={rangeToSelect}

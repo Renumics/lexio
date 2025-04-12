@@ -1,17 +1,31 @@
 import {ComponentProps, ReactNode, useState} from "react";
 
-type Props = ComponentProps<"div"> & {
+/**
+ * TooltipProps type
+ *
+ * @type TooltipProps
+ * @property {ReactNode} tooltipContent - The content of the tooltip
+ * @property {boolean | undefined} shouldNotDisplayCondition - Sets when the tooltip content should not be displayed. E.g when children is empty
+ */
+type TooltipProps = ComponentProps<"div"> & {
     tooltipContent: ReactNode;
-    // Sets when the tooltip content should not be displayed. E.g when children is empty
     shouldNotDisplayCondition?: boolean | undefined;
 }
+
+/**
+ * Component used to truncate text and display a tooltip on mouse hover
+ *
+ * @component Tooltip
+ * @param {ReactNode} tooltipContent - The content of the tooltip
+ * @param {boolean | undefined} shouldNotDisplayCondition - Sets when the tooltip content should not be displayed. E.g when children is empty
+ */
 const Tooltip = (
     {
         children,
         tooltipContent,
         shouldNotDisplayCondition = false,
         ...divProps
-    }: Props) => {
+    }: TooltipProps) => {
     const [isVisible, setIsVisible] = useState(false);
 
     return (
