@@ -101,6 +101,8 @@ const useMockData = (): MockData => {
             type: "xlsx",
             relevance: 30,
             data: excelSampleBuffer,
+            // TODO 2: Default value for selected range
+            // TODO 3: Reset worksheet on tab switch -> add loading spinner
             // rangesHighlights: [
             //     {
             //         sheetName: "Equipment List",

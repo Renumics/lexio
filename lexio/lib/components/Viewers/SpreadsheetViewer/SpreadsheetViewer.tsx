@@ -122,6 +122,7 @@ const SpreadsheetWrapper = (
         excelJs: excelJs,
         sheetJs: sheetJs,
     });
+    // TODO 4: Load the theme and apply styles - take PDFViewer / others as reference. Be consistent with the theme.
 
     const switchSpreadsheet = (spreadsheet: string) => {
         setSelectedWorksheetName(spreadsheet);

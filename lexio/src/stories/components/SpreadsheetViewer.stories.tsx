@@ -46,11 +46,12 @@ const SpreadsheetViewerWrapper = ({ url }: { url: string }) => {
         return <p>Loading Excel file...</p>;
     }
 
+    // TODO 1: fix SpreadsheetViewer column collapse issue
     return (
-        <div className="w-full h-full">
-            <SpreadsheetViewer 
+        <div className="w-full h-full overflow-hidden">
+            <SpreadsheetViewer
                 fileName="Call Center Data"
-                fileBufferArray={excelData as ArrayBuffer} 
+                fileBufferArray={excelData as ArrayBuffer}
                 defaultSelectedSheet="Call Center Data"
                 rangesToHighlight={sampleHighlights}
             />
@@ -74,7 +75,7 @@ const meta: Meta<typeof SpreadsheetViewer> = {
     },
     decorators: [
         (Story) => (
-            <div className="h-[600px]" style={{ width: '100%', padding: '1rem', backgroundColor: 'white' }}>
+            <div className="h-[600px]" style={{ width: '100%', padding: '1rem', }}>
                 <LexioProvider onAction={() => {}}>
                     <Story />
                 </LexioProvider>
