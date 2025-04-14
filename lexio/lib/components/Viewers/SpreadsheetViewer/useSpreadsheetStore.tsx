@@ -204,6 +204,34 @@ const useSpreadsheetStore = (
  * @property {typeof ExcelJs} excelJs - ExcelJS instance
  * @property {typeof SheetJs} sheetJs - SheetJS instance
  */
+type InputSpreadsheetViewerStore = {
+    fileBufferArray: ArrayBuffer;
+    defaultSelectedSheet?: string | undefined;
+    rangesToHighlight?: SpreadsheetHighlight[] | undefined;
+    tanstackTable: typeof ReactTable;
+    excelJs: typeof ExcelJs;
+    sheetJs: typeof SheetJs;
+}
+
+type OutputSpreadsheetViewerStore = {
+    sheetNames: string[];
+    selectedWorksheetName: string;
+    setSelectedWorksheetName: (spreadsheet: string) => void;
+    selectedCell?: SelectedCell  | undefined;
+    setSelectedCell: (cell?: { row: number, column: string } | undefined) => void;
+    rangeToSelect: Range[];
+    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
+    isLoading: boolean;
+    error: unknown;
+    columns: ColumnDef<Row, CellContent>[];
+    rowData: RowList;
+    cellStyles?: Record<string, CSSProperties> | undefined;
+    rowStyles?: Record<string, CSSProperties> | undefined;
+    headerStyles?: Record<string, CSSProperties> | undefined;
+    getMetaDataOfSelectedCell: () => CellMetaData;
+    selectedRange: Range | undefined;
+    setSelectedRange: (range?: Range | undefined) => void;
+}
 
 /**
  * A custom hook that manages the state and operations for the SpreadsheetViewer component.

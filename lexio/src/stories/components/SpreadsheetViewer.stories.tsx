@@ -46,9 +46,8 @@ const SpreadsheetViewerWrapper = ({ url }: { url: string }) => {
         return <p>Loading Excel file...</p>;
     }
 
-    // TODO 1: fix SpreadsheetViewer column collapse issue
     return (
-        <div className="w-full h-full overflow-hidden">
+        <div className="w-full h-full">
             <SpreadsheetViewer
                 fileName="Call Center Data"
                 fileBufferArray={excelData as ArrayBuffer}

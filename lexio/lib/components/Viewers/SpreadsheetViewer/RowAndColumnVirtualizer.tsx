@@ -11,7 +11,7 @@ import {
 } from "react"
 import * as ReactTable from "@tanstack/react-table";
 import * as ReactVirtual from "@tanstack/react-virtual";
-import {MergeGroup, Range, SelectedCell} from "./useSpreadsheetStore";
+import {MergedRange, MergeGroup, Range, SelectedCell} from "./useSpreadsheetStore";
 import {cn} from "./ui/utils.ts";
 import {
     applyMergesToCells,
@@ -56,6 +56,22 @@ type CellAndCellContainerRefType = {
  * @property {typeof ReactVirtual} tanstackVirtual - TanStack Virtual instance
  * @property {typeof SheetJs} sheetJs - SheetJS instance
  */
+type TableContainerProps<TData, TValue> = {
+    columns: ReactTable.ColumnDef<TData, TValue>[];
+    data: TData[];
+    showStyles: boolean;
+    headerStyles?: Record<string, CSSProperties> | undefined;
+    selectedCell?: SelectedCell | undefined;
+    setSelectedCell: (cell: SelectedCell | undefined) => void;
+    rangesToSelect: Range[];
+    parentContainerHeight?: number | undefined;
+    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
+    selectedSheetName: string;
+    setSelectedRange: (range?: Range | undefined) => void;
+    tanstackTable: typeof ReactTable;
+    tanstackVirtual: typeof ReactVirtual;
+    sheetJs: typeof SheetJs;
+}
 
 /**
  * The TableContainer component implements a virtualized spreadsheet table view with advanced features
@@ -198,7 +214,10 @@ export const TableContainer = <TData, TValue>(
         measureElement:
             typeof window !== "undefined" &&
             navigator.userAgent.indexOf("Firefox") === -1
-                ? element => element?.getBoundingClientRect().height
+                ? (element?: HTMLTableRowElement) => {
+                    if (!element) return 0;
+                    return element.getBoundingClientRect().height;
+                }
                 : undefined,
         overscan: 5,
         onChange: () => {
@@ -229,7 +248,7 @@ export const TableContainer = <TData, TValue>(
          if (!selectedCell || !mergedGroupOfSelectedWorksheet) return;
         const headerCells: string[] = [];
         const headerRowCells: number[] = [];
-        mergedGroupOfSelectedWorksheet.mergedRanges.forEach((range) => {
+        mergedGroupOfSelectedWorksheet.mergedRanges.forEach((range: MergedRange) => {
                if (!selectedCell) return;
                const startColumn = utils.decode_col(range.start.column);
                const endColumn = utils.decode_col(range.end.column);
@@ -306,7 +325,6 @@ export const TableContainer = <TData, TValue>(
                     columnVirtualizer={columnVirtualizer}
                     // @ts-ignore
                     table={table}
-                    rowCount={rowVirtualizer.getVirtualItems().length}
                     selectedHeaderCells={selectedHeaderCells}
                     virtualPaddingLeft={virtualPaddingLeft}
                     virtualPaddingRight={virtualPaddingRight}
@@ -898,76 +916,83 @@ const TableBodyCell = forwardRef(
 
     const isCellClickable = !(isFirst || cell.row.index === 0);
 
-    return (
-        <td
-            key={`${cell.id}-${selectedSheetName}`}
-            ref={(el) => {
-                if (el) {
-                    cellRefs.current[cellId] = el;
-                    return;
-                }
-                delete cellRefs.current[cellId];
-            }}
-            id={cellId}
-            style={{
-                // @ts-ignore
-                ...(cell.row.original[cellId] ?? {}),
-                ...(isFirstCellOfSelectedRow ? {
-                    borderBottom: "none",
-                } : {}),
-            }}
-            data-label={cell.column.columnDef.header}
-            className={cn(
-                `${isFirstCellOfSelectedRow ? "!bg-blue-500" : ""}`,
-                `${isHeaderCellSelected ? "!bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0" : ""}`,
-            )}
-            onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
-            onMouseDown={handleMouseDown ? () => handleMouseDown(cellId) : undefined}
-            onMouseEnter={handleMouseEnter ? () => handleMouseEnter(cellId) : undefined}
-            onMouseUp={handleMouseUp ? () => handleMouseUp() : undefined}
-        >
-            <div
+        return (
+            <td
+                key={`${cell.id}-${selectedSheetName}`}
                 ref={(el) => {
                     if (el) {
-                        cellInnerContainerRefs.current[cellInnerContainerId] = el;
+                        cellRefs.current[cellId] = el;
                         return;
                     }
-                    delete cellInnerContainerRefs.current[cellInnerContainerId];
+                    delete cellRefs.current[cellId];
                 }}
-                id={cellInnerContainerId}
-                className={cn(
-                    `${isCellSelected ? "border-[2px] !border-t-[2px] !border-b-[2px] !border-r-[2px] !border-l-[2px] !border-blue-500" : ""}`,
-                )}
-                onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
+                id={cellId}
                 style={{
                     // @ts-ignore
-                    ...(cell.row.original[cellBorderContainerId] ?? {}),
+                    ...(cell.row.original[cellId] ?? {}),
+                    ...(isFirstCellOfSelectedRow ? {
+                        borderBottom: "none",
+                    } : {}),
                 }}
+                data-label={cell.column.columnDef.header}
+                className={cn(
+                    `${isFirstCellOfSelectedRow ? "!bg-blue-500" : ""}`,
+                    `${isHeaderCellSelected ? "!bg-blue-500 !border-blue-500 !border-solid !border-l !border-r !border-b-0 !border-t-0" : ""}`,
+                )}
+                onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
+                onMouseDown={handleMouseDown ? () => handleMouseDown(cellId) : undefined}
+                onMouseEnter={handleMouseEnter ? () => handleMouseEnter(cellId) : undefined}
+                onMouseUp={handleMouseUp ? () => handleMouseUp() : undefined}
             >
                 <div
+                    ref={(el) => {
+                        if (el) {
+                            cellInnerContainerRefs.current[cellInnerContainerId] = el;
+                            return;
+                        }
+                        delete cellInnerContainerRefs.current[cellInnerContainerId];
+                    }}
+                    id={cellInnerContainerId}
+                    className={cn(
+                        `${isCellSelected ? "border-[2px] !border-t-[2px] !border-b-[2px] !border-r-[2px] !border-l-[2px] !border-blue-500" : ""}`,
+                    )}
+                    onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
                     style={{
                         // @ts-ignore
-                        ...(cell.row.original[cellContentWrapperContainerId] ?? {}),
+                        ...(cell.row.original[cellInnerContainerId] ?? {}),
                     }}
                 >
                     <div
-                        className={cn(
-                            `${isHeaderCellSelected || isFirstCellOfSelectedRow ? "!font-bold !text-white" : ""}`,
-                        )}
                         style={{
                             // @ts-ignore
-                            ...(cell.row.original[cellContentContainerId] ?? {}),
+                            ...(cell.row.original[cellBorderContainerId] ?? {}),
                         }}
                     >
-                        {ReactTable.flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        <div
+                            style={{
+                                // @ts-ignore
+                                ...(cell.row.original[cellContentWrapperContainerId] ?? {}),
+                            }}
+                        >
+                            <div
+                                className={cn(
+                                    `${isHeaderCellSelected || isFirstCellOfSelectedRow ? "!font-bold !text-white" : ""}`,
+                                )}
+                                style={{
+                                    // @ts-ignore
+                                    ...(cell.row.original[cellContentContainerId] ?? {}),
+                                }}
+                            >
+                                {ReactTable.flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                        </div>
                     </div>
+                    {isCellSelected ?
+                        <div
+                            className="bg-blue-500 text-blue-500 size-2 border border-white border-r-0 border-b-0 drop-shadow-lg rounded-[2px] absolute bottom-[-1px] right-[-1px] z-[5]"
+                        ></div> : null
+                    }
                 </div>
-            </div>
-        {isCellSelected ?
-            <div
-                className="bg-blue-500 text-blue-500 size-2 border border-white border-r-0 border-b-0 drop-shadow-lg rounded-[2px] absolute bottom-[-1px] right-[-1px] z-[5]"
-            ></div> : null
-        }
-        </td>
-    )
+            </td>
+        )
 });
