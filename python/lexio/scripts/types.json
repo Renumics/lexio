@@ -64,7 +64,8 @@
             "html",
             "markdown",
             "pdf",
-            "text"
+            "text",
+            "xlsx"
           ],
           "type": "string",
           "title": "type"
@@ -87,7 +88,7 @@
           "title": "href"
         },
         "data": {
-          "description": "Optional data to display in the ContentDisplay component. This can be set initially\nor lazily loaded when the `SET_SELECTED_SOURCE` action is handled. Simply return the data \nfrom your `onAction()` function as `sourceData\\` in the response.\n\nFor PDF sources, this should be a Uint8Array containing the binary PDF data.\nFor text, markdown, and HTML sources, this should be a string.",
+          "description": "Optional data to display in the ContentDisplay component. This can be set initially\nor lazily loaded when the `SET_SELECTED_SOURCE` action is handled. Simply return the data\nfrom your `onAction()` function as `sourceData\\` in the response.\n\nFor PDF sources, this should be a Uint8Array containing the binary PDF data.\nFor text, markdown, and HTML sources, this should be a string.\nFor spreadsheet sources, this should be a ArrayBuffer containing the binary data of the file.",
           "type": "[string, bytes]",
           "title": "data"
         },
@@ -97,11 +98,21 @@
           "title": "metadata"
         },
         "highlights": {
-          "description": "Highlight annotations in the PDF document. Only applicable for PDF sources.\nThese highlights will be visually displayed in the PDF viewer.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/PDFHighlight"
-          },
+          "description": "Highlight annotations in the PDF document and Microsoft Excel spreadsheet. Only applicable for PDF and Microsoft Excel sources.\nThese highlights will be visually displayed in the PDF viewer and spreadsheet viewer.",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/PDFHighlight"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SpreadsheetHighlight"
+              }
+            }
+          ],
           "title": "highlights"
         }
       },
@@ -239,6 +250,36 @@
       "required": [
         "page",
         "rect"
+      ]
+    },
+    "SpreadsheetHighlight": {
+      "description": "Represents ranges to highlight on a sheet in a spreadsheet file.",
+      "title": "SpreadsheetHighlight",
+      "type": "object",
+      "properties": {
+        "sheetName": {
+          "description": "The name of the sheet where the highlight appears.",
+          "type": "string",
+          "title": "sheetName"
+        },
+        "ranges": {
+          "description": "The ranges to highlight. E.g \"A1:B5\", \"B100:F200\"",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "ranges"
+        }
+      },
+      "defaultProperties": [],
+      "additionalProperties": false,
+      "propertyOrder": [
+        "sheetName",
+        "ranges"
+      ],
+      "required": [
+        "ranges",
+        "sheetName"
       ]
     },
     "UUID": {

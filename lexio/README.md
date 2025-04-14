@@ -16,7 +16,7 @@
 
 Lexio is a powerful React library for building Retrieval-Augmented Generation (RAG) interfaces, handling complex workflows out of the box while remaining simple to use and highly customizable.
 
-It supports multiple document types (PDF, HTML, Markdown, Text) with advanced features like streaming responses, source highlighting, and a comprehensive state management system.
+It supports multiple document types (PDF, HTML, Markdown, Text, Excel) with advanced features like streaming responses, source highlighting, and a comprehensive state management system.
 
 Developers can use ready-made components or easily build custom ones using React hooks and the flexible action handler pattern.
 
@@ -62,6 +62,24 @@ const App = () => (
 );
 ```
 Follow the [documentation](https://renumics.com/lexio/) to learn more about the library.
+
+
+## Dependencies
+
+Lexio has minimal core dependencies, but some advanced components require additional packages that are not installed by default:
+
+- **SpreadsheetViewer**: For Excel/spreadsheet file viewing, you'll need to install:
+  ```bash
+  npm install exceljs xlsx @tanstack/react-table @tanstack/react-virtual
+  ```
+
+- **Explanations Module**: For advanced explanation features, you'll need to install:
+  ```bash
+  npm install compromise js-tiktoken sbd @types/sbd
+  ```
+
+These dependencies are dynamically imported when the components are used, but you must install them yourself to avoid runtime errors.
+
 
 ## Core Concepts
 

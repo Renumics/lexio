@@ -19,13 +19,47 @@ import type * as SheetJs from "xlsx";
  * @property {string} [defaultSelectedSheet] - Optional name of sheet to select by default
  * @property {SpreadsheetHighlight[]} [rangesToHighlight] - Optional cell ranges to highlight
  */
-type Props = {
+type SpreadsheetViewerProps = {
     fileName?: string | undefined;
     fileBufferArray: ArrayBuffer;
     defaultSelectedSheet?: string | undefined;
     rangesToHighlight?: SpreadsheetHighlight[] | undefined;
 }
-const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighlight }: Props) => {
+
+/**
+ * TODO: create complete documentation for this component -> will be shown in the storybook!!!
+ * 
+ * A component for displaying spreadsheet documents with interactive viewing capabilities.
+ * Used to render Excel and other spreadsheet formats with support for sheet selection and cell highlighting.
+ *
+ * If no `defaultSelectedSheet` is provided, the component will select the first available sheet.
+ * 
+ * @component
+ * @param {SpreadsheetViewerProps} props - The props for the SpreadsheetViewer
+ * @returns {JSX.Element} A spreadsheet viewer with sheet selection and cell highlighting
+ * 
+ * @remarks
+ * **Features:**
+ * - Multiple sheet navigation
+ * - Cell selection
+ * - Support for cell range highlighting
+ * - Virtualized rendering for performance with large spreadsheets
+ * - Compatible with Excel file formats
+ *
+ * @example
+ *
+ * ```tsx
+ * <SpreadsheetViewer
+ *   fileName="Financial Report"
+ *   fileBufferArray={excelData as ArrayBuffer}
+ *   defaultSelectedSheet="Q1 Results"
+ *   rangesToHighlight={[
+ *     { sheetName: "Q1 Results", ranges: ["A1:B5", "D10:F20"] }
+ *   ]}
+ * />
+ * ```
+ */
+const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighlight }: SpreadsheetViewerProps) => {
     return (
         <DependenciesLoader>
             {(dependencies) =>

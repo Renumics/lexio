@@ -4,6 +4,7 @@
     "Source",
     "StreamChunk",
     "PDFHighlight",
+    "SpreadsheetHighlight",
     "UUID"
   ]
 }
