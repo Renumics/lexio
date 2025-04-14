@@ -80,7 +80,6 @@ Lexio has minimal core dependencies, but some advanced components require additi
 
 These dependencies are dynamically imported when the components are used, but you must install them yourself to avoid runtime errors.
 
-
 ## Core Concepts
 
 ### 🔄 LexioProvider
