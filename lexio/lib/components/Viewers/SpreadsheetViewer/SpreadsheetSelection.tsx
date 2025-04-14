@@ -1,3 +1,12 @@
+/**
+ * Props for the SpreadsheetSelection component
+ * @typedef {Object} PropsSpreadsheetSelection
+ * @property {string[]} spreadsheets - Array of spreadsheet names to display as tabs
+ * @property {string} selectedSpreadsheet - Currently selected spreadsheet name
+ * @property {function} setSelectedSpreadsheet - Callback to update selected spreadsheet
+ * @property {number} [parentWidth] - Optional width constraint from parent container
+ * @property {number} [parentHeight] - Optional height constraint from parent container
+ */
 type Tab = {
     value: string,
     onClick: () => void;
@@ -59,4 +68,27 @@ const SpreadsheetSelection = (
 };
 SpreadsheetSelection.displayName = "SpreadsheetSelectionComponent";
 
+/**
+ * The SpreadsheetSelection component displays a tabbed interface for switching between different spreadsheets.
+ * It renders a row of tabs where each tab represents a spreadsheet, with the currently selected spreadsheet
+ * visually highlighted.
+ *
+ * Features:
+ * - Responsive grid layout that adjusts to number of spreadsheets
+ * - Visual indication of selected spreadsheet
+ * - Click handling for spreadsheet selection
+ * - Customizable dimensions based on parent container
+ *
+ * @component
+ * @example
+ * ```tsx
+ * <SpreadsheetSelection
+ *   spreadsheets={['Sheet1', 'Sheet2', 'Sheet3']}
+ *   selectedSpreadsheet="Sheet1"
+ *   setSelectedSpreadsheet={(sheet) => console.log(`Selected ${sheet}`)}
+ *   parentWidth={800}
+ *   parentHeight={40}
+ * />
+ * ```
+ */
 export {SpreadsheetSelection};

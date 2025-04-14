@@ -194,34 +194,47 @@ const useSpreadsheetStore = (
     };
 };
 
-type InputSpreadsheetViewerStore = {
-    fileBufferArray: ArrayBuffer;
-    defaultSelectedSheet?: string | undefined;
-    rangesToHighlight?: SpreadsheetHighlight[] | undefined;
-    tanstackTable: typeof ReactTable;
-    excelJs: typeof ExcelJs;
-    sheetJs: typeof SheetJs;
-}
+/**
+ * Input parameters for the useSpreadsheetViewerStore hook
+ * @typedef {Object} InputSpreadsheetViewerStore
+ * @property {ArrayBuffer} fileBufferArray - The spreadsheet file contents
+ * @property {string} [defaultSelectedSheet] - Optional default sheet to select
+ * @property {SpreadsheetHighlight[]} [rangesToHighlight] - Optional ranges to highlight
+ * @property {typeof ReactTable} tanstackTable - TanStack Table instance
+ * @property {typeof ExcelJs} excelJs - ExcelJS instance
+ * @property {typeof SheetJs} sheetJs - SheetJS instance
+ */
 
-type OutputSpreadsheetViewerStore = {
-    sheetNames: string[];
-    selectedWorksheetName: string;
-    setSelectedWorksheetName: (spreadsheet: string) => void;
-    selectedCell?: SelectedCell  | undefined;
-    setSelectedCell: (cell?: { row: number, column: string } | undefined) => void;
-    rangeToSelect: Range[];
-    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
-    isLoading: boolean;
-    error: unknown;
-    columns: ColumnDef<Row, CellContent>[];
-    rowData: RowList;
-    cellStyles?: Record<string, CSSProperties> | undefined;
-    rowStyles?: Record<string, CSSProperties> | undefined;
-    headerStyles?: Record<string, CSSProperties> | undefined;
-    getMetaDataOfSelectedCell: () => CellMetaData;
-    selectedRange: Range | undefined;
-    setSelectedRange: (range?: Range | undefined) => void;
-}
+/**
+ * A custom hook that manages the state and operations for the SpreadsheetViewer component.
+ * It handles loading spreadsheet data, managing selections, and maintaining UI state.
+ *
+ * Features:
+ * - Spreadsheet file loading and parsing
+ * - Sheet management and selection
+ * - Cell and range selection
+ * - Style extraction and management
+ * - Merged cell tracking
+ * - Cell metadata access
+ *
+ * @function
+ * @param {InputSpreadsheetViewerStore} props - Input parameters
+ * @returns {OutputSpreadsheetViewerStore} Spreadsheet state and operations
+ *
+ * @example
+ * ```tsx
+ * const {
+ *   selectedWorksheetName,
+ *   selectedCell,
+ *   rowData,
+ *   // ... other values
+ * } = useSpreadsheetViewerStore({
+ *   fileBufferArray: excelBuffer,
+ *   defaultSelectedSheet: "Sheet1",
+ *   // ... other props
+ * });
+ * ```
+ */
 export const useSpreadsheetViewerStore = (
     {
         fileBufferArray,

@@ -11,6 +11,14 @@ import * as ReactVirtual from "@tanstack/react-virtual";
 import type * as ExcelJs from "exceljs";
 import type * as SheetJs from "xlsx";
 
+/**
+ * Props for the SpreadsheetViewer component
+ * @typedef {Object} Props
+ * @property {string} [fileName] - Optional name of the spreadsheet file
+ * @property {ArrayBuffer} fileBufferArray - The spreadsheet file contents as an ArrayBuffer
+ * @property {string} [defaultSelectedSheet] - Optional name of sheet to select by default
+ * @property {SpreadsheetHighlight[]} [rangesToHighlight] - Optional cell ranges to highlight
+ */
 type Props = {
     fileName?: string | undefined;
     fileBufferArray: ArrayBuffer;

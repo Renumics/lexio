@@ -40,50 +40,37 @@ type CellAndCellContainerRefType = {
 
 /**
  * Props for the TableContainer component
- *
- * @type TableContainerProps
- * @template TData
- * @template TValue
- * @property {ReactTable.ColumnDef<TData, TValue>[]} columns - Column definitions for the table.
- * @property {TData[]} data - Data to be displayed in the table.
- * @property {boolean} showStyles - Whether to apply specific styles for the table.
- * @property {Record<string, CSSProperties> | undefined} headerStyles - Styles for table headers.
- * @property {SelectedCell | undefined} selectedCell - The currently selected cell in the table.
- * @property {(cell: SelectedCell | undefined) => void} setSelectedCell - Callback to update the selected cell.
- * @property {Range[]} rangesToSelect - Ranges of cells to highlight in the table.
- * @property {number | undefined} parentContainerHeight - The height of the parent container (in pixels) if it doesn't have a fixed size.
- * @property {MergeGroup | undefined} mergedGroupOfSelectedWorksheet - Merged group of selected worksheet ranges (loaded from spreadsheet file).
- * @property {string} selectedSheetName - Name of the selected sheet.
- * @property {(range?: Range | undefined) => void} setSelectedRange - Callback to update the selected range.
- * @property {typeof ReactTable} tanstackTable - Instance of TanStack Table library.
- * @property {typeof ReactVirtual} tanstackVirtual - Instance of TanStack Virtualization library.
- * @property {typeof SheetJs} sheetJs - Instance of SheetJs library utilities.
+ * @typedef {Object} TableContainerProps
+ * @property {ReactTable.ColumnDef<TData, TValue>[]} columns - Column definitions for the table
+ * @property {TData[]} data - Row data for the table
+ * @property {boolean} showStyles - Whether to show cell styles
+ * @property {Record<string, CSSProperties>} [headerStyles] - Optional styles for header cells
+ * @property {SelectedCell} [selectedCell] - Currently selected cell
+ * @property {function} setSelectedCell - Callback to update selected cell
+ * @property {Range[]} rangesToSelect - Ranges of cells to highlight
+ * @property {number} [parentContainerHeight] - Optional height constraint from parent
+ * @property {MergeGroup} mergedGroupOfSelectedWorksheet - Information about merged cells
+ * @property {string} selectedSheetName - Name of currently selected worksheet
+ * @property {function} setSelectedRange - Callback to update selected range
+ * @property {typeof ReactTable} tanstackTable - TanStack Table instance
+ * @property {typeof ReactVirtual} tanstackVirtual - TanStack Virtual instance
+ * @property {typeof SheetJs} sheetJs - SheetJS instance
  */
-type TableContainerProps<TData, TValue> = {
-    columns: ReactTable.ColumnDef<TData, TValue>[];
-    data: TData[];
-    showStyles: boolean;
-    headerStyles?: Record<string, CSSProperties> | undefined;
-    selectedCell?: SelectedCell | undefined;
-    setSelectedCell: (cell: SelectedCell | undefined) => void;
-    rangesToSelect: Range[];
-    parentContainerHeight?: number | undefined;
-    mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
-    selectedSheetName: string;
-    setSelectedRange: (range?: Range | undefined) => void;
-    tanstackTable: typeof ReactTable;
-    tanstackVirtual: typeof ReactVirtual;
-    sheetJs: typeof SheetJs;
-}
 
 /**
- * A container component for rendering a virtualized and interactive table
- * with support for cell selection, merging, and custom styles.
+ * The TableContainer component implements a virtualized spreadsheet table view with advanced features
+ * like cell selection, merged cells, and style preservation.
  *
- * @template TData
- * @template TValue
- * @param {TableContainerProps<TData, TValue>} props - The props for the component.
- * @returns {JSX.Element} The rendered table container component.
+ * Features:
+ * - Virtual scrolling for both rows and columns
+ * - Cell selection and range selection
+ * - Merged cell support
+ * - Style preservation
+ * - Header row and column freezing
+ * - Mouse event handling for cell selection
+ *
+ * @component
+ * @template TData,TValue
  */
 export const TableContainer = <TData, TValue>(
     {
@@ -954,40 +941,33 @@ const TableBodyCell = forwardRef(
                 onClick={isCellClickable ? () => handleCellSelection(cell) : undefined}
                 style={{
                     // @ts-ignore
-                    ...(cell.row.original[cellInnerContainerId] ?? {}),
+                    ...(cell.row.original[cellBorderContainerId] ?? {}),
                 }}
             >
                 <div
                     style={{
                         // @ts-ignore
-                        ...(cell.row.original[cellBorderContainerId] ?? {}),
+                        ...(cell.row.original[cellContentWrapperContainerId] ?? {}),
                     }}
                 >
                     <div
+                        className={cn(
+                            `${isHeaderCellSelected || isFirstCellOfSelectedRow ? "!font-bold !text-white" : ""}`,
+                        )}
                         style={{
                             // @ts-ignore
-                            ...(cell.row.original[cellContentWrapperContainerId] ?? {}),
+                            ...(cell.row.original[cellContentContainerId] ?? {}),
                         }}
                     >
-                        <div
-                            className={cn(
-                                `${isHeaderCellSelected || isFirstCellOfSelectedRow ? "!font-bold !text-white" : ""}`,
-                            )}
-                            style={{
-                                // @ts-ignore
-                                ...(cell.row.original[cellContentContainerId] ?? {}),
-                            }}
-                        >
-                            {ReactTable.flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </div>
+                        {ReactTable.flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </div>
                 </div>
-            {isCellSelected ?
-                <div
-                    className="bg-blue-500 text-blue-500 size-2 border border-white border-r-0 border-b-0 drop-shadow-lg rounded-[2px] absolute bottom-[-1px] right-[-1px] z-[5]"
-                ></div> : null
-            }
             </div>
+        {isCellSelected ?
+            <div
+                className="bg-blue-500 text-blue-500 size-2 border border-white border-r-0 border-b-0 drop-shadow-lg rounded-[2px] absolute bottom-[-1px] right-[-1px] z-[5]"
+            ></div> : null
+        }
         </td>
     )
 });
