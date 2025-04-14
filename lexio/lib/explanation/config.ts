@@ -47,10 +47,10 @@ export const MAX_TOKENS = 500;
 // Processing Configuration
 export const CONCURRENCY = 5;
 export const MAX_CHARS = 5000;
-export const IDEA_SPLITTING_METHOD = 'heuristic'; //'llm';
-export const MATCHING_METHOD = 'heuristic'; //'embedding' as const;
+export const IDEA_SPLITTING_METHOD = 'llm'; //'heuristic'; //'llm';
+export const MATCHING_METHOD = 'embedding'; //'heuristic'; //'embedding' as const;
 export const FINAL_ANSWER = '';  // This will be overridden by App.tsx
-export const DEBUG = false;  // Debug flag, defaults to false
+export const DEBUG = true;  // Debug flag, defaults to false
 
 // Similarity Search Configuration
 export const TOP_K_MATCHES = 6;

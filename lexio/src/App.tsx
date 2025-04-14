@@ -30,14 +30,17 @@ const MOCKED_RESPONSE = {
 }; 
 
 const MOCKED_SOURCES = [{
-  title: 'Deep Learning for Traffic Data Imputation',
-  type: 'pdf' as const,
+  id: 'attention-paper',
+  title: "Attention Is All You Need",
+  type: "pdf" as const,
   relevance: 1,
+  description: "The original Transformer paper that revolutionized natural language processing",
+  href: "https://arxiv.org/pdf/1706.03762.pdf",
   metadata: {
-    id: 'traffic-imputation.pdf',
-    authors: 'Chen et al.',
-    year: '2023',
-    pages: '6'
+    authors: 'Vaswani et al.',
+    year: '2017',
+    pages: '11',
+    page: 1
   }
 }];
 
