@@ -10,6 +10,7 @@ import * as ReactTable from "@tanstack/react-table";
 import * as ReactVirtual from "@tanstack/react-virtual";
 import type * as ExcelJs from "exceljs";
 import type * as SheetJs from "xlsx";
+import {useCallback, useMemo} from "react";
 
 /**
  * Props for the SpreadsheetViewer component
@@ -139,20 +140,22 @@ const SpreadsheetWrapper = (
 
     const cellMetaData = computeMetadataOfSelectedCell();
 
-    const resolveSelectedRange = (): string => {
+    const resolveSelectedRange = useCallback((): string => {
+        if (!selectedRange && !selectedCell) {
+            return "";
+        }
         if (!selectedRange && selectedCell) {
             return `${selectedCell.column}${selectedCell.row}`;
         }
         if (selectedRange && selectedCell && (selectedRange[0] === selectedRange[1])) {
             return `${selectedCell.column}${selectedCell.row}`;
         }
-        if (selectedRange) {
-            return `${selectedRange[0]}:${selectedRange[1]}`
-        }
         return "";
-    }
+    }, [selectedCell, selectedRange])
 
-    const selectedCellRange = resolveSelectedRange();
+    const selectedCellRange = useMemo(() => {
+        return resolveSelectedRange();
+    }, [resolveSelectedRange]);
 
     if (isLoading) {
         return (
