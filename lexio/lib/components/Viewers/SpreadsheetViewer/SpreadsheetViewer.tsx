@@ -150,7 +150,7 @@ const SpreadsheetWrapper = () => {
                 borderRadius: spreadsheetTheme.borderRadius,
             }}
         >
-            <div className="grid grid-cols-[1fr_max-content] p-2 gap-2 border-b">
+            <div className="grid p-2 gap-2 border-b">
                 <div className="grid grid-cols-[max-content_1fr] gap-2">
                     <Tooltip
                         tooltipContent={selectedCellRange}
