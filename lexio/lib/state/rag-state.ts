@@ -1016,21 +1016,12 @@ export const dispatchAtom = atom(
             }
 
             // // ---- Process any follow-up action (recursive)
-            // if (payload && payload.followUpAction) {
-            //     promises.push(Promise.resolve(set(dispatchAtom, payload.followUpAction, true)));
-            // }
-            //
-            // // ---- Wait for all writes
-            // await Promise.all(promises);
-
-           // First, wait for all state updates to complete
-            await Promise.all(promises);
-
-            // Process follow-up action sequentially after all state updates are done
             if (payload && payload.followUpAction) {
-                await (dispatchAtom.write as any)(get, set, payload.followUpAction, true);
+                promises.push(Promise.resolve((dispatchAtom.write as any)(get, set, payload.followUpAction, true)));
             }
 
+            // ---- Wait for all writes
+            await Promise.all(promises);
 
         } catch (error) {
             console.error("Error in dispatch async writes:", error);
