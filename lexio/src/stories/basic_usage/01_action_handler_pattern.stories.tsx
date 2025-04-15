@@ -180,8 +180,8 @@ Each action type has specific return values defined in the \`allowedActionReturn
 
 \`\`\`typescript
 const allowedActionReturnValues: Record<UserAction['type'], string[]> = {
-    ADD_USER_MESSAGE: ['response', 'sources', 'setUserMessage', 'followUpAction'],
-    SET_ACTIVE_MESSAGE: ['followUpAction'],
+    ADD_USER_MESSAGE: ['response', 'sources', 'setUserMessage', 'setUserMessageId', 'setAssistantMessageId', 'followUpAction'],
+    SET_ACTIVE_MESSAGE: ['messageId', 'followUpAction'],
     CLEAR_MESSAGES: ['followUpAction'],
     SEARCH_SOURCES: ['sources', 'followUpAction'],
     CLEAR_SOURCES: ['followUpAction'],
