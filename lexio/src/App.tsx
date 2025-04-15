@@ -160,8 +160,19 @@ function App() {
         response: Promise.resolve(MOCKED_RESPONSE.answer),
         sources: Promise.resolve(MOCKED_SOURCES),
         citations: Promise.resolve([]), // Empty citations - they'll be generated when source is selected
-        setUserMessageId: Promise.resolve("x-x-x-x-x-x"),
+        setUserMessageId: Promise.resolve("x-x-x-x-x-x"),  // test setting id
+        followUpAction: {
+          type: 'SET_ACTIVE_MESSAGE',
+            messageId: 'x-x-x-x-x-x',
+        }
       };
+    }
+
+    if (action.type === 'SET_ACTIVE_MESSAGE') {
+      console.log('SET_ACTIVE_MESSAGE action started');
+
+      // this is only for testing of the followUp action call
+      return {};
     }
 
   }, [contentSource, lastProcessedMessageId]);

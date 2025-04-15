@@ -208,7 +208,7 @@ export const addUserMessageAtom = atom(
         const config = get(configAtom);
         const abortController = new AbortController();
 
-        // todo: new
+        // Initialize a new UUID for the user and assistant messages.
         let userMessageId = crypto.randomUUID() as UUID;
         let assistantMessageId = crypto.randomUUID() as UUID;
 
@@ -423,6 +423,7 @@ export const addUserMessageAtom = atom(
             }
 
             // todo: potentially wrap with addTimeout -> analogous to processCitations
+            // set the user message id in the completed messages to the awaited value
             if (response.setUserMessageId) {
                 const userMessageIdResolved = await response.setUserMessageId
 
@@ -435,7 +436,8 @@ export const addUserMessageAtom = atom(
                     return message;
                 }));
             }
-            // todo;
+            // todo: potentially wrap with addTimeout -> analogous to processCitations
+            // set the assistant message id in the completed messages to the awaited value
             if (response.setAssistantMessageId) {
                 const assistantMessageIdResolved = await response.setAssistantMessageId
                 const currentMessages = get(_completedMessagesAtom);

@@ -400,7 +400,7 @@ export type UserAction =
  * @property {Promise<Citation[]>} [citations] - Citations related to the message. These will be displayed in the SourcesDisplay component.
  * @property {string} [setUserMessage] - Updated user message. Can be used to modify the user's message before it's added to the chat.
  * @property {string} [setUserMessageId] - ID of the user message. Can be used to modify the message ID before it's added to the chat.
- * @property {string} [setAssistantMessageId] - ID of the assistant message. Can be used to modify the message ID before it's added to the chat.
+ * @property {string} [setAssistantMessageId] - ID of the assistant message (response). Can be used to modify the message ID before it's added to the chat.
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes. Useful for chaining actions.
  */
 export interface AddUserMessageActionResponse {
@@ -408,8 +408,8 @@ export interface AddUserMessageActionResponse {
   sources?: Promise<Omit<Source, 'id'>[] | Source[]>; // id is generated here
   citations?: Promise<Citation[] | Omit<Citation, 'id'>[]>;
   setUserMessage?: string;
-  setUserMessageId?: Promise<UUID>;  // todo: new
-  setAssistantMessageId?: Promise<UUID>;  // todo: new
+  setUserMessageId?: Promise<UUID>;
+  setAssistantMessageId?: Promise<UUID>;
   followUpAction?: UserAction;
 }
 
