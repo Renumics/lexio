@@ -4,8 +4,8 @@ import { Message, Source } from '../types';
 
 
 const allowedActionReturnValues: Record<UserAction['type'], string[]> = {
-    ADD_USER_MESSAGE: ['response', 'sources', 'setUserMessage', 'followUpAction'],
-    SET_ACTIVE_MESSAGE: ['followUpAction'],
+    ADD_USER_MESSAGE: ['response', 'sources', 'setUserMessage', 'setUserMessageId', 'setAssistantMessageId', 'followUpAction'],
+    SET_ACTIVE_MESSAGE: ['messageId', 'followUpAction'],
     CLEAR_MESSAGES: ['followUpAction'],
     SEARCH_SOURCES: ['sources', 'followUpAction'],
     CLEAR_SOURCES: ['followUpAction'],
@@ -208,12 +208,16 @@ export const addUserMessageAtom = atom(
         const config = get(configAtom);
         const abortController = new AbortController();
 
+        // todo: new
+        let userMessageId = crypto.randomUUID() as UUID;
+        let assistantMessageId = crypto.randomUUID() as UUID;
+
         // Handle user message modification.
         if (response.setUserMessage) {
             set(_completedMessagesAtom, [
                 ...get(_completedMessagesAtom),
                 {
-                    id: crypto.randomUUID() as UUID,
+                    id: userMessageId,
                     role: 'user',
                     content: response.setUserMessage,
                 },
@@ -222,7 +226,7 @@ export const addUserMessageAtom = atom(
             set(_completedMessagesAtom, [
                 ...get(_completedMessagesAtom),
                 {
-                    id: crypto.randomUUID() as UUID,
+                    id: userMessageId,
                     role: 'user',
                     content: action.message,
                 },
@@ -271,12 +275,8 @@ export const addUserMessageAtom = atom(
         const processMessage = async () => {
             if (response.response) {
                 let accumulatedContent = '';
-                let messageId: UUID;
                 
                 if (Symbol.asyncIterator in response.response) {
-                    // Create a single consistent ID for the entire streaming message
-                    messageId = crypto.randomUUID() as UUID;
-
                     // Streaming response: process each chunk.
                     const streamTimeout = new StreamTimeout(config.timeouts?.stream);
                     for await (const chunk of response.response as AsyncIterable<StreamChunk>) {
@@ -285,7 +285,7 @@ export const addUserMessageAtom = atom(
                         accumulatedContent += chunk.content ?? '';
                         // Provide immediate feedback as streaming chunks arrive.
                         set(currentStreamAtom, {
-                            id: messageId, // Use the same ID for all updates
+                            id: assistantMessageId, // Use the same ID for all updates
                             role: 'assistant',
                             content: accumulatedContent,
                         });
@@ -294,13 +294,13 @@ export const addUserMessageAtom = atom(
                     set(_completedMessagesAtom, [
                         ...get(_completedMessagesAtom),
                         {
-                            id: messageId, // Use the same ID for the final message
+                            id: assistantMessageId, // Use the same ID for the final message
                             role: 'assistant',
                             content: accumulatedContent,
                         },
                     ]);
                     set(currentStreamAtom, null);
-                    return { messageId, content: accumulatedContent };
+                    return { assistantMessageId, content: accumulatedContent };
                 } else {
                     // Non-streaming (single promise) response.
                     const messageData = await addTimeout(
@@ -309,16 +309,16 @@ export const addUserMessageAtom = atom(
                         'Response timeout exceeded',
                         abortController.signal
                     );
-                    messageId = crypto.randomUUID() as UUID;
+
                     set(_completedMessagesAtom, [
                         ...get(_completedMessagesAtom),
                         {
-                            id: messageId,
+                            id: assistantMessageId,
                             role: 'assistant',
                             content: messageData,
                         } as Message,
                     ]);
-                    return { messageId, content: messageData };
+                    return { assistantMessageId, content: messageData };
                 }
             }
         };
@@ -420,6 +420,31 @@ export const addUserMessageAtom = atom(
                 }
                 
                 throw error;
+            }
+
+            // todo: potentially wrap with addTimeout -> analogous to processCitations
+            if (response.setUserMessageId) {
+                const userMessageIdResolved = await response.setUserMessageId
+
+                // set the user message id in the completed messages to the awaited value
+                const currentMessages = get(_completedMessagesAtom);
+                set(_completedMessagesAtom, currentMessages.map(message => {
+                    if (message.id === userMessageId) {
+                        return { ...message, id: userMessageIdResolved };
+                    }
+                    return message;
+                }));
+            }
+            // todo;
+            if (response.setAssistantMessageId) {
+                const assistantMessageIdResolved = await response.setAssistantMessageId
+                const currentMessages = get(_completedMessagesAtom);
+                set(_completedMessagesAtom, currentMessages.map(message => {
+                    if (message.id === assistantMessageId) {
+                        return { ...message, id: assistantMessageIdResolved };  
+                    }
+                    return message;
+                }));
             }
             
             // Now that sources and messages are processed, handle citations
@@ -990,13 +1015,22 @@ export const dispatchAtom = atom(
                     console.warn(`Unhandled action type: ${(action as any).type}`);
             }
 
-            // ---- Process any follow-up action (recursive)
+            // // ---- Process any follow-up action (recursive)
+            // if (payload && payload.followUpAction) {
+            //     promises.push(Promise.resolve(set(dispatchAtom, payload.followUpAction, true)));
+            // }
+            //
+            // // ---- Wait for all writes
+            // await Promise.all(promises);
+
+           // First, wait for all state updates to complete
+            await Promise.all(promises);
+
+            // Process follow-up action sequentially after all state updates are done
             if (payload && payload.followUpAction) {
-                promises.push(Promise.resolve(set(dispatchAtom, payload.followUpAction, true)));
+                await (dispatchAtom.write as any)(get, set, payload.followUpAction, true);
             }
 
-            // ---- Wait for all writes
-            await Promise.all(promises);
 
         } catch (error) {
             console.error("Error in dispatch async writes:", error);

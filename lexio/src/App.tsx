@@ -73,6 +73,8 @@ function App() {
     _selectedSource: Source | null
   ): Promise<ActionHandlerResponse> => {
 
+    console.log(messages)
+
     if (action.type === 'SET_SELECTED_SOURCE') {
       if (!action.sourceObject) {
         return {};
@@ -158,6 +160,7 @@ function App() {
         response: Promise.resolve(MOCKED_RESPONSE.answer),
         sources: Promise.resolve(MOCKED_SOURCES),
         citations: Promise.resolve([]), // Empty citations - they'll be generated when source is selected
+        setUserMessageId: Promise.resolve("x-x-x-x-x-x"),
       };
     }
 
