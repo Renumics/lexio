@@ -1,4 +1,3 @@
-import {useSpreadsheetViewerStore} from "./useSpreadsheetStore.tsx";
 import {SpreadsheetSelection} from "./SpreadsheetSelection";
 import {LoaderCircle, Sigma} from "lucide-react";
 import ParentSizeObserver from "./ParentSizeObserver.tsx";
@@ -6,11 +5,9 @@ import {TableContainer} from "./RowAndColumnVirtualizer.tsx";
 import Tooltip from "./ui/Tooltip.tsx";
 import {SpreadsheetHighlight} from "../../../types.ts";
 import {DependenciesLoader} from "./DependenciesLoader.tsx";
-import * as ReactTable from "@tanstack/react-table";
-import * as ReactVirtual from "@tanstack/react-virtual";
-import type * as ExcelJs from "exceljs";
-import type * as SheetJs from "xlsx";
 import {useCallback, useMemo} from "react";
+import {SpreadsheetViewerContextProvider, useSpreadsheetViewerContext} from "./SpreadsheetViewerContext.tsx";
+import {SpreadsheetTheme} from "./useSpreadsheetStore.tsx";
 
 /**
  * Props for the SpreadsheetViewer component
@@ -19,12 +16,14 @@ import {useCallback, useMemo} from "react";
  * @property {ArrayBuffer} fileBufferArray - The spreadsheet file contents as an ArrayBuffer
  * @property {string} [defaultSelectedSheet] - Optional name of sheet to select by default
  * @property {SpreadsheetHighlight[]} [rangesToHighlight] - Optional cell ranges to highlight
+ * @property {SpreadsheetTheme | undefined} [styleOverrides] - Optional styles override
  */
 type SpreadsheetViewerProps = {
     fileName?: string | undefined;
     fileBufferArray: ArrayBuffer;
     defaultSelectedSheet?: string | undefined;
     rangesToHighlight?: SpreadsheetHighlight[] | undefined;
+    styleOverrides?: SpreadsheetTheme | undefined;
 }
 
 /**
@@ -60,45 +59,29 @@ type SpreadsheetViewerProps = {
  * />
  * ```
  */
-const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighlight }: SpreadsheetViewerProps) => {
+const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighlight, styleOverrides }: SpreadsheetViewerProps) => {
     return (
         <DependenciesLoader>
             {(dependencies) =>
-                <SpreadsheetWrapper
+                <SpreadsheetViewerContextProvider
                     fileBufferArray={fileBufferArray}
                     defaultSelectedSheet={defaultSelectedSheet}
                     rangesToHighlight={rangesToHighlight}
-                    tanstackVirtual={dependencies.tanstackVirtual}
                     tanstackTable={dependencies.tanstackTable}
+                    tanstackVirtual={dependencies.tanstackVirtual}
                     excelJs={dependencies.excelJs}
                     sheetJs={dependencies.sheetJs}
-                />
+                    styleOverrides={styleOverrides}
+                >
+                    <SpreadsheetWrapper />
+                </SpreadsheetViewerContextProvider>
             }
         </DependenciesLoader>
     );
 };
 SpreadsheetViewer.displayName = "SpreadsheetViewer";
 
-type SpeadsheetWrapperProps = {
-    fileName?: string | undefined;
-    fileBufferArray: ArrayBuffer;
-    defaultSelectedSheet?: string | undefined;
-    rangesToHighlight?: SpreadsheetHighlight[] | undefined;
-    tanstackTable: typeof ReactTable;
-    tanstackVirtual: typeof ReactVirtual;
-    excelJs: typeof ExcelJs;
-    sheetJs: typeof SheetJs;
-}
-const SpreadsheetWrapper = (
-    {
-        fileBufferArray,
-        defaultSelectedSheet,
-        rangesToHighlight,
-        tanstackVirtual,
-        tanstackTable,
-        excelJs,
-        sheetJs,
-    }: SpeadsheetWrapperProps) => {
+const SpreadsheetWrapper = () => {
     const {
         selectedWorksheetName,
         rangeToSelect,
@@ -115,15 +98,8 @@ const SpreadsheetWrapper = (
         getMetaDataOfSelectedCell,
         selectedRange,
         setSelectedRange,
-    } = useSpreadsheetViewerStore({
-        fileBufferArray,
-        defaultSelectedSheet,
-        rangesToHighlight,
-        tanstackTable: tanstackTable,
-        excelJs: excelJs,
-        sheetJs: sheetJs,
-    });
-    // TODO 4: Load the theme and apply styles - take PDFViewer / others as reference. Be consistent with the theme.
+        spreadsheetTheme,
+    } = useSpreadsheetViewerContext();
 
     const switchSpreadsheet = (spreadsheet: string) => {
         setSelectedWorksheetName(spreadsheet);
@@ -150,6 +126,9 @@ const SpreadsheetWrapper = (
         if (selectedRange && selectedCell && (selectedRange[0] === selectedRange[1])) {
             return `${selectedCell.column}${selectedCell.row}`;
         }
+        if (selectedRange && selectedCell && (selectedRange[0] !== selectedRange[1])) {
+            return `${selectedRange[0]}${selectedRange[1]}`;
+        }
         return "";
     }, [selectedCell, selectedRange])
 
@@ -157,30 +136,29 @@ const SpreadsheetWrapper = (
         return resolveSelectedRange();
     }, [resolveSelectedRange]);
 
-    if (isLoading) {
-        return (
-            <div className="grid m-[auto] justify-center content-center items-center">
-                <LoaderCircle className="animate-spin" strokeWidth={1.5} />
-                <div>Loading excel file</div>
-            </div>
-        )
-    }
-
     if (error) {
         console.error(error);
-        return <div className="text-red-600">Failed to load spreadsheet</div>
+        return <div style={{ color: spreadsheetTheme.error }}>Failed to load spreadsheet</div>
     }
 
     return (
-        <div className="grid grid-rows-[max-content_1fr_max-content] h-full">
+        <div
+            className="grid grid-rows-[max-content_1fr_55px] h-full"
+            style={{
+                background: spreadsheetTheme.background,
+                color: spreadsheetTheme.onBackground,
+                borderRadius: spreadsheetTheme.borderRadius,
+            }}
+        >
             <div className="grid grid-cols-[1fr_max-content] p-2 gap-2 border-b">
                 <div className="grid grid-cols-[max-content_1fr] gap-2">
                     <Tooltip
                         tooltipContent={selectedCellRange}
                         shouldNotDisplayCondition={selectedCellRange.length === 0}
-                        className="flex items-center content-center w-[100px] py-1.5 px-2.5 border text-sm text-neutral-600 h-[35px]"
+                        className="flex items-center content-center w-[100px] py-1.5 px-2.5 border text-sm h-[35px]"
                         style={{
-                            borderRadius: "5px"
+                            borderRadius: spreadsheetTheme.borderRadius,
+                            color: spreadsheetTheme.toolbarForeground,
                         }}
                     >
                         <div className="truncate">
@@ -189,15 +167,16 @@ const SpreadsheetWrapper = (
                     </Tooltip>
                     <div className="grid grid-cols-[max-content_1fr] gap-1.5 items-center content-center">
                         <div className="flex items-center content-center gap-1 align-middle">
-                            <Sigma className="size-5 text-neutral-600" />
-                            <div className="text-neutral-600">=</div>
+                            <Sigma className="size-5" style={{ color: spreadsheetTheme.toolbarForeground }} />
+                            <div style={{ color: spreadsheetTheme.toolbarForeground }}>=</div>
                         </div>
                         <Tooltip
-                            className="min-h-4 py-1.5 px-2.5 border text-sm text-neutral-600 truncate h-[35px]"
+                            className="min-h-4 py-1.5 px-2.5 border text-sm truncate h-[35px]"
                             tooltipContent={cellMetaData}
                             shouldNotDisplayCondition={cellMetaData.length === 0}
                             style={{
-                                borderRadius: "5px"
+                                borderRadius: spreadsheetTheme.borderRadius,
+                                color: spreadsheetTheme.toolbarForeground,
                             }}
                         >
                             {cellMetaData}
@@ -206,28 +185,34 @@ const SpreadsheetWrapper = (
                 </div>
             </div>
             <div className="h-full w-full">
-                <div className="grid h-[inherit] w-full">
-                    <ParentSizeObserver className="overflow-auto">
-                        {(parentSize) =>
-                            <TableContainer
-                                columns={columns}
-                                data={rowData.filter(r => r)}
-                                showStyles={true}
-                                headerStyles={headerStyles}
-                                selectedCell={selectedCell}
-                                rangesToSelect={rangeToSelect}
-                                setSelectedCell={setSelectedCell}
-                                parentContainerHeight={parentSize.height}
-                                mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
-                                selectedSheetName={selectedWorksheetName}
-                                setSelectedRange={setSelectedRange}
-                                tanstackTable={tanstackTable}
-                                tanstackVirtual={tanstackVirtual}
-                                sheetJs={sheetJs}
-                            />
-                        }
-                    </ParentSizeObserver>
-                </div>
+                {isLoading ?
+                    <div className="grid items-center content-center justify-center justify-items-center">
+                        <div
+                            className="flex flex-col m-[auto] gap-1 justify-center justify-items-center content-center items-center text-center">
+                            <LoaderCircle className="animate-spin" strokeWidth={1.5}/>
+                            <div className="text-center">Loading spreadsheet</div>
+                        </div>
+                    </div> :
+                    <div className="grid h-[inherit] w-full">
+                        <ParentSizeObserver className="overflow-auto">
+                            {(parentSize) =>
+                                <TableContainer
+                                    columns={columns}
+                                    data={rowData.filter(r => r)}
+                                    showStyles={true}
+                                    headerStyles={headerStyles}
+                                    selectedCell={selectedCell}
+                                    rangesToSelect={rangeToSelect}
+                                    setSelectedCell={setSelectedCell}
+                                    parentContainerHeight={parentSize.height}
+                                    mergedGroupOfSelectedWorksheet={mergedGroupOfSelectedWorksheet}
+                                    selectedSheetName={selectedWorksheetName}
+                                    setSelectedRange={setSelectedRange}
+                                />
+                            }
+                        </ParentSizeObserver>
+                    </div>
+                }
             </div>
             <div className="whitespace-nowrap p-2 z-[10] h-full w-full border-t">
                 <div className="grid h-[inherit] w-full">
@@ -237,8 +222,8 @@ const SpreadsheetWrapper = (
                                 spreadsheets={sheetNames}
                                 selectedSpreadsheet={selectedWorksheetName}
                                 setSelectedSpreadsheet={switchSpreadsheet}
+                                disabled={isLoading}
                                 parentWidth={parentSize.width}
-                                parentHeight={parentSize.height}
                             />
                         }
                     </ParentSizeObserver>

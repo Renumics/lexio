@@ -1,3 +1,5 @@
+import {useSpreadsheetViewerContext} from "./SpreadsheetViewerContext.tsx";
+
 /**
  * Props for the SpreadsheetSelection component
  * @typedef {Object} PropsSpreadsheetSelection
@@ -5,7 +7,7 @@
  * @property {string} selectedSpreadsheet - Currently selected spreadsheet name
  * @property {function} setSelectedSpreadsheet - Callback to update selected spreadsheet
  * @property {number} [parentWidth] - Optional width constraint from parent container
- * @property {number} [parentHeight] - Optional height constraint from parent container
+ * @property {boolean | undefined} [disabled] - Optional flag to enable or disable sheet selection
  */
 type Tab = {
     value: string,
@@ -15,17 +17,19 @@ type PropsSpreadsheetSelection = {
     spreadsheets: string[];
     selectedSpreadsheet: string
     setSelectedSpreadsheet: (spreadsheet: string) => void;
+    disabled?: boolean | undefined;
     parentWidth?: number | undefined;
-    parentHeight?: number | undefined;
 }
 const SpreadsheetSelection = (
     {
         spreadsheets,
         selectedSpreadsheet,
         setSelectedSpreadsheet,
+        disabled,
         parentWidth,
-        parentHeight,
     }: PropsSpreadsheetSelection) => {
+
+    const { spreadsheetTheme } = useSpreadsheetViewerContext();
 
     const tabs: Tab[] = spreadsheets.map((key) => ({
         value: key,
@@ -34,10 +38,10 @@ const SpreadsheetSelection = (
 
     return (
         <div
-            className="bg-gray-100 rounded-md"
+            className="rounded-md"
             style={{
                 width: parentWidth ? `${parentWidth}px` : "100%",
-                height: parentHeight ? `${parentHeight}px` : "100%",
+                background: spreadsheetTheme.sheetSelectionBackground,
             }}
         >
             <div
@@ -50,10 +54,10 @@ const SpreadsheetSelection = (
                 {tabs.map((tab) =>
                     <div
                         key={tab.value}
-                        onClick={tab.onClick}
+                        onClick={disabled ? undefined : tab.onClick}
                         style={{
                             backgroundColor: tab.value === selectedSpreadsheet ? "white" : "transparent",
-                            cursor: tab.value === selectedSpreadsheet ? "unset" : "pointer",
+                            cursor: tab.value === selectedSpreadsheet ? "unset" : disabled ? "not-allowed" : "pointer",
                             color: tab.value === selectedSpreadsheet ? "black" : "gray",
                         }}
                         className="text-center text-xs p-1.5 rounded-md drop-shadow-md"
@@ -87,7 +91,6 @@ SpreadsheetSelection.displayName = "SpreadsheetSelectionComponent";
  *   selectedSpreadsheet="Sheet1"
  *   setSelectedSpreadsheet={(sheet) => console.log(`Selected ${sheet}`)}
  *   parentWidth={800}
- *   parentHeight={40}
  * />
  * ```
  */

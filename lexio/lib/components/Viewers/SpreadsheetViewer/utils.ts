@@ -728,3 +728,14 @@ export const getStyleOfWorksheet = (worksheet: ExcelJsWorksheet): WorksheetStyle
     }
 }
 
+/**
+ * Validate css string property
+ * @param {keyof CSSProperties} propertyName - Css property name.
+ * @param {string} value - Value to validate.
+ */
+export const isCssPropertyValid = (propertyName: keyof CSSProperties, value: string): boolean => {
+    const s = new Option().style;
+    // @ts-ignore
+    s[`${propertyName}`] = value;
+    return !!s.color;
+}

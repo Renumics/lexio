@@ -10,7 +10,8 @@ import {
     CellContent,
     generateSpreadsheetColumns,
     getCellStyle,
-    getCellStyleOfCellContent, getStyleOfWorksheet,
+    getCellStyleOfCellContent,
+    getStyleOfWorksheet,
     RawRow,
     Row,
     RowList,
@@ -48,6 +49,27 @@ type CellMetaData = {
     w?: string | undefined;
     z?: string | undefined;
     f?: string | undefined;
+}
+
+export type SpreadsheetTheme = {
+    primary: CSSProperties["color"];
+    secondary: CSSProperties["color"];
+    success: CSSProperties["color"];
+    warning: CSSProperties["color"];
+    error: CSSProperties["color"];
+    onPrimary: CSSProperties["color"];
+    onSecondary: CSSProperties["color"];
+    onSuccess: CSSProperties["color"];
+    onWarning: CSSProperties["color"];
+    onError: CSSProperties["color"];
+    background: CSSProperties["background"];
+    onBackground: CSSProperties["color"];
+    borderRadius: CSSProperties["borderRadius"];
+    fontFamily: CSSProperties["fontFamily"];
+    fontSize: CSSProperties["fontSize"];
+    toolbarForeground: CSSProperties["color"];
+    sheetSelectionBackground: CSSProperties["background"];
+    headerBackground: CSSProperties["color"];
 }
 
 type ExcelOperationsStore = {
@@ -94,7 +116,8 @@ const useSpreadsheetStore = (
                 cellNF: true,
                 cellText: true,
                 sheetStubs: true,
-                nodim: false,
+                cellStyles: true,
+                nodim: true,
             }
 
             const workbook = sheetJs.read(arrayBuffer, readParsingOptions);
@@ -203,17 +226,19 @@ const useSpreadsheetStore = (
  * @property {typeof ReactTable} tanstackTable - TanStack Table instance
  * @property {typeof ExcelJs} excelJs - ExcelJS instance
  * @property {typeof SheetJs} sheetJs - SheetJS instance
+ * @property {SpreadsheetTheme} spreadsheetTheme - A style object used for theming
  */
-type InputSpreadsheetViewerStore = {
+export type InputSpreadsheetViewerStore = {
     fileBufferArray: ArrayBuffer;
     defaultSelectedSheet?: string | undefined;
     rangesToHighlight?: SpreadsheetHighlight[] | undefined;
     tanstackTable: typeof ReactTable;
     excelJs: typeof ExcelJs;
     sheetJs: typeof SheetJs;
+    spreadsheetTheme: SpreadsheetTheme;
 }
 
-type OutputSpreadsheetViewerStore = {
+export type OutputSpreadsheetViewerStore = {
     sheetNames: string[];
     selectedWorksheetName: string;
     setSelectedWorksheetName: (spreadsheet: string) => void;
@@ -270,6 +295,7 @@ export const useSpreadsheetViewerStore = (
         rangesToHighlight,
         excelJs,
         sheetJs,
+        spreadsheetTheme,
     }: InputSpreadsheetViewerStore
 ): OutputSpreadsheetViewerStore => {
 
@@ -314,10 +340,7 @@ export const useSpreadsheetViewerStore = (
         rangesOfSelectedSheet.ranges.forEach((range: string) => {
             const rangeIsValid = validateExcelRange(range);
 
-            if (!rangeIsValid) {
-                console.warn("Invalid range. A valid range is an array with two entries. Ex.: ['A10', 'B15']");
-                return;
-            }
+            if (!rangeIsValid) return;
 
             const [firstCell, lastCell] = range.toUpperCase().split(":");
             rangesToSet = [...rangesToSet, [firstCell, lastCell]];
@@ -327,14 +350,8 @@ export const useSpreadsheetViewerStore = (
 
     useEffect(() => {
         if (isLoading && (!sheetJsWorkbook || !selectedSheetJsWorksheet)) return;
-        if (!sheetJsWorkbook || !selectedSheetJsWorksheet) {
-            console.warn("No workbook or selected spreadsheet found.");
-            return;
-        }
-        if (!selectedSheetJsWorksheet) {
-            console.warn("No worksheet found.");
-            return;
-        }
+        if (!sheetJsWorkbook || !selectedSheetJsWorksheet) return;
+        if (!selectedSheetJsWorksheet) return;
 
         const sheetToJsonOptions: Sheet2JSONOpts = {
             header: "A",
@@ -414,10 +431,7 @@ export const useSpreadsheetViewerStore = (
 
         const excelJsSelectedWorksheet = excelJsWorkbook.worksheets.find((ws) => ws.name === selectedWorksheetName);
 
-        if (!excelJsSelectedWorksheet) {
-            console.warn("No excelJs worksheet found. No styles will be applied on the active worksheet.");
-            return;
-        }
+        if (!excelJsSelectedWorksheet) return;
         const {
             headerStyles,
             rowStyles,
@@ -456,7 +470,7 @@ export const useSpreadsheetViewerStore = (
                             borderBottom: "1px solid #e5e7eb",
                             borderLeft: "unset",
                             margin: "0",
-                            backgroundColor: "rgb(245, 245, 245)",
+                            backgroundColor: spreadsheetTheme.headerBackground,
                             top: "-1px",
                             zIndex: "10",
                             userSelect: "none",
@@ -472,7 +486,7 @@ export const useSpreadsheetViewerStore = (
                                 position: "sticky",
                                 left: "0",
                                 zIndex: "9",
-                                backgroundColor: "rgb(245, 245, 245)",
+                                backgroundColor: spreadsheetTheme.headerBackground,
                                 letterSpacing: "-0.015em"
                             } : {}),
                         },
@@ -492,7 +506,7 @@ export const useSpreadsheetViewerStore = (
                             textAlign: "center",
                             fontSize: "0.875rem",
                             margin: "auto",
-                            color: "rgb(82, 82, 82)",
+                            color: spreadsheetTheme.toolbarForeground,
                             fontWeight: "400",
                             letterSpacing: "-0.025em",
                             height: "100%",
@@ -553,7 +567,7 @@ export const useSpreadsheetViewerStore = (
                             position: "sticky",
                             left: "0",
                             zIndex: "9",
-                            backgroundColor: "rgb(245, 245, 245)",
+                            backgroundColor: spreadsheetTheme.headerBackground,
                             letterSpacing: "-0.015em"
                         } : {}),
                     },
@@ -617,7 +631,7 @@ export const useSpreadsheetViewerStore = (
                             textAlign: "center",
                             fontSize: "0.875rem",
                             margin: "auto",
-                            color: "rgb(82, 82, 82)",
+                            color: spreadsheetTheme.toolbarForeground,
                             fontWeight: "400",
                             letterSpacing: "-0.025em",
                             height: "100%",

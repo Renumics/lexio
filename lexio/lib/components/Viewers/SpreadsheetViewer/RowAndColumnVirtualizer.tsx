@@ -24,7 +24,7 @@ import {
     sortSpreadsheetRange,
     Z_INDEX_OF_STICKY_HEADER_ROW
 } from "./utils.ts";
-import type * as SheetJs from "xlsx";
+import {useSpreadsheetViewerContext} from "./SpreadsheetViewerContext.tsx";
 
 /**
  * Reference type of cells
@@ -52,9 +52,6 @@ type CellAndCellContainerRefType = {
  * @property {MergeGroup} mergedGroupOfSelectedWorksheet - Information about merged cells
  * @property {string} selectedSheetName - Name of currently selected worksheet
  * @property {function} setSelectedRange - Callback to update selected range
- * @property {typeof ReactTable} tanstackTable - TanStack Table instance
- * @property {typeof ReactVirtual} tanstackVirtual - TanStack Virtual instance
- * @property {typeof SheetJs} sheetJs - SheetJS instance
  */
 type TableContainerProps<TData, TValue> = {
     columns: ReactTable.ColumnDef<TData, TValue>[];
@@ -68,9 +65,6 @@ type TableContainerProps<TData, TValue> = {
     mergedGroupOfSelectedWorksheet: MergeGroup | undefined;
     selectedSheetName: string;
     setSelectedRange: (range?: Range | undefined) => void;
-    tanstackTable: typeof ReactTable;
-    tanstackVirtual: typeof ReactVirtual;
-    sheetJs: typeof SheetJs;
 }
 
 /**
@@ -100,10 +94,9 @@ export const TableContainer = <TData, TValue>(
         setSelectedCell,
         headerStyles,
         rangesToSelect,
-        tanstackTable,
-        tanstackVirtual,
-        sheetJs,
     }: TableContainerProps<TData, TValue>) => {
+
+    const { tanstackTable, tanstackVirtual, sheetJs } = useSpreadsheetViewerContext();
 
     const { utils } = sheetJs;
 
@@ -196,7 +189,7 @@ export const TableContainer = <TData, TValue>(
     const columnVirtualizer = tanstackVirtual.useVirtualizer<HTMLDivElement, HTMLTableCellElement>({
         count: columns.length,
         estimateSize: () => DEFAULT_COLUMN_WIDTH,
-        getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
+        getScrollElement: () => tableContainerRef.current,
         horizontal: true,
         overscan: 5,
         onChange: () => {
@@ -209,7 +202,7 @@ export const TableContainer = <TData, TValue>(
     const rowVirtualizer = tanstackVirtual.useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
         count: table.getRowCount(),
         estimateSize: () => 35,
-        getScrollElement: () => document.getElementById(selectedSheetName) as HTMLDivElement,
+        getScrollElement: () => tableContainerRef.current,
         //measure dynamic row height, except in firefox because it measures table border height incorrectly
         measureElement:
             typeof window !== "undefined" &&
@@ -303,6 +296,7 @@ export const TableContainer = <TData, TValue>(
         <div
             className="container"
             ref={tableContainerRef}
+            key={selectedSheetName}
             id={selectedSheetName}
             style={{
                 overflow: "auto",
