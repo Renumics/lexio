@@ -392,6 +392,65 @@ export const addUserMessageAtom = atom(
             }
         };
 
+        // Process message IDs with timeout handling - split into separate processes
+        const processUserMessageId = async () => {
+            if (!response.setUserMessageId) return;
+
+            // Get configuration for timeout
+            const config = get(configAtom);
+            const abortController = new AbortController();
+
+            try {
+                const userMessageIdResolved = await addTimeout(
+                    response.setUserMessageId,
+                    config.timeouts?.request,
+                    'User message ID request timeout exceeded',
+                    abortController.signal
+                );
+
+                const currentMessages = get(_completedMessagesAtom);
+                set(_completedMessagesAtom, currentMessages.map(message => {
+                    if (message.id === userMessageId) {
+                        return { ...message, id: userMessageIdResolved };
+                    }
+                    return message;
+                }));
+            } catch (error) {
+                console.error('Failed to process user message ID:', error);
+                set(errorAtom, `Error processing user message ID: ${error instanceof Error ? error.message : String(error)}`);
+                // Don't throw here - we want to continue even if user message ID setting fails
+            }
+        };
+
+        const processAssistantMessageId = async () => {
+            if (!response.setAssistantMessageId) return;
+
+            // Get configuration for timeout
+            const config = get(configAtom);
+            const abortController = new AbortController();
+
+            try {
+                const assistantMessageIdResolved = await addTimeout(
+                    response.setAssistantMessageId,
+                    config.timeouts?.request,
+                    'Assistant message ID request timeout exceeded',
+                    abortController.signal
+                );
+
+                const currentMessages = get(_completedMessagesAtom);
+                set(_completedMessagesAtom, currentMessages.map(message => {
+                    if (message.id === assistantMessageId) {
+                        return { ...message, id: assistantMessageIdResolved };
+                    }
+                    return message;
+                }));
+            } catch (error) {
+                console.error('Failed to process assistant message ID:', error);
+                set(errorAtom, `Error processing assistant message ID: ${error instanceof Error ? error.message : String(error)}`);
+                // Don't throw here - we want to continue even if assistant message ID setting fails
+            }
+        };
+
         // --- The key elegant change: since this function is async, it automatically returns a promise.
         try {
             // First, process sources and messages
@@ -422,31 +481,18 @@ export const addUserMessageAtom = atom(
                 throw error;
             }
 
-            // todo: potentially wrap with addTimeout -> analogous to processCitations
-            // set the user message id in the completed messages to the awaited value
-            if (response.setUserMessageId) {
-                const userMessageIdResolved = await response.setUserMessageId
-
-                // set the user message id in the completed messages to the awaited value
-                const currentMessages = get(_completedMessagesAtom);
-                set(_completedMessagesAtom, currentMessages.map(message => {
-                    if (message.id === userMessageId) {
-                        return { ...message, id: userMessageIdResolved };
-                    }
-                    return message;
-                }));
-            }
-            // todo: potentially wrap with addTimeout -> analogous to processCitations
-            // set the assistant message id in the completed messages to the awaited value
-            if (response.setAssistantMessageId) {
-                const assistantMessageIdResolved = await response.setAssistantMessageId
-                const currentMessages = get(_completedMessagesAtom);
-                set(_completedMessagesAtom, currentMessages.map(message => {
-                    if (message.id === assistantMessageId) {
-                        return { ...message, id: assistantMessageIdResolved };  
-                    }
-                    return message;
-                }));
+            // Process message IDs with timeout handling - split into separate processes since both write to the same atom
+            if (response.setUserMessageId || response.setAssistantMessageId) {
+                try {
+                    await processUserMessageId();
+                    await processAssistantMessageId();
+                } catch (messageIdError) {
+                    console.error('Error processing message IDs:', messageIdError);
+                    // We don't need to roll back everything for message ID errors
+                    // Just set an error message
+                    set(errorAtom, `Error processing message IDs: ${messageIdError instanceof Error ? messageIdError.message : String(messageIdError)}`);
+                    // Don't throw here - we want to continue even if message ID setting fails
+                }
             }
             
             // Now that sources and messages are processed, handle citations

@@ -160,10 +160,11 @@ function App() {
         response: Promise.resolve(MOCKED_RESPONSE.answer),
         sources: Promise.resolve(MOCKED_SOURCES),
         citations: Promise.resolve([]), // Empty citations - they'll be generated when source is selected
-        setUserMessageId: Promise.resolve("x-x-x-x-x-x"),  // test setting id
+        setUserMessageId: new Promise(resolve => setTimeout(() => resolve("ran-u-3s-x-x-" + Math.random().toString(36).substring(2, 15)), 500)),  // test setting id with 500ms delay
+        setAssistantMessageId: new Promise(resolve => setTimeout(() => resolve("ran-a-3s-x-x-" + Math.random().toString(36).substring(2, 15)), 1000)),  // test setting id with 500ms delay
         followUpAction: {
           type: 'SET_ACTIVE_MESSAGE',
-            messageId: 'x-x-x-x-x-x',
+            messageId: 'random-x-x-x-x-' + Math.random().toString(36).substring(2, 15),
         }
       };
     }
