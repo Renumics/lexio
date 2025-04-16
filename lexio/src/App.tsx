@@ -73,6 +73,8 @@ function App() {
     _selectedSource: Source | null
   ): Promise<ActionHandlerResponse> => {
 
+    console.log(messages)
+
     if (action.type === 'SET_SELECTED_SOURCE') {
       if (!action.sourceObject) {
         return {};
@@ -158,7 +160,20 @@ function App() {
         response: Promise.resolve(MOCKED_RESPONSE.answer),
         sources: Promise.resolve(MOCKED_SOURCES),
         citations: Promise.resolve([]), // Empty citations - they'll be generated when source is selected
+        setUserMessageId: new Promise(resolve => setTimeout(() => resolve("ran-u-3s-x-x-" + Math.random().toString(36).substring(2, 15)), 500)),  // test setting id with 500ms delay
+        setAssistantMessageId: new Promise(resolve => setTimeout(() => resolve("ran-a-3s-x-x-" + Math.random().toString(36).substring(2, 15)), 1000)),  // test setting id with 500ms delay
+        followUpAction: {
+          type: 'SET_ACTIVE_MESSAGE',
+            messageId: 'random-x-x-x-x-' + Math.random().toString(36).substring(2, 15),
+        }
       };
+    }
+
+    if (action.type === 'SET_ACTIVE_MESSAGE') {
+      console.log('SET_ACTIVE_MESSAGE action started');
+
+      // this is only for testing of the followUp action call
+      return {};
     }
 
   }, [contentSource, lastProcessedMessageId]);

@@ -4,13 +4,13 @@ import { Message, Source } from '../types';
 
 
 const allowedActionReturnValues: Record<UserAction['type'], string[]> = {
-    ADD_USER_MESSAGE: ['response', 'sources', 'setUserMessage', 'followUpAction'],
-    SET_ACTIVE_MESSAGE: ['followUpAction'],
+    ADD_USER_MESSAGE: ['response', 'sources', 'setUserMessage', 'setUserMessageId', 'setAssistantMessageId', 'followUpAction'],
+    SET_ACTIVE_MESSAGE: ['messageId', 'followUpAction'],
     CLEAR_MESSAGES: ['followUpAction'],
     SEARCH_SOURCES: ['sources', 'followUpAction'],
     CLEAR_SOURCES: ['followUpAction'],
     SET_ACTIVE_SOURCES: ['followUpAction'],
-    SET_SELECTED_SOURCE: ['sourceData', 'followUpAction'],
+    SET_SELECTED_SOURCE: ['sourceData', 'citations', 'followUpAction'],
     SET_FILTER_SOURCES: ['followUpAction'],
     RESET_FILTER_SOURCES: ['followUpAction'],
     SET_MESSAGE_FEEDBACK: ['followUpAction']
@@ -208,12 +208,16 @@ export const addUserMessageAtom = atom(
         const config = get(configAtom);
         const abortController = new AbortController();
 
+        // Initialize a new UUID for the user and assistant messages.
+        let userMessageId = crypto.randomUUID() as UUID;
+        let assistantMessageId = crypto.randomUUID() as UUID;
+
         // Handle user message modification.
         if (response.setUserMessage) {
             set(_completedMessagesAtom, [
                 ...get(_completedMessagesAtom),
                 {
-                    id: crypto.randomUUID() as UUID,
+                    id: userMessageId,
                     role: 'user',
                     content: response.setUserMessage,
                 },
@@ -222,7 +226,7 @@ export const addUserMessageAtom = atom(
             set(_completedMessagesAtom, [
                 ...get(_completedMessagesAtom),
                 {
-                    id: crypto.randomUUID() as UUID,
+                    id: userMessageId,
                     role: 'user',
                     content: action.message,
                 },
@@ -271,12 +275,8 @@ export const addUserMessageAtom = atom(
         const processMessage = async () => {
             if (response.response) {
                 let accumulatedContent = '';
-                let messageId: UUID;
                 
                 if (Symbol.asyncIterator in response.response) {
-                    // Create a single consistent ID for the entire streaming message
-                    messageId = crypto.randomUUID() as UUID;
-
                     // Streaming response: process each chunk.
                     const streamTimeout = new StreamTimeout(config.timeouts?.stream);
                     for await (const chunk of response.response as AsyncIterable<StreamChunk>) {
@@ -285,7 +285,7 @@ export const addUserMessageAtom = atom(
                         accumulatedContent += chunk.content ?? '';
                         // Provide immediate feedback as streaming chunks arrive.
                         set(currentStreamAtom, {
-                            id: messageId, // Use the same ID for all updates
+                            id: assistantMessageId, // Use the same ID for all updates
                             role: 'assistant',
                             content: accumulatedContent,
                         });
@@ -294,13 +294,13 @@ export const addUserMessageAtom = atom(
                     set(_completedMessagesAtom, [
                         ...get(_completedMessagesAtom),
                         {
-                            id: messageId, // Use the same ID for the final message
+                            id: assistantMessageId, // Use the same ID for the final message
                             role: 'assistant',
                             content: accumulatedContent,
                         },
                     ]);
                     set(currentStreamAtom, null);
-                    return { messageId, content: accumulatedContent };
+                    return { assistantMessageId, content: accumulatedContent };
                 } else {
                     // Non-streaming (single promise) response.
                     const messageData = await addTimeout(
@@ -309,16 +309,16 @@ export const addUserMessageAtom = atom(
                         'Response timeout exceeded',
                         abortController.signal
                     );
-                    messageId = crypto.randomUUID() as UUID;
+
                     set(_completedMessagesAtom, [
                         ...get(_completedMessagesAtom),
                         {
-                            id: messageId,
+                            id: assistantMessageId,
                             role: 'assistant',
                             content: messageData,
                         } as Message,
                     ]);
-                    return { messageId, content: messageData };
+                    return { assistantMessageId, content: messageData };
                 }
             }
         };
@@ -392,6 +392,65 @@ export const addUserMessageAtom = atom(
             }
         };
 
+        // Process message IDs with timeout handling - split into separate processes
+        const processUserMessageId = async () => {
+            if (!response.setUserMessageId) return;
+
+            // Get configuration for timeout
+            const config = get(configAtom);
+            const abortController = new AbortController();
+
+            try {
+                const userMessageIdResolved = await addTimeout(
+                    response.setUserMessageId,
+                    config.timeouts?.request,
+                    'User message ID request timeout exceeded',
+                    abortController.signal
+                );
+
+                const currentMessages = get(_completedMessagesAtom);
+                set(_completedMessagesAtom, currentMessages.map(message => {
+                    if (message.id === userMessageId) {
+                        return { ...message, id: userMessageIdResolved };
+                    }
+                    return message;
+                }));
+            } catch (error) {
+                console.error('Failed to process user message ID:', error);
+                set(errorAtom, `Error processing user message ID: ${error instanceof Error ? error.message : String(error)}`);
+                // Don't throw here - we want to continue even if user message ID setting fails
+            }
+        };
+
+        const processAssistantMessageId = async () => {
+            if (!response.setAssistantMessageId) return;
+
+            // Get configuration for timeout
+            const config = get(configAtom);
+            const abortController = new AbortController();
+
+            try {
+                const assistantMessageIdResolved = await addTimeout(
+                    response.setAssistantMessageId,
+                    config.timeouts?.request,
+                    'Assistant message ID request timeout exceeded',
+                    abortController.signal
+                );
+
+                const currentMessages = get(_completedMessagesAtom);
+                set(_completedMessagesAtom, currentMessages.map(message => {
+                    if (message.id === assistantMessageId) {
+                        return { ...message, id: assistantMessageIdResolved };
+                    }
+                    return message;
+                }));
+            } catch (error) {
+                console.error('Failed to process assistant message ID:', error);
+                set(errorAtom, `Error processing assistant message ID: ${error instanceof Error ? error.message : String(error)}`);
+                // Don't throw here - we want to continue even if assistant message ID setting fails
+            }
+        };
+
         // --- The key elegant change: since this function is async, it automatically returns a promise.
         try {
             // First, process sources and messages
@@ -420,6 +479,20 @@ export const addUserMessageAtom = atom(
                 }
                 
                 throw error;
+            }
+
+            // Process message IDs with timeout handling - split into separate processes since both write to the same atom
+            if (response.setUserMessageId || response.setAssistantMessageId) {
+                try {
+                    await processUserMessageId();
+                    await processAssistantMessageId();
+                } catch (messageIdError) {
+                    console.error('Error processing message IDs:', messageIdError);
+                    // We don't need to roll back everything for message ID errors
+                    // Just set an error message
+                    set(errorAtom, `Error processing message IDs: ${messageIdError instanceof Error ? messageIdError.message : String(messageIdError)}`);
+                    // Don't throw here - we want to continue even if message ID setting fails
+                }
             }
             
             // Now that sources and messages are processed, handle citations
@@ -991,9 +1064,9 @@ export const dispatchAtom = atom(
                     console.warn(`Unhandled action type: ${(action as any).type}`);
             }
 
-            // ---- Process any follow-up action (recursive)
+            // // ---- Process any follow-up action (recursive)
             if (payload && payload.followUpAction) {
-                promises.push(Promise.resolve(set(dispatchAtom, payload.followUpAction, true)));
+                promises.push(Promise.resolve((dispatchAtom.write as any)(get, set, payload.followUpAction, true)));
             }
 
             // ---- Wait for all writes

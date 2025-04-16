@@ -320,7 +320,8 @@ export type SetActiveSourcesAction = {
  * 
  * @property {string} type - The action type identifier
  * @property {string} sourceId - ID of the source to select
- * @property {Source} [sourceObject] - Optional source object to use
+ * @property {Source} [sourceObject] - Optional source object to use  
+ * @property {number} [pdfPageOverride] - Optional page number to display for PDF sources
  * @property {Component} source - The component that triggered the action
  */
 export type SetSelectedSourceAction = {
@@ -419,6 +420,8 @@ export type UserAction =
  * @property {Promise<Source[]>} [sources] - Sources related to the message. These will be displayed in the SourcesDisplay component.
  * @property {Promise<Citation[]>} [citations] - Citations related to the message. These will be displayed in the SourcesDisplay component.
  * @property {string} [setUserMessage] - Updated user message. Can be used to modify the user's message before it's added to the chat.
+ * @property {Promise<UUID>} [setUserMessageId] - ID of the user message. Can be used to modify the message ID before it's added to the chat.
+ * @property {Promise<UUID>} [setAssistantMessageId] - ID of the assistant message (response). Can be used to modify the message ID before it's added to the chat.
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes. Useful for chaining actions.
  */
 export interface AddUserMessageActionResponse {
@@ -426,6 +429,8 @@ export interface AddUserMessageActionResponse {
   sources?: Promise<Omit<Source, 'id'>[] | Source[]>; // id is generated here
   citations?: Promise<Citation[] | Omit<Citation, 'id'>[]>;
   setUserMessage?: string;
+  setUserMessageId?: Promise<UUID>;
+  setAssistantMessageId?: Promise<UUID>;
   followUpAction?: UserAction;
 }
 
@@ -492,6 +497,7 @@ export interface SetActiveSourcesActionResponse {
  * @interface SetSelectedSourceActionResponse
  * @property {string | null} [selectedSourceId] - ID of the selected source. Set to null to deselect.
  * @property {Promise<string | Uint8Array>} [sourceData] - Data for the selected source. This will be displayed in the ContentDisplay component.
+ * @property {Promise<Citation[] | Omit<Citation, 'id'>[]>} [citations] - Citations related to the selected source. These will be displayed in the SourcesDisplay component.
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface SetSelectedSourceActionResponse {
