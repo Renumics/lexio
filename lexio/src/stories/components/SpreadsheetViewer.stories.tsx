@@ -23,7 +23,7 @@ async function fetchExcelAsArrayBuffer(url: string): Promise<ArrayBuffer> {
 const sampleHighlights: SpreadsheetHighlight[] = [
     {
         sheetName: "Call Center Data",
-        ranges: ["A1:B2", "D4:E8"]
+        ranges: ["B4:B4", "B8:F8"]
     },
 ];
 

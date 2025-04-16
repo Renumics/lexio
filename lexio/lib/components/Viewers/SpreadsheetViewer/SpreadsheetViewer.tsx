@@ -27,12 +27,12 @@ type SpreadsheetViewerProps = {
 }
 
 /**
- * TODO: create complete documentation for this component -> will be shown in the storybook!!!
- * 
  * A component for displaying spreadsheet documents with interactive viewing capabilities.
  * Used to render Excel and other spreadsheet formats with support for sheet selection and cell highlighting.
  *
  * If no `defaultSelectedSheet` is provided, the component will select the first available sheet.
+ * 
+ * The 'xlsx' format is supported.
  * 
  * @component
  * @param {SpreadsheetViewerProps} props - The props for the SpreadsheetViewer
@@ -40,24 +40,41 @@ type SpreadsheetViewerProps = {
  * 
  * @remarks
  * **Features:**
- * - Multiple sheet navigation
- * - Cell selection
- * - Support for cell range highlighting
+ * - Multiple sheet navigation with sheet selection
+ * - Single cell selection
+ * - Support for cell range highlighting via `rangesToHighlight` prop. Use 'B4:B4' to highlight a single cell.
  * - Virtualized rendering for performance with large spreadsheets
- * - Compatible with Excel file formats
+ * - Compatible with Excel file formats (xlsx)
+ * - Formula display in toolbar
+ * - Cell metadata inspection
+ * - Responsive design with dynamic sizing
+ * - Customizable theming
  *
+ * **Keyboard Navigation:**
+ * - Arrow keys for cell navigation
+ * 
+ * **Styling:**
+ * - Customizable theming with `styleOverrides` prop
+ * 
  * @example
  *
  * ```tsx
  * <SpreadsheetViewer
- *   fileName="Financial Report"
+ *   fileName="Call Center Data"
  *   fileBufferArray={excelData as ArrayBuffer}
- *   defaultSelectedSheet="Q1 Results"
+ *   defaultSelectedSheet="Call Center Data"
  *   rangesToHighlight={[
- *     { sheetName: "Q1 Results", ranges: ["A1:B5", "D10:F20"] }
+ *     { 
+ *       sheetName: "Call Center Data",
+ *       ranges: ["B4:B4", "B8:F8"] 
+ *     }
  *   ]}
  * />
  * ```
+ * 
+ * **Underlying Libraries:**
+ * The SpreadsheetViewer combines **ExcelJS** for Excel parsing and **SheetJS** for broader format support, with **TanStack Table** and **Virtual** for efficient rendering of large datasets.
+ * 
  */
 const SpreadsheetViewer= ({ fileBufferArray, defaultSelectedSheet, rangesToHighlight, styleOverrides }: SpreadsheetViewerProps) => {
     return (
