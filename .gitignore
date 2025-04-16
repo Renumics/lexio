@@ -13,3 +13,4 @@ dummy-package/
 .vscode/
 
 examples/llama-index/frontend/rag-ui/
+/examples/rag-ui/frontend/public/excel_sample.xlsx

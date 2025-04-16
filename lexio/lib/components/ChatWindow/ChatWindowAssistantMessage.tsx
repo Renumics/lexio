@@ -5,7 +5,7 @@ import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import { docco } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import remarkGfm from "remark-gfm";
 import "./AssistantMarkdownContent.css";
-import {ClipboardIcon, ClipboardDocumentIcon} from "@heroicons/react/24/outline";
+import {Clipboard as ClipboardIcon, Copy as ClipboardDocumentIcon} from "lucide-react";
 import {scaleFontSize, addOpacity} from "../../utils/scaleFontSize.tsx";
 import { MessageFeedback } from "./MessageFeedback.tsx";
 import { MessageHighlight } from "../../types.ts";

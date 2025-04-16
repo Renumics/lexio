@@ -3,7 +3,7 @@ import useResizeObserver from '@react-hook/resize-observer';
 import { ThemeContext, removeUndefined } from '../../theme/ThemeContext';
 import { ResetWrapper } from '../../utils/ResetWrapper';
 import { useMessages} from '../../hooks';
-import DocumentPlusIcon from '@heroicons/react/24/outline/esm/DocumentPlusIcon';
+import {FilePlus as DocumentPlusIcon} from 'lucide-react';
 
 /**
  * Styles interface for the QueryField component

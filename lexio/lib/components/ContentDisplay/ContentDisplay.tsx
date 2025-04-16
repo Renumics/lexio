@@ -1,9 +1,11 @@
-import React, { useContext } from 'react';
+import React, {useContext} from "react";
 import { PdfViewer } from "../Viewers/PdfViewer";
 import { HtmlViewer } from "../Viewers/HtmlViewer";
 import { MarkdownViewer } from "../Viewers/MarkdownViewer";
 import { useSources } from "../../hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
+import {SpreadsheetViewer} from "../Viewers/SpreadsheetViewer";
+import {PDFHighlight, Source, SpreadsheetHighlight} from "../../types.ts";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
@@ -21,8 +23,8 @@ interface ContentDisplayProps {
  * A component for displaying various content types from selected sources.
  * 
  * ContentDisplay renders the content of the currently selected source, automatically
- * choosing the appropriate viewer based on the source type (PDF, HTML, or Markdown).
- * 
+ * choosing the appropriate viewer based on the source type (PDF, HTML, Markdown or Excel spreadsheet).
+ *
  * @component
  * 
  * Features:
@@ -30,6 +32,7 @@ interface ContentDisplayProps {
  * - PDF viewer with navigation, zoom, and highlight support
  * - HTML viewer with sanitization and styling
  * - Markdown viewer with formatting
+ * - Excel spreadsheet viewer with range highlighting
  * - Loading state indication
  * - Responsive design
  * 
@@ -69,23 +72,42 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
     ...removeUndefined(styleOverrides),
   };
 
+  const filename = selectedSource?.title ?? "";
+
   if (!selectedSource) {
     return null;
   }
 
-  const renderContent = () => {
-    if (selectedSource.type === 'pdf' && selectedSource.data && selectedSource.data instanceof Uint8Array) {
-      // Prefer 'page' over '_page' if both are defined
-      const page = selectedSource.metadata?._pdfPageOverride ?? selectedSource.metadata?.page ?? selectedSource.metadata?._page;
-      
-      return (
-        <PdfViewer 
-          data={selectedSource.data}
-          page={page}
-          highlights={selectedSource.highlights}
+  return (
+      <div className="w-full h-full overflow-hidden" style={style}>
+        <FileViewerRenderer
+            fileName={filename}
+            selectedSource={selectedSource as Source}
         />
-      );
-    }
+      </div>
+  );
+};
+
+type PropsFileViewerRenderer = {
+  fileName: string;
+  selectedSource: Source;
+}
+const FileViewerRenderer = ({ fileName, selectedSource }: PropsFileViewerRenderer) => {
+  if (selectedSource.type === 'pdf' && selectedSource.data && selectedSource.data instanceof Uint8Array) {
+    // Prefer 'page' over '_page' if both are defined
+      const page = selectedSource.metadata?._pdfPageOverride ?? selectedSource.metadata?.page ?? selectedSource.metadata?._page;
+
+      const isPDFHighlightArray = (arr: unknown[] | undefined): arr is PDFHighlight[] => {
+        return Array.isArray(arr) && arr.every((item) => Object.prototype.hasOwnProperty.call(item, "page") && Object.prototype.hasOwnProperty.call(item, "rect"));
+      }
+    return (
+        <PdfViewer
+            data={selectedSource.data}
+            page={page}
+            highlights={isPDFHighlightArray(selectedSource.highlights) ? selectedSource.highlights : undefined}
+        />
+    );
+  }
 
     if (selectedSource.type === 'html' && selectedSource.data && typeof selectedSource.data === 'string') {
       return <HtmlViewer htmlContent={selectedSource.data} />;
@@ -99,14 +121,29 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
       return <MarkdownViewer markdownContent={selectedSource.data} />;
     }
 
+  if (
+      selectedSource.type === "xlsx" &&
+      selectedSource.data &&
+      selectedSource.data instanceof ArrayBuffer
+  ) {
+    const {data, highlights} = selectedSource;
+    const defaultSheetName = highlights ? (highlights as SpreadsheetHighlight[])[0].sheetName : undefined;
+
     return (
+        <SpreadsheetViewer
+            fileName={fileName}
+            fileBufferArray={data as ArrayBuffer}
+            rangesToHighlight={highlights as SpreadsheetHighlight[]}
+            defaultSelectedSheet={defaultSheetName}
+        />
+    )
+  }
+
+  return (
       <div className="flex justify-center items-center w-full h-full">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
       </div>
-    );
-  };
-
-  return <div className="w-full h-full" style={style}>{renderContent()}</div>;
-};
+  );
+}
 
 export { ContentDisplay };

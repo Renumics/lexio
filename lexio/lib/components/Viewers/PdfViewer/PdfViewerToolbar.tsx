@@ -1,6 +1,10 @@
 import {ViewerToolbar, ViewerToolbarStyles} from "../ViewerToolbar.tsx";
 import {CanvasDimensions} from "../types.ts";
-import {ArrowUturnDownIcon, ChevronLeftIcon, ChevronRightIcon} from "@heroicons/react/24/solid";
+import {
+    RotateCcw as ArrowUturnDownIcon,
+    ChevronLeft as ChevronLeftIcon,
+    ChevronRight as ChevronRightIcon,
+} from "lucide-react";
 import {useEffect, useState} from "react";
 
 /**
