@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState, useContext} from "react";
+import React, {useCallback, useEffect, useRef, useState, useContext} from "react";
 import {Highlight} from "./Highlight.tsx"
 import {pdfjs, Document, Page} from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
@@ -111,8 +111,8 @@ interface PdfViewerProps {
 const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
     const [pdfData, setPdfData] = useState<{data: object} | undefined>();
     const [numPages, setNumPages] = useState<number | null>(null);
-    const [pageNumber, setPageNumber] = useState<number>(1);
-    const [renderedPageNumber, setRenderedPageNumber] = useState<number>(1);
+    const [pageNumber, setPageNumber] = useState<number>(page || 1);
+    const [renderedPageNumber, setRenderedPageNumber] = useState<number>(0);
     const [rotate, setRotate] = useState<number>(0);
 
     // state variables for scale of the PDF page
@@ -475,7 +475,8 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                                 setRenderedPageNumber(pageNumber);
                             }}
                         />
-                        {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
+                        {/* show highlights only after the first page is rendered and always for the visible page */}
+                        {renderedPageNumber !== 0 && highlights && highlights.filter((highlight) => highlight.page === renderedPageNumber).map((highlight, index) => (
                             <Highlight
                                 key={index}
                                 rect={highlight.rect}
