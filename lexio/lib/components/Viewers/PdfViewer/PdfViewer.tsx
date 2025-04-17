@@ -42,14 +42,14 @@ const LoadingSpinner = ({color, size = 42, timeout = 2000}: {color: string, size
 
     if (showNoData && timeout) {
         return (
-            <div className="flex flex-col justify-center items-center gap-2 w-full" style={{color: color}}>
-                <span>No data</span>
+            <div className="flex flex-col justify-center items-center gap-2 w-full absolute top-0" style={{color: color}}>
+                <span>No data available.</span>
             </div>
         );
     }
 
     return (
-        <div className="flex justify-center items-center h-fit">
+        <div className="flex justify-center items-center w-full absolute top-0">
             <LoaderCircle className="animate-spin" size={size} strokeWidth={2.5} style={{color: color}}/>
         </div>
     );
@@ -482,7 +482,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                     onLoadError={onDocumentLoadError}
                     className="w-full h-full"
                     loading={<LoadingSpinner color={style.toolbarButtonBackground || ''} />}
-                    noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={1000} />}
+                    noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />}
                 >
                     <div
                         style={{
@@ -500,7 +500,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                                 renderMode="canvas"
                                 rotate={rotate}
                                 onLoadSuccess={onPageLoadSuccess}
-                                noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={1000} />}
+                                noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />}
                             />
                         ): null}
                         <Page
@@ -514,7 +514,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                             onRenderSuccess={() => {
                                 setRenderedPageNumber(pageNumber);
                             }}
-                            noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={1000} />}
+                            noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />}
                         />
                         {/* show highlights only after the first page is rendered and always for the visible page */}
                         {renderedPageNumber !== 0 && highlights && highlights.filter((highlight) => highlight.page === renderedPageNumber).map((highlight, index) => (
