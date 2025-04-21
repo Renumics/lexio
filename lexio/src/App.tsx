@@ -47,6 +47,9 @@ const MOCKED_SOURCES = [{
 function App() {
   // Add state to track the last processed message ID
   const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | undefined>(undefined);
+  // Add new state variables for loading overlay
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isPdfLoaded, setIsPdfLoaded] = useState(false);
 
   const contentSourceOptions = useMemo(() => ({
     buildFetchRequest: (_source: Source) => ({
@@ -87,6 +90,9 @@ function App() {
       // Get the ID of the last message to use as messageId in citations
       const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : undefined;
       
+      // Set PDF as loaded when source data is fetched
+      sourceDataPromise.then(() => setIsPdfLoaded(true));
+      
       // Return both sourceData and citations independently
       return {
         // Return source data immediately after fetching
@@ -106,6 +112,8 @@ function App() {
               console.log('Skipping explanation processing - message already processed');
               return []; // Return empty array as citations are already displayed
             }
+            
+            setIsProcessing(true);
             
             // Start the full processing in the background
             const sourceWithData = await sourceDataPromise;
@@ -148,6 +156,8 @@ function App() {
             console.error("Error processing citations:", error);
             // Return empty citations array if there's an error
             return [];
+          } finally {
+            setIsProcessing(false);
           }
         })
       };
@@ -220,7 +230,7 @@ function App() {
               maxWidth: '100%',
             }}
           >
-            <AdvancedQueryField />
+            <AdvancedQueryField disabled={isProcessing} />
           </div>
 
           <div
@@ -229,12 +239,61 @@ function App() {
               overflow: 'hidden',
               width: '100%',
               height: '100%',
+              position: 'relative',
             }}
           >
             <ContentDisplay />
+            {isPdfLoaded && isProcessing && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(255, 255, 255, 0.85)', // More opaque
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 99999999, // Much higher z-index
+                pointerEvents: 'all' // Ensure the overlay captures clicks
+              }}>
+                <div style={{
+                  padding: '16px 24px',
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{ 
+                    width: '24px', 
+                    height: '24px', 
+                    border: '2px solid #f3f3f3',
+                    borderTop: '2px solid #3498db',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  <div style={{
+                    color: '#1a1a1a',
+                    fontSize: '14px',
+                    fontWeight: 500
+                  }}>Searching for message ideas in source...</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <ErrorDisplay />
+        <style>
+          {`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}
+        </style>
       </LexioProvider>
     </div>
   );
