@@ -1,243 +1,11 @@
-// preprocessing.ts
-import { pdfjs } from 'react-pdf';
-import { loadSbd } from './dependencies';
-import config from './config';
-
-// Debug logging utility
-const debugLog = (...args: any[]) => {
-    if (config.DEBUG) {
-        console.log(...args);
-    }
-};
-
-// Set the pdfjs worker source from the CDN
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
-export interface TextPosition {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-  isTitle?: boolean;
-}
-
-export interface TextItem {
-  text: string;
-  position: TextPosition;
-  startIndex: number;
-  endIndex: number;
-}
-
-export interface TextWithMetadata {
-  text: string;
-  metadata: {
-    page: number;
-    position?: TextPosition;
-    linePositions?: TextPosition[]; // Store positions of all text items in the line
-  };
-}
-
-export interface ParseResult {
-  blocks: {
-    block_type: string;
-    children: Array<{
-      id: string;
-      block_type: string;
-      text: string;
-      page: number;
-      textItems: TextItem[][];  // Array of lines, each line is array of text items
-    }>;
-  };
-  metadata: {
-    numPages: number;
-    fileName: string;
-  };
-}
-
-/**
- * Helper function to apply viewport transform to coordinates
- */
-function applyTransform(point: [number, number], transform: number[]): [number, number] {
-  const x = transform[0] * point[0] + transform[2] * point[1] + transform[4];
-  const y = transform[1] * point[0] + transform[3] * point[1] + transform[5];
-  return [x, y];
-}
-
-/**
- * Parses a PDF file using pdfjs from react-pdf.
- */
-export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
-  debugLog(`Starting PDF parsing: ${file.name}`);
-
-  const arrayBuffer = await file.arrayBuffer();
-  const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
-  const pdf = await loadingTask.promise;
-  const numPages = pdf.numPages;
-
-  debugLog(`PDF loaded successfully. Total pages: ${numPages}`);
-
-  const blocks: ParseResult['blocks'] = {
-    block_type: "Document",
-    children: [],
-  };
-
-  // Process each page
-  for (let i = 1; i <= numPages; i++) {
-
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const viewport = page.getViewport({ scale: 1.0 });
-
-    // Group text items by their vertical position to form lines
-    const lines: TextItem[][] = [];
-    let currentLine: TextItem[] = [];
-    let lastY: number | null = null;
-    const Y_THRESHOLD = 5; // pixels threshold for considering items on the same line
-    let currentPosition = 0;
-
-    content.items.forEach((item: any) => {
-      const [x, y] = applyTransform([item.transform[4], item.transform[5]], viewport.transform);
-      
-      const textItem: TextItem = {
-        text: item.str,
-        position: {
-          top: y / viewport.height,
-          left: x / viewport.width,
-          width: (item.width || item.str.length * 5) / viewport.width,
-          height: (item.height || 12) / viewport.height
-        },
-        startIndex: currentPosition,
-        endIndex: currentPosition + item.str.length
-      };
-      currentPosition += item.str.length + 1; // +1 for space
-
-      if (lastY === null || Math.abs(y - lastY) < Y_THRESHOLD) {
-        currentLine.push(textItem);
-      } else {
-        if (currentLine.length > 0) {
-          lines.push([...currentLine]);
-        }
-        currentLine = [textItem];
-      }
-      lastY = y;
-    });
-
-    // Don't forget the last line
-    if (currentLine.length > 0) {
-      lines.push(currentLine);
-    }
-
-    // Create a block for the page
-    blocks.children.push({
-      id: `page_${i}`,
-      block_type: "Page",
-      text: content.items.map((item: any) => item.str).join(" "),
-      textItems: lines,
-      page: i,
-    });
-  }
-
-  const metadata = {
-    numPages,
-    fileName: file.name,
-  };
-
-  debugLog('PDF parsing completed successfully');
-  return { blocks, metadata };
-}
-
-/**
- * Checks if a text item appears to be a section header based on various characteristics
- */
-function isSectionHeader(item: TextItem, allItems: TextItem[]): boolean {
-  // Check if it's followed by a period and number (e.g., "1. Introduction")
-  const hasSectionNumber = /^\d+\.\s+/.test(item.text);
-  
-  // Check if it's a short phrase followed by a period
-  const isShortHeader = item.text.length < 50 && item.text.trim().endsWith('.');
-  
-  // Check if it's in a larger font or bold (based on relative height and width)
-  const avgHeight = allItems.reduce((sum, i) => sum + i.position.height, 0) / allItems.length;
-  const avgWidth = allItems.reduce((sum, i) => {
-    // Calculate average character width for this item
-    const charWidth = i.position.width / i.text.length;
-    return sum + charWidth;
-  }, 0) / allItems.length;
-  
-  // Calculate this item's average character width
-  const thisCharWidth = item.position.width / item.text.length;
-  
-  // Text is likely bold if its character width is significantly larger than average
-  const isBold = thisCharWidth > avgWidth * 1.2;
-  const isLargerFont = item.position.height > avgHeight * 1.2;
-  
-  // Check for common section header patterns
-  const headerPattern = /^(?:[A-Z][a-z]+\s*)+[:.]\s*|^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$/;
-  const isHeaderFormat = headerPattern.test(item.text.trim());
-  
-  // Check if this item starts a new line by looking at its position
-  const isNewLine = allItems.every(other => {
-    if (other === item) return true;
-    
-    // Check if there's any text item directly to the left of this one
-    // Use a small threshold for vertical position comparison
-    const sameVerticalPosition = Math.abs(other.position.top - item.position.top) < 0.01;
-    const isToTheLeft = other.position.left + other.position.width < item.position.left;
-    
-    return !sameVerticalPosition || !isToTheLeft;
-  });
-  
-  // Additional patterns for academic paper section headers
-  const academicHeaderPatterns = [
-    /^Abstract\b/,
-    /^Introduction\b/,
-    /^Related Work\b/,
-    /^Method\b/,
-    /^Experiments?\b/,
-    /^Results?\b/,
-    /^Discussion\b/,
-    /^Conclusion\b/,
-    /^References\b/,
-    /^(?:(?:[A-Z][a-z]+\s*)+Learning)\b/, // Matches "Self-supervised Learning", "Unsupervised Learning", etc.
-  ];
-  
-  const isAcademicHeader = academicHeaderPatterns.some(pattern => pattern.test(item.text.trim()));
-  
-  // Add paper title detection patterns
-  const paperTitlePatterns = [
-    // Common paper title formats - with atomic groups and limited repetition
-    /^(?:[A-Z][a-z]+(?:\s+(?:(?:[A-Z][a-z]+)|(?:[A-Z]{2,})|(?:is|the|and|or|in|on|of|to|for|with|by))){0,15}[:.!?]?)$/,
-    // Specific well-known paper titles
-    /^Attention Is All You Need$/,
-    /^BERT:/,
-    /^GPT:/,
-    /^Transformer:/
-  ];
-  
-  const isPaperTitle = paperTitlePatterns.some(pattern => pattern.test(item.text.trim()));
-  
-  // Consider it a paper title if:
-  // 1. It matches paper title patterns AND
-  // 2. It's either larger or bolder than normal text AND
-  // 3. It appears near the top of the page
-  const isNearTop = item.position.top < 0.3; // Top 30% of page
-  
-  const isPaperTitleHeader = isPaperTitle && isNearTop && (isLargerFont || isBold);
-  
-  // Consider it a section header if:
-  // 1. It has a section number, or
-  // 2. It matches academic header patterns and starts a new line, or
-  // 3. It's a short header with either larger font or bold text and starts a new line
-  return hasSectionNumber || 
-         (isAcademicHeader && isNewLine) ||
-         (isShortHeader && isNewLine && (isLargerFont || isBold || isHeaderFormat)) ||
-         isPaperTitleHeader;
-}
+import { ParseResult, TextWithMetadata, TextItem } from './types';
+import { loadSbd } from '../dependencies';
+import { isSectionHeader } from './section_analyzer';
 
 /**
  * Clean text and split into sentences.
  */
-async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<TextWithMetadata[]> {
+export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<TextWithMetadata[]> {
     let textsWithMetadata: TextWithMetadata[] = [];
     
     if (rawBlocks && rawBlocks.block_type === "Document") {
@@ -269,25 +37,25 @@ async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<Text
 
                 // If it's a paper title, we want to keep it but mark it for special handling
                 if (isPaperTitle) {
-                // Calculate the vertical adjustment
-                // PDF coordinates are from bottom-up, but we want top-down coordinates
-                const exactPosition = {
-                ...item.position,
-                // Adjust the vertical position by moving it up
-                top: Math.max(0, item.position.top - item.position.height),
-                isTitle: true
-                };
+                    // Calculate the vertical adjustment
+                    // PDF coordinates are from bottom-up, but we want top-down coordinates
+                    const exactPosition = {
+                        ...item.position,
+                        // Adjust the vertical position by moving it up
+                        top: Math.max(0, item.position.top - item.position.height),
+                        isTitle: true
+                    };
 
-                textsWithMetadata.push({
-                text: item.text.trim(),
-                metadata: {
-                page: pageBlock.page,
-                position: exactPosition,
-                linePositions: [exactPosition]
-                }
-                });
-                // Remove it from regular text processing
-                return false;
+                    textsWithMetadata.push({
+                        text: item.text.trim(),
+                        metadata: {
+                            page: pageBlock.page,
+                            position: exactPosition,
+                            linePositions: [exactPosition]
+                        }
+                    });
+                    // Remove it from regular text processing
+                    return false;
                 } 
                 
                 // Filter out regular section headers
@@ -463,16 +231,4 @@ async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promise<Text
     }
     
     return textsWithMetadata;
-}
-
-/**
- * Main function to parse a PDF file and then clean/split the text.
- */
-export async function parseAndCleanPdf(file: File): Promise<TextWithMetadata[]> {
-  const { blocks } = await parsePdfWithMarker(file);
-  if (!blocks) {
-    console.error("Parsed data is empty. Skipping cleaning.");
-    return [];
-  }
-  return cleanAndSplitText(blocks);
-}
+} 
