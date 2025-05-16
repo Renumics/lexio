@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Parser Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        input[type="file"] {
+            margin: 20px 0;
+            padding: 10px;
+        }
+    </style>
+    <!-- Load PDF.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Initialize PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+</head>
+<body>
+    <h1>PDF Parser Test</h1>
+    <p>Select a PDF file to test the parser:</p>
+    
+    <!-- Load your code -->
+    <script src="parser.js"></script>
+    <script src="test.js"></script>
+</body>
+</html>

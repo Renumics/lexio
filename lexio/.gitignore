@@ -9,7 +9,7 @@ coverage
 .env
 
 # PDF Files
-pdfs/
+*.pdf
 
 # Logs
 logs
