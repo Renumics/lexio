@@ -1,4 +1,4 @@
-const textItems = [
+[
     {
         "id": "page_1",
         "block_type": "Page",
@@ -14132,5 +14132,3 @@ const textItems = [
         "page": 6
     }
 ]
-
-export default textItems;
