@@ -19,6 +19,8 @@ export interface TextPosition {
       page: number;
       position?: TextPosition;
       linePositions?: TextPosition[]; // Store positions of all text items in the line
+      isFigure?: boolean;            // Flag to indicate this is a figure
+      figureNumber?: number;         // Optional figure number
     };
   }
   
