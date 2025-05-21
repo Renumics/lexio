@@ -35,31 +35,17 @@ async function parseVisualElements(file) {
             }
             else if (fn === pdfjsLib.OPS.paintFormXObjectBegin) {
                 try {
-                    // Add safety checks for args
-                    if (!Array.isArray(args) || args.length < 2 || !args[0] || !args[1]) {
-                        debugLog('Invalid FormXObject args:', args);
-                        continue;
-                    }
+                    if (!Array.isArray(args) || args.length < 2) continue;
 
                     const formCTM = args[0];
                     const rect = args[1];
 
-                    // Ensure we have valid arrays
                     if (!Array.isArray(formCTM) || !Array.isArray(rect) || 
-                        formCTM.length < 4 || rect.length < 4) {
-                        debugLog('Invalid FormXObject arrays:', { formCTM, rect });
-                        continue;
-                    }
+                        formCTM.length < 4 || rect.length < 4) continue;
 
                     const [x0, y0, w0, h0] = rect;
                     const [formA, , , formD] = formCTM;
                     const [, , , , currentE, currentF] = ctm;
-
-                    // Check for valid numbers
-                    if ([x0, y0, w0, h0, formA, formD, currentE, currentF].some(n => typeof n !== 'number')) {
-                        debugLog('Invalid FormXObject numbers:', { x0, y0, w0, h0, formA, formD, currentE, currentF });
-                        continue;
-                    }
 
                     let boxX = currentE + x0 * formA;
                     let boxY = currentF + y0 * formD;
@@ -70,39 +56,29 @@ async function parseVisualElements(file) {
                         boxY = boxY + boxH;
                     }
 
-                    // Skip the root form and invalid dimensions
-                    if (boxW <= 0 || boxH <= 0 || 
-                        (boxW === pageW && boxH === pageH && boxX === 0 && boxY === 0)) {
-                        continue;
+                    if (!(boxW === pageW && boxH === pageH && boxX === 0 && boxY === 0)) {
+                        elements.push({
+                            type: 'FormXObject',
+                            pageNumber: pageNum,
+                            boundingBox: {
+                                x: Number(boxX.toFixed(8)),
+                                y: Number(boxY.toFixed(8)),
+                                width: Number(boxW.toFixed(1)),
+                                height: Number(boxH.toFixed(1))
+                            },
+                            operatorInfo: {
+                                operator: 'paintFormXObjectBegin',
+                                args: Array.from(args)
+                            }
+                        });
                     }
-
-                    elements.push({
-                        type: 'FormXObject',
-                        pageNumber: pageNum,
-                        boundingBox: { x: boxX, y: boxY, width: boxW, height: boxH },
-                        operatorInfo: { operator: 'paintFormXObjectBegin', args }
-                    });
                 } catch (error) {
                     debugLog('Error processing FormXObject:', error);
-                    continue;
                 }
             }
             else if (fn === pdfjsLib.OPS.paintImageXObject) {
                 try {
-                    // Add safety checks for image processing
-                    if (!Array.isArray(ctm) || ctm.length < 6) {
-                        debugLog('Invalid image CTM:', ctm);
-                        continue;
-                    }
-
                     const [a, , , d, e, f] = ctm;
-
-                    // Check for valid numbers
-                    if ([a, d, e, f].some(n => typeof n !== 'number')) {
-                        debugLog('Invalid image numbers:', { a, d, e, f });
-                        continue;
-                    }
-
                     let boxX = e;
                     let boxY = f;
                     let boxW = Math.abs(a);
@@ -112,20 +88,22 @@ async function parseVisualElements(file) {
                         boxY = boxY + d;
                     }
 
-                    // Skip invalid dimensions
-                    if (boxW <= 0 || boxH <= 0) {
-                        continue;
-                    }
-
                     elements.push({
                         type: 'Image',
                         pageNumber: pageNum,
-                        boundingBox: { x: boxX, y: boxY, width: boxW, height: boxH },
-                        operatorInfo: { operator: 'paintImageXObject', args }
+                        boundingBox: {
+                            x: Number(boxX.toFixed(8)),
+                            y: Number(boxY.toFixed(8)),
+                            width: Number(boxW.toFixed(1)),
+                            height: Number(boxH.toFixed(1))
+                        },
+                        operatorInfo: {
+                            operator: 'paintImageXObject',
+                            args: Array.from(args)
+                        }
                     });
                 } catch (error) {
                     debugLog('Error processing Image:', error);
-                    continue;
                 }
             }
         }

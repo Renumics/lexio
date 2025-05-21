@@ -22,7 +22,7 @@ interface VisualElement {
     boundingBox: BoundingBox;
     operatorInfo: {
         operator: string;
-        args: any;
+        args: any[];  // Updated to be an array type
     };
 }
 
@@ -63,31 +63,40 @@ export async function parseVisualElements(file: File): Promise<ParserResult> {
             }
             else if (fn === OPS.paintFormXObjectBegin) {
                 const formCTM = args[0] as number[];
-                const [x0, y0, w0, h0] = args[1] as number[];
+                const rect = args[1] as number[];
                 
-                // Use the form's CTM for scaling
+                if (!Array.isArray(formCTM) || !Array.isArray(rect) || 
+                    formCTM.length < 4 || rect.length < 4) {
+                    continue;
+                }
+
+                const [x0, y0, w0, h0] = rect;
                 const [formA, , , formD] = formCTM;
-                // Use the current CTM for positioning
                 const [, , , , currentE, currentF] = ctm;
 
-                // Calculate the final position using the current CTM for position
                 let boxX = currentE + x0 * formA;
                 let boxY = currentF + y0 * formD;
                 let boxW = w0 * Math.abs(formA);
                 let boxH = h0 * Math.abs(formD);
 
-                // Adjust Y position if height is negative
                 if (formD < 0) {
                     boxY = boxY + boxH;
                 }
 
-                // skip the "root" form (covers entire page)
                 if (!(boxW === pageW && boxH === pageH && boxX === 0 && boxY === 0)) {
                     elements.push({
                         type: 'FormXObject',
                         pageNumber: pageNum,
-                        boundingBox: { x: boxX, y: boxY, width: boxW, height: boxH },
-                        operatorInfo: { operator: 'paintFormXObjectBegin', args }
+                        boundingBox: {
+                            x: Number(boxX.toFixed(8)),
+                            y: Number(boxY.toFixed(8)),
+                            width: Number(boxW.toFixed(1)),
+                            height: Number(boxH.toFixed(1))
+                        },
+                        operatorInfo: {
+                            operator: 'paintFormXObjectBegin',
+                            args: Array.from(args)  // Convert to regular array
+                        }
                     });
                 }
             }
@@ -95,10 +104,9 @@ export async function parseVisualElements(file: File): Promise<ParserResult> {
                 const [a, , , d, e, f] = ctm;
                 let boxX = e;
                 let boxY = f;
-                let boxW = Math.abs(a);  // Use absolute value for width
-                let boxH = Math.abs(d);  // Use absolute value for height
+                let boxW = Math.abs(a);
+                let boxH = Math.abs(d);
 
-                // Adjust Y position if height is negative
                 if (d < 0) {
                     boxY = boxY + d;
                 }
@@ -106,14 +114,21 @@ export async function parseVisualElements(file: File): Promise<ParserResult> {
                 elements.push({
                     type: 'Image',
                     pageNumber: pageNum,
-                    boundingBox: { x: boxX, y: boxY, width: boxW, height: boxH },
-                    operatorInfo: { operator: 'paintImageXObject', args }
+                    boundingBox: {
+                        x: Number(boxX.toFixed(8)),
+                        y: Number(boxY.toFixed(8)),
+                        width: Number(boxW.toFixed(1)),
+                        height: Number(boxH.toFixed(1))
+                    },
+                    operatorInfo: {
+                        operator: 'paintImageXObject',
+                        args: Array.from(args)  // Convert to regular array
+                    }
                 });
             }
         }
     }
 
-    debugLog(`Found ${elements.length} visual elements`);
     return {
         metadata: {
             file: file.name,
@@ -121,19 +136,5 @@ export async function parseVisualElements(file: File): Promise<ParserResult> {
         },
         total: elements.length,
         elements
-    };
-}
-
-/**
- * Helper function to extract bounding box from operator arguments
- */
-function extractBoundingBox(args: any[], viewport: any): BoundingBox {
-    // Note: This is a simplified version. You might need to adjust the calculation
-    // based on your specific PDF structure and needs
-    return {
-        x: 0,
-        y: 0,
-        width: viewport.width,
-        height: viewport.height
     };
 }

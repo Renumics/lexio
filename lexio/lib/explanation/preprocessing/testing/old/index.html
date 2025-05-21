@@ -1,38 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PDF Parser Test</title>
+    <title>PDF Visual Elements Parser</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: monospace;
             max-width: 800px;
             margin: 20px auto;
             padding: 20px;
+            background-color: #f5f5f5;
         }
-        h1 {
-            color: #333;
-        }
-        .results-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .result-box {
+        .error {
+            color: red;
+            background: #fff0f0;
             padding: 10px;
-            border: 1px solid #ccc;
             border-radius: 4px;
-            white-space: pre-wrap;
-        }
-        .result-box h2 {
-            margin-top: 0;
-            color: #666;
-            font-size: 1.2em;
+            margin: 10px 0;
         }
         pre {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             overflow-x: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
+        }
+        input {
+            margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
         }
     </style>
     <!-- Load PDF.js library -->
@@ -43,13 +39,10 @@
     </script>
 </head>
 <body>
-    <h1>PDF Parser Test</h1>
-    <p>Select a PDF file to test the parser:</p>
+    <h1>PDF Visual Elements Parser</h1>
     <input type="file" id="pdfInput" accept=".pdf" />
-    <div class="results-container">
-        <div id="visualResults" class="result-box">
-            <h2>Visual Elements Results</h2>
-        </div>
+    <div id="visualResults">
+        <p>Select a PDF file to analyze visual elements.</p>
     </div>
     
     <!-- Load your code -->
