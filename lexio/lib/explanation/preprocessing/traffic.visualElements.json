@@ -1,0 +1,172 @@
+{
+  "metadata": {
+    "file": "test.pdf",
+    "numPages": 6
+  },
+  "total": 6,
+  "elements": [
+    {
+      "type": "Image",
+      "pageNumber": 3,
+      "boundingBox": {
+        "x": 0.00016657,
+        "y": 0.8100586000000476,
+        "width": 2026.5,
+        "height": 1387.5
+      },
+      "operatorInfo": {
+        "operator": "paintImageXObject",
+        "args": [
+          "img_p2_1",
+          2702,
+          1850
+        ]
+      }
+    },
+    {
+      "type": "FormXObject",
+      "pageNumber": 4,
+      "boundingBox": {
+        "x": 0.72000001,
+        "y": 1.65999995,
+        "width": 71.99804040000001,
+        "height": 72.00261809999999
+      },
+      "operatorInfo": {
+        "operator": "paintFormXObjectBegin",
+        "args": [
+          [
+            0.11139,
+            0,
+            0,
+            0.12713,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            646.36,
+            566.37
+          ]
+        ]
+      }
+    },
+    {
+      "type": "FormXObject",
+      "pageNumber": 4,
+      "boundingBox": {
+        "x": 0.11339,
+        "y": 2.07389998,
+        "width": 71.99804040000001,
+        "height": 72.00261809999999
+      },
+      "operatorInfo": {
+        "operator": "paintFormXObjectBegin",
+        "args": [
+          [
+            0.11139,
+            0,
+            0,
+            0.12713,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            646.36,
+            566.37
+          ]
+        ]
+      }
+    },
+    {
+      "type": "FormXObject",
+      "pageNumber": 5,
+      "boundingBox": {
+        "x": 0.11339,
+        "y": 2.07389998,
+        "width": 71.99804040000001,
+        "height": 72.00261809999999
+      },
+      "operatorInfo": {
+        "operator": "paintFormXObjectBegin",
+        "args": [
+          [
+            0.11139,
+            0,
+            0,
+            0.12713,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            646.36,
+            566.37
+          ]
+        ]
+      }
+    },
+    {
+      "type": "FormXObject",
+      "pageNumber": 5,
+      "boundingBox": {
+        "x": 0.062767,
+        "y": 1.431,
+        "width": 71.99804040000001,
+        "height": 71.99897150000001
+      },
+      "operatorInfo": {
+        "operator": "paintFormXObjectBegin",
+        "args": [
+          [
+            0.11139,
+            0,
+            0,
+            0.11855,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            646.36,
+            607.33
+          ]
+        ]
+      }
+    },
+    {
+      "type": "FormXObject",
+      "pageNumber": 5,
+      "boundingBox": {
+        "x": 0.72000001,
+        "y": 1.67410003,
+        "width": 71.99804040000001,
+        "height": 71.997089
+      },
+      "operatorInfo": {
+        "operator": "paintFormXObjectBegin",
+        "args": [
+          [
+            0.11139,
+            0,
+            0,
+            0.12134,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            646.36,
+            593.35
+          ]
+        ]
+      }
+    }
+  ]
+}
