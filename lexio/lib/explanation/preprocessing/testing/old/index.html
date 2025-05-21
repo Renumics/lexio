@@ -12,9 +12,27 @@
         h1 {
             color: #333;
         }
-        input[type="file"] {
-            margin: 20px 0;
+        .results-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .result-box {
             padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .result-box h2 {
+            margin-top: 0;
+            color: #666;
+            font-size: 1.2em;
+        }
+        pre {
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
     </style>
     <!-- Load PDF.js library -->
@@ -27,9 +45,15 @@
 <body>
     <h1>PDF Parser Test</h1>
     <p>Select a PDF file to test the parser:</p>
+    <input type="file" id="pdfInput" accept=".pdf" />
+    <div class="results-container">
+        <div id="visualResults" class="result-box">
+            <h2>Visual Elements Results</h2>
+        </div>
+    </div>
     
     <!-- Load your code -->
-    <script src="parser.js"></script>
+    <script src="operatorParser.js"></script>
     <script src="test.js"></script>
 </body>
 </html>

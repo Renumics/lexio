@@ -13,7 +13,8 @@ document.body.appendChild(resultsDiv);
 // Function to test the PDF parser
 async function testPdfParser() {
     try {
-        resultsDiv.textContent = 'Loading and parsing test.pdf...';
+        const visualResults = document.getElementById('visualResults');
+        visualResults.innerHTML = '<h2>Visual Elements Results</h2>Loading...';
         
         // Fetch the test.pdf file
         const response = await fetch('test.pdf');
@@ -24,22 +25,42 @@ async function testPdfParser() {
         const pdfBlob = await response.blob();
         const file = new File([pdfBlob], 'test.pdf', { type: 'application/pdf' });
         
-        // Parse the PDF
-        const result = await parsePdfWithMarker(file);
+        // Parse the PDF for visual elements
+        const result = await parseVisualElements(file);
         
         // Display the results
-        const output = {
-            fileName: result.metadata.fileName,
-            totalPages: result.metadata.numPages,
-            blocks: result.blocks
-        };
-
-        resultsDiv.textContent = JSON.stringify(output, null, 2);
+        visualResults.innerHTML = '<h2>Visual Elements Results</h2>' + 
+            `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+        
     } catch (error) {
-        resultsDiv.textContent = `Error: ${error.message}`;
         console.error('Error:', error);
+        const errorMessage = `Error: ${error.message}\n${error.stack}`;
+        document.getElementById('visualResults').innerHTML = 
+            '<h2>Visual Elements Results</h2>' +
+            `<pre style="color: red">${errorMessage}</pre>`;
     }
 }
 
+// Add file input handler
+document.getElementById('pdfInput').addEventListener('change', async (event) => {
+    try {
+        const file = event.target.files[0];
+        if (file) {
+            const visualResults = document.getElementById('visualResults');
+            visualResults.innerHTML = '<h2>Visual Elements Results</h2>Loading...';
+            
+            const result = await parseVisualElements(file);
+            visualResults.innerHTML = 
+                '<h2>Visual Elements Results</h2>' +
+                `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('visualResults').innerHTML = 
+            '<h2>Visual Elements Results</h2>' +
+            `<pre style="color: red">${error.message}</pre>`;
+    }
+});
+
 // Run the test when the page loads
-window.addEventListener('load', testPdfParser); 
+window.addEventListener('load', testPdfParser);
