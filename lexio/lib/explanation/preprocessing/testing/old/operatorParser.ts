@@ -26,18 +26,6 @@ interface VisualElement {
     };
 }
 
-interface TextItem {
-    transform: number[];
-    width: number;
-    height: number;
-    str: string;
-}
-
-interface ProcessedPageContent {
-    visualElements: VisualElement[];
-    filteredText: TextItem[];
-}
-
 interface ParserResult {
     metadata: {
         file: string;
@@ -48,7 +36,7 @@ interface ParserResult {
 }
 
 /**
- * Parses a PDF file to extract figures, Form XObjects, and filtered text content
+ * Parses a PDF file to extract images and Form XObjects
  */
 export async function parseVisualElements(file: File): Promise<ParserResult> {
     debugLog(`Starting PDF visual elements parsing: ${file.name}`);
@@ -63,7 +51,6 @@ export async function parseVisualElements(file: File): Promise<ParserResult> {
         const viewport = page.getViewport({ scale: 1.0 });
         const pageW = viewport.width;
         const pageH = viewport.height;
-
         const opList = await page.getOperatorList();
         let ctm: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
 
