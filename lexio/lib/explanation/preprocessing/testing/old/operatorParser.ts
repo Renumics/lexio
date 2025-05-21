@@ -74,30 +74,40 @@ export async function parseVisualElements(file: File): Promise<ParserResult> {
             if (fn === OPS.transform) {
                 ctm = args as [number, number, number, number, number, number];
             }
-            else if (fn === OPS.paintFormXObjectBegin) {
-                // args[1] = [x0,y0,w0,h0]
-                const [, , w0, h0] = args[1] as number[];
+            else if (fn === OPS.paintFormXObjectBegin || fn === OPS.paintImageXObject) {
                 const [a, , , d, e, f] = ctm;
-                const boxW = w0 * a;
-                const boxH = h0 * d;
+                
+                let boxX = e;
+                let boxY = f;
+                let boxW: number;
+                let boxH: number;
 
-                // skip the "root" form (covers entire page)
-                if (!(boxW === pageW && boxH === pageH && e === 0 && f === 0)) {
-                    elements.push({
-                        type: 'FormXObject',
-                        pageNumber: pageNum,
-                        boundingBox: { x: e, y: f, width: boxW, height: boxH },
-                        operatorInfo: { operator: 'paintFormXObjectBegin', args }
-                    });
+                if (fn === OPS.paintImageXObject) {
+                    boxW = a;
+                    boxH = d;
+                } else {
+                    // Form XObject:
+                    const [, , w0, h0] = args[1] as number[];
+                    boxW = w0 * a;
+                    boxH = h0 * d;
+
+                    // skip the "root" form (covers entire page)
+                    if (boxW === pageW && boxH === pageH && e === 0 && f === 0) {
+                        continue;
+                    }
                 }
-            }
-            else if (fn === OPS.paintImageXObject) {
-                const [a, , , d, e, f] = ctm;
+
+                // Adjust for negative height (flipped Y)
+                if (boxH < 0) {
+                    boxY = boxY + boxH;  // move Y down by the (negative) height
+                    boxH = -boxH;        // make height positive
+                }
+
                 elements.push({
-                    type: 'Image',
+                    type: fn === OPS.paintImageXObject ? 'Image' : 'FormXObject',
                     pageNumber: pageNum,
-                    boundingBox: { x: e, y: f, width: a, height: d },
-                    operatorInfo: { operator: 'paintImageXObject', args }
+                    boundingBox: { x: boxX, y: boxY, width: boxW, height: boxH },
+                    operatorInfo: { operator: fn === OPS.paintImageXObject ? 'paintImageXObject' : 'paintFormXObjectBegin', args }
                 });
             }
         }
