@@ -10,7 +10,7 @@
       "pageNumber": 3,
       "boundingBox": {
         "x": 0.00016657,
-        "y": 0.8100586000000476,
+        "y": 0.8100586,
         "width": 2026.5,
         "height": 1387.5
       },
@@ -29,8 +29,8 @@
       "boundingBox": {
         "x": 0.72000001,
         "y": 1.65999995,
-        "width": 71.99804040000001,
-        "height": 72.00261809999999
+        "width": 72,
+        "height": 72
       },
       "operatorInfo": {
         "operator": "paintFormXObjectBegin",
@@ -58,8 +58,8 @@
       "boundingBox": {
         "x": 0.11339,
         "y": 2.07389998,
-        "width": 71.99804040000001,
-        "height": 72.00261809999999
+        "width": 72,
+        "height": 72
       },
       "operatorInfo": {
         "operator": "paintFormXObjectBegin",
@@ -87,8 +87,8 @@
       "boundingBox": {
         "x": 0.11339,
         "y": 2.07389998,
-        "width": 71.99804040000001,
-        "height": 72.00261809999999
+        "width": 72,
+        "height": 72
       },
       "operatorInfo": {
         "operator": "paintFormXObjectBegin",
@@ -116,8 +116,8 @@
       "boundingBox": {
         "x": 0.062767,
         "y": 1.431,
-        "width": 71.99804040000001,
-        "height": 71.99897150000001
+        "width": 72,
+        "height": 72
       },
       "operatorInfo": {
         "operator": "paintFormXObjectBegin",
@@ -145,8 +145,8 @@
       "boundingBox": {
         "x": 0.72000001,
         "y": 1.67410003,
-        "width": 71.99804040000001,
-        "height": 71.997089
+        "width": 72,
+        "height": 72
       },
       "operatorInfo": {
         "operator": "paintFormXObjectBegin",
