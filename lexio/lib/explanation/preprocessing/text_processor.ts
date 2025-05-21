@@ -1,4 +1,4 @@
-import { ParseResult, TextWithMetadata, TextItem, TextPosition } from './types';
+import { ParseResult, TextWithMetadata, TextItem } from './types';
 import { loadSbd } from '../dependencies';
 import { isSectionHeader } from './section_analyzer';
 import { detectAndExtractFigures} from './figure_processor';
@@ -97,7 +97,6 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
                     .replace(/\b(?:Page|p\.?)\s*\d+\s*(?:of|\/)\s*\d+\b/gi, '')
                     .replace(/(?:[A-Za-z0-9._%+-]+(?:@|\.(?:com|edu|org|net|gov))\b)[^\n.]*,?\s*/gi, '')
                     .replace(/\[\d+(?:,\s*\d+)*\]/g, '')  // Remove citation references
-                    .replace(/\b(?:Fig\.|Figure|Table|Algorithm)\s+\d+/gi, '')  // Remove figure/table references
                     .trim();
                 
                 // Calculate position adjustment based on removed prefix content

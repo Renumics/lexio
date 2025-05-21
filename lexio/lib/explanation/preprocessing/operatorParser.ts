@@ -16,13 +16,13 @@ interface BoundingBox {
     height: number;
 }
 
-interface VisualElement {
+export interface VisualElement {
     type: 'Image' | 'FormXObject';
     pageNumber: number;
     boundingBox: BoundingBox;
     operatorInfo: {
         operator: string;
-        args: any[];  // Updated to be an array type
+        args: any[];
     };
 }
 
@@ -66,63 +66,101 @@ export async function parseVisualElements(file: File): Promise<ParserResult> {
                 const rect = args[1] as number[];
                 
                 if (!Array.isArray(formCTM) || !Array.isArray(rect) || 
-                    formCTM.length < 4 || rect.length < 4) {
+                    formCTM.length < 6 || rect.length < 4) {
                     continue;
                 }
 
                 const [x0, y0, w0, h0] = rect;
-                const [formA, , , formD] = formCTM;
-                const [, , , , currentE, currentF] = ctm;
+                const [formA, formB, formC, formD, formE, formF] = formCTM;
+                const [ctmA, ctmB, ctmC, ctmD, ctmE, ctmF] = ctm;
+                const pageViewport = page.getViewport({ scale: 1.0 });
 
-                let boxX = currentE + x0 * formA;
-                let boxY = currentF + y0 * formD;
+                debugLog('Processing FormXObject:', {
+                    input: {
+                        rect: [x0, y0, w0, h0],
+                        formCTM,
+                        ctm,
+                        viewport: {
+                            width: pageViewport.width,
+                            height: pageViewport.height
+                        }
+                    }
+                });
+
+                // First apply form matrix to get initial box
+                let boxX = x0 * formA + formE;
+                let boxY = y0 * formD + formF;
                 let boxW = w0 * Math.abs(formA);
                 let boxH = h0 * Math.abs(formD);
 
-                if (formD < 0) {
-                    boxY = boxY + boxH;
-                }
+                // Then apply CTM
+                const finalX = boxX * ctmA + ctmE;
+                const finalY = boxY * ctmD + ctmF;
+                const finalW = boxW * Math.abs(ctmA);
+                const finalH = boxH * Math.abs(ctmD);
 
-                if (!(boxW === pageW && boxH === pageH && boxX === 0 && boxY === 0)) {
+                // Convert to normalized coordinates (0-1 range)
+                const normalizedX = finalX / pageViewport.width;
+                const normalizedY = finalY / pageViewport.height;
+                const normalizedW = finalW / pageViewport.width;
+                const normalizedH = finalH / pageViewport.height;
+
+                debugLog('Coordinate transformation:', {
+                    initial: { x: boxX, y: boxY, w: boxW, h: boxH },
+                    afterCTM: { x: finalX, y: finalY, w: finalW, h: finalH },
+                    normalized: { x: normalizedX, y: normalizedY, w: normalizedW, h: normalizedH }
+                });
+
+                if (!(finalW === pageViewport.width && finalH === pageViewport.height && finalX === 0 && finalY === 0)) {
                     elements.push({
                         type: 'FormXObject',
                         pageNumber: pageNum,
                         boundingBox: {
-                            x: Number(boxX.toFixed(8)),
-                            y: Number(boxY.toFixed(8)),
-                            width: Number(boxW.toFixed(1)),
-                            height: Number(boxH.toFixed(1))
+                            x: Number(normalizedX.toFixed(8)),
+                            y: Number(normalizedY.toFixed(8)),
+                            width: Number(normalizedW.toFixed(8)),
+                            height: Number(normalizedH.toFixed(8))
                         },
                         operatorInfo: {
                             operator: 'paintFormXObjectBegin',
-                            args: Array.from(args)  // Convert to regular array
+                            args: Array.from(args)
                         }
                     });
                 }
             }
             else if (fn === OPS.paintImageXObject) {
-                const [a, , , d, e, f] = ctm;
+                const [a, b, c, d, e, f] = ctm;
+                const pageViewport = page.getViewport({ scale: 1.0 });
+
+                // Get dimensions directly from CTM
                 let boxX = e;
                 let boxY = f;
                 let boxW = Math.abs(a);
                 let boxH = Math.abs(d);
 
-                if (d < 0) {
-                    boxY = boxY + d;
-                }
+                // Convert to normalized coordinates (0-1 range)
+                const normalizedX = boxX / pageViewport.width;
+                const normalizedY = boxY / pageViewport.height;
+                const normalizedW = boxW / pageViewport.width;
+                const normalizedH = boxH / pageViewport.height;
+
+                debugLog('Image transformation:', {
+                    original: { x: boxX, y: boxY, w: boxW, h: boxH },
+                    normalized: { x: normalizedX, y: normalizedY, w: normalizedW, h: normalizedH }
+                });
 
                 elements.push({
                     type: 'Image',
                     pageNumber: pageNum,
                     boundingBox: {
-                        x: Number(boxX.toFixed(8)),
-                        y: Number(boxY.toFixed(8)),
-                        width: Number(boxW.toFixed(1)),
-                        height: Number(boxH.toFixed(1))
+                        x: Number(normalizedX.toFixed(8)),
+                        y: Number(normalizedY.toFixed(8)),
+                        width: Number(normalizedW.toFixed(8)),
+                        height: Number(normalizedH.toFixed(8))
                     },
                     operatorInfo: {
                         operator: 'paintImageXObject',
-                        args: Array.from(args)  // Convert to regular array
+                        args: Array.from(args)
                     }
                 });
             }

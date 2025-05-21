@@ -1,8 +1,17 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { TextItem } from './types';
-import { detectAndExtractFigures } from './text_processor';
+import { detectAndExtractFigures } from './figure_processor';
 
 describe('Text Processor - Figure Detection', () => {
+    // Helper function to pretty print figure details
+    const logFigure = (figure: any, testName: string) => {
+        console.log(`\n=== Figures found in: ${testName} ===`);
+        console.log(`Figure ${figure.number}:`);
+        console.log('Position:', JSON.stringify(figure.position, null, 2));
+        console.log('Content items:', figure.content.map((item: TextItem) => item.text));
+        console.log('===============================\n');
+    };
+
     // Test data setup
     const createTextItem = (
         text: string,
@@ -27,6 +36,7 @@ describe('Text Processor - Figure Detection', () => {
             ];
 
             const { figures, remainingItems } = detectAndExtractFigures(items);
+            figures.forEach(fig => logFigure(fig, 'Simple figure with caption'));
 
             expect(figures).toHaveLength(1);
             expect(figures[0]).toMatchObject({
@@ -50,6 +60,7 @@ describe('Text Processor - Figure Detection', () => {
             ];
 
             const { figures, remainingItems } = detectAndExtractFigures(items);
+            figures.forEach(fig => logFigure(fig, 'Multiple figures'));
 
             expect(figures).toHaveLength(2);
             expect(figures[0].number).toBe(1);
@@ -67,6 +78,7 @@ describe('Text Processor - Figure Detection', () => {
             ];
 
             const { figures } = detectAndExtractFigures(items);
+            figures.forEach(fig => logFigure(fig, 'Different figure formats'));
 
             expect(figures).toHaveLength(2);
             expect(figures[0].number).toBe(1);
@@ -82,6 +94,7 @@ describe('Text Processor - Figure Detection', () => {
             ];
 
             const { figures, remainingItems } = detectAndExtractFigures(items);
+            figures.forEach(fig => logFigure(fig, 'Grouped text items'));
 
             expect(figures).toHaveLength(1);
             expect(figures[0].content).toHaveLength(3);
