@@ -21,39 +21,53 @@ async function parseVisualElements(file) {
                 if (fn === pdfjsLib.OPS.transform) {
                     ctm = args;
                 }
-                else if (fn === pdfjsLib.OPS.paintFormXObjectBegin || fn === pdfjsLib.OPS.paintImageXObject) {
-                    const [a, , , d, e, f] = ctm;
+                else if (fn === pdfjsLib.OPS.paintFormXObjectBegin) {
+                    const formCTM = args[0];
+                    const [x0, y0, w0, h0] = args[1];
                     
-                    let boxX = e;
-                    let boxY = f;
-                    let boxW, boxH;
+                    // Use the form's CTM for scaling
+                    const [formA, , , formD] = formCTM;
+                    // Use the current CTM for positioning
+                    const [, , , , currentE, currentF] = ctm;
 
-                    if (fn === pdfjsLib.OPS.paintImageXObject) {
-                        boxW = a;
-                        boxH = d;
-                    } else {
-                        // Form XObject:
-                        const [, , w0, h0] = args[1];
-                        boxW = w0 * a;
-                        boxH = h0 * d;
+                    // Calculate the final position using the current CTM for position
+                    let boxX = currentE + x0 * formA;
+                    let boxY = currentF + y0 * formD;
+                    let boxW = w0 * Math.abs(formA);
+                    let boxH = h0 * Math.abs(formD);
 
-                        // skip the "root" form (covers entire page)
-                        if (boxW === pageW && boxH === pageH && e === 0 && f === 0) {
-                            continue;
-                        }
+                    // Adjust Y position if height is negative
+                    if (formD < 0) {
+                        boxY = boxY + boxH;
                     }
 
-                    // Adjust for negative height (flipped Y)
-                    if (boxH < 0) {
-                        boxY = boxY + boxH;  // move Y down by the (negative) height
-                        boxH = -boxH;        // make height positive
+                    // skip the "root" form (covers entire page)
+                    if (!(boxW === pageW && boxH === pageH && boxX === 0 && boxY === 0)) {
+                        elements.push({
+                            type: 'FormXObject',
+                            pageNumber: pageNum,
+                            boundingBox: { x: boxX, y: boxY, width: boxW, height: boxH },
+                            operatorInfo: { operator: 'paintFormXObjectBegin', args }
+                        });
+                    }
+                }
+                else if (fn === pdfjsLib.OPS.paintImageXObject) {
+                    const [a, , , d, e, f] = ctm;
+                    let boxX = e;
+                    let boxY = f;
+                    let boxW = Math.abs(a);  // Use absolute value for width
+                    let boxH = Math.abs(d);  // Use absolute value for height
+
+                    // Adjust Y position if height is negative
+                    if (d < 0) {
+                        boxY = boxY + d;
                     }
 
                     elements.push({
-                        type: fn === pdfjsLib.OPS.paintImageXObject ? 'Image' : 'FormXObject',
+                        type: 'Image',
                         pageNumber: pageNum,
                         boundingBox: { x: boxX, y: boxY, width: boxW, height: boxH },
-                        operatorInfo: { operator: fn === pdfjsLib.OPS.paintImageXObject ? 'paintImageXObject' : 'paintFormXObjectBegin', args }
+                        operatorInfo: { operator: 'paintImageXObject', args }
                     });
                 }
             } catch (error) {
