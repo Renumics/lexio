@@ -1,8 +1,6 @@
 import { ParseResult, TextWithMetadata, TextItem } from './types';
 import { loadSbd } from '../dependencies';
 import { isSectionHeader } from './section_analyzer';
-import { detectAndExtractFigures} from './figure_processor';
-
 
 /**
  * Clean text and split into sentences.
@@ -19,28 +17,12 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
             // Get all text items for this page and flatten them
             const allTextItems = pageBlock.textItems.flat();
             
-            // First detect and extract figures
-            const { figures, remainingItems } = detectAndExtractFigures(allTextItems);
-            
-            // Process figures separately if needed
-            figures.forEach(figure => {
-                textsWithMetadata.push({
-                    text: `[Figure ${figure.number}] ${figure.caption}`,
-                    metadata: {
-                        page: pageBlock.page,
-                        position: figure.position,
-                        isFigure: true,
-                        figureNumber: figure.number
-                    }
-                });
-            });
-            
             // Create a continuous text string with markers for text item boundaries
             let fullText = '';
             const itemPositions: { start: number; item: TextItem; }[] = [];
             
             // Filter out likely header/footer items based on position
-            const filteredItems = remainingItems.filter(item => {
+            const filteredItems = allTextItems.filter(item => {
                 // Filter out items at very top or bottom of page (typical header/footer locations)
                 if (item.position.top < 0.1 || item.position.top > 0.9) {
                     // Keep only if it looks like a meaningful page number
@@ -49,7 +31,7 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
                 }
                 
                 // Check if it's a paper title
-                const isPaperTitle = isSectionHeader(item, remainingItems) && 
+                const isPaperTitle = isSectionHeader(item, allTextItems) && 
                 item.position.top < 0.3 && // Near top of page
                 /^(?!(?:\d+\.|Abstract|Introduction|References))[A-Z]/.test(item.text); // Starts with capital, not a regular section
 
@@ -77,7 +59,7 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
                 } 
                 
                 // Filter out regular section headers
-                if (isSectionHeader(item, remainingItems)) {
+                if (isSectionHeader(item, allTextItems)) {
                     return false;
                 }
                 
