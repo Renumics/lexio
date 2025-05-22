@@ -23,26 +23,25 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
             
             // Filter out likely header/footer items based on position
             const filteredItems = allTextItems.filter(item => {
-                // Filter out items at very top or bottom of page (typical header/footer locations)
-                if (item.position.top < 0.1 || item.position.top > 0.9) {
-                    // Keep only if it looks like a meaningful page number
+                const relativeTop = item.position.top / item.position.pageHeight;
+                
+                // In PDF points from top, larger numbers mean lower on the page
+                // So > 0.9 means bottom 10%, < 0.1 means top 10%
+                if (relativeTop < 0.1 || relativeTop > 0.9) {
                     const isPageNumber = /^\d+$/.test(item.text.trim());
                     return isPageNumber;
                 }
                 
                 // Check if it's a paper title
                 const isPaperTitle = isSectionHeader(item, allTextItems) && 
-                item.position.top < 0.3 && // Near top of page
-                /^(?!(?:\d+\.|Abstract|Introduction|References))[A-Z]/.test(item.text); // Starts with capital, not a regular section
+                    (item.position.top / item.position.pageHeight) > 0.8 && // Top 20% of page
+                    /^(?!(?:\d+\.|Abstract|Introduction|References))[A-Z]/.test(item.text);
 
-                // If it's a paper title, we want to keep it but mark it for special handling
                 if (isPaperTitle) {
-                    // Calculate the vertical adjustment
-                    // PDF coordinates are from bottom-up, but we want top-down coordinates
+                    // Calculate position for top-left coordinate system
                     const exactPosition = {
                         ...item.position,
-                        // Adjust the vertical position by moving it up
-                        top: Math.max(0, item.position.top - item.position.height),
+                        // No need to adjust top position since we're already in top-left system
                         isTitle: true
                     };
 
@@ -51,16 +50,30 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
                         metadata: {
                             page: pageBlock.page,
                             position: exactPosition,
-                            linePositions: [exactPosition]
+                            linePositions: [exactPosition],
+                            isHeader: true
                         }
                     });
-                    // Remove it from regular text processing
                     return false;
-                } 
+                }
                 
-                // Filter out regular section headers
+                // Keep track of section headers but process them specially
                 if (isSectionHeader(item, allTextItems)) {
-                    return false;
+                    const exactPosition = {
+                        ...item.position,
+                        isHeader: true  // Add a flag to mark it as header
+                    };
+
+                    textsWithMetadata.push({
+                        text: item.text.trim(),
+                        metadata: {
+                            page: pageBlock.page,
+                            position: exactPosition,
+                            linePositions: [exactPosition],
+                            isHeader: true  // Add header flag in metadata
+                        }
+                    });
+                    return false;  // Still filter it out from regular text processing
                 }
                 
                 return true;
@@ -191,7 +204,10 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
                         const curr = relevantItems[i];
                         const prev = relevantItems[i-1];
                         
-                        if (Math.abs(curr.position.top - prev.position.top) < 0.005) {
+                        // Group items with very close top positions as being on the same line
+                        // Using absolute difference in PDF points (e.g. 2-3 points tolerance)
+                        const verticalGap = Math.abs(curr.position.top - prev.position.top);
+                        if (verticalGap < 3) { // 3 points tolerance for same line
                             currentLine.push(curr);
                         } else {
                             lines.push([...currentLine]);
@@ -209,11 +225,16 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
                         const bottom = Math.max(...lineItems.map(item => 
                             item.position.top + item.position.height));
                             
+                        // Get pageWidth and pageHeight from any item in the line (they should all be the same)
+                        const { pageWidth, pageHeight } = lineItems[0].position;
+                            
                         return {
                             top,
                             left,
                             width: right - left,
-                            height: bottom - top
+                            height: bottom - top,
+                            pageWidth,  // Add these two properties
+                            pageHeight  // from the original text item
                         };
                     });
                     

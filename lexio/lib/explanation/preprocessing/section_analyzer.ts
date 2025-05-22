@@ -38,16 +38,13 @@ export function isSectionHeader(item: TextItem, allItems: TextItem[]): boolean {
   // Improved academic header patterns
   const academicHeaderPatterns = [
     /^Abstract\b/i,
-    /^(?:I\.|II\.|III\.|IV\.|V\.|VI\.|VII\.|VIII\.|IX\.|X\.)\s*[A-Z][A-Za-z\s-]*/,  // Roman numerals
+    /^(?:[A-Z]\.)\s+[A-Z][A-Za-z\s-]*/,  // Matches "A. Traffic Data Imputation"
+    /^(?:I\.|II\.|III\.|IV\.|V\.|VI\.|VII\.|VIII\.|IX\.|X\.)\s*[A-Z][A-Za-z\s-]*/,
     /^Introduction\b/i,
     /^Related Work\b/i,
     /^Method(?:ology)?\b/i,
-    /^Experiments?\b/i,
-    /^Results?\b/i,
-    /^Discussion\b/i,
-    /^Conclusion\b/i,
-    /^References\b/i,
-    /^(?:(?:[A-Z][a-z]+[\s-]*)+(?:Learning|Analysis|Framework|Model|Method|Approach))\b/,
+    /^(?:Experiments?|Results?|Discussion|Conclusion)\b/i,
+    /^References\b/i
   ];
   
   const isAcademicHeader = academicHeaderPatterns.some(pattern => pattern.test(item.text.trim()));
@@ -59,13 +56,37 @@ export function isSectionHeader(item: TextItem, allItems: TextItem[]): boolean {
   ];
   
   const isPaperTitle = paperTitlePatterns.some(pattern => pattern.test(item.text.trim()));
-  const isNearTop = item.position.top < 0.3;
+  const isNearTop = (item.position.top / item.position.pageHeight) < 0.2; // Top 20% of page
   const isPaperTitleHeader = isPaperTitle && isNearTop && (isLargerFont || isBold);
 
+  // For regular section headers, we might want to check for vertical spacing
+  const verticalGap = findMinVerticalGap(item, allItems);
+  const hasExtraSpacing = verticalGap > avgHeight * 1.5; // More space around headers
+  
   // Enhanced decision logic
   return hasSectionNumber || 
          isPaperTitleHeader ||
-         (isAcademicHeader && isNewLine) ||
+         (isAcademicHeader && isNewLine && hasExtraSpacing) ||
          (isShortHeader && isNewLine && (isLargerFont || isBold || isHeaderFormat)) ||
          (isHeaderFormat && isNewLine && (isLargerFont || isBold));
+}
+
+function findMinVerticalGap(item: TextItem, allItems: TextItem[]): number {
+    const itemsAbove = allItems.filter(other => 
+        other.position.top < item.position.top && 
+        Math.abs(other.position.left - item.position.left) < item.position.width
+    );
+    const itemsBelow = allItems.filter(other => 
+        other.position.top > item.position.top && 
+        Math.abs(other.position.left - item.position.left) < item.position.width
+    );
+    
+    const gapAbove = itemsAbove.length ? 
+        Math.min(...itemsAbove.map(i => Math.abs(item.position.top - i.position.top))) : 
+        Number.MAX_VALUE;
+    const gapBelow = itemsBelow.length ? 
+        Math.min(...itemsBelow.map(i => Math.abs(item.position.top - i.position.top))) : 
+        Number.MAX_VALUE;
+        
+    return Math.min(gapAbove, gapBelow);
 } 
