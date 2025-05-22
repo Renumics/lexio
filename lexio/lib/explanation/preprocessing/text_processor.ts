@@ -81,18 +81,7 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
 
             // Pre-clean individual text items before joining
             const cleanedItems = filteredItems.map(item => {
-                let cleanedText = item.text
-                    // Remove standalone numbers at start of text
-                    .replace(/^(?:\d+\s+)/, '')
-                    // Remove common artifacts
-                    .replace(/(?:\*|†|‡)\s*/g, '')
-                    // Move PDF artifact removal to item level
-                    .replace(/WWW\.[A-Z]+\.[A-Z]+/gi, '')
-                    .replace(/(?:©|Copyright)\s*\d{4}/gi, '')
-                    .replace(/\b(?:Page|p\.?)\s*\d+\s*(?:of|\/)\s*\d+\b/gi, '')
-                    .replace(/(?:[A-Za-z0-9._%+-]+(?:@|\.(?:com|edu|org|net|gov))\b)[^\n.]*,?\s*/gi, '')
-                    .replace(/\[\d+(?:,\s*\d+)*\]/g, '')  // Remove citation references
-                    .trim();
+                let cleanedText = cleanTextItem(item.text);
                 
                 // Calculate position adjustment based on removed prefix content
                 const prefixDiff = item.text.length - cleanedText.length;
@@ -251,4 +240,21 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
     }
     
     return textsWithMetadata;
+}
+
+function cleanTextItem(text: string): string {
+    return text
+        // Remove standalone numbers at start
+        .replace(/^(?:\d+\s+)/, '')
+        // Remove common artifacts
+        .replace(/(?:\*|†|‡)\s*/g, '')
+        // PDF artifacts
+        .replace(/WWW\.[A-Z]+\.[A-Z]+/gi, '')
+        .replace(/(?:©|Copyright)\s*\d{4}/gi, '')
+        .replace(/\b(?:Page|p\.?)\s*\d+\s*(?:of|\/)\s*\d+\b/gi, '')
+        // Remove emails and URLs
+        .replace(/(?:[A-Za-z0-9._%+-]+(?:@|\.(?:com|edu|org|net|gov))\b)[^\n.]*,?\s*/gi, '')
+        // Remove citation references
+        .replace(/\[\d+(?:,\s*\d+)*\]/g, '')
+        .trim();
 } 
