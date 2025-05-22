@@ -1,5 +1,5 @@
 import { pdfjs } from 'react-pdf';
-import config from '../config';
+import config from '../../config';
 const { OPS } = pdfjs;
 
 // Debug logging utility
