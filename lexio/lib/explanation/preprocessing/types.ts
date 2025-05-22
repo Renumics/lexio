@@ -13,6 +13,7 @@ export interface TextPosition {
     position: TextPosition;
     startIndex: number;
     endIndex: number;
+    page?: number; // Add optional page property
   }
   
   export interface LineBox {

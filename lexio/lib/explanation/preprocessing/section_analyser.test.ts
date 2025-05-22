@@ -17,7 +17,8 @@ describe('Section Analyzer', () => {
         pageHeight: item.position.pageHeight
       },
       startIndex: item.startIndex,
-      endIndex: item.endIndex
+      endIndex: item.endIndex,
+      page: item.page
     }));
   };
 
@@ -26,7 +27,10 @@ describe('Section Analyzer', () => {
     .flatMap((page) => 
       page.textItems
         .flat()
-        .map(item => normalizeTextItems([item])[0])
+        .map(item => ({
+          ...normalizeTextItems([item])[0],
+          page: page.page // Add the page number from the parent block
+        }))
     );
 
   const lineBoxes: (LineBox | null)[] = testData.blocks.children
@@ -45,6 +49,7 @@ describe('Section Analyzer', () => {
         
         return {
           text: item.text,
+          page: item.page,
           isHeader,
           isGraph,
           metrics: {
@@ -143,10 +148,23 @@ describe('Section Analyzer', () => {
       }
     });
 
-    const headerCount = analyzedItems.filter(i => i.isHeader).length;
-    const graphCount = analyzedItems.filter(i => i.isGraph).length;
-    console.log(`\nTotal analyzed items: ${analyzedItems.length}`);
-    console.log(`Detected headers: ${headerCount}`);
-    console.log(`Detected graph elements: ${graphCount}`);
+    console.log('\nHeaders:');
+    console.log('========');
+    analyzedItems
+      .filter(item => item.isHeader)
+      .forEach((item, index) => {
+        console.log(`${index + 1}. [Page ${item.page}] "${item.text}"`);
+      });
+
+    console.log('\nGraph Elements:');
+    console.log('==============');
+    analyzedItems
+      .filter(item => item.isGraph)
+      .forEach((item, index) => {
+        console.log(`${index + 1}. [Page ${item.page}] "${item.text}"`);
+      });
+
+    console.log(`\nTotal headers: ${analyzedItems.filter(i => i.isHeader).length}`);
+    console.log(`Total graph elements: ${analyzedItems.filter(i => i.isGraph).length}`);
   });
 });

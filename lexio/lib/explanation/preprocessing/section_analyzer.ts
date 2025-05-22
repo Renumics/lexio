@@ -65,7 +65,7 @@ export function isSectionHeader(item: TextItem, allItems: TextItem[], lineBoxes?
     if (other === item) return true;
 
     // First check if items are on different pages
-    if (other.startIndex !== item.startIndex) return true;
+    if (other.page !== item.page) return true;
 
     // Check if items are in roughly the same column (allow small tolerance)
     const columnWidth = 300; // typical column width
