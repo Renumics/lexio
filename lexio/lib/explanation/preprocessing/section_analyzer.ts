@@ -75,4 +75,23 @@ function calculateAverageLineSpacing(lineBoxes: (LineBox | null)[]): number {
   }
   
   return spacingCount > 0 ? totalSpacing / spacingCount : 0;
+}
+
+/**
+ * Detects if a text item is likely part of a figure/graph
+ * (e.g. axis labels, data points, etc.)
+ */
+export function isGraphElement(item: TextItem, allItems: TextItem[]): boolean {
+  // Calculate average height across all items
+  const avgHeight = allItems.reduce((sum, i) => sum + i.position.height, 0) / allItems.length;
+  
+  // Check if this item is significantly smaller than average (e.g. 0.7x or less)
+  const heightRatio = item.position.height / avgHeight;
+  const isSignificantlySmaller = heightRatio <= 0.7;
+  
+  // Check if text matches patterns commonly found in graphs
+  const isNumericValue = /^-?\d*\.?\d+$/.test(item.text.trim());  // Matches numbers like 0.4, -0.3, 42, etc.
+  const isAxisLabel = /^[0-9.]+[A-Za-z%]?$/.test(item.text.trim());  // Matches things like "0.4%", "100k", etc.
+  
+  return isSignificantlySmaller && (isNumericValue || isAxisLabel);
 } 

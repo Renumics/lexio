@@ -1,5 +1,5 @@
 import { describe, test } from 'vitest';
-import { isSectionHeader } from './section_analyzer';
+import { isSectionHeader, isGraphElement } from './section_analyzer';
 import { TextItem, LineBox } from './types';
 import testData from './jsons/textContent2.json';
 
@@ -32,21 +32,23 @@ describe('Section Analyzer', () => {
   const lineBoxes: (LineBox | null)[] = testData.blocks.children
     .flatMap(page => page.lineBoxes || []);
 
-  test('print detected headers from JSON with debug info', () => {
+  test('analyze text elements with detailed metrics', () => {
     // Calculate average metrics for reference
     const avgHeight = allTextItems.reduce((sum, i) => sum + i.position.height, 0) / allTextItems.length;
 
-    // Find potential headers and their detection metrics
-    const headerCandidates = allTextItems
+    // Analyze all text items for both headers and graph elements
+    const analyzedItems = allTextItems
       .map(item => {
         const isHeader = isSectionHeader(item, allTextItems, lineBoxes);
+        const isGraph = isGraphElement(item, allTextItems);
         const relativeHeight = item.position.height / item.position.pageHeight;
         const avgRelativeHeight = allTextItems.reduce((sum, i) => 
           sum + (i.position.height / i.position.pageHeight), 0) / allTextItems.length;
         
         return {
           text: item.text,
-          isDetectedHeader: isHeader,
+          isHeader,
+          isGraph,
           metrics: {
             height: item.position.height,
             heightRatio: (item.position.height / avgHeight).toFixed(2),
@@ -55,36 +57,49 @@ describe('Section Analyzer', () => {
             top: Math.round(item.position.top),
             topRatio: (item.position.top / item.position.pageHeight).toFixed(2),
             isRomanNumeral: /^[IVX]+\./.test(item.text),
-            isNumericSection: /^\d+\./.test(item.text)
+            isNumericSection: /^\d+\./.test(item.text),
+            isNumericValue: /^-?\d*\.?\d+$/.test(item.text.trim()),
+            isAxisLabel: /^[0-9.]+[A-Za-z%]?$/.test(item.text.trim())
           }
         };
       })
       .filter(item => 
-        item.isDetectedHeader || 
+        item.isHeader || 
+        item.isGraph ||
         item.metrics.isRomanNumeral || 
         item.metrics.isNumericSection ||
-        Number(item.metrics.heightRatio) > 1.2
+        item.metrics.isNumericValue ||
+        Number(item.metrics.heightRatio) > 1.2 ||
+        Number(item.metrics.heightRatio) < 0.7
       )
       .sort((a, b) => a.metrics.top - b.metrics.top);
 
-    console.log('\nPotential Headers Analysis:');
-    console.log('=========================');
+    console.log('\nText Elements Analysis:');
+    console.log('=====================');
     
-    headerCandidates.forEach((item, index) => {
-      const status = item.isDetectedHeader ? '✓' : '✗';
-      const headerType = item.metrics.isRomanNumeral ? '[Roman]' : 
-                        item.metrics.isNumericSection ? '[Numeric]' : 
-                        '[Other]';
+    analyzedItems.forEach((item, index) => {
+      const headerStatus = item.isHeader ? '✓H' : '✗';
+      const graphStatus = item.isGraph ? '✓G' : '✗';
+      const status = `[${headerStatus}|${graphStatus}]`;
       
-      console.log(`\n${index + 1}. ${status} ${headerType} "${item.text}"`);
+      let elementType = 'Unknown';
+      if (item.metrics.isRomanNumeral) elementType = 'Roman';
+      else if (item.metrics.isNumericSection) elementType = 'NumericSection';
+      else if (item.metrics.isNumericValue) elementType = 'NumericValue';
+      else if (item.metrics.isAxisLabel) elementType = 'AxisLabel';
+      else elementType = 'Other';
+
+      console.log(`\n${index + 1}. ${status} [${elementType}] "${item.text}"`);
       console.log('Metrics:');
       console.log(`  • Height: ${item.metrics.height}px (ratio: ${item.metrics.heightRatio}x avg)`);
       console.log(`  • Relative Height: ${item.metrics.relativeHeight} (avg: ${item.metrics.avgRelativeHeight})`);
       console.log(`  • Position: ${item.metrics.top}px (${item.metrics.topRatio} of page height)`);
     });
 
-    const detectedCount = headerCandidates.filter(h => h.isDetectedHeader).length;
-    console.log(`\nTotal candidates: ${headerCandidates.length}`);
-    console.log(`Detected headers: ${detectedCount}`);
+    const headerCount = analyzedItems.filter(i => i.isHeader).length;
+    const graphCount = analyzedItems.filter(i => i.isGraph).length;
+    console.log(`\nTotal analyzed items: ${analyzedItems.length}`);
+    console.log(`Detected headers: ${headerCount}`);
+    console.log(`Detected graph elements: ${graphCount}`);
   });
 });
