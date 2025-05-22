@@ -16,14 +16,36 @@ interface BoundingBox {
     height: number;
 }
 
+interface Dimensions {
+    width: number;
+    height: number;
+}
+
+interface ImageData {
+    width: number;
+    height: number;
+    bitsPerComponent?: number;
+    colorSpace?: string;
+    compression?: string;
+    dataSize?: number;
+}
+
 export interface VisualElement {
     type: 'Image' | 'FormXObject';
     pageNumber: number;
     boundingBox: BoundingBox;
+    rawBoundingBox: BoundingBox;
+    pageDimensions: Dimensions;
+    originalDimensions: {
+        width: number | null;
+        height: number | null;
+    };
     operatorInfo: {
         operator: string;
         args: any[];
     };
+    transformMatrix?: number[];
+    imageData?: ImageData;
 }
 
 interface ParserResult {
@@ -54,119 +76,144 @@ export async function parseVisualElements(file: File): Promise<ParserResult> {
         const opList = await page.getOperatorList();
         let ctm: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
 
+        // Helper function to normalize coordinates and convert to top-left system
+        const normalize = (box: BoundingBox): BoundingBox => {
+            return {
+                x: (box.x / pageW) * 100,
+                y: ((pageH - box.y - box.height) / pageH) * 100,
+                width: (box.width / pageW) * 100,
+                height: (box.height / pageH) * 100
+            };
+        };
+
         for (let i = 0; i < opList.fnArray.length; i++) {
             const fn = opList.fnArray[i];
-            const args = opList.argsArray[i] as any;
+            const args = opList.argsArray[i];
 
             if (fn === OPS.transform) {
                 ctm = args as [number, number, number, number, number, number];
             }
             else if (fn === OPS.paintFormXObjectBegin) {
-                const formCTM = args[0] as number[];
-                const rect = args[1] as number[];
-                
-                if (!Array.isArray(formCTM) || !Array.isArray(rect) || 
-                    formCTM.length < 6 || rect.length < 4) {
-                    continue;
-                }
+                try {
+                    if (!Array.isArray(args) || args.length < 2) continue;
 
-                const [x0, y0, w0, h0] = rect;
-                const [formA, formB, formC, formD, formE, formF] = formCTM;
-                const [ctmA, ctmB, ctmC, ctmD, ctmE, ctmF] = ctm;
-                const pageViewport = page.getViewport({ scale: 1.0 });
+                    const formCTM = args[0];
+                    const rect = args[1];
 
-                debugLog('Processing FormXObject:', {
-                    input: {
-                        rect: [x0, y0, w0, h0],
-                        formCTM,
-                        ctm,
-                        viewport: {
-                            width: pageViewport.width,
-                            height: pageViewport.height
-                        }
+                    if (!Array.isArray(formCTM) || !Array.isArray(rect) || 
+                        formCTM.length < 4 || rect.length < 4) continue;
+
+                    const [x0, y0, w0, h0] = rect;
+                    const [formA, , , formD] = formCTM;
+                    const [, , , , currentE, currentF] = ctm;
+
+                    let boxX = currentE + x0 * formA;
+                    let boxY = currentF + y0 * formD;
+                    let boxW = w0 * Math.abs(formA);
+                    let boxH = h0 * Math.abs(formD);
+
+                    if (formD < 0) {
+                        boxY = boxY + boxH;
                     }
-                });
 
-                // First apply form matrix to get initial box
-                let boxX = x0 * formA + formE;
-                let boxY = y0 * formD + formF;
-                let boxW = w0 * Math.abs(formA);
-                let boxH = h0 * Math.abs(formD);
+                    if (!(boxW === pageW && boxH === pageH && boxX === 0 && boxY === 0)) {
+                        const rawBoundingBox = {
+                            x: Number(boxX.toFixed(8)),
+                            y: Number(boxY.toFixed(8)),
+                            width: Number(boxW.toFixed(1)),
+                            height: Number(boxH.toFixed(1))
+                        };
 
-                // Then apply CTM
-                const finalX = boxX * ctmA + ctmE;
-                const finalY = boxY * ctmD + ctmF;
-                const finalW = boxW * Math.abs(ctmA);
-                const finalH = boxH * Math.abs(ctmD);
-
-                // Convert to normalized coordinates (0-1 range)
-                const normalizedX = finalX / pageViewport.width;
-                const normalizedY = finalY / pageViewport.height;
-                const normalizedW = finalW / pageViewport.width;
-                const normalizedH = finalH / pageViewport.height;
-
-                debugLog('Coordinate transformation:', {
-                    initial: { x: boxX, y: boxY, w: boxW, h: boxH },
-                    afterCTM: { x: finalX, y: finalY, w: finalW, h: finalH },
-                    normalized: { x: normalizedX, y: normalizedY, w: normalizedW, h: normalizedH }
-                });
-
-                if (!(finalW === pageViewport.width && finalH === pageViewport.height && finalX === 0 && finalY === 0)) {
-                    elements.push({
-                        type: 'FormXObject',
-                        pageNumber: pageNum,
-                        boundingBox: {
-                            x: Number(normalizedX.toFixed(8)),
-                            y: Number(normalizedY.toFixed(8)),
-                            width: Number(normalizedW.toFixed(8)),
-                            height: Number(normalizedH.toFixed(8))
-                        },
-                        operatorInfo: {
-                            operator: 'paintFormXObjectBegin',
-                            args: Array.from(args)
-                        }
-                    });
+                        elements.push({
+                            type: 'FormXObject',
+                            pageNumber: pageNum,
+                            boundingBox: normalize(rawBoundingBox),
+                            rawBoundingBox,
+                            pageDimensions: {
+                                width: pageW,
+                                height: pageH
+                            },
+                            originalDimensions: {
+                                width: w0,
+                                height: h0
+                            },
+                            transformMatrix: formCTM,
+                            operatorInfo: {
+                                operator: 'paintFormXObjectBegin',
+                                args: Array.from(args)
+                            }
+                        });
+                    }
+                } catch (error) {
+                    debugLog('Error processing FormXObject:', error);
                 }
             }
-            else if (fn === OPS.paintImageXObject) {
-                const [a, b, c, d, e, f] = ctm;
-                const pageViewport = page.getViewport({ scale: 1.0 });
+            else if (fn === OPS.paintImageXObject || fn === OPS.paintXObject) {
+                try {
+                    const [a, , , d, e, f] = ctm;
+                    let boxX = e;
+                    let boxY = f;
+                    let boxW = Math.abs(a);
+                    let boxH = Math.abs(d);
 
-                // Get dimensions directly from CTM
-                let boxX = e;
-                let boxY = f;
-                let boxW = Math.abs(a);
-                let boxH = Math.abs(d);
-
-                // Convert to normalized coordinates (0-1 range)
-                const normalizedX = boxX / pageViewport.width;
-                const normalizedY = boxY / pageViewport.height;
-                const normalizedW = boxW / pageViewport.width;
-                const normalizedH = boxH / pageViewport.height;
-
-                debugLog('Image transformation:', {
-                    original: { x: boxX, y: boxY, w: boxW, h: boxH },
-                    normalized: { x: normalizedX, y: normalizedY, w: normalizedW, h: normalizedH }
-                });
-
-                elements.push({
-                    type: 'Image',
-                    pageNumber: pageNum,
-                    boundingBox: {
-                        x: Number(normalizedX.toFixed(8)),
-                        y: Number(normalizedY.toFixed(8)),
-                        width: Number(normalizedW.toFixed(8)),
-                        height: Number(normalizedH.toFixed(8))
-                    },
-                    operatorInfo: {
-                        operator: 'paintImageXObject',
-                        args: Array.from(args)
+                    if (d < 0) {
+                        boxY = boxY + d;
                     }
-                });
+
+                    const imageName = args[0];
+                    let imageData: ImageData | null = null;
+
+                    try {
+                        imageData = await new Promise((resolve) => {
+                            page.objs.get(imageName, (img: any) => {
+                                resolve({
+                                    width: img.width,
+                                    height: img.height,
+                                    bitsPerComponent: img.bitsPerComponent,
+                                    colorSpace: img.colorSpace,
+                                    compression: img.compression,
+                                    dataSize: img.data ? img.data.length : 0
+                                });
+                            });
+                        });
+                    } catch (imgError) {
+                        debugLog('Error getting image data:', imgError);
+                    }
+
+                    const rawBoundingBox = {
+                        x: Number(boxX.toFixed(8)),
+                        y: Number(boxY.toFixed(8)),
+                        width: Number(boxW.toFixed(1)),
+                        height: Number(boxH.toFixed(1))
+                    };
+
+                    elements.push({
+                        type: 'Image',
+                        pageNumber: pageNum,
+                        boundingBox: normalize(rawBoundingBox),
+                        rawBoundingBox,
+                        pageDimensions: {
+                            width: pageW,
+                            height: pageH
+                        },
+                        originalDimensions: {
+                            width: args[1] || null,
+                            height: args[2] || null
+                        },
+                        operatorInfo: {
+                            operator: fn === OPS.paintImageXObject ? 'paintImageXObject' : 'paintXObject',
+                            args: Array.from(args)
+                        },
+                        imageData: imageData || undefined
+                    });
+                } catch (error) {
+                    debugLog('Error processing Image:', error);
+                }
             }
         }
     }
 
+    debugLog(`Found ${elements.length} visual elements`);
     return {
         metadata: {
             file: file.name,

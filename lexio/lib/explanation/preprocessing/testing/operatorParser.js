@@ -26,6 +26,17 @@ async function parseVisualElements(file) {
         const opList = await page.getOperatorList();
         let ctm = [1, 0, 0, 1, 0, 0];
 
+        // Helper function to normalize coordinates and convert to top-left system
+        const normalize = (box) => {
+            const normalizedBox = {
+                x: (box.x / pageW) * 100,
+                y: ((pageH - box.y - box.height) / pageH) * 100,  // Convert to top-left
+                width: (box.width / pageW) * 100,
+                height: (box.height / pageH) * 100
+            };
+            return normalizedBox;
+        };
+
         for (let i = 0; i < opList.fnArray.length; i++) {
             const fn = opList.fnArray[i];
             const args = opList.argsArray[i];
@@ -56,16 +67,29 @@ async function parseVisualElements(file) {
                         boxY = boxY + boxH;
                     }
 
+                    // Skip full-page form objects
                     if (!(boxW === pageW && boxH === pageH && boxX === 0 && boxY === 0)) {
+                        const rawBoundingBox = {
+                            x: Number(boxX.toFixed(8)),
+                            y: Number(boxY.toFixed(8)),
+                            width: Number(boxW.toFixed(1)),
+                            height: Number(boxH.toFixed(1))
+                        };
+
                         elements.push({
                             type: 'FormXObject',
                             pageNumber: pageNum,
-                            boundingBox: {
-                                x: Number(boxX.toFixed(8)),
-                                y: Number(boxY.toFixed(8)),
-                                width: Number(boxW.toFixed(1)),
-                                height: Number(boxH.toFixed(1))
+                            boundingBox: normalize(rawBoundingBox),
+                            rawBoundingBox, // Keep the original coordinates for reference
+                            pageDimensions: {
+                                width: pageW,
+                                height: pageH
                             },
+                            originalDimensions: {
+                                width: w0,
+                                height: h0
+                            },
+                            transformMatrix: formCTM,
                             operatorInfo: {
                                 operator: 'paintFormXObjectBegin',
                                 args: Array.from(args)
@@ -76,7 +100,7 @@ async function parseVisualElements(file) {
                     debugLog('Error processing FormXObject:', error);
                 }
             }
-            else if (fn === pdfjsLib.OPS.paintImageXObject) {
+            else if (fn === pdfjsLib.OPS.paintImageXObject || fn === pdfjsLib.OPS.paintJpegXObject) {
                 try {
                     const [a, , , d, e, f] = ctm;
                     let boxX = e;
@@ -88,19 +112,51 @@ async function parseVisualElements(file) {
                         boxY = boxY + d;
                     }
 
+                    const imageName = args[0];
+                    let imageData = null;
+
+                    try {
+                        imageData = await new Promise((resolve) => {
+                            page.objs.get(imageName, (img) => {
+                                resolve({
+                                    width: img.width,
+                                    height: img.height,
+                                    bitsPerComponent: img.bitsPerComponent,
+                                    colorSpace: img.colorSpace,
+                                    compression: img.compression,
+                                    dataSize: img.data ? img.data.length : 0
+                                });
+                            });
+                        });
+                    } catch (imgError) {
+                        debugLog('Error getting image data:', imgError);
+                    }
+
+                    const rawBoundingBox = {
+                        x: Number(boxX.toFixed(8)),
+                        y: Number(boxY.toFixed(8)),
+                        width: Number(boxW.toFixed(1)),
+                        height: Number(boxH.toFixed(1))
+                    };
+
                     elements.push({
                         type: 'Image',
                         pageNumber: pageNum,
-                        boundingBox: {
-                            x: Number(boxX.toFixed(8)),
-                            y: Number(boxY.toFixed(8)),
-                            width: Number(boxW.toFixed(1)),
-                            height: Number(boxH.toFixed(1))
+                        boundingBox: normalize(rawBoundingBox),
+                        rawBoundingBox, // Keep the original coordinates for reference
+                        pageDimensions: {
+                            width: pageW,
+                            height: pageH
+                        },
+                        originalDimensions: {
+                            width: args[1] || null,
+                            height: args[2] || null
                         },
                         operatorInfo: {
-                            operator: 'paintImageXObject',
+                            operator: fn === pdfjsLib.OPS.paintImageXObject ? 'paintImageXObject' : 'paintJpegXObject',
                             args: Array.from(args)
-                        }
+                        },
+                        imageData
                     });
                 } catch (error) {
                     debugLog('Error processing Image:', error);
