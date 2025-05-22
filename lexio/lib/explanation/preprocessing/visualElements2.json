@@ -1,0 +1,301 @@
+{
+    "metadata": {
+      "file": "test.pdf",
+      "numPages": 6
+    },
+    "total": 6,
+    "elements": [
+      {
+        "type": "Image",
+        "pageNumber": 3,
+        "boundingBox": {
+          "x": 0,
+          "y": -75.29,
+          "width": 331.13,
+          "height": 175.19
+        },
+        "rawBoundingBox": {
+          "x": 0,
+          "y": 0.81,
+          "width": 2026.5,
+          "height": 1387.5
+        },
+        "pageDimensions": {
+          "width": 612,
+          "height": 792
+        },
+        "originalDimensions": {
+          "width": 2702,
+          "height": 1850
+        },
+        "operatorInfo": {
+          "operator": "paintImageXObject",
+          "args": [
+            "img_p2_1",
+            2702,
+            1850
+          ]
+        },
+        "imageData": {
+          "width": 2702,
+          "height": 1850,
+          "dataSize": 14996100
+        }
+      },
+      {
+        "type": "FormXObject",
+        "pageNumber": 4,
+        "boundingBox": {
+          "x": 0.12,
+          "y": 90.7,
+          "width": 11.76,
+          "height": 9.09
+        },
+        "rawBoundingBox": {
+          "x": 0.72,
+          "y": 1.66,
+          "width": 72,
+          "height": 72
+        },
+        "pageDimensions": {
+          "width": 612,
+          "height": 792
+        },
+        "originalDimensions": {
+          "width": 646.36,
+          "height": 566.37
+        },
+        "transformMatrix": [
+          0.11,
+          0,
+          0,
+          0.13,
+          0,
+          0
+        ],
+        "operatorInfo": {
+          "operator": "paintFormXObjectBegin",
+          "args": [
+            [
+              0.11,
+              0,
+              0,
+              0.13,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              646.36,
+              566.37
+            ]
+          ]
+        }
+      },
+      {
+        "type": "FormXObject",
+        "pageNumber": 4,
+        "boundingBox": {
+          "x": 0.02,
+          "y": 90.65,
+          "width": 11.76,
+          "height": 9.09
+        },
+        "rawBoundingBox": {
+          "x": 0.11,
+          "y": 2.07,
+          "width": 72,
+          "height": 72
+        },
+        "pageDimensions": {
+          "width": 612,
+          "height": 792
+        },
+        "originalDimensions": {
+          "width": 646.36,
+          "height": 566.37
+        },
+        "transformMatrix": [
+          0.11,
+          0,
+          0,
+          0.13,
+          0,
+          0
+        ],
+        "operatorInfo": {
+          "operator": "paintFormXObjectBegin",
+          "args": [
+            [
+              0.11,
+              0,
+              0,
+              0.13,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              646.36,
+              566.37
+            ]
+          ]
+        }
+      },
+      {
+        "type": "FormXObject",
+        "pageNumber": 5,
+        "boundingBox": {
+          "x": 0.02,
+          "y": 90.65,
+          "width": 11.76,
+          "height": 9.09
+        },
+        "rawBoundingBox": {
+          "x": 0.11,
+          "y": 2.07,
+          "width": 72,
+          "height": 72
+        },
+        "pageDimensions": {
+          "width": 612,
+          "height": 792
+        },
+        "originalDimensions": {
+          "width": 646.36,
+          "height": 566.37
+        },
+        "transformMatrix": [
+          0.11,
+          0,
+          0,
+          0.13,
+          0,
+          0
+        ],
+        "operatorInfo": {
+          "operator": "paintFormXObjectBegin",
+          "args": [
+            [
+              0.11,
+              0,
+              0,
+              0.13,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              646.36,
+              566.37
+            ]
+          ]
+        }
+      },
+      {
+        "type": "FormXObject",
+        "pageNumber": 5,
+        "boundingBox": {
+          "x": 0.01,
+          "y": 90.73,
+          "width": 11.76,
+          "height": 9.09
+        },
+        "rawBoundingBox": {
+          "x": 0.06,
+          "y": 1.43,
+          "width": 72,
+          "height": 72
+        },
+        "pageDimensions": {
+          "width": 612,
+          "height": 792
+        },
+        "originalDimensions": {
+          "width": 646.36,
+          "height": 607.33
+        },
+        "transformMatrix": [
+          0.11,
+          0,
+          0,
+          0.12,
+          0,
+          0
+        ],
+        "operatorInfo": {
+          "operator": "paintFormXObjectBegin",
+          "args": [
+            [
+              0.11,
+              0,
+              0,
+              0.12,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              646.36,
+              607.33
+            ]
+          ]
+        }
+      },
+      {
+        "type": "FormXObject",
+        "pageNumber": 5,
+        "boundingBox": {
+          "x": 0.12,
+          "y": 90.7,
+          "width": 11.76,
+          "height": 9.09
+        },
+        "rawBoundingBox": {
+          "x": 0.72,
+          "y": 1.67,
+          "width": 72,
+          "height": 72
+        },
+        "pageDimensions": {
+          "width": 612,
+          "height": 792
+        },
+        "originalDimensions": {
+          "width": 646.36,
+          "height": 593.35
+        },
+        "transformMatrix": [
+          0.11,
+          0,
+          0,
+          0.12,
+          0,
+          0
+        ],
+        "operatorInfo": {
+          "operator": "paintFormXObjectBegin",
+          "args": [
+            [
+              0.11,
+              0,
+              0,
+              0.12,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              646.36,
+              593.35
+            ]
+          ]
+        }
+      }
+    ]
+  }
