@@ -1,0 +1,9 @@
+Preprocessing:
+- intersection.ts finish
+- using  kmeans from 'ml-kmeans' for better header-detection (but it could be heavy -> check). Think about header detection necessity at all -- could be 
+useful for heuristic more effective matching. For now we just filter them out as they will give higher score during search 
+
+
+
+
+! - rename "withmarker" from parser file

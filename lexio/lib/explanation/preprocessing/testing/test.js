@@ -10,6 +10,9 @@ resultsDiv.style.borderRadius = '4px';
 // Add elements to the page
 document.body.appendChild(resultsDiv);
 
+// Import the intersection function
+const { findIntersections } = require('./intersection');
+
 function createVisualElementsTable(elements) {
     const table = document.createElement('table');
     
@@ -48,57 +51,87 @@ function createVisualElementsTable(elements) {
     return table;
 }
 
-// Function to handle PDF analysis
-async function analyzePDF(file) {
-    try {
-        const visualResults = document.getElementById('visualResults');
-        visualResults.innerHTML = '<h2>PDF Analysis</h2>Loading...';
+// Function to display intersection results
+function displayIntersectionResults(intersectionResults) {
+    const visualResults = document.getElementById('visualResults');
+    
+    // Create a summary section
+    const summary = document.createElement('div');
+    summary.innerHTML = `
+        <h3>Intersection Analysis Results</h3>
+        <p>Total Intersections: ${intersectionResults.totalIntersections}</p>
+        <p>Affected Pages: ${intersectionResults.affectedPages.join(', ')}</p>
+        <p>Visual Elements Processed: ${intersectionResults.visualElementsProcessed}</p>
+    `;
+    
+    // Create a table for detailed results
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.style.marginTop = '20px';
+    
+    // Add table header
+    const header = table.createTHead();
+    const headerRow = header.insertRow();
+    ['Page', 'Text', 'Position', 'Visual Elements'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        th.style.padding = '8px';
+        th.style.borderBottom = '2px solid #ddd';
+        headerRow.appendChild(th);
+    });
+    
+    // Add intersection details
+    const tbody = table.createTBody();
+    intersectionResults.intersections.forEach(intersection => {
+        const row = tbody.insertRow();
         
-        const result = await parseVisualElements(file);
-        
-        // Create a formatted JSON view
-        const jsonView = document.createElement('pre');
-        jsonView.textContent = JSON.stringify(result, null, 2);
+        // Add cells
+        [
+            intersection.pageNumber,
+            intersection.text,
+            `(${intersection.position.left.toFixed(2)}, ${intersection.position.top.toFixed(2)})`,
+            `${intersection.visualElements.length} element(s)`
+        ].forEach(text => {
+            const cell = row.insertCell();
+            cell.textContent = text;
+            cell.style.padding = '8px';
+            cell.style.borderBottom = '1px solid #ddd';
+        });
+    });
+    
+    // Clear previous results and add new content
+    visualResults.innerHTML = '<h2>Intersection Analysis</h2>';
+    visualResults.appendChild(summary);
+    visualResults.appendChild(table);
+}
 
-        visualResults.innerHTML = '<h2>PDF Analysis Results</h2>';
-        visualResults.appendChild(jsonView);
+// Function to load and process the intersection analysis
+async function loadIntersectionAnalysis() {
+    try {
+        // Get the visual elements
+        const visualElementsResponse = await fetch('visualElements2.json');
+        const visualElements = await visualElementsResponse.json();
+        
+        // Get the text content
+        const textContentResponse = await fetch('traffic.textContent.json');
+        const textContent = await textContentResponse.json();
+        
+        // Find intersections
+        const intersectionResults = findIntersections(visualElements, textContent);
+        
+        // Display results
+        displayIntersectionResults(intersectionResults);
 
     } catch (error) {
         console.error('Error:', error);
-        visualResults.innerHTML = `
-            <h2>PDF Analysis</h2>
+        document.getElementById('visualResults').innerHTML = `
+            <h2>Intersection Analysis</h2>
             <div class="error">
                 Error: ${error.message}
             </div>`;
     }
 }
 
-// Handle file input changes
-document.getElementById('pdfInput').addEventListener('change', async (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        await analyzePDF(file);
-    }
-});
-
-// Load test.pdf when the page loads
-window.addEventListener('load', async () => {
-    try {
-        const response = await fetch('test.pdf');
-        if (!response.ok) {
-            throw new Error(`Failed to load test.pdf: ${response.statusText}`);
-        }
-        
-        const pdfBlob = await response.blob();
-        const file = new File([pdfBlob], 'test.pdf', { type: 'application/pdf' });
-        
-        await analyzePDF(file);
-    } catch (error) {
-        console.error('Error loading test PDF:', error);
-        document.getElementById('visualResults').innerHTML = `
-            <h2>Visual Elements Analysis</h2>
-            <div class="error">
-                Failed to load test.pdf automatically. Please select a PDF file manually.
-            </div>`;
-    }
-});
+// Load intersection analysis when the page loads
+window.addEventListener('load', loadIntersectionAnalysis);
