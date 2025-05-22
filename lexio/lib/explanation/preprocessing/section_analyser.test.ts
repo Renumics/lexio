@@ -41,25 +41,61 @@ describe('Section Analyzer', () => {
       .map(item => {
         const isHeader = isSectionHeader(item, allTextItems, lineBoxes);
         const isGraph = isGraphElement(item, allTextItems);
-        const relativeHeight = item.position.height / item.position.pageHeight;
-        const avgRelativeHeight = allTextItems.reduce((sum, i) => 
-          sum + (i.position.height / i.position.pageHeight), 0) / allTextItems.length;
+        const height = item.position.height;
         
         return {
           text: item.text,
           isHeader,
           isGraph,
           metrics: {
-            height: item.position.height,
-            heightRatio: (item.position.height / avgHeight).toFixed(2),
-            relativeHeight: relativeHeight.toFixed(4),
-            avgRelativeHeight: avgRelativeHeight.toFixed(4),
+            height: height,
+            heightRatio: (height / avgHeight).toFixed(2),
             top: Math.round(item.position.top),
             topRatio: (item.position.top / item.position.pageHeight).toFixed(2),
             isRomanNumeral: /^[IVX]+\./.test(item.text),
             isNumericSection: /^\d+\./.test(item.text),
             isNumericValue: /^-?\d*\.?\d+$/.test(item.text.trim()),
-            isAxisLabel: /^[0-9.]+[A-Za-z%]?$/.test(item.text.trim())
+            isAxisLabel: /^[0-9.]+[A-Za-z%]?$/.test(item.text.trim()),
+            isOnSeparateLine: (() => {
+              const overlappingItems = allTextItems.filter(other => {
+                if (other === item) return false;
+
+                // Check if items are on different pages
+                if (other.startIndex !== item.startIndex) return false;
+
+                // Check if items are in roughly the same column
+                const columnWidth = 300; // typical column width
+                const itemColumn = Math.floor(item.position.left / columnWidth);
+                const otherColumn = Math.floor(other.position.left / columnWidth);
+                if (itemColumn !== otherColumn) return false;
+
+                // Now check vertical overlap only for items in same page and column
+                const sameVerticalRange = 
+                  Math.abs(other.position.top - item.position.top) < item.position.height &&
+                  Math.abs((other.position.top + other.position.height) - 
+                         (item.position.top + item.position.height)) < item.position.height;
+                
+                return sameVerticalRange;
+              });
+              
+              // Store overlapping items in metrics
+              return {
+                isOnSeparateLine: overlappingItems.length === 0,
+                overlappingItems: overlappingItems.map(other => ({
+                  text: other.text,
+                  position: {
+                    top: other.position.top,
+                    left: other.position.left,
+                    height: other.position.height,
+                    width: other.position.width,
+                    pageHeight: other.position.pageHeight // Add this to show page info
+                  }
+                }))
+              };
+            })(),
+            hasSectionNumber: /^(?:\d+\.|[IVX]+\.)\s+/.test(item.text),
+            isSignificantlyLarger: height > avgHeight * 1.3,
+            isNearPageTop: item.position.top > (item.position.pageHeight * 0.85)
           }
         };
       })
@@ -92,8 +128,19 @@ describe('Section Analyzer', () => {
       console.log(`\n${index + 1}. ${status} [${elementType}] "${item.text}"`);
       console.log('Metrics:');
       console.log(`  • Height: ${item.metrics.height}px (ratio: ${item.metrics.heightRatio}x avg)`);
-      console.log(`  • Relative Height: ${item.metrics.relativeHeight} (avg: ${item.metrics.avgRelativeHeight})`);
       console.log(`  • Position: ${item.metrics.top}px (${item.metrics.topRatio} of page height)`);
+      console.log(`  • Separate Line: ${item.metrics.isOnSeparateLine.isOnSeparateLine ? 'Yes' : 'No'}`);
+      console.log(`  • Section Number: ${item.metrics.hasSectionNumber ? 'Yes' : 'No'}`);
+      console.log(`  • Significantly Larger: ${item.metrics.isSignificantlyLarger ? 'Yes' : 'No'}`);
+      console.log(`  • Near Page Top: ${item.metrics.isNearPageTop ? 'Yes' : 'No'}`);
+      
+      // Add debug info for overlapping items
+      if (!item.metrics.isOnSeparateLine.isOnSeparateLine) {
+        console.log('  • Overlapping items:');
+        item.metrics.isOnSeparateLine.overlappingItems.forEach(other => {
+          console.log(`    - "${other.text}" (left: ${other.position.left}, top: ${other.position.top})`);
+        });
+      }
     });
 
     const headerCount = analyzedItems.filter(i => i.isHeader).length;

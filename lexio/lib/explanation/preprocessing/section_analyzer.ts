@@ -1,19 +1,96 @@
 import { TextItem, LineBox } from './types';
 
 /**
+ * Detects column boundaries in the document based on text item positions
+ */
+function detectColumns(allItems: TextItem[]): Array<{left: number, right: number}> {
+  // Get all unique left positions (with some tolerance to account for slight variations)
+  const tolerance = 5; // pixels
+  const leftPositions = new Set<number>();
+  
+  allItems.forEach(item => {
+    // Round to nearest tolerance to group similar positions
+    const roundedLeft = Math.round(item.position.left / tolerance) * tolerance;
+    leftPositions.add(roundedLeft);
+  });
+
+  // Sort positions to find distinct columns
+  const sortedLefts = Array.from(leftPositions).sort((a, b) => a - b);
+  
+  // Group into columns by finding gaps
+  const columns: Array<{left: number, right: number}> = [];
+  let currentColumn: {left: number, right: number} | null = null;
+  
+  allItems.forEach(item => {
+    const itemLeft = item.position.left;
+    const itemRight = item.position.left + item.position.width;
+    
+    if (!currentColumn) {
+      currentColumn = { left: itemLeft, right: itemRight };
+    } else {
+      // If this item is significantly to the right of current column's right edge,
+      // it's probably a new column
+      if (itemLeft > currentColumn.right + 20) { // 20px gap threshold
+        columns.push(currentColumn);
+        currentColumn = { left: itemLeft, right: itemRight };
+      } else {
+        // Update column boundaries
+        currentColumn.right = Math.max(currentColumn.right, itemRight);
+      }
+    }
+  });
+  
+  if (currentColumn) {
+    columns.push(currentColumn);
+  }
+  
+  return columns;
+}
+
+/**
  * Checks if a text item appears to be a section header based on various characteristics
  */
 export function isSectionHeader(item: TextItem, allItems: TextItem[], lineBoxes?: (LineBox | null)[]): boolean {
+  // Detect column structure once
+  const columns = detectColumns(allItems);
+  
+  // Find which column this item belongs to
+  const itemColumn = columns.find(col => 
+    item.position.left >= col.left - 5 && // small tolerance
+    (item.position.left + item.position.width) <= col.right + 5
+  );
+  
+  // Check if text is on its own line within its column
+  const isOnSeparateLine = allItems.every(other => {
+    if (other === item) return true;
+
+    // First check if items are on different pages
+    if (other.startIndex !== item.startIndex) return true;
+
+    // Check if items are in roughly the same column (allow small tolerance)
+    const columnWidth = 300; // typical column width
+    const itemColumn = Math.floor(item.position.left / columnWidth);
+    const otherColumn = Math.floor(other.position.left / columnWidth);
+    if (itemColumn !== otherColumn) return true;
+
+    // Now check vertical overlap only for items in same page and column
+    const sameVerticalRange = 
+      Math.abs(other.position.top - item.position.top) < item.position.height &&
+      Math.abs((other.position.top + other.position.height) - 
+               (item.position.top + item.position.height)) < item.position.height;
+    
+    return !sameVerticalRange;
+  });
+
   // Check for section numbers (including Roman numerals)
   const hasSectionNumber = /^(?:\d+\.|[IVX]+\.)\s+/.test(item.text);
   
-  // Calculate font metrics relative to page dimensions
-  const relativeHeight = item.position.height / item.position.pageHeight;
-  const avgRelativeHeight = allItems.reduce((sum, i) => 
-    sum + (i.position.height / i.position.pageHeight), 0) / allItems.length;
+  // Calculate font height metrics (using absolute heights)
+  const height = item.position.height;
+  const avgHeight = allItems.reduce((sum, i) => sum + i.position.height, 0) / allItems.length;
   
-  // Strengthen relative size thresholds
-  const isSignificantlyLarger = relativeHeight > avgRelativeHeight * 1.3;
+  // Check if significantly larger using absolute height
+  const isSignificantlyLarger = height > avgHeight * 1.3;
   
   // Check if text is near page top (header position)
   const isNearPageTop = item.position.top > (item.position.pageHeight * 0.85); // Top 15% of page
@@ -35,15 +112,9 @@ export function isSectionHeader(item: TextItem, allItems: TextItem[], lineBoxes?
     }
   }
   
-  // Check if text is on its own line with enhanced position checking
-  const isOnSeparateLine = allItems.every(other => {
-    if (other === item) return true;
-    const sameVerticalRange = 
-      Math.abs(other.position.top - item.position.top) < item.position.height &&
-      Math.abs((other.position.top + other.position.height) - 
-               (item.position.top + item.position.height)) < item.position.height;
-    return !sameVerticalRange;
-  });
+  // Check if text is all caps (excluding numbers and punctuation)
+  const isAllCaps = /^[A-Z0-9\s.,!?-]+$/.test(item.text.trim()) && 
+                   /[A-Z]/.test(item.text.trim()); // Ensures at least one letter exists
 
   // Basic text validation
   const isReasonableLength = item.text.length > 0 && item.text.length < 100;
@@ -55,7 +126,8 @@ export function isSectionHeader(item: TextItem, allItems: TextItem[], lineBoxes?
          ((isSignificantlyLarger && isOnSeparateLine) || 
           (hasSectionNumber && isOnSeparateLine) ||
           (isNearPageTop && isSignificantlyLarger) ||
-          (hasExtraWhitespace && isSignificantlyLarger));
+          (hasExtraWhitespace && isSignificantlyLarger) ||
+          (isAllCaps && isOnSeparateLine));
 }
 
 /**
