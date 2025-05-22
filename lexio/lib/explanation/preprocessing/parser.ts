@@ -27,6 +27,31 @@ function applyTransform(point: [number, number], transform: number[]): [number, 
 }
 
 /**
+ * Helper function to calculate bounding box for a line of text items
+ */
+function makeLineBox(lineItems: TextItem[]) {
+    // Filter out any remaining blanks
+    const items = lineItems.filter(
+        ti => ti.text.trim() !== "" && ti.position.width > 0
+    );
+    if (!items.length) return null;
+
+    // Gather mins & maxes
+    const xs = items.map(ti => ti.position.left);
+    const xe = items.map(ti => ti.position.left + ti.position.width);
+    const tops = items.map(ti => ti.position.top);
+    const bots = items.map(ti => ti.position.top + ti.position.height);
+
+    // Build the union box
+    return {
+        x: Math.min(...xs),
+        y: Math.min(...tops),
+        w: Math.max(...xe) - Math.min(...xs),
+        h: Math.max(...bots) - Math.min(...tops)
+    };
+}
+
+/**
  * Parses a PDF file using pdfjs from react-pdf.
  */
 export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
@@ -63,14 +88,22 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
       const textItem: TextItem = {
         text: item.str,
         position: {
-          top: y / viewport.height,
-          left: x / viewport.width,
-          width: (item.width || item.str.length * 5) / viewport.width,
-          height: (item.height || 12) / viewport.height
+          left: x,
+          width: item.width * viewport.scale,
+          height: Math.abs(item.transform[3]),
+          top: viewport.height - y - Math.abs(item.transform[3]),
+          pageWidth: viewport.width,
+          pageHeight: viewport.height
         },
         startIndex: currentPosition,
         endIndex: currentPosition + item.str.length
       };
+
+      // Skip blank items
+      if (!item.str.trim() || textItem.position.width === 0) {
+        return;
+      }
+      
       currentPosition += item.str.length + 1; // +1 for space
 
       if (lastY === null || Math.abs(y - lastY) < Y_THRESHOLD) {
@@ -96,6 +129,7 @@ export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
       text: content.items.map((item: any) => item.str).join(" "),
       textItems: lines,
       page: i,
+      lineBoxes: lines.map(makeLineBox).filter(b => b)
     });
   }
 

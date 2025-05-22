@@ -15,6 +15,31 @@ window.applyTransform = function(point, transform) {
     return [x, y];
 };
 
+// Helper function to calculate bounding box for a line of text items
+window.makeLineBox = function(lineItems) {
+    // 1) Filter out any remaining blanks (just in case)
+    const items = lineItems.filter(
+        ti => ti.text.trim() !== "" && ti.position.width > 0
+    );
+    if (!items.length) return null;
+
+    // 2) Gather mins & maxes
+    const xs   = items.map(ti => ti.position.left);
+    const xe   = items.map(ti => ti.position.left + ti.position.width);
+    const tops = items.map(ti => ti.position.top);
+    const bots = items.map(
+        ti => ti.position.top + ti.position.height
+    );
+
+    // 3) Build the union box
+    return {
+        x:  Math.min(...xs),
+        y:  Math.min(...tops),
+        w:  Math.max(...xe) - Math.min(...xs),
+        h:  Math.max(...bots) - Math.min(...tops)
+    };
+};
+
 // Main PDF parser function
 window.parsePdfWithMarker = async function(file) {
     debugLog(`Starting PDF parsing: ${file.name}`);
@@ -50,14 +75,24 @@ window.parsePdfWithMarker = async function(file) {
             const textItem = {
                 text: item.str,
                 position: {
-                    top: y / viewport.height,
-                    left: x / viewport.width,
-                    width: (item.width || item.str.length * 5) / viewport.width,
-                    height: (item.height || 12) / viewport.height
+                    left: x,
+                    // true width in PDF points:
+                    width:  item.width  * viewport.scale,
+                     // true height in PDF points (abs in case of negative scale):
+                    height: Math.abs(item.transform[3]),
+                     // now flip y so origin is top‐left:
+                    top:    viewport.height - y - Math.abs(item.transform[3]),
+                    
+                    pageWidth: viewport.width,
+                    pageHeight: viewport.height
                 },
                 startIndex: currentPosition,
                 endIndex: currentPosition + item.str.length
             };
+            if (!item.str.trim() || textItem.position.width === 0) {
+                return;  // skip blanks
+            }
+              
             currentPosition += item.str.length + 1; // +1 for space
 
             if (lastY === null || Math.abs(y - lastY) < Y_THRESHOLD) {
@@ -83,6 +118,7 @@ window.parsePdfWithMarker = async function(file) {
             text: content.items.map((item) => item.str).join(" "),
             textItems: lines,
             page: i,
+            lineBoxes: lines.map(makeLineBox).filter(b => b)
         });
     }
 

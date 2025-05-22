@@ -3,6 +3,8 @@ export interface TextPosition {
     left: number;
     width: number;
     height: number;
+    pageWidth: number;    // Added for viewport dimensions
+    pageHeight: number;   // Added for viewport dimensions
     isTitle?: boolean;
   }
   
@@ -11,6 +13,13 @@ export interface TextPosition {
     position: TextPosition;
     startIndex: number;
     endIndex: number;
+  }
+  
+  export interface LineBox {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
   }
   
   export interface TextWithMetadata {
@@ -33,6 +42,7 @@ export interface TextPosition {
         text: string;
         page: number;
         textItems: TextItem[][];  // Array of lines, each line is array of text items
+        lineBoxes: (LineBox | null)[];  // Added for line bounding boxes
       }>;
     };
     metadata: {
