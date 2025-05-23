@@ -25,24 +25,17 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
             const filteredItems = allTextItems.filter(item => {
                 const relativeTop = item.position.top / item.position.pageHeight;
                 
-                // In PDF points from top, larger numbers mean lower on the page
-                // So > 0.9 means bottom 10%, < 0.1 means top 10%
+                // Keep page numbers in header/footer areas
                 if (relativeTop < 0.1 || relativeTop > 0.9) {
                     const isPageNumber = /^\d+$/.test(item.text.trim());
                     return isPageNumber;
                 }
                 
-                // Check if it's a paper title
-                const isPaperTitle = isSectionHeader(item, allTextItems) && 
-                    (item.position.top / item.position.pageHeight) > 0.8 && // Top 20% of page
-                    /^(?!(?:\d+\.|Abstract|Introduction|References))[A-Z]/.test(item.text);
-
-                if (isPaperTitle) {
-                    // Calculate position for top-left coordinate system
+                // Use layout_analyzer's isSectionHeader function for all header detection
+                if (isSectionHeader(item, allTextItems)) {
                     const exactPosition = {
                         ...item.position,
-                        // No need to adjust top position since we're already in top-left system
-                        isTitle: true
+                        isHeader: true
                     };
 
                     textsWithMetadata.push({
@@ -55,25 +48,6 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
                         }
                     });
                     return false;
-                }
-                
-                // Keep track of section headers but process them specially
-                if (isSectionHeader(item, allTextItems)) {
-                    const exactPosition = {
-                        ...item.position,
-                        isHeader: true  // Add a flag to mark it as header
-                    };
-
-                    textsWithMetadata.push({
-                        text: item.text.trim(),
-                        metadata: {
-                            page: pageBlock.page,
-                            position: exactPosition,
-                            linePositions: [exactPosition],
-                            isHeader: true  // Add header flag in metadata
-                        }
-                    });
-                    return false;  // Still filter it out from regular text processing
                 }
                 
                 return true;
