@@ -2,7 +2,12 @@ Preprocessing:
 - intersection.ts finish
 - using  kmeans from 'ml-kmeans' for better header-detection (but it could be heavy -> check). Think about header detection necessity at all -- could be 
 useful for heuristic more effective matching. For now we just filter them out as they will give higher score during search 
-
+- add filtering rule for 
+    -values on the bottom (page numbers)
+    -cases with "Height: 0px" (plot labels)
+    -all axes name and plot labels
+    -handle reference area correctly (now [num] and reference iself are in 2 separate columns so it should be somehow handled (i quess just by y coordinate
+        but it needs extra check and time))
 
 
 
