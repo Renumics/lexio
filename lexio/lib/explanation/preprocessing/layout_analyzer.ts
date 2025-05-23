@@ -51,13 +51,14 @@ function detectColumns(allItems: TextItem[]): Array<{left: number, right: number
  * Checks if a text item appears to be a section header based on various characteristics
  */
 export function isSectionHeader(item: TextItem, allItems: TextItem[], lineBoxes?: (LineBox | null)[]): boolean {
-  // Detect column structure once
+  // Detect column structure once with more tolerance for section headers
   const columns = detectColumns(allItems);
   
-  // Find which column this item belongs to
+  // Find which column this item belongs to with increased tolerance for headers
+  const headerTolerance = 20; // Increased from 5 to handle indentation
   const itemColumn = columns.find(col => 
-    item.position.left >= col.left - 5 && // small tolerance
-    (item.position.left + item.position.width) <= col.right + 5
+    item.position.left >= col.left - headerTolerance && 
+    (item.position.left + item.position.width) <= col.right + headerTolerance
   );
   
   // Check if text is on its own line within its column
@@ -131,11 +132,11 @@ export function isSectionHeader(item: TextItem, allItems: TextItem[], lineBoxes?
            (hasSectionNumber && isOnSeparateLine) ||
            
            // Strong formatting indicators
-           (isSignificantlyLarger && isOnSeparateLine && hasExtraWhitespace) ||
+           (isSignificantlyLarger && isOnSeparateLine) ||
            
            // Special cases
            (isNearPageTop && isSignificantlyLarger) ||
-           (isAllCaps && isOnSeparateLine && hasExtraWhitespace)
+           (isAllCaps && isOnSeparateLine)
          );
 }
 
