@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cleanAndSplitText } from './text_processor';
+import { cleanAndSplitText } from './text_finalizer';
 import textContent2 from './jsons/textContent2.json';
 
 describe('Text Processor', () => {
