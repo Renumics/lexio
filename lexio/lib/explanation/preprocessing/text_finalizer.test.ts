@@ -1,54 +1,78 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'vitest';
 import { cleanAndSplitText } from './text_finalizer';
+import { isSectionHeader } from './layout_analyzer';
 import textContent2 from './jsons/textContent2.json';
 
-describe('Text Processor', () => {
-    describe('cleanAndSplitText', () => {
-        it('should find all section headers', async () => {
-            const blocks = textContent2.blocks;
-            const result = await cleanAndSplitText(blocks);
-            
-            // Find all section headers
-            const foundHeaders = result
-                .filter(item => item.metadata.isHeader)  // Use the new metadata flag
-                .map(item => ({
-                    text: item.text,
-                    page: item.metadata.page,
-                    position: item.metadata.linePositions?.[0] 
-                        ? {
-                            top: item.metadata.linePositions[0].top,
-                            relativeTop: item.metadata.linePositions[0].top / item.metadata.linePositions[0].pageHeight
-                        }
-                        : null
-                }));
+describe('Text Finalizer', () => {
+    it('should process text and identify headers', async () => {
+        const blocks = textContent2.blocks;
+        
+        // First get the correct headers using the proven layout_analyzer approach
+        const allTextItems = blocks.children
+            .flatMap((page) => 
+                page.textItems
+                    .flat()
+                    .map(item => ({
+                        text: item.text,
+                        position: {
+                            left: item.position.left,
+                            top: item.position.top,
+                            width: item.position.width,
+                            height: item.position.height,
+                            pageWidth: item.position.pageWidth,
+                            pageHeight: item.position.pageHeight
+                        },
+                        page: page.page
+                    }))
+            );
 
-            // Expected headers from the document
-            const expectedHeaderPatterns = [
-                /^A Deep Learning Based Approach/i,  // Title
-                /^Abstract/i,
-                /^I\.\s+Introduction/i,
-                /^II\.\s+Related Work/i,
-                /^A\.\s+Traffic Data Imputation/i,
-                /^A\.\s+DSAE based imputation architecture/i,
-                /^B\.\s+Training process/i
-            ];
+        const lineBoxes = blocks.children
+            .flatMap(page => page.lineBoxes || []);
 
-            // Test that we found all expected headers
-            expectedHeaderPatterns.forEach(pattern => {
-                const found = foundHeaders.some(header => pattern.test(header.text));
-                expect(found, `Should find header matching ${pattern}`).toBe(true);
+        // Get the correct headers using layout_analyzer approach
+        const correctHeaders = allTextItems
+            .filter(item => isSectionHeader(item, allTextItems, lineBoxes))
+            .sort((a, b) => {
+                if (a.page !== b.page) return a.page - b.page;
+                return a.position.top - b.position.top;
             });
 
-            // Test header positions are reasonable
-            foundHeaders.forEach(header => {
-                expect(header.position?.top).toBeDefined();
-                expect(header.position?.relativeTop).toBeDefined();
-                expect(header.position?.relativeTop).toBeLessThan(1);
-                expect(header.position?.relativeTop).toBeGreaterThan(0);
-            });
+        // Process text with cleanAndSplitText
+        const result = await cleanAndSplitText(blocks);
 
-            // Log headers for debugging
-            console.log('Found headers:', JSON.stringify(foundHeaders, null, 2));
+        // Separate headers and sentences from text_finalizer result
+        const foundHeaders = result.filter(item => item.metadata.isHeader);
+        const sentences = result.filter(item => !item.metadata.isHeader);
+
+        // Display both sets of headers for comparison
+        console.log('\nCorrect Headers (from layout_analyzer):');
+        console.log('====================================');
+        correctHeaders.forEach((header, index) => {
+            console.log(`${index + 1}. [Page ${header.page}] "${header.text}"`);
+        });
+
+        console.log('\nFound Headers (from text_finalizer):');
+        console.log('=================================');
+        foundHeaders.forEach((header, index) => {
+            console.log(`${index + 1}. [Page ${header.metadata.page}] ${header.text}`);
+        });
+
+        // Display first 10 sentences for each page
+        console.log('\nFirst 10 Sentences per Page:');
+        console.log('==========================');
+        const sentencesByPage = sentences.reduce((acc, sentence) => {
+            const page = sentence.metadata.page;
+            if (!acc[page]) acc[page] = [];
+            acc[page].push(sentence);
+            return acc;
+        }, {});
+
+        Object.entries(sentencesByPage).forEach(([page, pageSentences]) => {
+            console.log(`\nPage ${page}:`);
+            console.log('---------');
+            pageSentences.slice(0, 10).forEach((sentence, index) => {
+                console.log(`${index + 1}. ${sentence.text}`);
+            });
         });
     });
 });

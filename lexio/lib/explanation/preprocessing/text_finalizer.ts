@@ -9,17 +9,28 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
     let textsWithMetadata: TextWithMetadata[] = [];
     
     if (rawBlocks && rawBlocks.block_type === "Document") {
-        const sbd = await loadSbd();  // Load SBD dynamically
+        const sbd = await loadSbd();
+        
+        // Get ALL text items from ALL pages upfront
+        const allTextItems = rawBlocks.children.flatMap(page => 
+            page.textItems.flat().map(item => ({
+                ...item,
+                page: page.page  // Make sure to include page number
+            }))
+        );
+        
+        // Get ALL line boxes
+        const allLineBoxes = rawBlocks.children.flatMap(page => page.lineBoxes || []);
         
         for (const pageBlock of rawBlocks.children) {
             if (!pageBlock.text || typeof pageBlock.text !== "string") continue;
             
-            // Get all text items for this page and flatten them
-            const allTextItems = pageBlock.textItems.flat();
+            // Get items for this page but use ALL items for header detection
+            const pageItems = allTextItems.filter(item => item.page === pageBlock.page);
             
-            // Filter out layout elements using layout_analyzer
-            const filteredItems = allTextItems.filter(item => {
-                if (isSectionHeader(item, allTextItems)) {
+            // Filter out layout elements using layout_analyzer with complete context
+            const filteredItems = pageItems.filter(item => {
+                if (isSectionHeader(item, allTextItems, allLineBoxes)) {
                     const exactPosition = {
                         ...item.position,
                         isHeader: true
