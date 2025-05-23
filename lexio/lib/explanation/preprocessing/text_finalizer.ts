@@ -1,6 +1,6 @@
 import { ParseResult, TextWithMetadata, TextItem } from './types';
 import { loadSbd } from '../dependencies';
-import { isSectionHeader } from './layout_analyzer';
+import { isSectionHeader, isGraphElement } from './layout_analyzer';
 
 /**
  * Clean text and split into sentences.
@@ -30,6 +30,7 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
             
             // Filter out layout elements using layout_analyzer with complete context
             const filteredItems = pageItems.filter(item => {
+                // Check for headers first
                 if (isSectionHeader(item, allTextItems, allLineBoxes)) {
                     const exactPosition = {
                         ...item.position,
@@ -47,6 +48,13 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
                     });
                     return false;
                 }
+
+                // Then check for graph elements
+                if (isGraphElement(item, allTextItems)) {
+                    // We don't need to store graph elements, just filter them out
+                    return false;
+                }
+
                 return true;
             });
 
