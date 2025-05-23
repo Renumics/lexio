@@ -67,8 +67,7 @@ export function isSectionHeader(item: TextItem, allItems: TextItem[], lineBoxes?
     // First check if items are on different pages
     if (other.page !== item.page) return true;
 
-    // Check if items are in roughly the same column (allow small tolerance)
-    const columnWidth = 300; // typical column width
+    const columnWidth = 300;
     const itemColumn = Math.floor(item.position.left / columnWidth);
     const otherColumn = Math.floor(other.position.left / columnWidth);
     if (itemColumn !== otherColumn) return true;
@@ -82,20 +81,20 @@ export function isSectionHeader(item: TextItem, allItems: TextItem[], lineBoxes?
     return !sameVerticalRange;
   });
 
-  // Check for section numbers (including Roman numerals)
-  const hasSectionNumber = /^(?:\d+\.|[IVX]+\.)\s+/.test(item.text);
+  // Section number detection (including Roman numerals and subsections)
+  const hasSectionNumber = /^(?:(?:[IVX]+|[A-Z]|[0-9]+)\.)\s+/.test(item.text);
   
-  // Calculate font height metrics (using absolute heights)
+  // Calculate font height metrics
   const height = item.position.height;
   const avgHeight = allItems.reduce((sum, i) => sum + i.position.height, 0) / allItems.length;
   
-  // Check if significantly larger using absolute height
+  // Check if significantly larger
   const isSignificantlyLarger = height > avgHeight * 1.3;
   
-  // Check if text is near page top (header position)
-  const isNearPageTop = item.position.top > (item.position.pageHeight * 0.85); // Top 15% of page
+  // Check if text is near page top
+  const isNearPageTop = item.position.top < (item.position.pageHeight * 0.15);
   
-  // Enhanced vertical spacing check using lineBoxes if available
+  // Enhanced vertical spacing check
   let hasExtraWhitespace = false;
   if (lineBoxes) {
     const currentIndex = allItems.indexOf(item);
@@ -113,21 +112,29 @@ export function isSectionHeader(item: TextItem, allItems: TextItem[], lineBoxes?
   }
   
   // Check if text is all caps (excluding numbers and punctuation)
-  const isAllCaps = /^[A-Z0-9\s.,!?-]+$/.test(item.text.trim()) && 
-                   /[A-Z]/.test(item.text.trim()); // Ensures at least one letter exists
+  const isAllCaps = /^[A-Z][A-Z0-9\s.,!?-]*$/.test(item.text.trim()) && 
+                   item.text.length > 3 && item.text.length < 100;
 
-  // Basic text validation
+  // Basic validation
   const isReasonableLength = item.text.length > 0 && item.text.length < 100;
   const isNotJustWhitespace = item.text.trim().length > 0;
+  const hasLetters = /[A-Za-z]/.test(item.text);
 
-  // Combined decision logic
+  // Combined decision logic focusing on structural characteristics
   return isReasonableLength && 
          isNotJustWhitespace && 
-         ((isSignificantlyLarger && isOnSeparateLine) || 
-          (hasSectionNumber && isOnSeparateLine) ||
-          (isNearPageTop && isSignificantlyLarger) ||
-          (hasExtraWhitespace && isSignificantlyLarger) ||
-          (isAllCaps && isOnSeparateLine));
+         hasLetters &&
+         (
+           // Primary indicators
+           (hasSectionNumber && isOnSeparateLine) ||
+           
+           // Strong formatting indicators
+           (isSignificantlyLarger && isOnSeparateLine && hasExtraWhitespace) ||
+           
+           // Special cases
+           (isNearPageTop && isSignificantlyLarger) ||
+           (isAllCaps && isOnSeparateLine && hasExtraWhitespace)
+         );
 }
 
 /**
