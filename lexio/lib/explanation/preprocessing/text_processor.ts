@@ -21,17 +21,8 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
             let fullText = '';
             const itemPositions: { start: number; item: TextItem; }[] = [];
             
-            // Filter out likely header/footer items based on position
+            // Filter out layout elements using layout_analyzer
             const filteredItems = allTextItems.filter(item => {
-                const relativeTop = item.position.top / item.position.pageHeight;
-                
-                // Keep page numbers in header/footer areas
-                if (relativeTop < 0.1 || relativeTop > 0.9) {
-                    const isPageNumber = /^\d+$/.test(item.text.trim());
-                    return isPageNumber;
-                }
-                
-                // Use layout_analyzer's isSectionHeader function for all header detection
                 if (isSectionHeader(item, allTextItems)) {
                     const exactPosition = {
                         ...item.position,
