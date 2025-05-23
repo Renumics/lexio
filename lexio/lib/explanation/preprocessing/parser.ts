@@ -54,7 +54,7 @@ function makeLineBox(lineItems: TextItem[]) {
 /**
  * Parses a PDF file using pdfjs from react-pdf.
  */
-export async function parsePdfWithMarker(file: File): Promise<ParseResult> {
+export async function parsePdf(file: File): Promise<ParseResult> {
   debugLog(`Starting PDF parsing: ${file.name}`);
 
   const arrayBuffer = await file.arrayBuffer();
