@@ -1,5 +1,5 @@
 import { describe, test } from 'vitest';
-import { isSectionHeader, isGraphElement } from './section_analyzer';
+import { isSectionHeader, isGraphElement } from './layout_analyzer';
 import { TextItem, LineBox } from './types';
 import testData from './jsons/textContent2.json';
 

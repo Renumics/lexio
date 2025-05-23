@@ -1,6 +1,6 @@
 import { ParseResult, TextWithMetadata, TextItem } from './types';
 import { loadSbd } from '../dependencies';
-import { isSectionHeader } from './section_analyzer';
+import { isSectionHeader } from './layout_analyzer';
 
 /**
  * Clean text and split into sentences.
