@@ -166,4 +166,21 @@ export function isGraphElement(item: TextItem, allItems: TextItem[]): boolean {
   const isAxisLabel = /^[0-9.]+[A-Za-z%]?$/.test(item.text.trim());  // Matches things like "0.4%", "100k", etc.
   
   return isSignificantlySmaller && (isNumericValue || isAxisLabel);
+}
+
+/**
+ * Detects if a text item is a footer based on its position
+ * Returns true for footers, false for regular text or page numbers
+ */
+export function isFooter(item: TextItem): boolean {
+    const relativeTop = item.position.top / item.position.pageHeight;
+    
+    // In PDF points from top, larger numbers mean lower on the page
+    // > 0.9 means bottom 10% of the page
+    if (relativeTop > 0.9) {
+        // Keep page numbers, filter out other footer content
+        const isPageNumber = /^\d+$/.test(item.text.trim());
+        return !isPageNumber; // Return true for footers, false for page numbers
+    }
+    return false;
 } 
