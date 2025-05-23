@@ -63,13 +63,15 @@ export function isSectionHeader(item: TextItem, allItems: TextItem[], lineBoxes?
   // Check if text is on its own line within its column
   const isOnSeparateLine = allItems.every(other => {
     if (other === item) return true;
-
-    // First check if items are on different pages
     if (other.page !== item.page) return true;
 
-    const columnWidth = 300;
-    const itemColumn = Math.floor(item.position.left / columnWidth);
-    const otherColumn = Math.floor(other.position.left / columnWidth);
+    // Use actual column information instead of hardcoded width
+    const otherColumn = columns.find(col =>
+      other.position.left >= col.left - 5 &&
+      (other.position.left + other.position.width) <= col.right + 5
+    );
+
+    // If items are in different columns, they don't overlap
     if (itemColumn !== otherColumn) return true;
 
     // Now check vertical overlap only for items in same page and column
