@@ -45,23 +45,12 @@ export async function cleanAndSplitText(rawBlocks: ParseResult['blocks']): Promi
             });
 
             // Pre-clean individual text items before joining
-            const cleanedItems = filteredItems.map(item => {
-                let cleanedText = cleanTextItem(item.text);
-                
-                // Calculate position adjustment based on removed prefix content
-                const prefixDiff = item.text.length - cleanedText.length;
-                const charWidth = item.position.width / item.text.length;
-
-                return {
+            const cleanedItems = filteredItems
+                .map(item => ({
                     ...item,
-                    text: cleanedText,
-                    position: {
-                        ...item.position,
-                        left: item.position.left + (prefixDiff * charWidth),
-                        width: cleanedText.length * charWidth
-                    }
-                };
-            }).filter(item => item.text.length > 0);  // Remove empty items after cleaning
+                    text: cleanTextItem(item.text)
+                }))
+                .filter(item => item.text.length > 0);  // Remove empty items after cleaning
 
             cleanedItems.forEach(item => {
                 const startPos = fullText.length;
