@@ -9,12 +9,13 @@ import { CanvasDimensions } from "../types.ts";
  */
 const highlightStyleDefaults = {
     position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 0, 0.3)',
+    backgroundColor: 'rgba(255, 255, 0, 0.2)',
     border: '1px solid rgba(255, 255, 0, 0.6)',
     pointerEvents: 'none',
     pointer: 'select',
     borderRadius: '5px',
     zIndex: 100,
+    mixBlendMode: 'multiply',
 };
 
 /**
