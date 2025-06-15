@@ -127,12 +127,64 @@ export function splitIntoSentences(text: string): string[] {
 }
 
 /**
- * Heuristic-based idea splitting that uses our markdown-aware sentence splitting.
- * Since splitIntoSentences already does the cleaning, this is just a wrapper.
+ * Heuristic-based idea splitting that uses a two-step process:
+ * 1. Normalize and segment text into sentences
+ * 2. Further refine each sentence using heuristic rules
  */
 export async function splitIntoIdeasHeuristic(text: string): Promise<string[]> {
-  // Just use the markdown-aware sentence splitting with cleaning
-  return splitIntoSentences(text);
+  // Step 1: Get clean sentences using our markdown-aware splitting
+  const initialSentences = splitIntoSentences(text);
+
+  // Step 2: Apply heuristic splitting to each sentence
+  const allClaims = initialSentences.flatMap(sentence => 
+    splitSentenceByHeuristics(sentence)
+  );
+  
+  return allClaims;
+}
+
+/**
+ * Applies heuristic rules to split a single sentence into multiple claims
+ * based on conjunctions, punctuation, and other linguistic markers.
+ * 
+ * @param sentence - A single sentence to split into claims
+ * @returns An array of distinct claims extracted from the sentence
+ */
+function splitSentenceByHeuristics(sentence: string): string[] {
+  // Skip short sentences or those that don't seem to contain multiple ideas
+  if (sentence.length < 15 || !containsConjunctionsOrDelimiters(sentence)) {
+    return [sentence];
+  }
+
+  // Split on common coordinating conjunctions and punctuation that often separate ideas
+  const splitRegex = /\s*(?:[,;]|(?:\s+(?:and|but|or|while|whereas|however|yet|though|although)\s+))/i;
+  
+  const rawClaims = sentence.split(splitRegex);
+  
+  // Process and filter the claims
+  const claims = rawClaims
+    .map(claim => claim.trim())
+    .filter(claim => {
+      // Remove empty claims or those that are too short to be meaningful
+      if (!claim || claim.length < 5) return false;
+      
+      // Ensure claim has both a subject and a verb (basic check)
+      const hasSubjectAndVerb = /\w+\s+\w+/.test(claim);
+      
+      return hasSubjectAndVerb;
+    });
+
+  // If splitting produced no valid claims, return original sentence
+  return claims.length > 0 ? claims : [sentence];
+}
+
+/**
+ * Helper function to check if a sentence likely contains multiple ideas
+ * by looking for common conjunctions and delimiters
+ */
+function containsConjunctionsOrDelimiters(sentence: string): boolean {
+  const conjunctionPattern = /(?:,\s+|\s+(?:and|but|or|while|whereas|however|yet|though|although)\s+|;)/i;
+  return conjunctionPattern.test(sentence);
 }
 
 /**
@@ -243,7 +295,10 @@ improve performance over time
 Now extract phrases from the original text:`;
 
   try {
+    console.log('Attempting OpenAI API call...');
     const client = await loadOpenAIChat();
+    console.log('OpenAI client loaded');
+    
     const outputText = await client.createChatCompletion([
       { role: 'system', content: 'You are a helpful assistant that extracts meaningful, complete phrases from text.' },
       { role: 'user', content: prompt }
@@ -252,21 +307,24 @@ Now extract phrases from the original text:`;
       max_tokens: 150,
       temperature: 0.3,
     });
+    console.log('OpenAI API call successful');
 
     const ideas = outputText
       .split('\n')
       .map((line: string) => line.trim())
       .filter((line: string) => {
-        const exists = line && sentence.includes(line);
+        // Add a word count check to filter out tiny fragments
+        const wordCount = line.split(/\s+/).length;
+        const exists = line && sentence.includes(line) && wordCount > 1;
         if (!exists && line) {
-          console.log('Filtered out non-matching phrase:', line);
+          console.log('Filtered out non-matching or too-short phrase:', line);
         }
         return exists;
       });
 
     return ideas.length > 0 ? ideas : [sentence];
   } catch (error) {
-    console.error("Error calling LLM for idea extraction:", error);
-    return [sentence];
+    console.error("Detailed error in processWithLLM:", error);
+    throw error; // Re-throw to see if it's being caught
   }
 }
