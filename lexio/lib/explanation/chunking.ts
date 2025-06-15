@@ -1,6 +1,6 @@
 // chunking.ts
 // import { SentenceTokenizer } from "natural"; // not browser-friendly library
-import { countTokens } from "./tokenizer";
+import { countTokens } from "./chunking/tokenizer";
 import { TextWithMetadata } from "./preprocessing"; // Import the interface we need
 import config from './config';
 

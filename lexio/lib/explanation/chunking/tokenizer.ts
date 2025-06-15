@@ -1,5 +1,5 @@
 // tokenizer.ts
-import { loadTiktoken } from './dependencies';
+import { loadTiktoken } from '../dependencies';
 
 let encoder: any = null;
 
