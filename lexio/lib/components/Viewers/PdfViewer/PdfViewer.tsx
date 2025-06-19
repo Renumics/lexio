@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState, useContext} from "react";
+import React, {useCallback, useEffect, useRef, useState, useContext} from "react";
 import {Highlight} from "./Highlight.tsx"
 import {pdfjs, Document, Page} from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
@@ -10,6 +10,7 @@ import { CanvasDimensions, ZOOM_CONSTANTS } from "../types";
 import {useHotkeys, Options} from 'react-hotkeys-hook';
 import { ThemeContext, removeUndefined } from "../../../theme/ThemeContext";
 import { PDFHighlight } from "../../../types";
+import { LoaderCircle } from "lucide-react";
 
 // Configure PDF.js worker - we explicitly use the pdfjs worker from the react-pdf package to avoid conflicts with the worker versions.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -17,6 +18,43 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     import.meta.url,
 ).toString();
 
+
+/**
+ * LoadingSpinner is a component that displays a loading spinner.
+ * After 2 seconds of loading, it shows a "No data" message.
+ * 
+ * It is based on the Lucide-React LoaderCircle component.
+ * @param {string} color - The color of the spinner.
+ * @param {number} size - The size of the spinner.
+ * @param {number} timeout - The timeout for the spinner to show the "No data" message.
+ * @returns {JSX.Element} The LoadingSpinner component.
+ */
+const LoadingSpinner = ({color, size = 42, timeout = 2000}: {color: string, size?: number, timeout?: number}) => {
+    const [showNoData, setShowNoData] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowNoData(true);
+        }, timeout);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (showNoData && timeout) {
+        return (
+            <div className="flex flex-col justify-center items-center gap-2 w-full absolute top-0" style={{color: color}}>
+                <span>No data available.</span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex justify-center items-center w-full absolute top-0">
+            <LoaderCircle className="animate-spin" size={size} strokeWidth={2.5} style={{color: color}}/>
+        </div>
+    );
+};
+  
 
 /**
  * Constants for the PdfViewer component's zoom functionality.
@@ -111,8 +149,8 @@ interface PdfViewerProps {
 const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps) => {
     const [pdfData, setPdfData] = useState<{data: object} | undefined>();
     const [numPages, setNumPages] = useState<number | null>(null);
-    const [pageNumber, setPageNumber] = useState<number>(1);
-    const [renderedPageNumber, setRenderedPageNumber] = useState<number>(1);
+    const [pageNumber, setPageNumber] = useState<number>(page || 1);
+    const [renderedPageNumber, setRenderedPageNumber] = useState<number>(0);
     const [rotate, setRotate] = useState<number>(0);
 
     // state variables for scale of the PDF page
@@ -443,7 +481,8 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                     onLoadSuccess={onDocumentLoadSuccess}
                     onLoadError={onDocumentLoadError}
                     className="w-full h-full"
-                    noData={<div>No data</div>}
+                    loading={<LoadingSpinner color={style.toolbarButtonBackground || ''} />}
+                    noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />}
                 >
                     <div
                         style={{
@@ -461,6 +500,7 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                                 renderMode="canvas"
                                 rotate={rotate}
                                 onLoadSuccess={onPageLoadSuccess}
+                                noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />}
                             />
                         ): null}
                         <Page
@@ -474,8 +514,10 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                             onRenderSuccess={() => {
                                 setRenderedPageNumber(pageNumber);
                             }}
+                            noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />}
                         />
-                        {highlights && highlights.filter((highlight) => highlight.page === pageNumber).map((highlight, index) => (
+                        {/* show highlights only after the first page is rendered and always for the visible page */}
+                        {renderedPageNumber !== 0 && highlights && highlights.filter((highlight) => highlight.page === renderedPageNumber).map((highlight, index) => (
                             <Highlight
                                 key={index}
                                 rect={highlight.rect}
