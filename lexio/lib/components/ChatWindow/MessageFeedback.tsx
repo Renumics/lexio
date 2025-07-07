@@ -132,7 +132,7 @@ const MessageFeedback: React.FC<MessageFeedbackProps> = ({ messageId, messageCon
     setFeedback(newFeedback);
     
     // Submit feedback through the hook
-    submitFeedback(messageId, newFeedback, submitted ? comment : undefined, messageContent);
+    submitFeedback(messageId, newFeedback, submitted ? comment : null, messageContent);
   };
 
   const handleCommentSubmit = () => {
@@ -140,7 +140,7 @@ const MessageFeedback: React.FC<MessageFeedbackProps> = ({ messageId, messageCon
     if (submitted && !comment.trim()) {
       setSubmitted(false);
       // Submit feedback without comment
-      submitFeedback(messageId, feedback, undefined, messageContent);
+      submitFeedback(messageId, feedback, null, messageContent);
     } else {
       // Submit the comment feedback
       submitFeedback(messageId, feedback, comment, messageContent);

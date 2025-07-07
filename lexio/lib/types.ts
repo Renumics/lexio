@@ -381,7 +381,7 @@ export interface SpreadsheetHighlight {
  * @property {string} type - The action type identifier
  * @property {string} messageId - ID of the message receiving feedback
  * @property {'positive' | 'negative' | null} feedback - The feedback type
- * @property {string} [comment] - Optional comment explaining the feedback
+ * @property {string | null} [comment] - Comment explaining the feedback
  * @property {string} [messageContent] - The content of the message receiving feedback (for convenience)
  * @property {Component} source - The component that triggered the action
  */
@@ -389,7 +389,7 @@ export type SetMessageFeedbackAction = {
   type: 'SET_MESSAGE_FEEDBACK';
   messageId: string;
   feedback: 'positive' | 'negative' | null;
-  comment?: string;
+  comment: string | null;
   messageContent?: string;
   source: Component;
 };
