@@ -190,13 +190,13 @@ export const useMessageFeedback = (component: Component) => {
      * Submit feedback for a message.
      * @param messageId - ID of the message receiving feedback
      * @param feedback - The feedback type (positive, negative, or null to clear)
-     * @param comment - Optional comment explaining the feedback
+     * @param comment - Comment explaining the feedback
      * @param messageContent - Optional message content for convenience
      */
     const submitFeedback = (
         messageId: string | UUID, 
         feedback: 'positive' | 'negative' | null, 
-        comment?: string,
+        comment: string | null,
         messageContent?: string
     ) => {
         dispatch({
