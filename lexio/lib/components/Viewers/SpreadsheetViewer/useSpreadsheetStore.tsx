@@ -1,6 +1,6 @@
 import type * as ExcelJs from "exceljs";
 import {Workbook as ExcelJsWorkbook} from "exceljs";
-import {CSSProperties, useEffect, useState} from "react";
+import {CSSProperties, useCallback, useEffect, useState} from "react";
 import * as ReactTable from "@tanstack/react-table";
 import {ColumnDef} from "@tanstack/react-table";
 import {
@@ -96,6 +96,8 @@ const useSpreadsheetStore = (
     sheetJs: typeof SheetJs,
     arrayBuffer: ArrayBuffer,
     defaultSpreadsheetName?: string | undefined,
+    minimumRowNumber?: number | undefined,
+    minimumColumnNumber?: number | undefined,
 ): ExcelOperationsStore => {
     const [sheetJsWorkbook, setSheetJsWorkbook] = useState<SheetJsWorkbook | undefined>(undefined);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -108,6 +110,20 @@ const useSpreadsheetStore = (
     const [rangeToSelect, setRangeToSelect] = useState<Range[]>([]);
     const [mergedGroupOfSelectedWorksheet, setMergedGroupOfSelectedWorksheet] = useState<MergeGroup | undefined>(undefined);
     const [excelJsWorkbook, setExcelJsWorkbook] = useState<ExcelJsWorkbook | undefined>(undefined);
+
+    const getWorksheetRangeWithCellContainingData = useCallback((data: SheetJsWorkSheet): string => {
+        const dataWithValues = Object.fromEntries(Object.entries(data).filter(([_, value]) => !!value.v));
+        const cellNamesWithValues = Object.keys(dataWithValues);
+        const cellsWithValues = cellNamesWithValues.map(cell => sheetJs.utils.decode_cell(cell));
+        const maxRow = Math.max(...cellsWithValues.map(cell => cell.r));
+        const maxColumn = Math.max(...cellsWithValues.map(cell => cell.c));
+        const minRowNum = minimumRowNumber ?? 35;
+        const minColNum = minimumColumnNumber ?? 10;
+        const rowNum = maxRow < minRowNum ? minRowNum : maxRow;
+        const colNum = maxColumn < minColNum ? minColNum : maxColumn;
+        const lastCellName = sheetJs.utils.encode_cell({ c: colNum, r: rowNum });
+        return `A1:${lastCellName}`;
+    }, []);
 
     useEffect(() => {
         const getExcelWorkbook = async (arrayBuffer: ArrayBuffer): Promise<SheetJsWorkbook> => {
@@ -135,6 +151,15 @@ const useSpreadsheetStore = (
             setError(undefined);
             try {
                 const loadedWorkbook = await getExcelWorkbook(arrayBuffer);
+                loadedWorkbook.Sheets = Object.fromEntries(Object.entries(loadedWorkbook.Sheets).map(([key, value]) => {
+                    return [
+                        key,
+                        {
+                            ...value,
+                            "!ref": getWorksheetRangeWithCellContainingData(value),
+                        },
+                    ];
+                }));
                 setSheetJsWorkbook(loadedWorkbook);
             } catch (e) {
                 setError(e);
@@ -236,6 +261,8 @@ export type InputSpreadsheetViewerStore = {
     excelJs: typeof ExcelJs;
     sheetJs: typeof SheetJs;
     spreadsheetTheme: SpreadsheetTheme;
+    minimumRowNumber?: number | undefined,
+    minimumColumnNumber?: number | undefined,
 }
 
 export type OutputSpreadsheetViewerStore = {
@@ -296,6 +323,8 @@ export const useSpreadsheetViewerStore = (
         excelJs,
         sheetJs,
         spreadsheetTheme,
+        minimumRowNumber,
+        minimumColumnNumber,
     }: InputSpreadsheetViewerStore
 ): OutputSpreadsheetViewerStore => {
 
@@ -313,7 +342,14 @@ export const useSpreadsheetViewerStore = (
         selectedSheetJsWorksheet,
         sheetNames,
         mergedGroupOfSelectedWorksheet,
-    } = useSpreadsheetStore(excelJs, sheetJs, fileBufferArray, defaultSelectedSheet);
+    } = useSpreadsheetStore(
+        excelJs,
+        sheetJs,
+        fileBufferArray,
+        defaultSelectedSheet,
+        minimumRowNumber,
+        minimumColumnNumber,
+    );
 
     const [columns, setColumns] = useState<ColumnDef<Row, CellContent>[]>([]);
 

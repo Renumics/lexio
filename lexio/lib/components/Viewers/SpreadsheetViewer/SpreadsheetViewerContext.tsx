@@ -46,6 +46,8 @@ export const SpreadsheetViewerContextProvider = (
         tanstackVirtual,
         styleOverrides,
         children,
+        minimumRowNumber,
+        minimumColumnNumber,
     }: InputSpreadsheetViewerContext) => {
 
     const [isSpreadsheetDataLoading, setIsSpreadsheetDataLoading] = useState<boolean>(false);
@@ -101,6 +103,8 @@ export const SpreadsheetViewerContextProvider = (
         excelJs,
         sheetJs,
         spreadsheetTheme,
+        minimumRowNumber,
+        minimumColumnNumber,
     });
 
     useEffect(() => {
