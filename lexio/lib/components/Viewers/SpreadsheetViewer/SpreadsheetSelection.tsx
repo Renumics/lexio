@@ -6,7 +6,6 @@ import {useSpreadsheetViewerContext} from "./SpreadsheetViewerContext.tsx";
  * @property {string[]} spreadsheets - Array of spreadsheet names to display as tabs
  * @property {string} selectedSpreadsheet - Currently selected spreadsheet name
  * @property {function} setSelectedSpreadsheet - Callback to update selected spreadsheet
- * @property {number} [parentWidth] - Optional width constraint from parent container
  * @property {boolean | undefined} [disabled] - Optional flag to enable or disable sheet selection
  */
 type Tab = {
@@ -18,7 +17,6 @@ type PropsSpreadsheetSelection = {
     selectedSpreadsheet: string
     setSelectedSpreadsheet: (spreadsheet: string) => void;
     disabled?: boolean | undefined;
-    parentWidth?: number | undefined;
 }
 const SpreadsheetSelection = (
     {
@@ -26,7 +24,6 @@ const SpreadsheetSelection = (
         selectedSpreadsheet,
         setSelectedSpreadsheet,
         disabled,
-        parentWidth,
     }: PropsSpreadsheetSelection) => {
 
     const { spreadsheetTheme } = useSpreadsheetViewerContext();
@@ -40,7 +37,6 @@ const SpreadsheetSelection = (
         <div
             className="rounded-md"
             style={{
-                width: parentWidth ? `${parentWidth}px` : "100%",
                 background: spreadsheetTheme.sheetSelectionBackground,
             }}
         >
@@ -90,7 +86,6 @@ SpreadsheetSelection.displayName = "SpreadsheetSelectionComponent";
  *   spreadsheets={['Sheet1', 'Sheet2', 'Sheet3']}
  *   selectedSpreadsheet="Sheet1"
  *   setSelectedSpreadsheet={(sheet) => console.log(`Selected ${sheet}`)}
- *   parentWidth={800}
  * />
  * ```
  */
