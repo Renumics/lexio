@@ -447,8 +447,16 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                     onLoadSuccess={onDocumentLoadSuccess}
                     onLoadError={onDocumentLoadError}
                     className="w-full h-full"
-                    loading={<LoadingSpinner color={style.toolbarButtonBackground || ''} />}
-                    noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />}
+                    loading={
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <LoadingSpinner color={style.toolbarButtonBackground || ''} />
+                        </div>
+                    }
+                    noData={
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />
+                        </div>
+                    }
                 >
                     <div
                         style={{
@@ -466,7 +474,11 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                                 renderMode="canvas"
                                 rotate={rotate}
                                 onLoadSuccess={onPageLoadSuccess}
-                                noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />}
+                                noData={
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />
+                                    </div>
+                                }
                             />
                         ): null}
                         <Page
@@ -480,7 +492,11 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
                             onRenderSuccess={() => {
                                 setRenderedPageNumber(pageNumber);
                             }}
-                            noData={<LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />}
+                            noData={
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <LoadingSpinner color={style.toolbarButtonBackground || ''} timeout={3000} />
+                                </div>
+                            }
                         />
                         {/* show highlights only after the first page is rendered and always for the visible page */}
                         {renderedPageNumber !== 0 && highlights && highlights.filter((highlight) => highlight.page === renderedPageNumber).map((highlight, index) => (

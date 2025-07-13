@@ -223,7 +223,9 @@ const SpreadsheetWrapper = () => {
             <div className="h-full w-full">
                 {isLoading ?
                     <div className="grid items-center content-center justify-center justify-items-center h-full">
-                        <LoadingSpinner color={spreadsheetTheme.primary || '#000000'} />
+                        <LoadingSpinner 
+                            color={spreadsheetTheme.primary || '#000000'} 
+                        />
                     </div> :
                     <div className="grid h-[inherit] w-full">
                         <div className="overflow-auto">

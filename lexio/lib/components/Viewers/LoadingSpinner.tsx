@@ -55,14 +55,14 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
     if (showNoData && timeout > 0) {
         return (
-            <div className="flex flex-col justify-center items-center gap-2 w-full absolute top-0" style={{color: color}}>
+            <div className="flex flex-col justify-center items-center gap-2" style={{color: color}}>
                 <span>No data available.</span>
             </div>
         );
     }
 
     return (
-        <div className="flex justify-center items-center w-full absolute top-0">
+        <div className="flex justify-center items-center">
             <LoaderCircle className="animate-spin" size={size} strokeWidth={2.5} style={{color: color}}/>
         </div>
     );
