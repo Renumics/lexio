@@ -5,12 +5,12 @@ import { LoaderCircle } from "lucide-react";
  * Props for the LoadingSpinner component.
  * 
  * @interface LoadingSpinnerProps
- * @property {string} color - The color of the spinner
+ * @property {string} color - The color of the spinner. Default is undefined.
  * @property {number} [size] - The size of the spinner in pixels. Default is 42.
  * @property {number} [timeout] - The timeout in milliseconds for showing the "No data" message. Default is 2000. Set to 0 to disable.
  */
 interface LoadingSpinnerProps {
-    color: string;
+    color?: string;
     size?: number;
     timeout?: number;
 }
@@ -55,7 +55,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
     if (showNoData && timeout > 0) {
         return (
-            <div className="flex flex-col justify-center items-center gap-2" style={{color: color}}>
+            <div className="flex flex-col justify-center items-center gap-2">
                 <span>No data available.</span>
             </div>
         );
@@ -63,7 +63,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
     return (
         <div className="flex justify-center items-center">
-            <LoaderCircle className="animate-spin" size={size} strokeWidth={2.5} style={{color: color}}/>
+            <LoaderCircle className="animate-spin" size={size} strokeWidth={2.5} style={{color: color ?? undefined}}/>
         </div>
     );
 };
