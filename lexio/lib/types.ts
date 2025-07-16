@@ -496,13 +496,13 @@ export interface SetActiveSourcesActionResponse {
  * 
  * @interface SetSelectedSourceActionResponse
  * @property {string | null} [selectedSourceId] - ID of the selected source. Set to null to deselect.
- * @property {Promise<string | Uint8Array>} [sourceData] - Data for the selected source. This will be displayed in the ContentDisplay component.
+ * @property {Promise<string | Uint8Array | ArrayBuffer>} [sourceData] - Data for the selected source. This will be displayed in the ContentDisplay component.
  * @property {Promise<Citation[] | Omit<Citation, 'id'>[]>} [citations] - Citations related to the selected source. These will be displayed in the SourcesDisplay component.
  * @property {UserAction} [followUpAction] - Optional action to trigger after this one completes
  */
 export interface SetSelectedSourceActionResponse {
   selectedSourceId?: string | null;
-  sourceData?: Promise<string | Uint8Array>;
+  sourceData?: Promise<string | Uint8Array | ArrayBuffer>;
   citations?: Promise<Citation[] | Omit<Citation, 'id'>[]>;
   followUpAction?: UserAction;
 }

@@ -237,6 +237,7 @@ if (action.type === 'SET_SELECTED_SOURCE' && action.sourceObject) {
 The \`sourceData\` property must be a Promise that resolves to either:
 - a \`string\` for HTML, text, or markdown content, or
 - a \`Uint8Array\` for PDF binary data
+- an \`ArrayBuffer\` for other binary data (Excel, etc.)
 
 This allows Lexio to show a loading state while your data is being fetched.
 

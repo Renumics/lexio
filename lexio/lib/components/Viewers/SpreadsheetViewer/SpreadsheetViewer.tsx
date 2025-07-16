@@ -1,5 +1,5 @@
 import {SpreadsheetSelection} from "./SpreadsheetSelection";
-import {Info, LoaderCircle, Sigma} from "lucide-react";
+import {Info, Sigma} from "lucide-react";
 import {TableContainer} from "./RowAndColumnVirtualizer.tsx";
 import Tooltip from "./ui/Tooltip.tsx";
 import {SpreadsheetHighlight} from "../../../types.ts";
@@ -9,6 +9,7 @@ import {SpreadsheetViewerContextProvider, useSpreadsheetViewerContext} from "./S
 import {SpreadsheetTheme} from "./useSpreadsheetStore.tsx";
 import {useResizeObserver} from "./useResizeObserver.ts";
 import {CellContent, Row} from "./utils.ts";
+import {LoadingSpinner} from "../LoadingSpinner.tsx";
 
 /**
  * Props for the SpreadsheetViewer component
@@ -222,11 +223,9 @@ const SpreadsheetWrapper = () => {
             <div className="h-full w-full">
                 {isLoading ?
                     <div className="grid items-center content-center justify-center justify-items-center h-full">
-                        <div
-                            className="flex flex-col m-[auto] gap-1 justify-center justify-items-center content-center items-center text-center h-full">
-                            <LoaderCircle className="animate-spin" strokeWidth={1.5}/>
-                            <div className="text-center text-center text-sm">Loading spreadsheet</div>
-                        </div>
+                        <LoadingSpinner 
+                            color={spreadsheetTheme.primary || '#000000'} 
+                        />
                     </div> :
                     <div className="grid h-[inherit] w-full">
                         <div className="overflow-auto">

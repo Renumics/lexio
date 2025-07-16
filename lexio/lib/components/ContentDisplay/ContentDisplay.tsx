@@ -1,17 +1,15 @@
 import React, {useContext} from "react";
-import { PdfViewer } from "../Viewers/PdfViewer";
-import { HtmlViewer } from "../Viewers/HtmlViewer";
-import { MarkdownViewer } from "../Viewers/MarkdownViewer";
+import { PdfViewer, HtmlViewer, MarkdownViewer, SpreadsheetViewer, LoadingSpinner } from "../Viewers";
 import { useSources } from "../../hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
-import {SpreadsheetViewer} from "../Viewers/SpreadsheetViewer";
-import {PDFHighlight, Source, SpreadsheetHighlight} from "../../types.ts";
+import { PDFHighlight, Source, SpreadsheetHighlight} from "../../types.ts";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
   backgroundColor?: string;
   padding?: string;
   borderRadius?: string;
   boxShadow?: string;
+  loadingSpinnerColor?: string;
 }
 
 interface ContentDisplayProps {
@@ -61,7 +59,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
   if (!theme) {
     throw new Error('ThemeContext is undefined');
   }
-  const { componentDefaults } = theme.theme;
+  const { colors, componentDefaults } = theme.theme;
 
   // Merge theme defaults + overrides
   const style: ContentDisplayStyles = {
@@ -69,6 +67,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
     padding: 'none',
     borderRadius: componentDefaults.borderRadius,
     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+    loadingSpinnerColor: colors.primary,
     ...removeUndefined(styleOverrides),
   };
 
@@ -81,6 +80,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
   return (
       <div className="w-full h-full overflow-hidden" style={style}>
         <FileViewerRenderer
+            color={style.loadingSpinnerColor ?? colors.primary}
             fileName={filename}
             selectedSource={selectedSource as Source}
         />
@@ -89,10 +89,11 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
 };
 
 type PropsFileViewerRenderer = {
+  color: string;
   fileName: string;
   selectedSource: Source;
 }
-const FileViewerRenderer = ({ fileName, selectedSource }: PropsFileViewerRenderer) => {
+const FileViewerRenderer = ({ color, fileName, selectedSource }: PropsFileViewerRenderer) => {
   if (selectedSource.type === 'pdf' && selectedSource.data && selectedSource.data instanceof Uint8Array) {
     // Prefer 'page' over '_page' if both are defined
       const page = selectedSource.metadata?._pdfPageOverride ?? selectedSource.metadata?.page ?? selectedSource.metadata?._page;
@@ -141,7 +142,11 @@ const FileViewerRenderer = ({ fileName, selectedSource }: PropsFileViewerRendere
 
   return (
       <div className="flex justify-center items-center w-full h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <LoadingSpinner
+            color={color}
+            size={64}
+            timeout={100000}
+        />
       </div>
   );
 }
