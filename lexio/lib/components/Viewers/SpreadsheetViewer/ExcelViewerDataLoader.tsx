@@ -6,7 +6,7 @@ import ExcelWorker from "./excel-viewer-worker?worker&inline";
 
 const excelDataWorker = new ExcelWorker();
 
-type ExcelViewerDataLoaderProps = ExcelViewerData & ExcelViewerConfig;
+type ExcelViewerDataLoaderProps = ExcelViewerData & Omit<ExcelViewerConfig, "colorScheme">;
 
 function ExcelViewerDataLoader({
                                    fileName,

@@ -16,7 +16,7 @@ interface SheetTabsProps {
 }
 
 const SheetTabs = ({ sheets, activeIndex, onSheetChange }: SheetTabsProps) => {
-  const { resolvedColorScheme: colorScheme } = useTheme();
+  const { colorScheme } = useTheme();
   const [hoveredTab, setHoveredTab] = useState<number | undefined>(undefined);
 
   useEffect(() => {

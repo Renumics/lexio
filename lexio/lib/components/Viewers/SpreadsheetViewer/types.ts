@@ -20,6 +20,7 @@ export type ExcelViewerData = {
 }
 
 export type ExcelViewerConfig = {
+    colorScheme: "light" | "dark";
     showSearchbar: boolean;
     showNotifications: boolean;
     viewSettings: {

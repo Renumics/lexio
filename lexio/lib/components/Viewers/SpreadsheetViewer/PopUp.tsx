@@ -12,7 +12,7 @@ type PopUpProps = {
     close?: (() => void) | undefined;   
 }
 function PopUp({ content, position, trigger, containerStyle, popUpStyle, opened, open, close }: PopUpProps) {
-    const { resolvedColorScheme: colorScheme } = useTheme();
+    const { colorScheme } = useTheme();
     const triggerContainerRef = useRef<HTMLDivElement | null>(null);
     const popUpRef = useRef<HTMLDivElement | null>(null);
 

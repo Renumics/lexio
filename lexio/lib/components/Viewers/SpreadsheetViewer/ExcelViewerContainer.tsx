@@ -6,7 +6,7 @@ import {ExcelViewerConfig, SelectedCells, SpreadsheetData, SpreadsheetHighlight}
 import "./ExcelViewerContainer.css";
 import ToolbarSection from "./ToolbarSection";
 
-type ExcelViewerContainerProps = ExcelViewerConfig & {
+type ExcelViewerContainerProps = Omit<ExcelViewerConfig, "colorScheme"> & {
     data: SpreadsheetData;
     rangesToHighlight: SpreadsheetHighlight[];
     defaultSelectedSheet?: string | undefined;

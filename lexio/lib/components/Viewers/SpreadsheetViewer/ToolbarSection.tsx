@@ -1,17 +1,9 @@
-import React, {
-    ChangeEvent,
-    Fragment,
-    ReactNode,
-    RefObject,
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
-} from "react";
+import React, {ChangeEvent, Fragment, ReactNode, RefObject, useCallback, useEffect, useMemo, useState,} from "react";
 import {
     AlertMessage as AlertMessageType,
     CellRange,
-    CellStyle, ExcelViewerConfig,
+    CellStyle,
+    ExcelViewerConfig,
     SheetData,
     SpreadsheetData,
     SpreadsheetHighlight
@@ -46,14 +38,12 @@ import {
     Italic,
     LayoutList,
     Minus,
-    Moon,
     Paintbrush,
     PaintBucket,
     Plus,
     ScanSearch,
     SquareDashedTopSolid,
     Strikethrough,
-    Sun,
     TableRowsSplit,
     Underline,
     WrapText,
@@ -80,7 +70,7 @@ type ToolbarOptionGroup = {
     options: ToolbarOption[];
 };
 
-type ToolbarSectionProps = ExcelViewerConfig & {
+type ToolbarSectionProps = Omit<ExcelViewerConfig, "colorScheme"> & {
     zoom: number;
     setZoom: (zoom: number | ((prev: number) => number)) => void;
     excelTableContainerRef: RefObject<HTMLDivElement>;
@@ -113,7 +103,7 @@ function ToolbarSection({ showSearchbar, showNotifications, viewSettings, showOp
     const [showOptionsToolbar, setShowOptionsToolbar] = useState<boolean>(true);
     const [showRowLimitExceededMessage, setShowRowLimitExceededMessage] = useState<boolean>(false);
     const [alertMessages, setAlertMessages] = useState<AlertMessageType[]>([]);
-    const { theme: currentTheme, resolvedColorScheme: colorScheme, toggleTheme } = useTheme();
+    const { theme: currentTheme, colorScheme } = useTheme();
 
     useEffect(() => {
         return () => {
@@ -967,17 +957,6 @@ function ToolbarSection({ showSearchbar, showNotifications, viewSettings, showOp
                                     onClick={() => setShowOptionsToolbar((prev) => !prev)}
                                 /> : null
                             }
-                            <ToolbarIcon
-                                icon={colorScheme === "light" ? <Moon size={TOOLBAR_ICON_SIZE}/> :
-                                    <Sun size={TOOLBAR_ICON_SIZE}/>}
-                                tooltipTitle={colorScheme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-                                iconWrapperStyle={{backgroundColor: "transparent", cursor: "pointer"}}
-                                iconContainerStyle={{
-                                    fontSize: "16px",
-                                    color: getToolbarOptionIconColor(colorScheme === "light")
-                                }}
-                                onClick={toggleTheme}
-                            />
                         </div>
                     </div>
                 </div>

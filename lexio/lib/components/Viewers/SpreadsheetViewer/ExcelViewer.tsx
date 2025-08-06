@@ -16,9 +16,10 @@ function ExcelViewer({
                          showNotifications,
                          viewSettings,
                          showOptionToolbar,
+                         colorScheme,
                      }: ExcelViewerProps) {
     return (
-        <ThemeContextProvider theme={theme}>
+        <ThemeContextProvider colorScheme={colorScheme} theme={theme}>
             <ExcelViewerDataLoader
                 fileName={fileName}
                 fileBufferArray={fileBufferArray}

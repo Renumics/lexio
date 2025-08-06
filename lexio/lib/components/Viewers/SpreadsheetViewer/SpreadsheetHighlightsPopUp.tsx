@@ -15,7 +15,7 @@ function SpreadsheetHighlightsPopUp({ highlights, trigger, triggerContainerStyle
     const triggerContainerRef = useRef<HTMLDivElement | null>(null);
     const popUpRef = useRef<HTMLDivElement | null>(null);
 
-    const { resolvedColorScheme: colorScheme } = useTheme();
+    const { colorScheme } = useTheme();
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

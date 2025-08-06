@@ -146,6 +146,7 @@ const FileViewerRenderer = ({ color, fileName, selectedSource }: PropsFileViewer
               showOriginalStylesToggle: true,
             }}
             showOptionToolbar={true}
+            colorScheme={"light"}
         />
     );
   }

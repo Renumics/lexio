@@ -16,7 +16,7 @@ type SearchBarProps = {
     navigateToSearchResult: (sheetName: string, cellAddress: string) => void;
 }
 export function SearchBar({ sheets, navigateToSearchResult }: SearchBarProps) {
-    const { resolvedColorScheme: colorScheme } = useTheme();
+    const { colorScheme } = useTheme();
     const [searchValue, setSearchValue] = useState<string>("");
     const [searchResults, setSearchResults] = useState<SearchResult[] | undefined>(undefined);
     const [hoveredResultIndex, setHoveredResultIndex] = useState<number | undefined>(undefined);

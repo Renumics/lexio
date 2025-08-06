@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useRef } from "react";
 
-export type ColorScheme = "light" | "dark" | "system";
+export type ColorScheme = "light" | "dark";
 
 export type ThemeColors = {
     background: string,
@@ -35,9 +35,7 @@ type ThemeOverride = {
 type ThemeContextType = {
     theme: ThemeColors;
     colorScheme: ColorScheme;
-    resolvedColorScheme: "light" | "dark";
     setColorScheme: (colorScheme: ColorScheme) => void;
-    toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -52,17 +50,9 @@ export const useTheme = () => {
 
 type ThemeContextProviderProps = {
     theme?: ThemeOverride | undefined;
+    colorScheme: "light" | "dark";
     children: ReactNode;
 }
-
-const getSystemColorScheme = (): "light" | "dark" => {
-    if (typeof window !== "undefined" && window.matchMedia) {
-        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    }
-    return "light";
-};
-
-const LOCAL_STORAGE_COLOR_SCHEME_KEY = "excel-viewer-color-scheme";
 
 const DEFAULT_FONT_COLOR = "#000000";
 
@@ -110,27 +100,14 @@ export const DEFAULT_THEME: Theme = {
     }
 };
 
-export const ThemeContextProvider = ({ theme, children }: ThemeContextProviderProps) => {
+export const ThemeContextProvider = ({ theme, colorScheme: inputColorScheme, children }: ThemeContextProviderProps) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [colorScheme, setColorSchemeState] = useState<ColorScheme>(() => {
-        if (typeof window !== "undefined") {
-            const stored = window.localStorage.getItem(LOCAL_STORAGE_COLOR_SCHEME_KEY);
-            if (stored === "light" || stored === "dark" || stored === "system") {
-                return stored;
-            }
-        }
-        return "system";
-    });
-
-    const [resolvedColorScheme, setResolvedColorScheme] = useState<"light" | "dark">(() => {
-        if (colorScheme === "system") {
-            return getSystemColorScheme();
-        }
-        return colorScheme === "dark" ? "dark" : "light";
+        return inputColorScheme;
     });
 
     const themeState = useMemo(() => {
-        if (resolvedColorScheme === "dark") {
+        if (colorScheme === "dark") {
             return {
                 ...DEFAULT_THEME.dark,
                 ...(theme?.dark ?? {}),
@@ -140,12 +117,12 @@ export const ThemeContextProvider = ({ theme, children }: ThemeContextProviderPr
             ...DEFAULT_THEME.light,
             ...(theme?.light ?? {}),
         };
-    }, [resolvedColorScheme, theme]);
+    }, [colorScheme, theme]);
 
     useEffect(() => {
         if (typeof document === "undefined") return;
         if (typeof document.documentElement === "undefined") return;
-        document.documentElement.style.setProperty("--excel-viewer-color-scheme", resolvedColorScheme);
+        document.documentElement.style.setProperty("--excel-viewer-color-scheme", colorScheme);
         document.documentElement.style.setProperty("--excel-viewer-background", themeState.background);
         document.documentElement.style.setProperty("--excel-viewer-surface", themeState.surface);
         document.documentElement.style.setProperty("--excel-viewer-card", themeState.card);
@@ -170,7 +147,7 @@ export const ThemeContextProvider = ({ theme, children }: ThemeContextProviderPr
         //     body.style.backgroundColor = themeState.bodyBackground;
         //     body.style.color = themeState.bodyForeground;
         // }
-    }, [themeState, resolvedColorScheme]);
+    }, [themeState, colorScheme]);
 
     useEffect(() => {
         const setContainerSize = () => {
@@ -185,36 +162,6 @@ export const ThemeContextProvider = ({ theme, children }: ThemeContextProviderPr
         }
     }, [containerRef]);
 
-    useEffect(() => {
-        if (colorScheme === "system") {
-            const updateSystemTheme = () => {
-                setResolvedColorScheme(getSystemColorScheme());
-            };
-            updateSystemTheme();
-            const mql = window.matchMedia("(prefers-color-scheme: dark)");
-            mql.addEventListener("change", updateSystemTheme);
-            return () => mql.removeEventListener("change", updateSystemTheme);
-        } else {
-            setResolvedColorScheme(colorScheme === "dark" ? "dark" : "light");
-        }
-    }, [colorScheme]);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            if (colorScheme === "system") {
-                window.localStorage.removeItem("theme");
-            } else {
-                window.localStorage.setItem(LOCAL_STORAGE_COLOR_SCHEME_KEY, colorScheme);
-            }
-        }
-    }, [colorScheme]);
-
-    useEffect(() => {
-        if (typeof document !== "undefined") {
-            document.documentElement.setAttribute("data-theme", resolvedColorScheme);
-        }
-    }, [resolvedColorScheme]);
-
     const setColorScheme = (newColorScheme: ColorScheme) => {
         setColorSchemeState(newColorScheme);
     };
@@ -222,12 +169,8 @@ export const ThemeContextProvider = ({ theme, children }: ThemeContextProviderPr
     return (
         <ThemeContext.Provider value={{
             colorScheme: colorScheme,
-            resolvedColorScheme: resolvedColorScheme,
             setColorScheme: setColorScheme,
-            theme: themeState,
-            toggleTheme: () => {
-                setColorSchemeState(resolvedColorScheme === "dark" ? "light" : "dark");
-            },
+            theme: themeState
         }}>
             <div
                 id="theme-app-container"
