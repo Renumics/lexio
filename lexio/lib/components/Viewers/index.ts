@@ -3,4 +3,5 @@ export * from './PdfViewer/PdfViewer';
 export * from './HtmlViewer/HtmlViewer';
 export * from './SpreadsheetViewer/ExcelViewer';
 export * from './ViewerToolbar';
-export * from './types'; 
+export * from './LoadingSpinner';
+export * from './types';
