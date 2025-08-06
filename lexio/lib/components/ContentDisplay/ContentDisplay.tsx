@@ -1,9 +1,8 @@
-import React, {useContext} from "react";
-import { PdfViewer, HtmlViewer, MarkdownViewer, SpreadsheetViewer, LoadingSpinner } from "../Viewers";
+import {useContext} from "react";
+import { PdfViewer, HtmlViewer, MarkdownViewer, LoadingSpinner } from "../Viewers";
 import { useSources } from "../../hooks";
 import { ThemeContext, removeUndefined } from "../../theme/ThemeContext";
 import ExcelViewer from "../Viewers/SpreadsheetViewer/ExcelViewer";
-import {PDFHighlight, Source, SpreadsheetHighlight} from "../../types.ts";
 import { PDFHighlight, Source, SpreadsheetHighlight} from "../../types.ts";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
