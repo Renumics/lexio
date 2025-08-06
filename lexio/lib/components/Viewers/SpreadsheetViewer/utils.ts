@@ -1,44 +1,248 @@
-import {
-    Alignment,
-    BorderStyle,
-    Cell as ExcelJsWorksheetCell,
-    FillPattern,
-    Row as ExelJsWorksheetRow,
-    Worksheet as ExcelJsWorksheet,
-} from "exceljs";
-import {CSSProperties} from "react";
-import {CellRange, MergedRange, MergeGroup, Range} from "./useSpreadsheetStore.tsx";
-import {cn} from "./ui/utils.ts";
-import {Cell, Row as ReactTableRow} from "@tanstack/react-table";
-import {utils} from "xlsx";
-import type * as SheetJs from "xlsx";
+import { utils } from "xlsx";
+import { ThemeColors } from "./ThemeContextProvider";
+import { SpreadsheetHighlight } from "./types.ts";
+import { CellStyle, ColorSchemeList, ShiftedMerge } from "./types.ts";
+import { BorderStyle } from "exceljs";
 
-export type CellContent = Readonly<string | number | null | Partial<CSSProperties>>;
+export const ROW_LIMIT = 239_500;
+// export const ROW_LIMIT = 400_000;    
 
-export type Row = Record<string, CellContent>;
+export const MIN_ZOOM_FACTOR = 10;
 
-export type RawRow = Record<string, string | number | null>;
+export const DEFAULT_ZOOM_FACTOR = 100;
 
-export type RowList = Row[];
+export const MAX_ZOOM_FACTOR = 500;
 
-export type CellContentEntry = [string, CellContent];
+export const TOOLBAR_ICON_SIZE = 20 as const;
 
-// In pixel
-export const DEFAULT_COLUMN_WIDTH = 120 as const;
+export const DEFAULT_COLUMN_SIZE = 20;
 
-export const DEFAULT_ROW_HEIGHT = 25 as const;
+export const MAX_COLUMN_SIZE = 300;
 
-export const TABLE_HEAD_ROW_HEIGHT = 35 as const;
+export const MAX_COLUMN_CONTENT_SIZE = 100;
 
-export const Z_INDEX_OF_STICKY_HEADER_ROW = 10 as const;
+export const getCellStyle = (cellAddress: string, styles: Record<string, any>, theme: ThemeColors, highlights: SpreadsheetHighlight | undefined, merges: string[], colorThemes: ColorSchemeList | undefined): CellStyle => {    
+    const cellStyle = styles[cellAddress]?.style || {};
+    const cellValue = styles[cellAddress]?.value;
+    const defaultTextColor = theme.defaultCellText;
+    const highlightColor = theme.highlight;
+    const highlightBorder = getHighlightBorder(cellAddress, highlights, merges);
 
-/**
- * Extracts the column letter and row number from a cell address (e.g., "A1" returns {column: "A", row: 1 }).
- *
- * @function extractCellComponent
- * @param cellName The cell address to extract from.
- * @returns An object containing the column and row, or null if the cell address is invalid.
- */
+    let color: string | undefined;
+    if (cellStyle?.font?.color?.argb) {
+        color = `#${cellStyle.font.color.argb.slice(2)}`;
+    } else if (typeof cellStyle?.font?.color === "object" && Object.prototype.hasOwnProperty.call(cellStyle?.font?.color, "theme") && !Object.prototype.hasOwnProperty.call(cellStyle?.font?.color, "tint")) {
+        color = `#${colorThemes?.find((theme, index) => theme.name === cellStyle.font.color.theme || cellStyle.font.color.theme === index)?.rgb}`;
+    } else if (typeof cellStyle?.font?.color === "object" && Object.prototype.hasOwnProperty.call(cellStyle?.font?.color, "tint")) {
+        const rgb = `#${colorThemes?.find((theme, index) => theme.name === cellStyle.font.color.theme || cellStyle.font.color.theme === index)?.rgb}`;
+        if (rgb) {
+            color = applyTintToRgb(rgb, cellStyle.font.color.tint);
+        } else {
+            color = defaultTextColor;
+        }
+    } else {
+        color = defaultTextColor;
+    }
+
+    let backgroundColor: string | undefined;
+    if (cellStyle?.fill?.fgColor?.argb) {
+        backgroundColor = `#${cellStyle.fill.fgColor.argb.slice(2)}`;
+    } else if (typeof cellStyle?.fill?.fgColor === "object" && Object.prototype.hasOwnProperty.call(cellStyle?.fill?.fgColor, "theme") && !Object.prototype.hasOwnProperty.call(cellStyle?.fill?.fgColor, "tint")) {
+        backgroundColor = `#${colorThemes?.find((theme, index) => theme.name === cellStyle.fill.fgColor.theme || cellStyle.fill.fgColor.theme === index)?.rgb}`;
+    } else if (typeof cellStyle?.fill?.fgColor === "object" && Object.prototype.hasOwnProperty.call(cellStyle?.fill?.fgColor, "tint")) {
+        const rgb = `#${colorThemes?.find((theme, index) => theme.name === cellStyle.fill.fgColor.theme || cellStyle.fill.fgColor.theme === index)?.rgb}`;
+        if (rgb) {
+            backgroundColor = applyTintToRgb(rgb, cellStyle.fill.fgColor.tint);
+        } else {
+            backgroundColor = "#ffffff";
+        }
+    } else {
+        backgroundColor = "#ffffff";
+    }
+    const hasTextRotation = cellStyle?.alignment?.textRotation && cellStyle.alignment?.textRotation !== 0;
+
+    return {
+        color: color,
+        backgroundColor: backgroundColor,
+        fontWeight: cellStyle?.font?.bold ? "bold" : "normal",
+        fontStyle: cellStyle?.font?.italic ? "italic" : undefined,
+        fontFamily: cellStyle?.font?.name,
+        fontSize: ptFontSizeToPixel(cellStyle?.font?.size),
+        wrapText: cellStyle?.alignment?.wrapText ?? false,
+        underline: !!cellStyle?.font?.underline,
+        strikeThrough: !!cellStyle?.font?.strike,
+        textRotation: cellStyle?.alignment?.textRotation ?? 0,
+        textAlign: hasTextRotation ? undefined : typeof cellValue === "number" && !cellStyle?.alignment?.horizontal ? "right" : cellStyle?.alignment?.horizontal ??"left",
+        verticalAlign: hasTextRotation ? undefined : cellStyle?.alignment?.vertical ?? "bottom",
+        borderTop: highlightBorder.top ? `3px solid ${highlightColor}` : getMergeBorder(cellAddress, "top", styles, merges),
+        borderRight: highlightBorder.right ? `3px solid ${highlightColor}` : getMergeBorder(cellAddress, "right", styles, merges),
+        borderBottom: highlightBorder.bottom ? `3px solid ${highlightColor}` : getMergeBorder(cellAddress, "bottom", styles, merges),
+        borderLeft: highlightBorder.left ? `3px solid ${highlightColor}` : getMergeBorder(cellAddress, "left", styles, merges),
+    };
+}
+
+export const getMergeBorder = (cellAddress: string, borderType: "top" | "right" | "bottom" | "left", styles: Record<string, any>, merges: string[]): string => {
+    const cellComponents = extractCellComponent(cellAddress);
+    if (!cellComponents) return DEFAULT_BORDER_STYLE;
+
+    const currentRow = cellComponents.row;
+    const currentCol = cellComponents.column;
+    const shiftedMerges = getShiftedMerges(merges);
+    const { rowSpan, colSpan } = getCellMergeSpan(currentRow, utils.decode_col(currentCol) + 1, shiftedMerges);
+
+    if (rowSpan === 1 && colSpan === 1) {
+        const cellStyle = styles[cellAddress]?.style || {};
+        const borderStyle = cellStyle?.border?.[borderType];
+        return excelBorderToCss(borderStyle?.style, borderStyle?.color?.argb);
+    }
+
+    let targetCellAddress = cellAddress;
+
+    switch (borderType) {
+        case "right":
+            if (colSpan > 1) {
+                const rightmostCol = utils.decode_col(currentCol) + colSpan - 1;
+                const rightmostColLabel = getColumnLabel(rightmostCol);
+                targetCellAddress = `${rightmostColLabel}${currentRow}`;
+            }
+            break;
+        case "bottom":
+            if (rowSpan > 1) {
+                const bottommostRow = currentRow + rowSpan - 1;
+                targetCellAddress = `${currentCol}${bottommostRow}`;
+            }
+            break;
+        case "left":
+            break;
+        case "top":
+            break;
+    }
+
+    const targetCellStyle = styles[targetCellAddress]?.style || {};
+    const borderStyle = targetCellStyle?.border?.[borderType];
+    return excelBorderToCss(borderStyle?.style, borderStyle?.color?.argb);
+};
+
+export const getHighlightBorder = (cellAddress: string, highlights: SpreadsheetHighlight | undefined, merges: string[]): { top: boolean; right: boolean; bottom: boolean; left: boolean } => {
+    if (!highlights) return { top: false, right: false, bottom: false, left: false };
+
+    const cellComponents = extractCellComponent(cellAddress);
+    if (!cellComponents) return { top: false, right: false, bottom: false, left: false };
+
+    const currentRow = cellComponents.row;
+    const currentCol = cellComponents.column;
+
+    const shiftedMerges = getShiftedMerges(merges);
+    const { rowSpan, colSpan } = getCellMergeSpan(currentRow, utils.decode_col(currentCol) + 1, shiftedMerges);
+
+    const effectiveStartRow = currentRow;
+    const effectiveEndRow = currentRow + rowSpan - 1;
+    const effectiveStartCol = utils.decode_col(currentCol);
+    const effectiveEndCol = utils.decode_col(currentCol) + colSpan - 1;
+
+    for (const range of highlights.ranges) {
+        const [startCell, endCell] = range.split(":");
+        const start = extractCellComponent(startCell);
+        const end = extractCellComponent(endCell || startCell);
+
+        if (!start || !end) continue;
+
+        const startRow = start.row;
+        const endRow = end.row;
+        const startCol = utils.decode_col(start.column);
+        const endCol = utils.decode_col(end.column);
+
+        const overlaps = !(effectiveEndRow < startRow || effectiveStartRow > endRow ||
+            effectiveEndCol < startCol || effectiveStartCol > endCol);
+
+        if (overlaps) {
+            return {
+                top: effectiveStartRow === startRow,
+                right: effectiveEndCol === endCol,
+                bottom: effectiveEndRow === endRow,
+                left: effectiveStartCol === startCol
+            };
+        }
+    }
+
+    return { top: false, right: false, bottom: false, left: false };
+};
+
+export const getShiftedMerges = (merges: string[]): ShiftedMerge[] => {
+    return merges.map((m) => {
+        const start = extractCellComponent(m.split(":")[0]);
+        const end = extractCellComponent(m.split(":")[1]);
+        return {
+            s: { r: start?.row ?? 0, c: start?.column ?? "" },
+            e: { r: end?.row ?? 0, c: end?.column ?? "" },
+        }
+    });
+};
+
+export function getCellAddress(row: number, col: number) {
+    let label = "";
+    let colIndex = col;
+    while (colIndex >= 0) {
+        label = String.fromCharCode(65 + (colIndex % 26)) + label;
+        colIndex = Math.floor(colIndex / 26) - 1;
+    }
+    return `${label}${row + 1}`;
+}
+
+export function isCellCoveredByMerge(row: number, col: number, merges: any[]): boolean {
+    for (const merge of merges) {
+        const { s, e } = merge;
+        if (row >= s.r && row <= e.r && col >= s.c && col <= e.c) {
+            if (!(row === s.r && col === s.c)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+export function getCellMergeSpan(row: number, col: number, merges: any[]): { rowSpan: number; colSpan: number } {
+    for (const merge of merges) {
+        if (row === merge.s.r && col === utils.decode_col(merge.s.c) + 1) {
+            return { rowSpan: merge.e.r - merge.s.r + 1, colSpan: utils.decode_col(merge.e.c) - utils.decode_col(merge.s.c) + 1 };
+        }
+    }
+    return { rowSpan: 1, colSpan: 1 };
+}
+
+export function isCellInAMergeRangeAndNotTheStartCell(row: number, col: number, cellAddress: string, merges: any[]): boolean {
+    for (const merge of merges) {
+        if (row === merge.s.r && col > utils.decode_col(merge.s.c) + 1 && col <= utils.decode_col(merge.e.c) + 1) {
+            return true;
+        }
+        if (col === utils.decode_col(merge.s.c) + 1 && row > merge.s.r && row <= merge.e.r) {
+            return true;
+        }
+        if (row > merge.s.r && row <= merge.e.r && merge.e.r - merge.s.r > 1) {
+            const cellComponents = extractCellComponent(cellAddress);
+            if (cellComponents) {
+                if (cellComponents.column === merge.s.c) return false;
+                if (
+                    cellComponents.row > merge.s.r && cellComponents.row <= merge.e.r
+                    &&
+                    utils.decode_col(cellComponents.column) > utils.decode_col(merge.s.c) && utils.decode_col(cellComponents.column) <= utils.decode_col(merge.e.c)
+                ) return true;
+            }
+        }
+    }
+    return false;
+}
+
+export function getColumnLabel(col: number) {
+    let label = "";
+    let colIndex = col;
+    while (colIndex >= 0) {
+        label = String.fromCharCode(65 + (colIndex % 26)) + label;
+        colIndex = Math.floor(colIndex / 26) - 1;
+    }
+    return label;
+}
+
 export const extractCellComponent = (cellName: string): { column: string, row: number } | null => {
     const match = cellName.match(/^([A-Z]+)(\d+)$/);
     if (!match) return null;
@@ -50,139 +254,32 @@ export const extractCellComponent = (cellName: string): { column: string, row: n
     }
 };
 
-/**
- * Checks if a cell (specified by row and column) is within a given range.
- *
- * @function isCellInRange
- * @param row The row number of the cell.
- * @param column The column letter of the cell.
- * @param range The range to check against (e.g., ["A1", "B10"]).
- * @returns True if the cell is within the range, false otherwise.
- */
-export const isCellInRange = (row: number, column: string, range: Range): boolean => {
-    const componentOfFirstCellOfRange = extractCellComponent(range[0]);
-    const componentOfLastCellOfRange = extractCellComponent(range[1]);
-
-    if (!componentOfFirstCellOfRange || !componentOfLastCellOfRange) {
-        console.warn("Invalid range. A valid range is an array with two entries. Ex.: ['A10', 'B15']");
-        return false;
-    }
-    if (componentOfFirstCellOfRange.row < 0 || componentOfLastCellOfRange.row < 0) {
-        console.warn("Invalid range. A valid range has cells in the range A1 to X10.");
-        return false;
-    }
-    if (componentOfFirstCellOfRange.row > componentOfLastCellOfRange.row) {
-        console.warn("Invalid range. First cell of the range should be smaller than last cell of that range.");
-        return false;
-    }
-
-    if (row > componentOfLastCellOfRange.row) return false;
-    if (row < componentOfFirstCellOfRange.row) return false;
-
-    if (utils.decode_col(column) < utils.decode_col(componentOfFirstCellOfRange.column)) return false;
-    return utils.decode_col(column) <= utils.decode_col(componentOfLastCellOfRange.column);
-
-};
-
-/**
- * Validates if a given string is a valid Excel range (e.g., "A1:B10").
- *
- * @function validateExcelRange
- * @param range The range string to validate.
- * @returns True if the range is valid, false otherwise.
- */
-export const validateExcelRange = (range: string): boolean => {
-    const regex = /^[A-Z]+[1-9]\d*:[A-Z]+[1-9]\d*$/;
-    return regex.test(range);
-}
-
-/**
- * Comparator function to sort spreadsheet columns alphabetically.
- *
- * @function sortSpreadsheetColumnsComparator
- * @param current The current column letter.
- * @param next The next column letter.
- * @returns A number indicating the sort order.
- */
-export const sortSpreadsheetColumnsComparator = (current: string, next: string): number => {
-    if (current.length !== next.length) {
-        return current.length - next.length;
-    }
-    return current.localeCompare(next);
-}
-
-/**
- * Sorts an array of spreadsheet cells.
- *
- * @function sortSpreadsheetRange
- * @param cells An array of cell addresses (e.g., ["A1", "B10", "A2"]).
- * @returns A new array with the cells sorted.
- */
-export const sortSpreadsheetRange = (cells: string[]): string[] => {
-    return cells.sort((a, b) => {
-        const colA = a.replace(/\d+/, "");
-        const colB = b.replace(/\d+/, "");
-        const rowA = parseInt(a.replace(/\D+/, ""));
-        const rowB = parseInt(b.replace(/\D+/, ""));
-
-        if (colA !== colB) {
-            return colA.localeCompare(colB);
-        }
-        return rowA - rowB;
-    });
-}
-
-/**
- * Converts a font size in pt to pixels.
- *
- * @param pt The font size in pt.
- * @returns The font size in pixels.
- */
 export const ptFontSizeToPixel = (pt?: number): number => {
     const DEFAULT_FONT_SIZE = 16;
     if (!pt) return DEFAULT_FONT_SIZE;
     return ptToPixel(pt);
-}
+};
 
-/**
- * Converts a font size from points (pt) to pixels (px).
- *
- * @param pt The font size in points.
- * @returns The equivalent font size in pixels.
- */
 export const ptToPixel = (pt?: number): number => {
     const PT_TO_PX_FACTOR = 1.3333;
     if (!pt) return 0;
     return Math.round(pt * PT_TO_PX_FACTOR);
-}
+};
 
-/**
- * Converts an ARGB color string (e.g., "FFRRGGBB") to a hexadecimal color string (e.g., "#RRGGBB").
- *
- * @param rgbColor The ARGB color string to convert.
- * @returns The hexadecimal color string.
- */
 export const convertArgbToHex = (rgbColor?: string): string => {
     if (!rgbColor) return "";
     return `#${rgbColor.length > 6 ? rgbColor.slice(2) : rgbColor}`;
 }
 
-/**
- * Converts an Excel border style and ARGB color to a CSS border style string.
- *
- * @param excelBorderStyle The Excel border style.
- * @param argbColor The ARGB color for the border.
- * @returns A CSS border style string.
- */
-export const excelBorderToCss = (excelBorderStyle?: BorderStyle, argbColor?: string) => {
-    const defaultBorderStyle = "unset";
+export const DEFAULT_BORDER_STYLE = "1px solid #e2e8f0";
 
-    if (!excelBorderStyle || !argbColor) return defaultBorderStyle;
+export const excelBorderToCss = (excelBorderStyle?: BorderStyle, argbColor?: string) => {
+    if (!excelBorderStyle || !argbColor) return DEFAULT_BORDER_STYLE;
 
     const borderMap = {
         "thin": `1px solid ${convertArgbToHex(argbColor)}`,
         "dotted": `1px dotted ${convertArgbToHex(argbColor)}`,
-        "hair": `1px solid ${convertArgbToHex(argbColor)}`,
+        "hair": `2px dotted ${convertArgbToHex(argbColor)}`,
         "medium": `2px solid ${convertArgbToHex(argbColor)}`,
         "double": `2px double ${convertArgbToHex(argbColor)}`,
         "thick": `2px solid  ${convertArgbToHex(argbColor)}`,
@@ -195,547 +292,440 @@ export const excelBorderToCss = (excelBorderStyle?: BorderStyle, argbColor?: str
         "mediumDashDot": `2px dashed  ${convertArgbToHex(argbColor)}`,
     };
 
-    return borderMap[excelBorderStyle] || defaultBorderStyle;
+    return borderMap[excelBorderStyle] || DEFAULT_BORDER_STYLE;
 }
 
-/**
- * Converts Excel alignment properties to CSS properties for text alignment.
- *
- * @param alignment An object containing Excel alignment properties (e.g., horizontal, vertical, wrapText).
- * @returns An object containing CSS properties for text alignment.
- */
-export const excelAlignmentToCss = (alignment: Partial<Alignment>): CSSProperties => {
-    let cssAlignment: CSSProperties = {};
+export function getCellsInRange(startCell: string, endCell: string): string[] {
+    const start = extractCellComponent(startCell);
+    const end = extractCellComponent(endCell);
 
-    const horizontalAlignmentMap: Record<string, CSSProperties> = {
-        left: {
-            textAlign: "left",
-            justifyItems: "start",
-            justifyContent: "start",
-        },
-        right: {
-            textAlign: "right",
-            justifyItems: "end",
-            justifyContent: "end",
-        },
-        center: {
-            textAlign: "center",
-            justifyItems: "center",
-            justifyContent: "center",
-        },
-        centerContinuous: {
-            textAlign: "center",
-            justifyItems: "center",
-            justifyContent: "center",
-        },
-        justify: {
-            textAlign: "justify",
-            justifyItems: "center",
-            justifyContent: "center",
-        },
-        distributed: {
-            textAlign: "left",
-            justifyItems: "start",
-            justifyContent: "start",
-        },
-        fill: {
-            textAlign: "left",
-            justifyItems: "start",
-            justifyContent: "start",
-        },
-        default: {
-            textAlign: "left",
-            justifyItems: "start",
-            justifyContent: "start",
-        },
-    };
+    if (!start || !end) return [startCell];
 
-    const verticalAlignmentMap: Record<string, CSSProperties> = {
-        top: {
-            verticalAlign: "top",
-            alignItems: "start"
-        },
-        middle: {
-            verticalAlign: "middle",
-            alignItems: "center"
-        },
-        bottom: {
-            verticalAlign: "bottom",
-            alignItems: "end"
-        },
-        justify: {
-            verticalAlign: "middle",
-            alignItems: "center"
-        },
-        default: {
-            verticalAlign: "bottom",
-            alignItems: "end"
-        },
+    const cells: string[] = [];
+    const startRow = Math.min(start.row, end.row);
+    const endRow = Math.max(start.row, end.row);
+    const startCol = Math.min(utils.decode_col(start.column), utils.decode_col(end.column));
+    const endCol = Math.max(utils.decode_col(start.column), utils.decode_col(end.column));
+
+    for (let row = startRow; row <= endRow; row++) {
+        for (let col = startCol; col <= endCol; col++) {
+            const cellAddress = getCellAddress(row - 1, col);
+            cells.push(cellAddress);
+        }
     }
 
-    cssAlignment = {
-        ...cssAlignment,
-        ...(horizontalAlignmentMap[alignment?.horizontal ?? "left"]),
-        ...(verticalAlignmentMap[alignment?.vertical ?? "bottom"]),
-        whiteSpace: alignment?.wrapText ? "normal" : "nowrap",
-        paddingLeft: `${ptToPixel(alignment?.indent)}px`,
+    return cells;
+}
+
+export function calculateRowPositions(rowHeights: number[]): number[] {
+    const positions: number[] = [0];
+    
+    if (rowHeights.length > 500000) {
+        console.warn(`Extremely large dataset detected: ${rowHeights.length.toLocaleString()} rows. Using fixed height approximation.`);
+        for (let i = 0; i < rowHeights.length; i++) {
+            positions.push(i * 60); // Fixed 60px height for all rows
+        }
+        return positions;
+    }
+    
+    const useBigInt = rowHeights.length > 50000;
+    
+    if (useBigInt) {
+        let cumulativeHeight = BigInt(0);
+        for (let i = 0; i < rowHeights.length; i++) {
+            cumulativeHeight += BigInt(rowHeights[i] || 60);
+            const heightAsNumber = Number(cumulativeHeight);
+            if (!Number.isSafeInteger(heightAsNumber)) {
+                console.warn(`Row position calculation overflow at row ${i.toLocaleString()}. Using approximate positioning.`);
+                // Use approximate positioning for very large datasets
+                positions.push(i * 60); // Approximate based on default row height
+            } else {
+                positions.push(heightAsNumber);
+            }
+        }
+    } else {
+        let cumulativeHeight = 0;
+        for (let i = 0; i < rowHeights.length; i++) {
+            cumulativeHeight += rowHeights[i] || 60;
+            if (!Number.isSafeInteger(cumulativeHeight)) {
+                console.warn(`Row position calculation overflow at row ${i.toLocaleString()}. Using approximate positioning.`);
+                positions.push(i * 60);
+            } else {
+                positions.push(cumulativeHeight);
+            }
+        }
     }
 
-    return cssAlignment;
+    return positions;
+}
+
+export function calculateColumnPositions(colWidths: number[]): number[] {
+    const positions: number[] = [0];
+
+    if (colWidths.length > 10000) {
+        console.warn(`Extremely wide dataset detected: ${colWidths.length.toLocaleString()} columns. Using fixed width approximation.`);
+        for (let i = 0; i < colWidths.length; i++) {
+            positions.push(i * 150); // Fixed 150px width for all columns
+        }
+        return positions;
+    }
+    
+    const useBigInt = colWidths.length > 5000; // Lowered threshold for BigInt
+    
+    if (useBigInt) {
+        let cumulativeWidth = BigInt(0);
+        for (let i = 0; i < colWidths.length; i++) {
+            cumulativeWidth += BigInt(colWidths[i] || 150);
+            // Convert back to number for compatibility, but check for overflow
+            const widthAsNumber = Number(cumulativeWidth);
+            if (!Number.isSafeInteger(widthAsNumber)) {
+                console.warn(`Column position calculation overflow at column ${i.toLocaleString()}. Using approximate positioning.`);
+                // Use approximate positioning for very large datasets
+                positions.push(i * 150); // Approximate based on default column width
+            } else {
+                positions.push(widthAsNumber);
+            }
+        }
+    } else {
+        let cumulativeWidth = 0;
+        for (let i = 0; i < colWidths.length; i++) {
+            cumulativeWidth += colWidths[i] || 150;
+            // Check for overflow even in regular calculation
+            if (!Number.isSafeInteger(cumulativeWidth)) {
+                console.warn(`Column position calculation overflow at column ${i.toLocaleString()}. Using approximate positioning.`);
+                positions.push(i * 150);
+            } else {
+                positions.push(cumulativeWidth);
+            }
+        }
+    }
+
+    return positions;
+}
+
+export function findVisibleRowRange(
+    scrollTop: number,
+    containerHeight: number,
+    rowPositions: number[],
+    overscan: number = 5
+): { startIndex: number; endIndex: number } {
+    const startY = Math.max(0, scrollTop - overscan * 60);
+    const endY = scrollTop + containerHeight + overscan * 60;
+
+    let startIndex = 0;
+    let endIndex = rowPositions.length - 1;
+
+    // For very large datasets, use binary search for better performance
+    if (rowPositions.length > 100000) {
+        // Binary search for start index
+        let left = 0;
+        let right = rowPositions.length - 1;
+        while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (rowPositions[mid] < startY) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+        startIndex = Math.max(0, left - 1);
+
+        // Binary search for end index
+        left = startIndex;
+        right = rowPositions.length - 1;
+        while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (rowPositions[mid] < endY) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+        endIndex = Math.min(rowPositions.length - 1, left);
+    } else {
+        // Linear search for smaller datasets
+        for (let i = 0; i < rowPositions.length - 1; i++) {
+            if (rowPositions[i + 1] > startY) {
+                startIndex = i;
+                break;
+            }
+        }
+        for (let i = startIndex; i < rowPositions.length - 1; i++) {
+            if (rowPositions[i + 1] > endY) {
+                endIndex = i;
+                break;
+            }
+        }
+    }
+
+    return { startIndex, endIndex };
+}
+
+export function findVisibleColumnRange(
+    scrollLeft: number,
+    containerWidth: number,
+    colPositions: number[],
+    overscan: number = 5
+): { startIndex: number; endIndex: number } {
+    const startX = Math.max(0, scrollLeft - overscan * 150);
+    const endX = scrollLeft + containerWidth + overscan * 150;
+
+    let startIndex = 0;
+    let endIndex = colPositions.length - 1;
+
+    // For very large datasets, use binary search for better performance
+    if (colPositions.length > 10000) {
+        // Binary search for start index
+        let left = 0;
+        let right = colPositions.length - 1;
+        while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (colPositions[mid] < startX) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+        startIndex = Math.max(0, left - 1);
+
+        // Binary search for end index
+        left = startIndex;
+        right = colPositions.length - 1;
+        while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (colPositions[mid] < endX) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+        endIndex = Math.min(colPositions.length - 1, left);
+    } else {
+        // Linear search for smaller datasets
+        for (let i = 0; i < colPositions.length - 1; i++) {
+            if (colPositions[i + 1] > startX) {
+                startIndex = i;
+                break;
+            }
+        }
+
+        for (let i = startIndex; i < colPositions.length - 1; i++) {
+            if (colPositions[i + 1] > endX) {
+                endIndex = i;
+                break;
+            }
+        }
+    }
+
+    return { startIndex, endIndex };
+}
+
+export function getMergesAffectingVisibleRowRange(
+    visibleStartIndex: number,
+    visibleEndIndex: number,
+    merges: any[]
+): any[] {
+    return merges.filter(merge => {
+        const startRow = merge.s.r;
+        const endRow = merge.e.r;
+
+        // Check if merge overlaps with visible range
+        return (startRow <= visibleEndIndex && endRow >= visibleStartIndex);
+    });
+}
+
+export function getAdditionalRowsForMerges(
+    visibleStartIndex: number,
+    visibleEndIndex: number,
+    merges: any[]
+): { startIndex: number; endIndex: number } {
+    let extendedStartIndex = visibleStartIndex;
+    let extendedEndIndex = visibleEndIndex;
+
+    for (const merge of merges) {
+        const startRow = merge.s.r;
+        const endRow = merge.e.r;
+
+        // If merge starts before visible range but ends within it
+        if (startRow < visibleStartIndex && endRow >= visibleStartIndex) {
+            extendedStartIndex = Math.min(extendedStartIndex, startRow);
+        }
+
+        // If merge starts within visible range but ends after it
+        if (startRow <= visibleEndIndex && endRow > visibleEndIndex) {
+            extendedEndIndex = Math.max(extendedEndIndex, endRow);
+        }
+    }
+
+    return { startIndex: extendedStartIndex, endIndex: extendedEndIndex };
+}
+
+export function getMergesAffectingVisibleColumnRange(
+    visibleStartIndex: number,
+    visibleEndIndex: number,
+    merges: any[]
+): any[] {
+    return merges.filter(merge => {
+        const startCol = utils.decode_col(merge.s.c);
+        const endCol = utils.decode_col(merge.e.c);
+        return (startCol <= visibleEndIndex && endCol >= visibleStartIndex);
+    });
+}
+
+export function getAdditionalColumnsForMerges(
+    visibleStartIndex: number,
+    visibleEndIndex: number,
+    merges: any[]
+): { startIndex: number; endIndex: number } {
+    let extendedStartIndex = visibleStartIndex;
+    let extendedEndIndex = visibleEndIndex;
+
+    for (const merge of merges) {
+        const startCol = utils.decode_col(merge.s.c);
+        const endCol = utils.decode_col(merge.e.c);
+
+        // If merge starts before visible range but ends within it
+        if (startCol < visibleStartIndex && endCol >= visibleStartIndex) {
+            extendedStartIndex = Math.min(extendedStartIndex, startCol);
+        }
+
+        // If merge starts within visible range but ends after it
+        if (startCol <= visibleEndIndex && endCol > visibleEndIndex) {
+            extendedEndIndex = Math.max(extendedEndIndex, endCol);
+        }
+    }
+
+    return { startIndex: extendedStartIndex, endIndex: extendedEndIndex };
+}
+
+export const rgbToHsl = (r: number, g: number, b: number) => {
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    const d = max - min;
+    const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+    const h = d === 0 ? 0 : max === r ? (g - b) / d : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return { h: h * 60, s, l };
+}
+
+export const hslToRgb = (h: number, s: number, l: number): string => {
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    const r = Math.round((h < 60 ? c : h < 120 ? x : h < 180 ? 0 : h < 240 ? -x : c) + m);
+    const g = Math.round((h < 60 ? x : h < 120 ? c : h < 180 ? c : h < 240 ? x : 0) + m);
+    const b = Math.round((h < 60 ? 0 : h < 120 ? 0 : h < 180 ? x : h < 240 ? c : -x) + m);
+    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
+
+export const applyTintToRgb = (rgb: string, tint: number): string => {
+    const rgbArray = rgb.match(/\w\w/g)?.map(hex => parseInt(hex, 16)) ?? [0, 0, 0];
+    const hsl = rgbToHsl(rgbArray[0], rgbArray[1], rgbArray[2]);
+    if (tint < 0) {
+        hsl.l = hsl.l * (1 + tint);
+    } else {
+        hsl.l = hsl.l * (1 - tint) + (1 - 1 * (1 - tint));
+    }
+    return hslToRgb(hsl.h, hsl.s, hsl.l);
+}
+
+export const hexToRgba = (hex: string, alpha: number): string => {
+    const cleanHex = hex.replace("#", "");
+    
+    const r = parseInt(cleanHex.slice(0, 2), 16);
+    const g = parseInt(cleanHex.slice(2, 4), 16);
+    const b = parseInt(cleanHex.slice(4, 6), 16);
+    
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-/**
- * Generates an array of spreadsheet column letters from a given range (e.g., "A1:C10" returns ["A", "B", "C"]).
- *
- * @param range The range string to generate columns from (e.g., "A1:C10").
- * @returns An array of column letters.
- */
-export const generateSpreadsheetColumns = (range: string): string[] => {
-    const [, endColumn] = range.split(":");
-    const lastColumnLetter = endColumn
-        .replace(/[0-9]/g, "") // Extract the column letter
-        .toUpperCase();
-
-    const columns: string[] = [];
-    let currentColumn = "A";
-
-    while (currentColumn !== computeNextColumn(lastColumnLetter)) {
-        columns.push(currentColumn.toUpperCase());
-        currentColumn = computeNextColumn(currentColumn.toUpperCase()).toUpperCase();
+export function doesFontExist(fontName: string): boolean {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    const text = "abcdefghijklmnopqrstuvwxyz0123456789";
+    if (!context) {
+        console.error("Failed to get canvas context to check if font exists");
+        return false;
     }
-
-    return columns;
+    context.font = "72px monospace";
+    const baseline = context.measureText(text).width;
+    context.font = `72px "${fontName}", monospace`;
+    const width = context.measureText(text).width;
+    return width !== baseline;
 }
 
-/**
- * Computes the next column letter in a spreadsheet (e.g., "A" -> "B", "Z" -> "AA").
- *
- * @param column The current column letter.
- * @returns The next column letter.
- */
-const computeNextColumn = (column: string): string => {
-    let carry = 1;
-    let result = "";
+export function validateCellAddress(input: string): boolean {
+    const singleCellRegex = /^[A-Z]+[1-9]\d*$/;
 
-    for (let i = column.length - 1; i >= 0; i--) {
-        const charCode = column.charCodeAt(i) - 65 + carry;
-        carry = charCode >= 26 ? 1 : 0;
-        result = String.fromCharCode((charCode % 26) + 65) + result;
-    }
+    const rangeRegex = /^[A-Z]+[1-9]\d*:[A-Z]+[1-9]\d*$/;
 
-    if (carry > 0) {
-        result = "A" + result;
-    }
-
-    return result;
+    return singleCellRegex.test(input) || rangeRegex.test(input);
 }
 
-/**
- * Gets the border cells of a table range.
- *
- * @param range The range of cells (e.g., ["A1", "C3"]).
- * @returns An object containing arrays of cell addresses for the top, right, bottom, and left borders of the range.
- */
-const getTableRangeBorder = (range: Range): CellRange => {
-    const [startCell, endCell] = range;
+export function parseCellAddress(input: string): { row: number; col: number } | null {
+    const match = input.match(/^([A-Z]+)([1-9]\d*)$/);
+    if (!match) return null;
 
-    // Convert cell references (e.g., "A1") to row and column indices
-    const startRowIndex = parseInt(startCell.slice(1)) - 1; // Row index (0-based)
-    const startColIndex = startCell.charCodeAt(0) - 65;     // Column index (0-based, 'A' -> 0)
-    const endRowIndex = parseInt(endCell.slice(1)) - 1;
-    const endColIndex = endCell.charCodeAt(0) - 65;
+    const [, colStr, rowStr] = match;
+    const row = parseInt(rowStr, 10) - 1;
 
-    // Initialize border object
-    const border: CellRange = {
-        top: [],
-        right: [],
-        bottom: [],
-        left: []
-    };
-
-    // Calculate border positions
-    for (let col = startColIndex; col <= endColIndex; col++) {
-        border.top.push(`${String.fromCharCode(65 + col)}${startRowIndex + 1}`);
-        border.bottom.push(`${String.fromCharCode(65 + col)}${endRowIndex + 1}`);
+    let col = 0;
+    for (let i = 0; i < colStr.length; i++) {
+        col = col * 26 + (colStr.charCodeAt(i) - 64);
     }
+    col = col - 1;
 
-    for (let row = startRowIndex; row <= endRowIndex; row++) {
-        border.left.push(`${String.fromCharCode(65 + startColIndex)}${row + 1}`);
-        border.right.push(`${String.fromCharCode(65 + endColIndex)}${row + 1}`);
-    }
-
-    return border;
+    return { row, col };
 }
 
-/**
- * Highlights cells within specified ranges by applying CSS styles (background-color, opacity, border).
- *
- * @param rows An array of React Table rows.
- * @param rangesToSelect An array of cell ranges to highlight (e.g., [["A1", "B2"], ["C3", "D4"]]).
- * @param cellRefs An object containing references to the table cells.
- */
-export const highlightCells = <TData,>(
-    rows:  ReactTableRow<TData>[],
-    rangesToSelect: Range[],
-    cellRefs: Record<string, (HTMLTableCellElement | null)>,
-) => {
-    if (rangesToSelect.length === 0) return;
+export function parseCellRange(input: string): { startCell: string; endCell: string; cells: string[] } | null {
+    if (input.includes(":")) {
+        const [startStr, endStr] = input.split(":");
+        const start = parseCellAddress(startStr);
+        const end = parseCellAddress(endStr);
 
-    const cellInnerContainerRefs: Record<string, (HTMLDivElement | null)> = Object.values(cellRefs)
-        .filter((cell) => cell !== null)
-        // returns cellInnerContainer of cell
-        .map((cell) => cell.children[0])
-        .reduce((acc, currentInnerCell) => {
-            if (!currentInnerCell) return acc;
-            return {
-                ...acc,
-                [currentInnerCell.id]: currentInnerCell,
+        if (!start || !end) return null;
+
+        const cells: string[] = [];
+        for (let row = Math.min(start.row, end.row); row <= Math.max(start.row, end.row); row++) {
+            for (let col = Math.min(start.col, end.col); col <= Math.max(start.col, end.col); col++) {
+                cells.push(getCellAddress(row, col));
             }
-        }, {});
+        }
 
-    rangesToSelect.forEach((range) => {
-        rows.forEach((row) => {
-            row.getVisibleCells().forEach((cell: Cell<TData, unknown>, index: number) => {
-                const cellId = `${cell.column.id}${cell.row.index + 1}`;
-                const cellRef = cellRefs[cellId];
-                const cellContainerRef = cellInnerContainerRefs[`${cellId}-inner-container`];
-                const isCellWithInRange = isCellInRange(cell.row.index + 1, cell.column.id, range);
-                const rangeToApply = getTableRangeBorder(range);
-                const rangeCheck = (borderSide: keyof CellRange) => rangeToApply[borderSide].includes(`${cell.column.id}${cell.row.index + 1}`);
+        return {
+            startCell: getCellAddress(Math.min(start.row, end.row), Math.min(start.col, end.col)),
+            endCell: getCellAddress(Math.max(start.row, end.row), Math.max(start.col, end.col)),
+            cells
+        };
+    } else {
+        const parsed = parseCellAddress(input);
+        if (!parsed) return null;
 
-                if (cellRef && isCellWithInRange) {
-                    const borderTop = rangeCheck("top") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
-                    const borderRight = rangeCheck("right") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
-                    const borderBottom = rangeCheck("bottom") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
-                    const borderLeft = rangeCheck("left") ? "2px solid rgb(59 130 246 / var(--tw-bg-opacity, 1))" : index === 0 ? "0.5px solid #c1c1c1" : "1px solid #E5E7EBFF";
-
-                    cellRef.style.borderTop = borderTop;
-                    cellRef.style.borderRight = borderRight;
-                    cellRef.style.borderBottom = borderBottom;
-                    cellRef.style.borderLeft = borderLeft;
-                }
-
-                if (cellContainerRef) {
-                    cellContainerRef.className = cn(cellContainerRef.className, {
-                        "!opacity-[70%]": isCellInRange(row.index + 1, cell.column.id, range),
-                        "bg-blue-200": isCellInRange(row.index + 1, cell.column.id, range),
-                    });
-                }
-            });
-        });
-    });
+        const cellAddress = getCellAddress(parsed.row, parsed.col);
+        return {
+            startCell: cellAddress,
+            endCell: cellAddress,
+            cells: [cellAddress]
+        };
+    }
 }
 
-export const clearCellHighlights = <TData,>(
-    rows:  ReactTableRow<TData>[],
-    cellRefs: Record<string, (HTMLTableCellElement | null)>,
-) => {
-    if (rows.length === 0) return;
-
-    const cellInnerContainerRefs: Record<string, (HTMLDivElement | null)> = Object.values(cellRefs)
-        .filter((cell) => cell !== null)
-        // returns cellInnerContainer of cell
-        .map((cell) => cell.children[0])
-        .reduce((acc, currentInnerCell) => {
-            if (!currentInnerCell) return acc;
-            return {
-                ...acc,
-                [currentInnerCell.id]: currentInnerCell,
-            }
-        }, {});
-
-    rows.forEach((row) => {
-        row.getVisibleCells().forEach((cell: Cell<TData, unknown>) => {
-            const columnKey = cell.column.id;
-            const rowIndex = cell.row.index + 1;
-            const cellId = `${columnKey}${rowIndex}`;
-            const cellRef = cellRefs[cellId];
-            const cellContainerRef = cellInnerContainerRefs[`${cellId}-inner-container`];
-
-            if (cellRef) {
-                cellRef.style.borderRight = "1px solid #e5e7eb";
-                cellRef.style.borderBottom = "1px solid #e5e7eb";
-            }
-
-            if (cellContainerRef) {
-                cellContainerRef.className = cn(cellContainerRef.className
-                    .replace("!opacity-[70%]", "")
-                    .replace("bg-blue-200", "")
-                );
-            }
-        });
-    });
+export function getClientLocale(): string {
+    return navigator.language;
 }
 
-/**
- * Calculates the width of the first column based on the number of rows.
- *
- * @param rowCount The number of rows in the table.
- * @returns The calculated width of the first column.
- */
-export const calculateWidthOfFirstColumn = (rowCount: number): number => {
-    const baseWidth = 40; // Base width in pixels
-    const incrementPerRow = 10; // Width increment per row in pixels
-    return baseWidth + Math.floor(String(rowCount).length * incrementPerRow);
-}
-
-/**
- * Calculates the width of a column based on the header styles.
- *
- * @param columnId The ID (column letter) of the column.
- * @param headerStyles An object containing styles for the headers.
- * @returns The calculated width of the column.
- */
-export const calculateWidthOfColumn = (columnId: string, headerStyles: Record<string, CSSProperties>): number => {
-    const styleOfHeader = headerStyles[columnId];
-    const minWidthInPixel = (styleOfHeader?.minWidth ?? "0px") as string;
-    const minWidthInt = Number(minWidthInPixel.split("px")[0]);
-
-    const minWidthToWidthFactor = 7;
-
-    const nonZeroMinWidthOfColumn = minWidthInt === 0 ? 10 : minWidthInt;
-
-    const result = nonZeroMinWidthOfColumn * minWidthToWidthFactor;
-
-    if (result <= DEFAULT_COLUMN_WIDTH) return DEFAULT_COLUMN_WIDTH;
-
-    return result;
-}
-
-/**
- * Calculates the height of a row based on the row styles.
- *
- * @param rowIndex The index of the row.
- * @param rowStyles An object containing styles for the rows.
- * @returns The calculated height of the row.
- */
-export const calculateHeightOfRow = (rowIndex: number, rowStyles: Record<string, CSSProperties>): number => {
-    const styleOfRow = rowStyles[rowIndex];
-    const heightInPixel = (styleOfRow?.height ?? "0px") as string;
-    const heightInt = Number(heightInPixel.split("px")[0]);
-
-    const minHeightFactor = 1.5;
-
-    const nonZeroMinHeightOfRow = heightInt === 0 ? 10 : heightInt;
-
-    const result = nonZeroMinHeightOfRow * minHeightFactor;
-
-    if (result <= DEFAULT_ROW_HEIGHT) return DEFAULT_ROW_HEIGHT;
-
-    return result;
-}
-
-/**
- * Gets the cell style for a specific cell.
- *
- * @param row The row number of the cell.
- * @param column The column letter of the cell.
- * @param cellStyles An object containing styles for the cells.
- * @returns The cell style for the specified cell.
- */
-export const getCellStyle = (row: number, column: string, cellStyles: Record<string, CSSProperties>): CSSProperties => {
-    if (!row || !column) return {};
-    return cellStyles[`${column}${row}`];
-}
-
-/**
- * Gets the cell style for the content of a cell while excluding some style properties.
- *
- * @param row The row number of the cell.
- * @param column The column letter of the cell.
- * @param cellStyles An object containing styles for the cells.
- * @param cssPropsToIgnoreInCellContent An array of CSS properties to ignore (optional).
- * @returns The cell style for the content of the specified cell.
- */
-export const getCellStyleOfCellContent = (
-    row: number,
-    column: string,
-    cellStyles: Record<string, CSSProperties>,
-    cssPropsToIgnoreInCellContent: (keyof CSSProperties)[],
-): CSSProperties => {
-
-    const styles = getCellStyle(row, column, cellStyles);
-    if (!styles) return {};
-    const allStyleEntries = Object.entries(styles);
-    const styleEntriesWithoutBorders = allStyleEntries.filter(([key]) =>
-        !cssPropsToIgnoreInCellContent.includes(key as (keyof CSSProperties))
+export function formatDate(date: Date, locale: string | undefined = getClientLocale()): string {
+    return date.toLocaleDateString(
+        locale,
+        {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+        }
     );
-    return Object.fromEntries(styleEntriesWithoutBorders) as CSSProperties;
-}
-
-/**
- * Applies merge styles to cells based on the merged ranges.
- *
- * @param mergeGroup An object containing the merged ranges for the sheet.
- * @param sheetName The name of the sheet.
- * @param allCellRefs An object containing references to all the table cells.
- * @param sheetJs The SheetJS library instance.
- */
-export const applyMergesToCells = (
-    mergeGroup: MergeGroup | undefined,
-    sheetName: string, allCellRefs: Record<string, HTMLTableCellElement>,
-    sheetJs: typeof SheetJs,
-) => {
-    if (sheetName.length === 0) return;
-    if (!mergeGroup) return;
-    if (mergeGroup.sheetName !== sheetName) return;
-    if (mergeGroup.mergedRanges.length === 0) return;
-
-    if (Object.entries(allCellRefs).length === 0) return;
-
-    mergeCells(mergeGroup.mergedRanges, allCellRefs, sheetJs);
-}
-
-/**
- * Merges cells in the table based on the specified merged ranges.
- *
- * @param merges An array of merged ranges.
- * @param cellRefs An object containing references to all the table cells.
- * @param sheetJs The SheetJS library instance.
- * @param onCellMergeDone A callback function to be called when cell merging is done (optional).
- */
-export const mergeCells = (
-    merges: MergedRange[],
-    cellRefs: Record<string, HTMLTableCellElement>,
-    sheetJs: typeof SheetJs,
-    onCellMergeDone?: (() => void) | undefined,
-) => {
-    if (merges.length === 0 || Object.keys(cellRefs).length === 0) {
-        onCellMergeDone?.();
-        return;
-    }
-
-    const { utils } = sheetJs;
-
-    merges.forEach((merge) => {
-        const startCell = cellRefs[`${merge.start.column}${merge.start.row}`];
-        if (!startCell) return;
-        if (startCell.colSpan > 1) return;
-        if (startCell.colSpan > 1) return;
-        const cellComponent = extractCellComponent(startCell.id);
-        if (!cellComponent) return;
-        if (!isCellInRange(cellComponent.row, cellComponent.column, [`${merge.start.column}${merge.start.row}`, `${merge.end.column}${merge.end.row}`])) return;
-
-        const colSpan = utils.decode_col(merge.end.column) - utils.decode_col(merge.start.column) + 1;
-        const rowSpan = merge.end.row - merge.start.row + 1;
-
-        startCell.colSpan = colSpan;
-        startCell.rowSpan = rowSpan;
-
-        let totalWidth = parseFloat(startCell.style.width) || startCell.offsetWidth;
-        let totalHeight = parseFloat(startCell.style.height) || startCell.offsetHeight;
-
-        // Merge columns
-        for (let col = utils.decode_col(merge.start.column) + 1; col <= utils.decode_col(merge.end.column); col++) {
-            const cellToMerge = cellRefs[`${utils.encode_col(col)}${merge.start.row}`];
-            if (cellToMerge) {
-                totalWidth += parseFloat(cellToMerge.style.width) || cellToMerge.offsetWidth;
-                cellToMerge.style.visibility = "hidden";
-            }
-        }
-
-        // Merge rows
-        for (let row = merge.start.row + 1; row <= merge.end.row; row++) {
-            const cellToMerge = cellRefs[`${merge.start.column}${row}`];
-            if (cellToMerge) {
-                // Iterates over all cells in the row starting with merge.start.column till merge.end.column
-                for (let col = utils.decode_col(merge.start.column); col <= utils.decode_col(merge.end.column); col++) {
-                    const cellToMerge = cellRefs[`${utils.encode_col(col)}${row}`];
-                    if (cellToMerge) {
-                        cellToMerge.style.visibility = "hidden";
-                    }
-                }
-                totalHeight += parseFloat(cellToMerge.style.height) || cellToMerge.offsetHeight;
-            }
-        }
-
-        startCell.style.setProperty("border", "none", "important");
-        const innerContainerOfStartCell = startCell.children[0] as HTMLDivElement | null;
-        if (!innerContainerOfStartCell) return;
-        innerContainerOfStartCell.style.height = `${totalHeight}px`;
-        innerContainerOfStartCell.style.width = `${totalWidth}px`;
-        innerContainerOfStartCell.style.borderBottom = "1px solid #e5e7eb";
-        innerContainerOfStartCell.style.borderRight = "1px solid #e5e7eb";
-    });
-
-    onCellMergeDone?.();
-};
-type WorksheetStyle = {
-    headerStyles: Record<string, CSSProperties>;
-    rowStyles: Record<number, CSSProperties>;
-    cellStyles: Record<string, CSSProperties>;
-}
-
-/**
- * Extracts style information from an ExcelJS worksheet and returns it as a `WorksheetStyle` object.
- *
- * @param worksheet The ExcelJS worksheet to extract styles from.
- * @returns An object containing header styles, row styles, and cell styles.
- */
-export const getStyleOfWorksheet = (worksheet: ExcelJsWorksheet): WorksheetStyle => {
-    const headerStyles: Record<string, CSSProperties> = {};
-    const rowStyles: Record<number, CSSProperties> = {};
-    const cellStyles: Record<string, CSSProperties> = {};
-
-    worksheet.eachRow({ includeEmpty: true }, (row: ExelJsWorksheetRow, rowIndex: number) => {
-        row.eachCell({ includeEmpty: true }, (cell: ExcelJsWorksheetCell) => {
-            const columnId = extractCellComponent(cell.address)?.column;
-            if (!columnId) return;
-
-            const columnKey = extractCellComponent(cell.address)?.column ?? "";
-
-            const colWidth = columnKey.length === 0 ? "40px" : `${ptToPixel(worksheet.getColumn(columnKey).width)}px`;
-
-            headerStyles[columnKey] = {
-                minWidth: colWidth,
-            };
-
-            rowStyles[`${rowIndex}`] = {
-                height: `${ptToPixel(row.height)}px`,
-                // Borders
-                borderTop: `${excelBorderToCss(row.border?.top?.style, row.border?.top?.color?.argb)}`,
-                borderRight: `${excelBorderToCss(row.border?.right?.style, row.border?.right?.color?.argb)}`,
-                borderBottom: `${excelBorderToCss(row.border?.bottom?.style, row.border?.bottom?.color?.argb)}`,
-                borderLeft: `${excelBorderToCss(row.border?.left?.style, row.border?.left?.color?.argb)}`,
-            };
-
-            cellStyles[`${cell.address}`] = {
-                // colors
-                backgroundColor: convertArgbToHex((cell.fill as FillPattern)?.fgColor?.argb),
-                color: convertArgbToHex(cell.font?.color?.argb),
-                // Font
-                fontFamily: cell.font?.name,
-                fontSize: `${ptFontSizeToPixel(cell.font?.size)}px`,
-                fontWeight: cell.font?.bold ? "600" : undefined,
-                fontStyle: cell.font?.italic ? "italic" : undefined,
-                minWidth: colWidth,
-                ...excelAlignmentToCss(cell.alignment),
-                // Borders
-                borderTop: `${excelBorderToCss(cell.border?.top?.style, cell.border?.top?.color?.argb)}`,
-                borderRight: `${excelBorderToCss(cell.border?.right?.style, cell.border?.right?.color?.argb)}`,
-                borderBottom: `${excelBorderToCss(cell.border?.bottom?.style, cell.border?.bottom?.color?.argb)}`,
-                borderLeft: `${excelBorderToCss(cell.border?.left?.style, cell.border?.left?.color?.argb)}`,
-                // Padding
-                padding: "0px 3px",
-            };
-        });
-    });
-
-    return {
-        headerStyles,
-        rowStyles,
-        cellStyles,
-    }
-}
-
-/**
- * Validate css string property
- * @param {keyof CSSProperties} propertyName - Css property name.
- * @param {string} value - Value to validate.
- */
-export const isCssPropertyValid = (propertyName: keyof CSSProperties, value: string): boolean => {
-    const s = new Option().style;
-    // @ts-ignore
-    s[`${propertyName}`] = value;
-    return !!s.color;
 }

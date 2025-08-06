@@ -1,0 +1,15 @@
+.excel-viewer-separator {
+    display: grid;
+    height: 30px;
+    width: 1px;
+    align-items: center;
+    justify-content: center;
+    font-weight: lighter;
+    color: gray;
+}
+.excel-viewer-tab-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
