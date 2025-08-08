@@ -28,8 +28,7 @@ function SpreadsheetHighlightsPopUp({ highlights, iconColor, navigateToHighlight
             position="bottom-right"
             trigger={
                 <ToolbarIcon
-                    icon={<LayoutList size={TOOLBAR_ICON_SIZE} fontSize="16px"
-                                      strokeWidth={1.8}/>}
+                    icon={<LayoutList size={TOOLBAR_ICON_SIZE} fontSize="16px" strokeWidth={1.8}/>}
                     tooltipTitle="All highlights"
                     labelStyle={{
                         color: colorScheme === "dark" ? "#ffffff" : "gray",
@@ -91,7 +90,7 @@ function SpreadsheetHighlightsPopUp({ highlights, iconColor, navigateToHighlight
                                     gridTemplateColumns: "max-content 1fr",
                                     gap: "0.5rem",
                                     borderBottom: index === array.length - 1 ? "none" : `1px solid ${colorScheme === "dark" ? "#606060" : "#cdd0d4"}`,
-                                    padding: index === 0 ? "unset" : "1rem 0",
+                                    padding: index === 0 ? "0 0 0.7rem 0" : "0.7rem 0",
                                 }}>
                                     <div style={{alignSelf: "start", display: "grid", width: "100%", height: "100%"}}>
                                         <div style={{

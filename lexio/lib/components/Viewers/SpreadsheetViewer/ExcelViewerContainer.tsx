@@ -76,7 +76,7 @@ const ExcelViewerContainer = ({
                 .reduce((acc, sheetName) => {
                     const cachedCell = localStorage.getItem(`${data.fileName}-selectedCell-${sheetName}`);
                     if (cachedCell) {
-                        const parsedCell = cachedCell.replace("\"", "");
+                        const parsedCell = cachedCell.replace(/"/g, "");
                         acc[sheetName] = {
                             startCell: parsedCell,
                             endCell: parsedCell,
