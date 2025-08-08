@@ -20,6 +20,7 @@ export default defineConfig({
       preventAssignment: true
     })
   ],
+  base: "",
   build: {
     copyPublicDir: false,
     outDir: 'dist',

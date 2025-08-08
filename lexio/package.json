@@ -13,7 +13,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "dev": "vite",
@@ -39,7 +40,7 @@
     "comlink": "^4.4.2",
     "dompurify": "^3.2.4",
     "jotai": "^2.10.3",
-    "lucide-react": "^0.476.0",
+    "lucide-react": "^0.525.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hotkeys-hook": "^4.6.1",
@@ -75,7 +76,6 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^3.0.8",
-    "@heroicons/react": "^2.2.0",
     "autoprefixer": "^10.4.20",
     "compromise": "^14.14.4",
     "eslint": "^9.15.0",

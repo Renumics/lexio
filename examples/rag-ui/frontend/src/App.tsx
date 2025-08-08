@@ -62,7 +62,9 @@ const useMockData = (): MockData => {
         }
         // Excel file
         const getExcelSampleSource = async () => {
-            const response = await fetch("http://localhost:5173/excel_sample.xlsx");
+            // const response = await fetch("http://localhost:5173/von_marius/excel.xlsx");
+            // const response = await fetch("http://localhost:5173/excel_sample.xlsx");
+            const response = await fetch("http://localhost:5173/Stundenzettel-2025-Ramses-Tetang.xlsx");
             const data = await response.arrayBuffer();
             setExcelSampleBuffer(data);
         }
@@ -96,7 +98,7 @@ const useMockData = (): MockData => {
         },
         // Excel Sources
         {
-            id: uuid(),
+            id: "excel_sample",
             title: "excel_sample.xlsx",
             type: "xlsx",
             relevance: 30,
