@@ -36,7 +36,6 @@ import {
     Highlighter,
     Info,
     Italic,
-    LayoutList,
     Minus,
     Paintbrush,
     PaintBucket,
@@ -774,7 +773,7 @@ function ToolbarSection({ showSearchbar, showNotifications, viewSettings, showOp
                     }
                     <div style={{
                         display: "flex",
-                        gap: "1rem",
+                        gap: "0.7rem",
                         alignItems: "center",
                         color: colorScheme === "dark" ? "#ffffff" : "#000000"
                     }}>
@@ -805,9 +804,11 @@ function ToolbarSection({ showSearchbar, showNotifications, viewSettings, showOp
                                     >
                                         <div title={zoom === MIN_ZOOM_FACTOR ? undefined : "Zoom out"}
                                              style={{display: "grid", placeItems: "center"}}>
-                                            <Minus size={16}
-                                                   style={{cursor: "pointer", ...(zoom === MIN_ZOOM_FACTOR ? {color: "gray"} : {})}}
-                                                   onClick={handleZoomOut}/>
+                                            <Minus
+                                                size={16}
+                                                style={{cursor: "pointer", ...(zoom === MIN_ZOOM_FACTOR ? {color: "gray"} : {})}}
+                                                onClick={handleZoomOut}
+                                            />
                                         </div>
                                         <div title="Slide to zoom in and out"
                                              style={{display: "grid", placeItems: "center"}}>
@@ -830,10 +831,11 @@ function ToolbarSection({ showSearchbar, showNotifications, viewSettings, showOp
                                         textAlign: "right",
                                         height: "100%",
                                         padding: "0.25rem",
-                                        marginRight: "0.5rem",
+                                        fontSize: "12px",
                                         borderRadius: "0.25rem",
                                         backgroundColor: "transparent"
-                                    }}>{zoom}%
+                                    }}>
+                                        {zoom}%
                                     </div>
                                     <ToolbarIcon
                                         // label={`Reset to ${DEFAULT_ZOOM_FACTOR}%`}
@@ -872,30 +874,8 @@ function ToolbarSection({ showSearchbar, showNotifications, viewSettings, showOp
                         {viewSettings && viewSettings.showHighlightList ?
                             <div>
                                 <SpreadsheetHighlightsPopUp
-                                    trigger={
-                                        <ToolbarIcon
-                                            // label="All highlights"
-                                            icon={<LayoutList size={TOOLBAR_ICON_SIZE} fontSize="16px"
-                                                              strokeWidth={1.8}/>}
-                                            tooltipTitle="All highlights"
-                                            labelStyle={{
-                                                color: colorScheme === "dark" ? "#ffffff" : "gray",
-                                                userSelect: "none"
-                                            }}
-                                            iconWrapperStyle={{backgroundColor: "transparent", cursor: "pointer"}}
-                                            iconContainerStyle={{
-                                                fontSize: "16px",
-                                                color: getToolbarOptionIconColor(true)
-                                            }}
-                                        />
-                                    }
+                                    iconColor={getToolbarOptionIconColor(true)}
                                     highlights={rangesToHighlight}
-                                    triggerContainerStyle={{height: "100%", width: "100%"}}
-                                    popUpStyle={{
-                                        borderRadius: "0.5rem",
-                                        border: `1px solid ${colorScheme === "dark" ? "#606060" : "#cdd0d4"}`,
-                                        backgroundColor: colorScheme === "dark" ? "#404040" : "white",
-                                    }}
                                     navigateToHighlight={handleNavigateToCell}
                                 />
                             </div> : null
@@ -909,10 +889,13 @@ function ToolbarSection({ showSearchbar, showNotifications, viewSettings, showOp
                                         color: colorScheme === "dark" ? "#ffffff" : "gray",
                                         userSelect: "none"
                                     }}
-                                    iconWrapperStyle={{backgroundColor: "transparent", cursor: "pointer"}}
+                                    iconWrapperStyle={{
+                                        backgroundColor: showStyles ? toolbarOptionActiveColor : "transparent",
+                                        cursor: "pointer"
+                                    }}
                                     iconContainerStyle={{
                                         fontSize: "16px",
-                                        color: !showStyles ? "gray" : showStyles && colorScheme === "dark" ? "#ffffff" : showStyles && colorScheme === "light" ? "#000000" : "gray",
+                                        color: getToolbarOptionIconColor(showStyles),
                                     }}
                                     onClick={() => setShowStyles((prev) => !prev)}
                                 />
@@ -921,7 +904,7 @@ function ToolbarSection({ showSearchbar, showNotifications, viewSettings, showOp
                         {showNotifications ?
                             <div style={{
                                 display: "flex",
-                                gap: "1rem",
+                                gap: "0.7rem",
                                 placeItems: "center",
                                 width: "100%",
                                 height: "100%",

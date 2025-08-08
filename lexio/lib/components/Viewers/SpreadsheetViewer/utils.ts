@@ -13,7 +13,7 @@ export const DEFAULT_ZOOM_FACTOR = 100;
 
 export const MAX_ZOOM_FACTOR = 500;
 
-export const TOOLBAR_ICON_SIZE = 20 as const;
+export const TOOLBAR_ICON_SIZE = 18 as const;
 
 export const DEFAULT_COLUMN_SIZE = 20;
 

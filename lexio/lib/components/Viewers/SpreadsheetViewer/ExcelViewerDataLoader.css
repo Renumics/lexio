@@ -23,6 +23,7 @@
     font-weight: 500;
     margin-bottom: 10px;
     text-align: center;
+    user-select: none;
 }
 .excel-viewer-loading-subtext {
     font-size: 14px;
@@ -30,6 +31,7 @@
     text-align: center;
     margin-top: 10px;
     color: gray;
+    user-select: none;
 }
 .excel-viewer-loading-progress-bar {
     width: 100%;
@@ -56,6 +58,7 @@
     text-align: center;
     height: 80%;
     width: 100%;
+    user-select: none;
 }
 
 @keyframes shimmer {
