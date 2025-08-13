@@ -2,7 +2,7 @@ import {useContext} from "react";
 import {HtmlViewer, LoadingSpinner, MarkdownViewer, PdfViewer} from "../Viewers";
 import {useSources} from "../../hooks";
 import {removeUndefined, ThemeContext} from "../../theme/ThemeContext";
-import ExcelViewer from "../Viewers/SpreadsheetViewer/ExcelViewer";
+import SpreadsheetViewer from "../Viewers/SpreadsheetViewer/SpreadsheetViewer.tsx";
 import {PDFHighlight, Source, SpreadsheetHighlight} from "../../types.ts";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
@@ -132,7 +132,7 @@ const FileViewerRenderer = ({ color, fileName, selectedSource }: PropsFileViewer
         const defaultSheetName = highlights ? (highlights as SpreadsheetHighlight[])[0].sheetName : undefined;
 
         return (
-            <ExcelViewer
+            <SpreadsheetViewer
                 fileName={fileName}
                 fileBufferArray={data as ArrayBuffer}
                 rangesToHighlight={[

@@ -1,14 +1,14 @@
-import ExcelViewerContainer from "./ExcelViewerContainer";
+import SpreadsheetViewerContainer from "./SpreadsheetViewerContainer.tsx";
 import {ExcelViewerConfig, ExcelViewerData, SpreadsheetData, WorkerResponseData} from "./types.ts";
 import {useEffect, useState} from "react";
-import "./ExcelViewerDataLoader.css";
-import ExcelWorker from "./excel-viewer-worker?worker&inline";
+import "./SpreadsheetViewerDataLoader.css";
+import ExcelWorker from "./spreadsheet-viewer-worker.ts?worker&inline";
 
 const excelDataWorker = new ExcelWorker();
 
 type ExcelViewerDataLoaderProps = ExcelViewerData & Omit<ExcelViewerConfig, "colorScheme">;
 
-function ExcelViewerDataLoader({
+function SpreadsheetViewerDataLoader({
                                    fileName,
                                    fileBufferArray,
                                    defaultSelectedSheet,
@@ -90,7 +90,7 @@ function ExcelViewerDataLoader({
 
     return (
         <div className="excel-viewer-app-container">
-            <ExcelViewerContainer
+            <SpreadsheetViewerContainer
                 data={excelData}
                 rangesToHighlight={rangesToHighlight ?? []}
                 defaultSelectedSheet={defaultSelectedSheet}
@@ -102,6 +102,6 @@ function ExcelViewerDataLoader({
         </div>
     );
 }
-ExcelViewerDataLoader.displayName = "ExcelViewerDataLoader";
+SpreadsheetViewerDataLoader.displayName = "SpreadsheetViewerDataLoader";
 
-export default ExcelViewerDataLoader;
+export default SpreadsheetViewerDataLoader;

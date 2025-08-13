@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
-import { SpreadsheetViewer } from '../../../lib/components/Viewers/SpreadsheetViewer';
+import {useEffect, useState} from 'react';
+import type {Meta, StoryObj} from '@storybook/react';
+import {SpreadsheetViewer} from '../../../lib/components/Viewers/SpreadsheetViewer';
 import 'tailwindcss/tailwind.css';
-import { LexioProvider } from "../../../lib/components/LexioProvider";
-import { extractComponentDescriptionHelper, renderDocsBlocks } from "./helper.tsx";
-import type { UserAction, SpreadsheetHighlight } from "../../../lib/types";
+import {LexioProvider} from "../../../lib/components/LexioProvider";
+import {extractComponentDescriptionHelper, renderDocsBlocks} from "./helper.tsx";
+import type {SpreadsheetHighlight} from "../../../lib/types";
 
 async function fetchExcelAsArrayBuffer(url: string): Promise<ArrayBuffer> {
     try {
@@ -23,7 +23,7 @@ async function fetchExcelAsArrayBuffer(url: string): Promise<ArrayBuffer> {
 const sampleHighlights: SpreadsheetHighlight[] = [
     {
         sheetName: "Call Center Data",
-        ranges: ["B4:B4", "B8:F8"]
+        ranges: ["B4:B4", "B8:F10"]
     },
 ];
 
@@ -49,10 +49,20 @@ const SpreadsheetViewerWrapper = ({ url }: { url: string }) => {
     return (
         <div className="w-full h-full">
             <SpreadsheetViewer
-                fileName="Call Center Data"
+                fileName="Call-Center-Sentiment-Sample-Data.xlsx"
                 fileBufferArray={excelData as ArrayBuffer}
                 defaultSelectedSheet="Call Center Data"
                 rangesToHighlight={sampleHighlights}
+                showSearchbar={true}
+                showNotifications={true}
+                viewSettings={{
+                    showZoom: true,
+                    showHighlightToggle: true,
+                    showHighlightList: true,
+                    showOriginalStylesToggle: true,
+                }}
+                showOptionToolbar={true}
+                colorScheme={"light"}
             />
         </div>
     );

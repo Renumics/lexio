@@ -11,10 +11,23 @@ type SearchResult = {
     cellContentWithResult: string;
 }
 
+/**
+ * Props for the SearchBar component
+ *
+ * @type SearchBarProps
+ * @property {SpreadsheetData["sheets"]} sheets - Array of sheets with their associated data.
+ * @property {(sheetName: string, cellAddress: string) => void} navigateToSearchResult - Callback to navigate to search result.
+ */
 type SearchBarProps = {
     sheets: SpreadsheetData["sheets"];
     navigateToSearchResult: (sheetName: string, cellAddress: string) => void;
 }
+/**
+ * Component that renders a search bar.
+ *
+ * @param {SearchBarProps} props - Props of the SearchBar component.
+ * @returns {JSX.Element} The rendered component.
+ */
 export function SearchBar({ sheets, navigateToSearchResult }: SearchBarProps) {
     const { colorScheme } = useTheme();
     const [searchValue, setSearchValue] = useState<string>("");

@@ -1,0 +1,118 @@
+import { Theme, ThemeContextProvider } from "./ThemeContextProvider";
+import "./SpreadsheetViewer.css";
+import SpreadsheetViewerDataLoader from "./SpreadsheetViewerDataLoader.tsx";
+import {ExcelViewerConfig, ExcelViewerData} from "./types.ts";
+
+/**
+ * Props for the SpreadsheetViewer component
+ * @type SpreadsheetViewerProps
+ * @property {string} fileName - Name of the spreadsheet file.
+ * @property {ArrayBuffer} fileBufferArray - The spreadsheet file contents as an ArrayBuffer.
+ * @property {string | undefined} defaultSelectedSheet - Optional name of sheet to select by default.
+ * @property {SpreadsheetHighlight[] | undefined} rangesToHighlight - Optional cell ranges to highlight.
+ * @property {"light" | "dark"} colorScheme - Color scheme of the viewer. For light and dark mode. The original styles from the spreadsheet file will not be change in light or dark mode.
+ * @property {boolean} showSearchbar - Show/Hide search bar.
+ * @property {boolean} showNotifications - Show/Hide notification bell icon.
+ * @property {ExcelViewerConfig["viewSettings"]} viewSettings - view setting to show/hide items in the toolbar.
+ * @property {boolean} showOptionToolbar - Show/hide the whole option toolbar.
+ * @property {Theme | undefined} theme - Theme object to override the default styles for light and dark mode.
+ */
+type SpreadsheetViewerProps = ExcelViewerData & ExcelViewerConfig & {
+    theme?: Theme | undefined;
+};
+/**
+ * A component for displaying spreadsheet documents with interactive viewing capabilities.
+ * Used to render Excel and other spreadsheet formats with support for sheet selection and cell highlighting.
+ *
+ * If no `defaultSelectedSheet` is provided, the component will select by default the first available sheet.
+ *
+ * Only 'xlsx' format is supported.
+ *
+ * @component
+ * @param {SpreadsheetViewerProps} props - Props for the SpreadsheetViewer
+ * @returns {JSX.Element} A spreadsheet viewer with sheet selection and cell highlighting
+ *
+ * @remarks
+ * **Features:**
+ * - Multiple sheet navigation with sheet selection.
+ * - Single cell selection.
+ * - Multiple cells selection (Range selection).
+ * - Support for cell range highlighting via `rangesToHighlight` prop. Use 'B4:B4' to highlight a single cell.
+ * - Summary of all cell range highlights. Click on highlights will navigate to them.
+ * - Cell navigation. Double-click the cell address area to input a cell address(e.g. B4) or a range(B4:D10) to navigate to.
+ * - Cell address input and range input validation.
+ * - Virtualized rendering of rows and columns for improved performance with large spreadsheets.
+ * - Compatible only for Excel file formats (xlsx).
+ * - Formula display in toolbar.
+ * - Cell metadata inspection.
+ * - Responsive design with dynamic sizing.
+ * - Customizable theming.
+ * - Zoom-in and –out in sheets.
+ * - Event notifications.
+ * - Search across all sheets.
+ *
+ *
+ * **Styling:**
+ * - Light and dark mode.
+ * - Customizable theming with the `theme` prop.
+ *
+ * @example
+ *
+ * ```tsx
+ * <SpreadsheetViewer
+ *      fileName={"Call-center-data.xlsx"}
+ *      fileBufferArray={excelData as ArrayBuffer}
+ *      rangesToHighlight={[
+ *          {
+ *              sheetName: "Call Center Data",
+ *              ranges: ["B4:B4", "B8:F8"]
+ *          },
+ *      ]}
+ *      defaultSelectedSheet={"Call Center Data"}
+ *      showSearchbar={true}
+ *      showNotifications={true}
+ *      viewSettings={{
+ *          showZoom: true,
+ *          showHighlightToggle: true,
+ *          showHighlightList: true,
+ *          showOriginalStylesToggle: true,
+ *      }}
+ *      showOptionToolbar={true}
+ *      colorScheme={"light"}
+ * />
+ * ```
+ *
+ * **Underlying Libraries:**
+ * The SpreadsheetViewer combines **ExcelJS** for Excel styles parsing and **SheetJS** to extract data from the buffer of the Excel file.
+ *
+ */
+function SpreadsheetViewer({
+                         fileName,
+                         fileBufferArray,
+                         rangesToHighlight,
+                         defaultSelectedSheet,
+                         theme,
+                         showSearchbar,
+                         showNotifications,
+                         viewSettings,
+                         showOptionToolbar,
+                         colorScheme,
+                     }: SpreadsheetViewerProps) {
+    return (
+        <ThemeContextProvider colorScheme={colorScheme} theme={theme}>
+            <SpreadsheetViewerDataLoader
+                fileName={fileName}
+                fileBufferArray={fileBufferArray}
+                defaultSelectedSheet={defaultSelectedSheet}
+                rangesToHighlight={rangesToHighlight}
+                showSearchbar={showSearchbar}
+                showNotifications={showNotifications}
+                viewSettings={viewSettings}
+                showOptionToolbar={showOptionToolbar}
+            />
+        </ThemeContextProvider>
+    );
+}
+SpreadsheetViewer.displayName = "SpreadsheetViewer";
+
+export default SpreadsheetViewer;

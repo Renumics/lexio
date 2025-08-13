@@ -2,19 +2,34 @@ import { Fragment, useEffect, useState } from "react"
 import { useTheme } from "./ThemeContextProvider"
 import "./SheetTabs.css"
 
-interface SheetTabsProps {
-  sheets: Array<{
+type Sheet = {
     name: string;
     data: any[][];
     styles: any;
     merges?: any[];
     colWidths?: number[];
     rowHeights?: number[];
-  }>
+}
+
+/**
+ * Props for the SheetTabs component
+ *
+ * @type SheetTabsProps
+ * @property {Sheet[]} sheets - Array of sheet objects.
+ * @property {number} activeIndex - Index of the active sheet.
+ * @property {(index: number) => void} onSheetChange - Callback to change the active sheet index.
+ */
+type SheetTabsProps = {
+  sheets: Sheet[];
   activeIndex: number;
   onSheetChange: (index: number) => void;
 }
-
+/**
+ * Component that renders sheet tabs.
+ *
+ * @param {SheetTabsProps} props - Props of the SheetTabs component.
+ * @returns {JSX.Element} The rendered component.
+ */
 const SheetTabs = ({ sheets, activeIndex, onSheetChange }: SheetTabsProps) => {
   const { colorScheme } = useTheme();
   const [hoveredTab, setHoveredTab] = useState<number | undefined>(undefined);

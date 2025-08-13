@@ -1,4 +1,4 @@
-import {FC, useCallback, useEffect, useMemo, useRef, useState, UIEvent, MouseEvent} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState, UIEvent, MouseEvent} from "react";
 import {CellRange, CellStyle, ColorSchemeList, SpreadsheetHighlight} from "./types.ts";
 import {useTheme} from "./ThemeContextProvider";
 import {
@@ -26,25 +26,46 @@ import {
     MAX_COLUMN_SIZE,
 } from "./utils";
 import {utils} from "xlsx";
-import "./ExcelHtmlTable.css";
+import "./SpreadsheetHtmlTable.css";
 
-type ExcelHtmlTableProps = {
-    data: any[][];
-    styles: Record<string, any>;
-    merges: any[];
+/**
+ * Props for the SpreadsheetHtmlTable component
+ *
+ * @type SpreadsheetHtmlTableProps
+ * @property {(string | null)[][]} data - A two-dimensional array of rows and columns.
+ * @property {Record<string, object>} styles - A key-value pair object of cell styles.
+ * @property {string[]} merges - Array of merge ranges.
+ * @property {ColorSchemeList | undefined} colorThemes - Color themes extracted from the spreadsheet file.
+ * @property {number[]} colWidths - An Array of width of all columns.
+ * @property {number[]} rowHeights - An Array of height of all rows.
+ * @property {boolean} showStyles - Show/Hide original styles from the spreadsheet file.
+ * @property {string | undefined} selectedCell - Selected cell.
+ * @property {CellRange | undefined} selectedRange - Selected range.
+ * @property {number} zoomFactor - Zoom factor of the selected sheet.
+ * @property {(cell: string) => void} onCellClick - Callback called when a cell is clicked.
+ * @property {((startCell: string, endCell: string, cells: string[]) => void) | undefined} onCellSelection - Callback called when a cell is selected.
+ * @property {((colIndex: number, newWidth: number) => void) | undefined} onColumnResize - Callback called when a column in the active sheet gets resized.
+ * @property {((rowIndex: number, newHeight: number) => void) | undefined} onRowResize - Callback called when a column in the active sheet gets resized.
+ * @property {((scrollToCell: (cellAddress: string) => void) => void) | undefined} onScrollToCell - Callback called to scroll to a cell of a specific sheet.
+ * @property {SpreadsheetHighlight | undefined} highlights - Source Highlights for all sheets.
+ */
+type SpreadsheetHtmlTableProps = {
+    data: (string | null)[][];
+    styles: Record<string, object>;
+    merges: string[];
     colorThemes: ColorSchemeList | undefined;
     colWidths: number[];
     rowHeights: number[];
     showStyles: boolean;
-    selectedCell: string | undefined;
-    selectedRange?: CellRange;
+    selectedCell?: string | undefined;
+    selectedRange?: CellRange | undefined;
     zoomFactor: number;
     onCellClick: (cell: string) => void;
-    onCellSelection?: (startCell: string, endCell: string, cells: string[]) => void;
-    onColumnResize?: (colIndex: number, newWidth: number) => void;
-    onRowResize?: (rowIndex: number, newHeight: number) => void;
-    onScrollToCell?: (scrollToCell: (cellAddress: string) => void) => void;
-    highlights: SpreadsheetHighlight | undefined;
+    onCellSelection?: ((startCell: string, endCell: string, cells: string[]) => void) | undefined;
+    onColumnResize?: ((colIndex: number, newWidth: number) => void) | undefined;
+    onRowResize?: ((rowIndex: number, newHeight: number) => void) | undefined;
+    onScrollToCell?: ((scrollToCell: (cellAddress: string) => void) => void) | undefined;
+    highlights?: SpreadsheetHighlight | undefined;
 }
 
 type Selection = {
@@ -82,7 +103,13 @@ interface HighlightHoverState {
     hoveredRange: string | null;
 }
 
-const ExcelHtmlTable: FC<ExcelHtmlTableProps> = ({
+/**
+ * Component that renders the spreadsheet html table.
+ *
+ * @param {SpreadsheetHtmlTableProps} props - Props of the SpreadsheetHtmlTable component.
+ * @returns {JSX.Element} The rendered component.
+ */
+function SpreadsheetHtmlTable({
     data,
     styles,
     merges,
@@ -99,7 +126,7 @@ const ExcelHtmlTable: FC<ExcelHtmlTableProps> = ({
     onRowResize,
     onScrollToCell,
     highlights,
-}) => {
+}: SpreadsheetHtmlTableProps) {
     const numRows: number = useMemo(() => data.length, [data]);
     const numCols: number = useMemo(() => {
         return data.reduce((acc, curr) => acc > curr.length ? acc : curr.length, 0) || 0;
@@ -492,14 +519,14 @@ const ExcelHtmlTable: FC<ExcelHtmlTableProps> = ({
 
     useEffect(() => {
         if (dragSelectionState.isDragging) {
-            // @ts-ignore
+            // @ts-expect-error: input of handleMouseMove inferred
             document.addEventListener("mousemove", handleMouseMove);
             document.addEventListener("mouseup", handleMouseUp);
             document.body.style.userSelect = "none";
         }
 
         return () => {
-            // @ts-ignore
+            // @ts-expect-error: input of handleMouseMove inferred
             document.removeEventListener("mousemove", handleMouseMove);
             document.removeEventListener("mouseup", handleMouseUp);
             document.body.style.userSelect = "";
@@ -576,7 +603,7 @@ const ExcelHtmlTable: FC<ExcelHtmlTableProps> = ({
 
     useEffect(() => {
         if (resizeState.isResizing) {
-            // @ts-ignore
+            // @ts-expect-error: input of handleResizeMove inferred
             document.addEventListener("mousemove", handleResizeMove);
             document.addEventListener("mouseup", handleResizeEnd);
             document.body.style.cursor = resizeState.type === "column" ? "col-resize" : "row-resize";
@@ -584,7 +611,7 @@ const ExcelHtmlTable: FC<ExcelHtmlTableProps> = ({
         }
 
         return () => {
-            // @ts-ignore
+            // @ts-expect-error: input of handleResizeMove inferred
             document.removeEventListener("mousemove", handleResizeMove);
             document.removeEventListener("mouseup", handleResizeEnd);
             document.body.style.cursor = "";
@@ -1030,6 +1057,6 @@ const ExcelHtmlTable: FC<ExcelHtmlTableProps> = ({
         </div>
     );
 };
-ExcelHtmlTable.displayName = "ExcelHtmlTable";
+SpreadsheetHtmlTable.displayName = "SpreadsheetHtmlTable";
 
-export default ExcelHtmlTable; 
+export default SpreadsheetHtmlTable;

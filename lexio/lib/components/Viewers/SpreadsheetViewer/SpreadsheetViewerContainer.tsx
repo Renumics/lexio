@@ -1,17 +1,35 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import SheetTabs from "./SheetTabs";
-import ExcelHtmlTable from "./ExcelHtmlTable";
+import SpreadsheetHtmlTable from "./SpreadsheetHtmlTable.tsx";
 import { DEFAULT_ZOOM_FACTOR } from "./utils";
 import {ExcelViewerConfig, SelectedCells, SpreadsheetData, SpreadsheetHighlight} from "./types.ts";
-import "./ExcelViewerContainer.css";
+import "./SpreadsheetViewerContainer.css";
 import ToolbarSection from "./ToolbarSection";
 
-type ExcelViewerContainerProps = Omit<ExcelViewerConfig, "colorScheme"> & {
+/**
+ * Props for the SpreadsheetViewerContainer component
+ *
+ * @type SpreadsheetViewerContainerProps
+ * @property {SpreadsheetData} data - Workbook data.
+ * @property {SpreadsheetHighlight[]} rangesToHighlight - Ranges for highlight.
+ * @property {string | undefined} defaultSelectedSheet - Optional name of the default selected sheet.
+ * @property {boolean} showSearchbar - Show/Hide search bar.
+ * @property {boolean} showNotifications - Show/Hide notification bell icon.
+ * @property {ExcelViewerConfig["viewSettings"]} viewSettings - view setting to show/hide items in the toolbar.
+ * @property {boolean} showOptionToolbar - Show/hide the whole option toolbar.
+ */
+type SpreadsheetViewerContainerProps = Omit<ExcelViewerConfig, "colorScheme"> & {
     data: SpreadsheetData;
     rangesToHighlight: SpreadsheetHighlight[];
     defaultSelectedSheet?: string | undefined;
 }
-const ExcelViewerContainer = ({
+/**
+ * Component that renders the SpreadsheetViewerContainer component.
+ *
+ * @param {SpreadsheetViewerContainerProps} props - Props of the SpreadsheetViewerContainer component.
+ * @returns {JSX.Element} The rendered component.
+ */
+const SpreadsheetViewerContainer = ({
                                   data,
                                   rangesToHighlight,
                                   defaultSelectedSheet,
@@ -19,7 +37,7 @@ const ExcelViewerContainer = ({
                                   showNotifications,
                                   viewSettings,
                                   showOptionToolbar,
-                              }: ExcelViewerContainerProps) => {
+                              }: SpreadsheetViewerContainerProps) => {
     const [activeSheetIndex, setActiveSheetIndex] = useState<number>(0);
     const activeSheet = useMemo(() => data.sheets[activeSheetIndex], [data.sheets, activeSheetIndex]);
     const [selectedCells, setSelectedCells] = useState<SelectedCells | undefined>(undefined);
@@ -28,7 +46,6 @@ const ExcelViewerContainer = ({
     const [localRowHeights, setLocalRowHeights] = useState<number[]>(activeSheet.rowHeights);
     const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM_FACTOR);
     const [showHighlights, setShowHighlights] = useState<boolean>(true);
-
     const containerRef = useRef<HTMLDivElement | null>(null);
     const excelTableContainerRef = useRef<HTMLDivElement | null>(null);
     const scrollToCellRef = useRef<((cellAddress: string) => void) | null>(null);
@@ -171,7 +188,7 @@ const ExcelViewerContainer = ({
             />
             <div ref={excelTableContainerRef} className="excel-viewer-table-container">
                 <div className="excel-viewer-grid-container">
-                    <ExcelHtmlTable
+                    <SpreadsheetHtmlTable
                         data={activeSheet.data}
                         merges={activeSheet.merges}
                         styles={activeSheet.styles}
@@ -199,6 +216,6 @@ const ExcelViewerContainer = ({
         </div>
     );
 };
-ExcelViewerContainer.displayName = "ExcelViewerContainer";
+SpreadsheetViewerContainer.displayName = "SpreadsheetViewerContainer";
 
-export default ExcelViewerContainer;
+export default SpreadsheetViewerContainer;

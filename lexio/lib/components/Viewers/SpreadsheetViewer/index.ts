@@ -1,3 +1,3 @@
-import ExcelViewer from './ExcelViewer.tsx';
+import SpreadsheetViewer from './SpreadsheetViewer.tsx';
 
-export {ExcelViewer};
+export {SpreadsheetViewer};

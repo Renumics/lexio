@@ -6,12 +6,27 @@ import ToolbarIcon from "./ui/toolbar-icon/ToolbarIcon";
 import { useState } from "react";
 import { useTheme } from "./ThemeContextProvider";
 
+/**
+ * Props for the NotificationList component
+ *
+ * @type NotificationListProps
+ * @property {AlertMessage[]} notifications - Array of notification objects.
+ * @property {string} iconColor - Color of the notification icon.
+ * @property {() => void} deleteAllNotifications - Callback to delete all notifications.
+ * @property {(id: string) => void} deleteNotification - Callback to delete a notification.
+ */
 type NotificationListProps = {
     notifications: AlertMessage[];
     iconColor: string;
     deleteAllNotifications: () => void;
     deleteNotification: (id: string) => void;
 }
+/**
+ * Component that renders a notification list in the toolbar of the spreadsheet viewer.
+ *
+ * @param {NotificationListProps} props - Props of the NotificationList component.
+ * @returns {JSX.Element} The rendered component.
+ */
 function NotificationList({ notifications, iconColor, deleteAllNotifications, deleteNotification }: NotificationListProps) {
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [hoveredNotificationIndex, setHoveredNotificationIndex] = useState<number | undefined>(undefined);
@@ -52,7 +67,6 @@ function NotificationList({ notifications, iconColor, deleteAllNotifications, de
                     <div
                         style={{
                             display: "grid",
-                            // borderRadius: "0.25rem",
                             overflowY: "auto",
                         }}
                     >
@@ -103,12 +117,12 @@ function NotificationList({ notifications, iconColor, deleteAllNotifications, de
                 minHeight: "50px",
                 maxHeight: "600px",
                 border: "1px solid var(--excel-viewer-border)",
-                // borderRadius: "0.25rem",
                 padding: "1rem",
                 overflow: "hidden",
             }}
         />
     );
 }
+NotificationList.displayName = "NotificationList";
 
 export default NotificationList;

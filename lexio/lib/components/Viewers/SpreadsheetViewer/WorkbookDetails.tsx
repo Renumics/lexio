@@ -62,7 +62,7 @@ function WorkbookDetails({ spreadsheetData, iconColor }: WorkbookDetailsProps) {
                     tooltipTitle={"Workbook Details"}
                     iconWrapperStyle={{ backgroundColor: "transparent", cursor: "pointer" }}
                     iconContainerStyle={{ fontSize: "16px", color: iconColor }}
-                    onClick={() => setIsOpen(true)}
+                    onClick={() => setIsOpen((prev) => !prev)}
                 />
             }
             popUpStyle={{

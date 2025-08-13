@@ -1,6 +1,19 @@
-import {CSSProperties, ReactNode, useEffect, useRef} from "react";
+import {CSSProperties, ReactNode, useEffect, useRef, useCallback} from "react";
 import { useTheme } from "./ThemeContextProvider";
 
+/**
+ * Props for the PopUp component
+ *
+ * @type PopUpProps
+ * @property {ReactNode} content - Content of the pop-up.
+ * @property {"top-right" | "top-left" | "bottom-right" | "bottom-left" | "top" | "bottom" | "left" | "right" | "fixed"} position - Position of the pop-up relative to its trigger.
+ * @property {ReactNode} trigger - Trigger of the pop-up.
+ * @property {CSSProperties | undefined} containerStyle - Styles of the main container of the pop-up.
+ * @property {CSSProperties | undefined} popUpStyle - Styles of the pop-up it-self.
+ * @property {boolean | undefined} opened - Flag indicating that the pop-up is opened or not.
+ * @property {(() => void) | undefined} open - Callback that opens the pop-up.
+ * @property {(() => void) | undefined} close - Callback that closes the pop-up.
+ */
 type PopUpProps = {
     content: ReactNode;
     position: "top-right" | "top-left" | "bottom-right" | "bottom-left" | "top" | "bottom" | "left" | "right" | "fixed";
@@ -11,12 +24,18 @@ type PopUpProps = {
     open?: (() => void) | undefined;   
     close?: (() => void) | undefined;   
 }
-function PopUp({ content, position, trigger, containerStyle, popUpStyle, opened, open, close }: PopUpProps) {
+/**
+ * Component that renders a pop-up.
+ *
+ * @param {PopUpProps} props - Props of the PopUp component.
+ * @returns {JSX.Element} The rendered component.
+ */
+function PopUp({ content, position, trigger, containerStyle, popUpStyle, opened, close }: PopUpProps) {
     const { colorScheme } = useTheme();
     const triggerContainerRef = useRef<HTMLDivElement | null>(null);
     const popUpRef = useRef<HTMLDivElement | null>(null);
 
-    const positionPopUp = () => {
+    const positionPopUp = useCallback(() => {
         if (!triggerContainerRef.current || !popUpRef.current) return;
 
         const { height, top, x, width, left } = triggerContainerRef.current.getBoundingClientRect();
@@ -27,7 +46,6 @@ function PopUp({ content, position, trigger, containerStyle, popUpStyle, opened,
         popUpRef.current.style.position = "fixed";
         switch (position) {
             case "top-right": {
-                // position the pop-up to the top right of the trigger
                 popUpRef.current.style.top = `${topOffset}px`;
                 popUpRef.current.style.left = `${x + width}px`;
                 break;
@@ -78,23 +96,21 @@ function PopUp({ content, position, trigger, containerStyle, popUpStyle, opened,
                 break;
             }
         }
-        // popUpRef.current.style.top = `${topOffset}px`;
-        // popUpRef.current.style.left = `${x}px`;
         popUpRef.current.style.width = `${width}px`;
         popUpRef.current.style.maxHeight = `${maxHeight}px`;
-    }
+    }, [position]);
 
     useEffect(() => {
         positionPopUp();
-    }, [opened, position, popUpStyle]);
+    }, [opened, position, popUpStyle, positionPopUp]);
 
-    const handleOpen = () => {
-        open?.();
-    }
+    // const handleOpen = () => {
+    //     open?.();
+    // }
 
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         close?.();
-    }
+    }, [close]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -107,7 +123,7 @@ function PopUp({ content, position, trigger, containerStyle, popUpStyle, opened,
         return () => {
             document.removeEventListener("click", handleClickOutside);
         };
-    }, [opened]);
+    }, [handleClose, opened]);
 
     useEffect(() => {
         const handleEscapeKey = (event: KeyboardEvent) => {
@@ -120,17 +136,17 @@ function PopUp({ content, position, trigger, containerStyle, popUpStyle, opened,
         return () => {
             document.removeEventListener("keydown", handleEscapeKey);
         };
-    }, [opened]);
+    }, [handleClose, opened]);
 
     useEffect(() => {
         window.addEventListener("resize", positionPopUp);
         return () => {
             window.removeEventListener("resize", positionPopUp);
         };
-    }, []);
+    }, [positionPopUp]);
 
     return (
-        <div ref={triggerContainerRef} style={{ position: "relative", ...(containerStyle ?? {}) }} onClick={handleOpen}>
+        <div ref={triggerContainerRef} style={{ position: "relative", ...(containerStyle ?? {}) }}>
             {trigger}
             <div
                 ref={popUpRef}

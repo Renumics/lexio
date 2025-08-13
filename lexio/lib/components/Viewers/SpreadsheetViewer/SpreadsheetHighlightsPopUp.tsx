@@ -6,11 +6,25 @@ import PopUp from "./PopUp.tsx";
 import {TOOLBAR_ICON_SIZE} from "./utils.ts";
 import ToolbarIcon from "./ui/toolbar-icon/ToolbarIcon.tsx";
 
+/**
+ * Props for the SpreadsheetHighlightsPopUp component
+ *
+ * @type SpreadsheetHighlightsPopUpProps
+ * @property {SpreadsheetHighlight[] | undefined} highlights - Array of highlight objects.
+ * @property {string} iconColor - Color of the highlight icon triggering the pop-up.
+ * @property {(sheetName: string, cellAddress: string) => void} navigateToHighlight - Callback to delete all notifications.
+ */
 type SpreadsheetHighlightsPopUpProps = {
     highlights?: SpreadsheetHighlight[] | undefined;
     iconColor: string;
     navigateToHighlight: (sheetName: string, cellAddress: string) => void;
 }
+/**
+ * Component that renders a spreadsheet highlight list pop-up in the toolbar of the spreadsheet viewer.
+ *
+ * @param {SpreadsheetHighlightsPopUpProps} props - Props of the SpreadsheetHighlightsPopUp component.
+ * @returns {JSX.Element} The rendered component.
+ */
 function SpreadsheetHighlightsPopUp({ highlights, iconColor, navigateToHighlight }: SpreadsheetHighlightsPopUpProps) {
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const { colorScheme } = useTheme();

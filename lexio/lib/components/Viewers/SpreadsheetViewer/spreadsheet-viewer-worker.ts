@@ -2,7 +2,7 @@ import { ParsingOptions, read, utils } from "xlsx";
 import { Sheet2JSONOpts, WorkBook as SheetJsWorkbook, WorkSheet as SheetJsWorkSheet } from "xlsx";
 import { CellMetadata, ColorSchemeList, WorkerResponseData } from "./types";
 import { getClientLocale, MAX_COLUMN_SIZE, ROW_LIMIT } from "./utils";
-import ExcelJS from "exceljs";
+import * as ExcelJS from "exceljs";
 
 type WorkerInput = {
     type: "load-data";
@@ -150,7 +150,7 @@ const loadSheetDataFromSheetjsWorkbook = (sheetJsWorkbook: SheetJsWorkbook, shee
 
         console.log(`Sheet "${sheetName}" - After minimum row adjustment: ${rowsWithMinRowApplied.length} (min: ${minRowNum})`);
 
-        // @ts-ignore
+        // @ts-expect-error: type Themes object
         return [rowsWithMinRowApplied, sheetJsWorkbook.Themes?.themeElements?.clrScheme];
     }
     catch (e) {
@@ -221,7 +221,7 @@ const loadData = async (fileBufferArray: ArrayBuffer) => {
         } as WorkerResponseData);
 
         const sheets = excelJsWorkbook.worksheets.map((sheet, sheetIndex) => {
-            const data: any[][] = []
+            const data: unknown[][] = []
             const styles: Record<string, any> = {}
             const cellsMetadata: CellMetadata = {};
             const merges = sheet.model.merges || []

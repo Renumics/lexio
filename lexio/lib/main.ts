@@ -6,7 +6,7 @@ import { ChatWindow } from './components/ChatWindow'
 import { PdfViewer } from './components/Viewers/PdfViewer'
 import { HtmlViewer } from './components/Viewers/HtmlViewer'
 import { MarkdownViewer } from './components/Viewers/MarkdownViewer'
-import { ExcelViewer } from './components/Viewers/SpreadsheetViewer'
+import { SpreadsheetViewer } from './components/Viewers/SpreadsheetViewer'
 import { LexioProvider } from './components/LexioProvider'
 import { useMessages, useSources, useStatus, useMessageFeedback, useLexioTheme } from './hooks'
 import { SourcesDisplay } from './components/SourcesDisplay'
@@ -36,7 +36,7 @@ export {
     PdfViewer,
     HtmlViewer,
     MarkdownViewer,
-    ExcelViewer,
+    SpreadsheetViewer,
 
     // Connectors
     createRESTContentSource,
