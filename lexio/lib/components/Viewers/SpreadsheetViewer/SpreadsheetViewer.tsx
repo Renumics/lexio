@@ -56,6 +56,9 @@ type SpreadsheetViewerProps = ExcelViewerData & ExcelViewerConfig & {
  * - Light and dark mode.
  * - Customizable theming with the `theme` prop.
  *
+ * **Keyboard Shortcuts:**
+ * - Zoom in/out: ctrl + mouse wheel
+ *
  * @example
  *
  * ```tsx
