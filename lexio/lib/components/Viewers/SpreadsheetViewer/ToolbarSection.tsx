@@ -747,7 +747,7 @@ function ToolbarSection({ showWorkbookDetails, showSearchbar, showNotifications,
         if (!showSearchbar && !showWorkbookDetails) {
             return "1fr max-content";
         }
-        return "max-content 1fr max-content";
+        return "max-content 1fr max-content max-content";
     }, [showSearchbar, showWorkbookDetails])
 
     return (
