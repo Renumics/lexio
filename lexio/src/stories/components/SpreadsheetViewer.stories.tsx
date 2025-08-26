@@ -86,9 +86,7 @@ const meta: Meta<typeof SpreadsheetViewer> = {
     decorators: [
         (Story) => (
             <div className="h-[600px]" style={{ width: '100%', padding: '1rem', }}>
-                <LexioProvider onAction={() => {}}>
-                    <Story />
-                </LexioProvider>
+                <Story />
             </div>
         ),
     ],
@@ -98,5 +96,9 @@ export default meta;
 type Story = StoryObj<typeof SpreadsheetViewer>;
 
 export const Docs: Story = {
-    render: () => <SpreadsheetViewerWrapper url={excelUrl} />,
+    render: () => (
+        <LexioProvider onAction={() => {}}>
+            <SpreadsheetViewerWrapper url={excelUrl} />
+        </LexioProvider>
+    ),
 };

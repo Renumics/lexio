@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useRef } from "react";
+import { ThemeContext as LexioThemeContext } from "../../../theme";
 
 export type ColorScheme = "light" | "dark";
 
@@ -58,53 +59,61 @@ const DEFAULT_FONT_COLOR = "#000000";
 
 const DEFAULT_CELL_BACKGROUND_COLOR = "#ffffff";
 
-export const DEFAULT_THEME: Theme = {
-    light: {
-        background: DEFAULT_CELL_BACKGROUND_COLOR,
-        // surface: "#f8fafc",
-        surface: "#eaeef2",
-        card: "#ffffff",
-        bodyBackground: "#f8fafc",
-        bodyForeground: "#000000",
-        headerBg: "#f2f2f2",
-        headerText: "#222222",
-        cellBorder: "#e2e8f0",
-        border: "#cdd0d4",
-        headerBorder: "#e2e8f0",
-        defaultCellText: DEFAULT_FONT_COLOR,
-        selection: "#0078d4",
-        highlight: "#ffa500",
-        selectionText: "#ffffff",
-        stickyBorder: "#d3d3d3",
-        scrollBarColor: "#cbd5e1 #f1f5f9",
-        scrollBarBackgroundColor: "",
-    },
-    dark: {
-        background: DEFAULT_CELL_BACKGROUND_COLOR,
-        surface: "#2d2d2d",
-        card: "#404040",
-        bodyBackground: "#2d2d2d",
-        bodyForeground: "#ffffff",
-        headerBg: "#404040",
-        headerText: "#ffffff",
-        cellBorder: "#e2e8f0",
-        border: "#606060",
-        headerBorder: "#5f5f5f",
-        defaultCellText: DEFAULT_FONT_COLOR,
-        selection: "#0078d4",
-        highlight: "#ffa500",
-        selectionText: "#ffffff",
-        stickyBorder: "#606060",
-        scrollBarColor: "#606060 #2d2d2d",
-        scrollBarBackgroundColor: "",
-    }
-};
-
 export const ThemeContextProvider = ({ theme, colorScheme: inputColorScheme, children }: ThemeContextProviderProps) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [colorScheme, setColorSchemeState] = useState<ColorScheme>(() => {
         return inputColorScheme;
     });
+    const lexioTheme = useContext(LexioThemeContext);
+    if (!lexioTheme) {
+        throw new Error("The Lexio ThemeContext is undefined");
+    }
+    const {
+        colors: lexioColors,
+    } = lexioTheme.theme;
+
+    const DEFAULT_THEME: Theme = useMemo(() => {
+        return {
+            light: {
+                background: DEFAULT_CELL_BACKGROUND_COLOR,
+                surface: "#eaeef2",
+                card: "#ffffff",
+                bodyBackground: "#f8fafc",
+                bodyForeground: "#000000",
+                headerBg: "#f2f2f2",
+                headerText: "#222222",
+                cellBorder: "#e2e8f0",
+                border: "#cdd0d4",
+                headerBorder: "#e2e8f0",
+                defaultCellText: DEFAULT_FONT_COLOR,
+                selection: lexioColors.primary ?? "#0078d4",
+                highlight: "#ffa500",
+                selectionText: "#ffffff",
+                stickyBorder: "#d3d3d3",
+                scrollBarColor: "#cbd5e1 #f1f5f9",
+                scrollBarBackgroundColor: "",
+            },
+            dark: {
+                background: DEFAULT_CELL_BACKGROUND_COLOR,
+                surface: "#2d2d2d",
+                card: "#404040",
+                bodyBackground: "#2d2d2d",
+                bodyForeground: "#ffffff",
+                headerBg: "#404040",
+                headerText: "#ffffff",
+                cellBorder: "#e2e8f0",
+                border: "#606060",
+                headerBorder: "#5f5f5f",
+                defaultCellText: DEFAULT_FONT_COLOR,
+                selection: lexioColors.primary ?? "#0078d4",
+                highlight: "#ffa500",
+                selectionText: "#ffffff",
+                stickyBorder: "#606060",
+                scrollBarColor: "#606060 #2d2d2d",
+                scrollBarBackgroundColor: "",
+            }
+        }
+    }, [lexioColors]);
 
     const themeState = useMemo(() => {
         if (colorScheme === "dark") {
@@ -117,7 +126,7 @@ export const ThemeContextProvider = ({ theme, colorScheme: inputColorScheme, chi
             ...DEFAULT_THEME.light,
             ...(theme?.light ?? {}),
         };
-    }, [colorScheme, theme]);
+    }, [DEFAULT_THEME.dark, DEFAULT_THEME.light, colorScheme, theme?.dark, theme?.light]);
 
     useEffect(() => {
         if (typeof document === "undefined") return;
