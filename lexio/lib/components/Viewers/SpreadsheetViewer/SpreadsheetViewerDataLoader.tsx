@@ -17,6 +17,7 @@ function SpreadsheetViewerDataLoader({
                                    showNotifications,
                                    viewSettings,
                                    showOptionToolbar,
+                                   showWorkbookDetails,
                                }: ExcelViewerDataLoaderProps) {
     const [excelData, setExcelData] = useState<SpreadsheetData | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
@@ -98,6 +99,7 @@ function SpreadsheetViewerDataLoader({
                 showNotifications={showNotifications}
                 viewSettings={viewSettings}
                 showOptionToolbar={showOptionToolbar}
+                showWorkbookDetails={showWorkbookDetails}
             />
         </div>
     );

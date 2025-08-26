@@ -37,6 +37,7 @@ const SpreadsheetViewerContainer = ({
                                   showNotifications,
                                   viewSettings,
                                   showOptionToolbar,
+                                  showWorkbookDetails,
                               }: SpreadsheetViewerContainerProps) => {
     const [activeSheetIndex, setActiveSheetIndex] = useState<number>(0);
     const activeSheet = useMemo(() => data.sheets[activeSheetIndex], [data.sheets, activeSheetIndex]);
@@ -184,6 +185,7 @@ const SpreadsheetViewerContainer = ({
                 setShowHighlights={setShowHighlights}
                 showStyles={showStyles}
                 setShowStyles={setShowStyles}
+                showWorkbookDetails={showWorkbookDetails}
                 rangesToHighlight={rangesToHighlight}
             />
             <div ref={excelTableContainerRef} className="excel-viewer-table-container">

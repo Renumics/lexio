@@ -96,6 +96,7 @@ function SpreadsheetViewer({
                          showNotifications,
                          viewSettings,
                          showOptionToolbar,
+                         showWorkbookDetails,
                          colorScheme,
                      }: SpreadsheetViewerProps) {
     return (
@@ -109,6 +110,7 @@ function SpreadsheetViewer({
                 showNotifications={showNotifications}
                 viewSettings={viewSettings}
                 showOptionToolbar={showOptionToolbar}
+                showWorkbookDetails={showWorkbookDetails}
             />
         </ThemeContextProvider>
     );

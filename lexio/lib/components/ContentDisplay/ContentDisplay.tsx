@@ -160,6 +160,7 @@ const FileViewerRenderer = ({ color, fileName, selectedSource }: PropsFileViewer
                     showOriginalStylesToggle: true,
                 }}
                 showOptionToolbar={true}
+                showWorkbookDetails={true}
                 colorScheme={"light"}
             />
         );

@@ -88,7 +88,7 @@ type ToolbarSectionProps = Omit<ExcelViewerConfig, "colorScheme"> & {
     showStyles: boolean;
     setShowStyles: (showStyles: boolean | ((prev: boolean) => boolean)) => void;
 };
-function ToolbarSection({ showSearchbar, showNotifications, viewSettings, showOptionToolbar, zoom, setZoom, excelTableContainerRef, selectedCells, setSelectedCells, data, activeSheet, setActiveSheetIndex, handleCellClick, scrollToCellRef, highlightsOfSelectedSheet, containerRef, showHighlights, setShowHighlights, showStyles, setShowStyles, rangesToHighlight }: ToolbarSectionProps) {
+function ToolbarSection({ showWorkbookDetails, showSearchbar, showNotifications, viewSettings, showOptionToolbar, zoom, setZoom, excelTableContainerRef, selectedCells, setSelectedCells, data, activeSheet, setActiveSheetIndex, handleCellClick, scrollToCellRef, highlightsOfSelectedSheet, containerRef, showHighlights, setShowHighlights, showStyles, setShowStyles, rangesToHighlight }: ToolbarSectionProps) {
     const [cellAddressInput, setCellAddressInput] = useState<string>(() => {
         const selectedCell = selectedCells?.[activeSheet.name]?.startCell;
         if (!selectedCell) return "";
@@ -737,28 +737,50 @@ function ToolbarSection({ showSearchbar, showNotifications, viewSettings, showOp
         return `The number of rows in the ${activeSheet.name} worksheet exceeds the row limit of ${ROW_LIMIT} rows. Only the first ${ROW_LIMIT} rows are been displayed.`;
     }, [activeSheet.name]);
 
+    const columnsTemplateOfUpperToolbar = useMemo(() => {
+        if (showSearchbar && !showWorkbookDetails) {
+            return "max-content max-content 1fr max-content";
+        }
+        if (showWorkbookDetails && !showSearchbar) {
+            return "max-content 1fr max-content";
+        }
+        if (!showSearchbar && !showWorkbookDetails) {
+            return "1fr max-content";
+        }
+        return "max-content 1fr max-content";
+    }, [showSearchbar, showWorkbookDetails])
+
     return (
         <div style={{ display: "grid", width: "100%", backgroundColor: "var(--excel-viewer-surface)" }}>
             <div className="excel-viewer-toolbar">
                 <div
                     style={{
                         display: "grid",
-                        gridTemplateColumns: showSearchbar ? "max-content max-content 1fr max-content" : "max-content 1fr max-content",
+                        gridTemplateColumns: columnsTemplateOfUpperToolbar,
                         alignItems: "center",
                         gap: "1rem",
                         height: "100%",
                         overflowX: "auto",
                     }}
                 >
-                    <div className="excel-viewer-menu-button">
-                        <WorkbookDetails
-                            spreadsheetData={data}
-                            iconColor={getToolbarOptionIconColor(true)}
-                        />
-                    </div>
+                    {showWorkbookDetails ?
+                        <div className="excel-viewer-menu-button">
+                            <WorkbookDetails
+                                spreadsheetData={data}
+                                iconColor={getToolbarOptionIconColor(true)}
+                            />
+                        </div> : null
+                    }
                     <div className="excel-viewer-file-name-container">
-                        <div style={{ maxWidth: "500px", minWidth: "50px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", userSelect: "none" }}>
-                            {data.fileName}
+                        <div style={{
+                            maxWidth: "500px",
+                            minWidth: "50px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            userSelect: "none"
+                        }}>
+                        {data.fileName}
                         </div>
                     </div>
                     {showSearchbar ?

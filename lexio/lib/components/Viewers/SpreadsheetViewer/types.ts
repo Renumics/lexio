@@ -30,6 +30,7 @@ export type ExcelViewerConfig = {
         showOriginalStylesToggle: boolean;
     } | undefined;
     showOptionToolbar: boolean;
+    showWorkbookDetails: boolean;
 }
 
 export type SheetData = {
