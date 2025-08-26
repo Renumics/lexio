@@ -96,7 +96,7 @@ const useMockData = (): MockData => {
         },
         // Excel Sources
         {
-            id: "excel_sample",
+            id: uuid(),
             title: "excel_sample.xlsx",
             type: "xlsx",
             relevance: 30,
