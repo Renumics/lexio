@@ -22,7 +22,7 @@ type SpreadsheetViewerProps = ExcelViewerData & ExcelViewerConfig & {
 };
 /**
  * A component for displaying spreadsheet documents with interactive viewing capabilities.
- * Used to render Excel and other spreadsheet formats with support for sheet selection and cell highlighting.
+ * This component is used to render spreadsheet files with support for sheet selection and cell/range highlighting.
  *
  * If no `defaultSelectedSheet` is provided, the component will select by default the first available sheet.
  *
@@ -68,25 +68,26 @@ type SpreadsheetViewerProps = ExcelViewerData & ExcelViewerConfig & {
  *      rangesToHighlight={[
  *          {
  *              sheetName: "Call Center Data",
- *              ranges: ["B4:B4", "B8:F8"]
+ *              ranges: ["B4:B4", "B8:F10"]
  *          },
  *      ]}
- *      defaultSelectedSheet={"Call Center Data"}
- *      showSearchbar={true}
- *      showNotifications={true}
+ *      defaultSelectedSheet={"Call-Center-Sentiment-Sample-Data.xlsx"}
+ *      showSearchbar={false}
+ *      showNotifications={false}
  *      viewSettings={{
  *          showZoom: true,
  *          showHighlightToggle: true,
- *          showHighlightList: true,
+ *          showHighlightList: false,
  *          showOriginalStylesToggle: true,
  *      }}
  *      showOptionToolbar={true}
+ *      showWorkbookDetails={false}
  *      colorScheme={"light"}
  * />
  * ```
  *
  * **Underlying Libraries:**
- * The SpreadsheetViewer combines **ExcelJS** for Excel styles parsing and **SheetJS** to extract data from the buffer of the Excel file.
+ * The SpreadsheetViewer combines **ExcelJS** to parse styles from Excel files and **SheetJS** to extract data from the buffer of Excel files.
  *
  */
 function SpreadsheetViewer({

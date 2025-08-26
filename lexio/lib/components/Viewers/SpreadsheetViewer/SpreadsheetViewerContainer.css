@@ -7,21 +7,6 @@
     min-height: 0;
     overflow: hidden;
     max-height: 100vh;
-
-    /* &  * {
-      &::-webkit-scrollbar {
-          height: 4px;
-      }
-
-      &::-webkit-scrollbar-track {
-          background: ${props => props.colorScheme === 'dark' ? '#2d2d2d' : '#f1f5f9'};
-      }
-
-      &::-webkit-scrollbar-thumb {
-          background-color: ${props => props.colorScheme === 'dark' ? '#606060' : '#cbd5e1'};
-          border-radius: 3px;
-      }
-    } */
 }
 .excel-viewer-viewer-container * {
     scrollbar-width: thin;

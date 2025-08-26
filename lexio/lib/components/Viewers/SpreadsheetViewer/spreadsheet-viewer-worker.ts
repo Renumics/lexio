@@ -32,7 +32,6 @@ const loadSheetjsWorkbook = async (arrayBuffer: ArrayBuffer) => {
 
     const workbook = read(arrayBuffer, readParsingOptions);
 
-    // TODO: Remove duplicates
     const getWorksheetRangeWithCellContainingData = (data: SheetJsWorkSheet): string => {
         const dataWithValues = Object.fromEntries(Object.entries(data).filter(([_, value]) => !!value.v));
         const cellNamesWithValues = Object.keys(dataWithValues);
@@ -73,20 +72,6 @@ const loadExcelJSWorkbook = async (arrayBuffer: ArrayBuffer) => {
     await workbook.xlsx.load(arrayBuffer);
     return workbook;
 }
-
-// Helper function to get the actual row count from a worksheet
-const getActualRowCount = (sheet: SheetJsWorkSheet): number => {
-    const dataWithValues = Object.fromEntries(Object.entries(sheet).filter(([_, value]) => !!value.v));
-    const cellNamesWithValues = Object.keys(dataWithValues);
-    
-    if (cellNamesWithValues.length === 0) {
-        return 0;
-    }
-    
-    const cellsWithValues = cellNamesWithValues.map(cell => utils.decode_cell(cell));
-    const maxRow = Math.max(...cellsWithValues.map(cell => cell.r));
-    return maxRow + 1; // +1 because row indices are 0-based
-};
 
 const loadSheetDataFromSheetjsWorkbook = (sheetJsWorkbook: SheetJsWorkbook, sheetName: string): [(string | null)[][], ColorSchemeList | undefined] => {
     const minRowNum = 32;
@@ -135,26 +120,18 @@ const loadSheetDataFromSheetjsWorkbook = (sheetJsWorkbook: SheetJsWorkbook, shee
 
         const sheet = sheetJsWorkbook.Sheets[sheetName];
 
-        // Get the actual row count from the worksheet
-        const actualRowCount = getActualRowCount(sheet);
-        console.log(`Sheet "${sheetName}" - Actual row count from worksheet: ${actualRowCount}`);
-
         const rows = utils.sheet_to_json(sheet, sheetToJsonOptions);
-
-        console.log(`Sheet "${sheetName}" - Raw SheetJS rows: ${rows.length}`);
 
         const rowsWithMinRowApplied = [
             ...rows.map((row: any) => Object.values(row).flat()),
             ...(rows.length < minRowNum ? Array(minRowNum - rows.length).fill(null) : []),
         ];
 
-        console.log(`Sheet "${sheetName}" - After minimum row adjustment: ${rowsWithMinRowApplied.length} (min: ${minRowNum})`);
-
         // @ts-expect-error: type Themes object
         return [rowsWithMinRowApplied, sheetJsWorkbook.Themes?.themeElements?.clrScheme];
     }
     catch (e) {
-        console.error(e);
+        console.error("Error loading and parsing file. ", e);
     }
     return [[], undefined];
 }
@@ -163,8 +140,6 @@ const loadData = async (fileBufferArray: ArrayBuffer) => {
     const fileSize = fileBufferArray.byteLength / 1_000_000;
     const fileSizeFormatted = `${(fileSize).toFixed(2)} MB`;
     try {
-        console.log(`=== Starting Excel File Parsing ===`);
-        console.log(`File buffer size: ${fileBufferArray.byteLength} bytes`);
 
         // validate buffer
         if (fileSize > 5) {
@@ -229,8 +204,6 @@ const loadData = async (fileBufferArray: ArrayBuffer) => {
             const actualRowCount = sheet.rowCount || 0;
             const actualColumnCount = sheet.columnCount || 0;
 
-            console.log(`Sheet "${sheet.name}" - ExcelJS row count: ${actualRowCount}, column count: ${actualColumnCount}`);
-
             const minRows = 24;
             const minCols = 25;
             const totalRows = Math.max(actualRowCount, minRows);
@@ -280,17 +253,9 @@ const loadData = async (fileBufferArray: ArrayBuffer) => {
             
             const [sheetjsData, colorThemes] = loadSheetDataFromSheetjsWorkbook(sheetJsWorkbook, sheet.name);
 
-            console.log(`Sheet "${sheet.name}" - SheetJS row count: ${sheetjsData.length}`);
-
-            const rowLimitExeceeded = sheetjsData.length > ROW_LIMIT;
-
-            if (rowLimitExeceeded) {
-                console.log(`⚠️ Sheet "${sheet.name}" - Row limit exceeded! Original: ${sheetjsData.length}, Limited to: ${ROW_LIMIT}`);
-            }
+            const rowLimitExceeded = sheetjsData.length > ROW_LIMIT;
 
             const sheetjsDataWithRowLimit = sheetjsData.slice(0, ROW_LIMIT);
-
-            console.log(`Sheet "${sheet.name}" - Final row count: ${sheetjsDataWithRowLimit.length} (after row limit: ${ROW_LIMIT})`);
 
             // Ensure rowHeights array matches the actual data length
             const finalRowHeights = new Array(sheetjsDataWithRowLimit.length).fill("");
@@ -307,19 +272,9 @@ const loadData = async (fileBufferArray: ArrayBuffer) => {
                 cellsMetadata,
                 colWidths,
                 rowHeights: finalRowHeights,
-                rowLimitExeceeded,
+                rowLimitExeceeded: rowLimitExceeded,
             }
         })
-
-        // Log summary of all sheets
-        const totalRows = sheets.reduce((sum, sheet) => sum + sheet.data.length, 0);
-        console.log(`=== Excel File Summary ===`);
-        console.log(`Total sheets: ${sheets.length}`);
-        console.log(`Total rows across all sheets: ${totalRows}`);
-        sheets.forEach((sheet, index) => {
-            console.log(`Sheet ${index + 1} "${sheet.name}": ${sheet.data.length} rows`);
-        });
-        console.log(`========================`);
 
         postMessage({
             progress: 100,

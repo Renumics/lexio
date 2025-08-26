@@ -140,13 +140,6 @@ export const ThemeContextProvider = ({ theme, colorScheme: inputColorScheme, chi
         document.documentElement.style.setProperty("--excel-viewer-sticky-border", themeState.stickyBorder);
         document.documentElement.style.setProperty("--excel-viewer-scroll-bar-color", themeState.scrollBarColor);
         document.documentElement.style.setProperty("--excel-viewer-scroll-bar-background-color", themeState.scrollBarBackgroundColor);
-
-        // Set body default styles
-        // const body = document.querySelector("body");
-        // if (body) {
-        //     body.style.backgroundColor = themeState.bodyBackground;
-        //     body.style.color = themeState.bodyForeground;
-        // }
     }, [themeState, colorScheme]);
 
     useEffect(() => {

@@ -104,10 +104,6 @@ function PopUp({ content, position, trigger, containerStyle, popUpStyle, opened,
         positionPopUp();
     }, [opened, position, popUpStyle, positionPopUp]);
 
-    // const handleOpen = () => {
-    //     open?.();
-    // }
-
     const handleClose = useCallback(() => {
         close?.();
     }, [close]);

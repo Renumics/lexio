@@ -42,8 +42,6 @@ function SpreadsheetViewerDataLoader({
             setLoadingStep(event.data.loadingStep);
             if (event.data.progress === 100) {
                 setIsLoading(false);
-                // excelDataWorker.terminate();
-                // excelDataWorker.removeEventListener("message", () => {});
                 return;
             }
             setIsLoading(true);

@@ -135,21 +135,7 @@ const FileViewerRenderer = ({ color, fileName, selectedSource }: PropsFileViewer
             <SpreadsheetViewer
                 fileName={fileName}
                 fileBufferArray={data as ArrayBuffer}
-                rangesToHighlight={[
-                    ...((highlights as SpreadsheetHighlight[]) ?? []),
-                    {
-                        sheetName: "Konfiguration",
-                        ranges: ["B5:C12", "B26:C30", "H2:H8", "E14:E14", "G7:I10"],
-                    },
-                    {
-                        sheetName: "Apr",
-                        ranges: ["K15:P22", "M40:P43"],
-                    },
-                    {
-                        sheetName: "Gesamt",
-                        ranges: ["C5:E12"]
-                    }
-                ]}
+                rangesToHighlight={(highlights as SpreadsheetHighlight[] | undefined) ?? []}
                 defaultSelectedSheet={defaultSheetName}
                 showSearchbar={true}
                 showNotifications={true}

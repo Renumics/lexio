@@ -797,6 +797,7 @@ function ToolbarSection({ showWorkbookDetails, showSearchbar, showNotifications,
                         display: "flex",
                         gap: "0.7rem",
                         alignItems: "center",
+                        justifyContent: "flex-end",
                         color: colorScheme === "dark" ? "#ffffff" : "#000000"
                     }}>
                         {viewSettings && viewSettings.showZoom ?
