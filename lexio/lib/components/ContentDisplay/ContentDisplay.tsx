@@ -4,6 +4,7 @@ import {useSources} from "../../hooks";
 import {removeUndefined, ThemeContext} from "../../theme/ThemeContext";
 import SpreadsheetViewer from "../Viewers/SpreadsheetViewer/SpreadsheetViewer.tsx";
 import {PDFHighlight, Source, SpreadsheetHighlight} from "../../types.ts";
+import {ExcelViewerConfig} from "../Viewers/SpreadsheetViewer/types.ts";
 
 export interface ContentDisplayStyles extends React.CSSProperties {
     backgroundColor?: string;
@@ -13,9 +14,18 @@ export interface ContentDisplayStyles extends React.CSSProperties {
     loadingSpinnerColor?: string;
 }
 
+/**
+ * Props for the ContentDisplay component
+ *
+ * @type ContentDisplayProps
+ * @property {ContentDisplayStyles} styleOverrides - Style overrides for the content display component.
+ * @property {string} componentKey - Component identifier.
+ * @property {ExcelViewerConfig | undefined} spreadsheetViewerLayoutConfigOverrides - Layout config for the spreadsheet viewer.
+ */
 interface ContentDisplayProps {
     styleOverrides?: ContentDisplayStyles;
     componentKey?: string;
+    spreadsheetViewerLayoutConfigOverrides?: Partial<ExcelViewerConfig> | undefined;
 }
 
 /**
@@ -52,6 +62,7 @@ interface ContentDisplayProps {
 const ContentDisplay: React.FC<ContentDisplayProps> = ({
                                                            styleOverrides = {},
                                                            componentKey = undefined,
+                                                           spreadsheetViewerLayoutConfigOverrides,
                                                        }) => {
     const { selectedSource } = useSources(componentKey ? `ContentDisplay-${componentKey}` : 'ContentDisplay');
 
@@ -84,6 +95,7 @@ const ContentDisplay: React.FC<ContentDisplayProps> = ({
                 color={style.loadingSpinnerColor ?? colors.primary}
                 fileName={filename}
                 selectedSource={selectedSource as Source}
+                spreadsheetViewerLayoutConfigOverrides={spreadsheetViewerLayoutConfigOverrides}
             />
         </div>
     );
@@ -93,8 +105,9 @@ type PropsFileViewerRenderer = {
     color: string;
     fileName: string;
     selectedSource: Source;
+    spreadsheetViewerLayoutConfigOverrides?: Partial<ExcelViewerConfig> | undefined;
 }
-const FileViewerRenderer = ({ color, fileName, selectedSource }: PropsFileViewerRenderer) => {
+const FileViewerRenderer = ({ color, fileName, selectedSource, spreadsheetViewerLayoutConfigOverrides }: PropsFileViewerRenderer) => {
     if (selectedSource.type === 'pdf' && selectedSource.data && selectedSource.data instanceof Uint8Array) {
         // Prefer 'page' over '_page' if both are defined
         const page = selectedSource.metadata?._pdfPageOverride ?? selectedSource.metadata?.page ?? selectedSource.metadata?._page;
@@ -137,17 +150,19 @@ const FileViewerRenderer = ({ color, fileName, selectedSource }: PropsFileViewer
                 fileBufferArray={data as ArrayBuffer}
                 rangesToHighlight={(highlights as SpreadsheetHighlight[] | undefined) ?? []}
                 defaultSelectedSheet={defaultSheetName}
-                showSearchbar={true}
-                showNotifications={true}
-                viewSettings={{
-                    showZoom: true,
-                    showHighlightToggle: true,
-                    showHighlightList: true,
-                    showOriginalStylesToggle: true,
+                layoutConfig={{
+                    showSearchbar: spreadsheetViewerLayoutConfigOverrides?.showSearchbar ?? true,
+                    showNotifications: spreadsheetViewerLayoutConfigOverrides?.showNotifications ?? true,
+                    viewSettings: {
+                        showZoom: spreadsheetViewerLayoutConfigOverrides?.viewSettings?.showZoom ?? true,
+                        showHighlightToggle: spreadsheetViewerLayoutConfigOverrides?.viewSettings?.showHighlightToggle ?? true,
+                        showHighlightList: spreadsheetViewerLayoutConfigOverrides?.viewSettings?.showHighlightList ?? true,
+                        showOriginalStylesToggle: spreadsheetViewerLayoutConfigOverrides?.viewSettings?.showOriginalStylesToggle ?? true,
+                    },
+                    showOptionToolbar: spreadsheetViewerLayoutConfigOverrides?.showOptionToolbar ?? true,
+                    showWorkbookDetails: spreadsheetViewerLayoutConfigOverrides?.showWorkbookDetails ?? true,
+                    colorScheme:  spreadsheetViewerLayoutConfigOverrides?.colorScheme ?? "light",
                 }}
-                showOptionToolbar={true}
-                showWorkbookDetails={true}
-                colorScheme={"light"}
             />
         );
     }

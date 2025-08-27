@@ -53,17 +53,19 @@ const SpreadsheetViewerWrapper = ({ url }: { url: string }) => {
                 fileBufferArray={excelData as ArrayBuffer}
                 defaultSelectedSheet="Call Center Data"
                 rangesToHighlight={sampleHighlights}
-                showSearchbar={false}
-                showNotifications={false}
-                viewSettings={{
-                    showZoom: true,
-                    showHighlightToggle: true,
-                    showHighlightList: false,
-                    showOriginalStylesToggle: true,
+                layoutConfig={{
+                    showSearchbar: false,
+                    showNotifications: false,
+                    viewSettings: {
+                        showZoom: true,
+                        showHighlightToggle: true,
+                        showHighlightList: false,
+                        showOriginalStylesToggle: true,
+                    },
+                    showOptionToolbar: true,
+                    showWorkbookDetails: false,
+                    colorScheme: "light",
                 }}
-                showOptionToolbar={true}
-                showWorkbookDetails={false}
-                colorScheme={"light"}
             />
         </div>
     );

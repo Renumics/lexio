@@ -49,16 +49,6 @@ function SpreadsheetViewerDataLoader({
     }, [fileBufferArray, fileName]);
 
     useEffect(() => {
-        return () => {
-            setExcelData(undefined);
-            setError(undefined);
-            setIsLoading(false);
-            setLoadingProgress(0);
-            setLoadingStep("");
-        }
-    }, []);
-
-    useEffect(() => {
         document.documentElement.style.setProperty("--excel-viewer-loading-progress", `${loadingProgress}%`);
     }, [loadingProgress]);
 

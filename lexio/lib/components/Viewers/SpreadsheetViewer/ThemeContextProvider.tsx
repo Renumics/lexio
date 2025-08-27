@@ -28,7 +28,7 @@ export type Theme = {
     dark: ThemeColors;
 }
 
-type ThemeOverride = {
+export type ThemeOverride = {
     light?: Partial<ThemeColors>;
     dark?: Partial<ThemeColors>;
 }
@@ -66,51 +66,52 @@ export const ThemeContextProvider = ({ theme, colorScheme: inputColorScheme, chi
     });
     const lexioTheme = useContext(LexioThemeContext);
     if (!lexioTheme) {
-        throw new Error("The Lexio ThemeContext is undefined");
+        throw new Error("The Lexio ThemeContext is undefined. ThemeContextProvider.tsx");
     }
     const {
         colors: lexioColors,
+        spreadsheetViewer,
     } = lexioTheme.theme;
 
     const DEFAULT_THEME: Theme = useMemo(() => {
         return {
             light: {
                 background: DEFAULT_CELL_BACKGROUND_COLOR,
-                surface: "#eaeef2",
-                card: "#ffffff",
-                bodyBackground: "#f8fafc",
-                bodyForeground: "#000000",
-                headerBg: "#f2f2f2",
-                headerText: "#222222",
-                cellBorder: "#e2e8f0",
-                border: "#cdd0d4",
-                headerBorder: "#e2e8f0",
+                surface: spreadsheetViewer?.light?.surface ?? "#eaeef2",
+                card: spreadsheetViewer?.light?.card ?? "#ffffff",
+                bodyBackground: spreadsheetViewer?.light?.background ?? "#f8fafc",
+                bodyForeground: spreadsheetViewer?.light?.bodyForeground ?? "#000000",
+                headerBg: spreadsheetViewer?.light?.headerBg ?? "#f2f2f2",
+                headerText: spreadsheetViewer?.light?.headerText ?? "#222222",
+                cellBorder: spreadsheetViewer?.light?.cellBorder ?? "#e2e8f0",
+                border: spreadsheetViewer?.light?.border ?? "#cdd0d4",
+                headerBorder: spreadsheetViewer?.light?.headerBorder ?? "#e2e8f0",
                 defaultCellText: DEFAULT_FONT_COLOR,
-                selection: lexioColors.primary ?? "#0078d4",
-                highlight: "#ffa500",
-                selectionText: "#ffffff",
-                stickyBorder: "#d3d3d3",
-                scrollBarColor: "#cbd5e1 #f1f5f9",
-                scrollBarBackgroundColor: "",
+                selection: spreadsheetViewer?.light?.selection ?? "#0078d4",
+                highlight: spreadsheetViewer?.light?.highlight ?? "#ffa500",
+                selectionText: spreadsheetViewer?.light?.selectionText ?? "#ffffff",
+                stickyBorder: spreadsheetViewer?.light?.stickyBorder ?? "#d3d3d3",
+                scrollBarColor: spreadsheetViewer?.light?.scrollBarColor ?? "#cbd5e1 #f1f5f9",
+                scrollBarBackgroundColor: spreadsheetViewer?.light?.scrollBarBackgroundColor ?? "",
             },
             dark: {
                 background: DEFAULT_CELL_BACKGROUND_COLOR,
-                surface: "#2d2d2d",
-                card: "#404040",
-                bodyBackground: "#2d2d2d",
-                bodyForeground: "#ffffff",
-                headerBg: "#404040",
-                headerText: "#ffffff",
-                cellBorder: "#e2e8f0",
-                border: "#606060",
-                headerBorder: "#5f5f5f",
-                defaultCellText: DEFAULT_FONT_COLOR,
-                selection: lexioColors.primary ?? "#0078d4",
-                highlight: "#ffa500",
-                selectionText: "#ffffff",
-                stickyBorder: "#606060",
-                scrollBarColor: "#606060 #2d2d2d",
-                scrollBarBackgroundColor: "",
+                surface: spreadsheetViewer?.dark?.surface ?? "#2d2d2d",
+                card: spreadsheetViewer?.dark?.card ?? "#404040",
+                bodyBackground: spreadsheetViewer?.dark?.bodyBackground ?? "#2d2d2d",
+                bodyForeground: spreadsheetViewer?.dark?.bodyForeground ?? "#ffffff",
+                headerBg: spreadsheetViewer?.dark?.headerBg ?? "#404040",
+                headerText: spreadsheetViewer?.dark?.headerText ?? "#ffffff",
+                cellBorder: spreadsheetViewer?.dark?.cellBorder ?? "#e2e8f0",
+                border: spreadsheetViewer?.dark?.border ?? "#606060",
+                headerBorder: spreadsheetViewer?.dark?.headerBorder ?? "#5f5f5f",
+                defaultCellText:  DEFAULT_FONT_COLOR,
+                selection: spreadsheetViewer?.dark?.selection ?? "#0078d4",
+                highlight: spreadsheetViewer?.dark?.highlight ?? "#ffa500",
+                selectionText: spreadsheetViewer?.dark?.selectionText ?? "#ffffff",
+                stickyBorder: spreadsheetViewer?.dark?.stickyBorder ?? "#606060",
+                scrollBarColor: spreadsheetViewer?.dark?.scrollBarColor ?? "#606060 #2d2d2d",
+                scrollBarBackgroundColor: spreadsheetViewer?.dark?.scrollBarBackgroundColor ?? "",
             }
         }
     }, [lexioColors]);

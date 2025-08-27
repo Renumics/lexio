@@ -10,15 +10,12 @@ import {ExcelViewerConfig, ExcelViewerData} from "./types.ts";
  * @property {ArrayBuffer} fileBufferArray - The spreadsheet file contents as an ArrayBuffer.
  * @property {string | undefined} defaultSelectedSheet - Optional name of sheet to select by default.
  * @property {SpreadsheetHighlight[] | undefined} rangesToHighlight - Optional cell ranges to highlight.
- * @property {"light" | "dark"} colorScheme - Color scheme of the viewer. For light and dark mode. The original styles from the spreadsheet file will not be change in light or dark mode.
- * @property {boolean} showSearchbar - Show/Hide search bar.
- * @property {boolean} showNotifications - Show/Hide notification bell icon.
- * @property {ExcelViewerConfig["viewSettings"]} viewSettings - view setting to show/hide items in the toolbar.
- * @property {boolean} showOptionToolbar - Show/hide the whole option toolbar.
  * @property {Theme | undefined} theme - Theme object to override the default styles for light and dark mode.
+ * @property {Partial<ExcelViewerConfig>} layoutConfig - Layout config.
  */
-type SpreadsheetViewerProps = ExcelViewerData & ExcelViewerConfig & {
+type SpreadsheetViewerProps = ExcelViewerData & {
     theme?: Theme | undefined;
+    layoutConfig: Partial<ExcelViewerConfig>;
 };
 /**
  * A component for displaying spreadsheet documents with interactive viewing capabilities.
@@ -96,25 +93,27 @@ function SpreadsheetViewer({
                          rangesToHighlight,
                          defaultSelectedSheet,
                          theme,
-                         showSearchbar,
-                         showNotifications,
-                         viewSettings,
-                         showOptionToolbar,
-                         showWorkbookDetails,
-                         colorScheme,
+                         layoutConfig: {
+                             showSearchbar,
+                             showNotifications,
+                             viewSettings,
+                             showOptionToolbar,
+                             showWorkbookDetails,
+                             colorScheme,
+                         },
                      }: SpreadsheetViewerProps) {
     return (
-        <ThemeContextProvider colorScheme={colorScheme} theme={theme}>
+        <ThemeContextProvider colorScheme={colorScheme ?? "light"} theme={theme}>
             <SpreadsheetViewerDataLoader
                 fileName={fileName}
                 fileBufferArray={fileBufferArray}
                 defaultSelectedSheet={defaultSelectedSheet}
                 rangesToHighlight={rangesToHighlight}
-                showSearchbar={showSearchbar}
-                showNotifications={showNotifications}
+                showSearchbar={showSearchbar ?? true}
+                showNotifications={showNotifications ?? true}
                 viewSettings={viewSettings}
-                showOptionToolbar={showOptionToolbar}
-                showWorkbookDetails={showWorkbookDetails}
+                showOptionToolbar={showOptionToolbar ?? true}
+                showWorkbookDetails={showWorkbookDetails ?? true}
             />
         </ThemeContextProvider>
     );

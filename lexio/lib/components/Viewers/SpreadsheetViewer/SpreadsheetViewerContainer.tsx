@@ -53,18 +53,6 @@ const SpreadsheetViewerContainer = ({
 
     useEffect(() => {
         return () => {
-            setActiveSheetIndex(0);
-            setSelectedCells(undefined);
-            setShowStyles(true);
-            setLocalColWidths([]);
-            setLocalRowHeights([]);
-            setZoom(DEFAULT_ZOOM_FACTOR);
-            setShowHighlights(true);
-        };
-    }, []);
-
-    useEffect(() => {
-        return () => {
             if (data?.fileName) {
                 const keysToRemove: string[] = [];
                 for (let i = 0; i < localStorage.length; i++) {

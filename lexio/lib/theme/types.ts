@@ -1,4 +1,4 @@
-
+import {ThemeOverride as SpreadsheetViewerTheme} from "../components/Viewers/SpreadsheetViewer/ThemeContextProvider.tsx";
 /**
  * Defines the color palette used throughout the application.
  * These colors are used for various UI elements like buttons, backgrounds, and text.
@@ -74,7 +74,8 @@ export interface ComponentDefaults {
  * @property {Colors} colors - Color palette configuration for the application.
  * @property {Typography} typography - Typography settings for consistent text rendering.
  * @property {ComponentDefaults} componentDefaults - Component defaults for consistent styling.
- * 
+ * @property {SpreadsheetViewerTheme} spreadsheetViewer - Styles overrides for the spreadsheet viewer. **All colors should be in hex**.
+ *
  * @remarks
  * The theme is provided to the application via the RAGProvider component, which wraps the entire application.
  *
@@ -93,6 +94,7 @@ export interface Theme {
   colors: Colors;
   typography: Typography;
   componentDefaults: ComponentDefaults;
+  spreadsheetViewer?: SpreadsheetViewerTheme | undefined;
 }
 
 /**
@@ -102,9 +104,11 @@ export interface Theme {
  * @property {Partial<Colors>} colors - Partial color palette configuration for the application.
  * @property {Partial<Typography>} typography - Partial typography settings for consistent text rendering.
  * @property {Partial<ComponentDefaults>} componentDefaults - Partial component defaults for consistent styling.
+ * @property {SpreadsheetViewerTheme} spreadsheetViewer - Styles overrides for the spreadsheet viewer. **All colors should be in hex**.
  */
 export interface PartialTheme {
   colors: Partial<Colors>;
   typography: Partial<Typography>;
   componentDefaults: Partial<ComponentDefaults>;
+  spreadsheetViewer?: SpreadsheetViewerTheme | undefined;
 }

@@ -19,7 +19,17 @@ export type ExcelViewerData = {
     rangesToHighlight?: SpreadsheetHighlight[] | undefined;	
 }
 
-export type ExcelViewerConfig = {
+/**
+ * Interface of the SpreadsheetViewer layout config
+ *
+ * @property {"light" | "dark"} colorScheme - Color scheme of the viewer. For light and dark mode. The original styles from the spreadsheet file will not be change in light or dark mode.
+ * @property {boolean} showSearchbar - Show/Hide search bar.
+ * @property {boolean} showNotifications - Show/Hide notification bell icon.
+ * @property {ExcelViewerConfig["viewSettings"]} viewSettings - view setting to show/hide items in the toolbar.
+ * @property {boolean} showOptionToolbar - Show/hide the whole option toolbar.
+ * @property {boolean} showWorkbookDetails - Show/hide the workbook details in option toolbar.
+* */
+export interface ExcelViewerConfig {
     colorScheme: "light" | "dark";
     showSearchbar: boolean;
     showNotifications: boolean;
