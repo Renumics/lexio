@@ -69,17 +69,19 @@ type SpreadsheetViewerProps = ExcelViewerData & {
  *          },
  *      ]}
  *      defaultSelectedSheet={"Call-Center-Sentiment-Sample-Data.xlsx"}
- *      showSearchbar={false}
- *      showNotifications={false}
- *      viewSettings={{
- *          showZoom: true,
- *          showHighlightToggle: true,
- *          showHighlightList: false,
- *          showOriginalStylesToggle: true,
+ *      layoutConfig={{
+ *          showSearchbar: false,
+ *          showNotifications: false,
+ *          viewSettings: {
+ *              showZoom: true,
+ *              showHighlightToggle: true,
+ *              showHighlightList: false,
+ *              showOriginalStylesToggle: true,
+ *          },
+ *          showOptionToolbar: true,
+ *          showWorkbookDetails: false,
+ *          colorScheme: "light",
  *      }}
- *      showOptionToolbar={true}
- *      showWorkbookDetails={false}
- *      colorScheme={"light"}
  * />
  * ```
  *
