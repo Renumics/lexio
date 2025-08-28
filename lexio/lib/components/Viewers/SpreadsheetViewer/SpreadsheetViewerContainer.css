@@ -1,0 +1,40 @@
+.excel-viewer-viewer-container {
+    display: grid;
+    grid-template-rows: var(--excel-viewer-viewer-container-row-layout);
+    background-color: var(--excel-viewer-background);
+    height: 100%;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+    max-height: 100vh;
+}
+.excel-viewer-viewer-container * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--excel-viewer-scroll-bar-color);
+}
+.excel-viewer-viewer-container *::-webkit-scrollbar {
+    height: 4px;
+}
+.excel-viewer-viewer-container *::-webkit-scrollbar-track {
+    background: var(--excel-viewer-scroll-bar-background-color);
+}
+.excel-viewer-viewer-container *::-webkit-scrollbar-thumb {
+    background-color: var(--excel-viewer-scroll-bar-color);
+    border-radius: 3px;
+}
+.excel-viewer-table-container {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    height: 100%;
+    width: 100%;
+    min-height: 0;
+}
+.excel-viewer-grid-container {
+    display: grid;
+    overflow: auto;
+    position: relative;
+    height: 100%;
+    min-height: 0;
+    width: 100%;
+    border-top: 1px solid var(--excel-viewer-border);
+}

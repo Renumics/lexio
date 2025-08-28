@@ -4,4 +4,4 @@ export * from './HtmlViewer/HtmlViewer';
 export * from './SpreadsheetViewer/SpreadsheetViewer';
 export * from './ViewerToolbar';
 export * from './LoadingSpinner';
-export * from './types'; 
+export * from './types';

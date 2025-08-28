@@ -1,0 +1,32 @@
+.excel-viewer-column-resize-handle {
+    position: absolute;
+  top: 0;
+  right: -2px;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  background-color: transparent;
+  z-index: 20;
+}
+.excel-viewer-column-resize-handle:hover {
+    background-color: var(--excel-viewer-selection);
+}
+.excel-viewer-column-resize-handle.resizing {
+    background-color: var(--excel-viewer-selection);
+}
+.excel-viewer-row-resize-handle {
+    position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 4px;
+  cursor: row-resize;
+  background-color: transparent;
+  z-index: 20;
+}
+.excel-viewer-row-resize-handle:hover {
+    background-color: var(--excel-viewer-selection);
+}
+.excel-viewer-row-resize-handle.resizing {
+    background-color: var(--excel-viewer-selection);
+}
