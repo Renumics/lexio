@@ -11,13 +11,20 @@ pip install lexio
 ## Usage
 
 ```python
-from lexio.types import SourceReference
+from lexio.types import Source
 
 # Use the types in your code
-source = SourceReference(type='pdf', sourceReference='example.pdf')
+source = Source(
+    id="12345678-1234-5678-1234-567812345678",
+    title="Example Document",
+    type="pdf",
+    description="A sample PDF document",
+    relevance=0.95,
+    href="https://example.com/document.pdf"
+)
 
 print(source)
-# Output: type='pdf' sourceReference='example.pdf' sourceName=None relevanceScore=None metadata=None highlights=None
+# Output: id='12345678-1234-5678-1234-567812345678' title='Example Document' type='pdf' description='A sample PDF document' relevance=0.95 href='https://example.com/document.pdf' data=None metadata=None highlights=None
 ```
 
 ## License
