@@ -6,7 +6,7 @@ import 'tailwindcss/tailwind.css';
 import type { Message, UserAction, UUID } from '../../../lib/types';
 import { useEffect } from 'react';
 import { extractComponentDescriptionHelper} from './helper';
-import { UserIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { UserIcon, SparklesIcon } from "lucide-react";
 import * as DocBlocks from "@storybook/blocks";
 
 // use for testing markdown support
