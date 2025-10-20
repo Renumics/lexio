@@ -81,9 +81,34 @@ export async function groupSentenceObjectsIntoChunks(
 
   for (let i = 0; i < sentences.length; i++) {
     const sentence = sentences[i];
+    const isHeader = sentence.metadata?.isHeader ?? false;
     const tokenCounts = await countTokens([sentence.text]);  // Add await here
     const sentenceTokenCount = tokenCounts[0];
     const nextSentence = sentences[i + 1];
+
+    // Header boundary – start a new chunk BEFORE the header
+    if (isHeader && currentChunkSentences.length > 0) {
+      // Get the page range for this chunk
+      const chunkPages = new Set(currentChunkSentences.map(s => s.metadata.page));
+      
+      chunks.push({
+        text: currentChunkSentences.map(s => s.text).join(" "),
+        sentences: currentChunkSentences,
+        page: Math.min(...Array.from(chunkPages)) // Use the first page as reference
+      });
+
+      debugLog(`Created chunk before header with ${currentChunkSentences.length} sentences spanning pages ${Array.from(chunkPages).join(', ')}`);
+      
+      currentChunkSentences = [];
+      currentTokenCount = 0;
+      currentPage = sentence.metadata.page;
+    }
+
+    // Skip adding headers to chunk content - they're only used for boundaries
+    if (isHeader) {
+      debugLog(`Skipping header from chunk content: "${sentence.text}"`);
+      continue;
+    }
 
     // Create a new chunk if:
     // 1. Adding this sentence would exceed maxTokens, OR
@@ -152,6 +177,9 @@ export async function groupSentenceObjectsIntoChunksHeuristic(
     currentSentences: TextWithMetadata[],
     nextSentence: TextWithMetadata
   ): boolean => {
+    // Always start new chunk on header boundary
+    if (nextSentence.metadata?.isHeader) return true;
+    
     // Always start new chunk on page boundary
     if (currentPage !== nextSentence.metadata.page) return true;
     
@@ -191,7 +219,25 @@ export async function groupSentenceObjectsIntoChunksHeuristic(
 
   for (let i = 0; i < sentences.length; i++) {
     const sentence = sentences[i];
+    const isHeader = sentence.metadata?.isHeader ?? false;
     const nextSentence = sentences[i + 1];
+
+    // Header starting a new section - flush current chunk first
+    if (isHeader && currentChunkSentences.length > 0) {
+      chunks.push({
+        text: currentChunkSentences.map(s => s.text).join(" "),
+        sentences: currentChunkSentences,
+        page: currentPage
+      });
+      
+      currentChunkSentences = [];
+      currentPage = sentence.metadata.page;
+    }
+
+    // Skip adding headers to chunk content - they're only used for boundaries
+    if (isHeader) {
+      continue;
+    }
 
     currentChunkSentences.push(sentence);
     

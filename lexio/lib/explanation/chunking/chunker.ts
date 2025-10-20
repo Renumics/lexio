@@ -62,6 +62,12 @@ export async function groupSentenceObjectsIntoChunks(
     /* 1. Header boundary – start a new chunk BEFORE the header */
     if (isHeader && currentChunk.length) flush();
 
+    /* Skip adding headers to chunk content - they're only used for boundaries */
+    if (isHeader) {
+      debug(`Skipping header from chunk content: "${s.text}"`);
+      continue;
+    }
+
     /* 2. Token limit */
     if (
       currentTokenTotal + sTokens > maxTokens &&
@@ -140,6 +146,12 @@ export async function groupSentenceObjectsIntoChunksHeuristic(
 
     /* Header starting a new section */
     if (s.metadata?.isHeader && currentChunk.length) flush();
+
+    /* Skip adding headers to chunk content - they're only used for boundaries */
+    if (s.metadata?.isHeader) {
+      debug(`Skipping header from chunk content: "${s.text}"`);
+      continue;
+    }
 
     currentChunk.push(s);
 
