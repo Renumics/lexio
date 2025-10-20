@@ -19,7 +19,7 @@ import './App.css';
 // This is a temporary mocked response for testing purposes
 // In the future, this will be replaced with a real response from the RAG system
 const MOCKED_RESPONSE = {
-  answer: "## Technical Implementation:\n\nThe DSAE architecture is designed to handle missing traffic data by learning robust representations that can reconstruct incomplete patterns. The denoising component helps the model become resilient to noise and missing values, while the stacked structure enables hierarchical feature extraction for better imputation accuracy."
+  answer: "## Deep Learning for Traffic Data Imputation\n\nThe researchers propose a novel deep learning approach for traffic data imputation using denoising stacked autoencoders (DSAE), which represents the first application of deep learning in this domain. The specific architecture combines a denoising autoencoder (DAE) with stacked autoencoders (SAE) to handle missing traffic data effectively.\n\nThis DSAE architecture is designed to learn robust representations that can reconstruct incomplete patterns in traffic datasets. The denoising component helps the model become resilient to noise and missing values, while the stacked structure enables hierarchical feature extraction for improved imputation accuracy. The approach demonstrates superior performance compared to traditional statistical methods for handling missing traffic sensor data."
 }; 
 
 const MOCKED_SOURCES = [{

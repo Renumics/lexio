@@ -2,9 +2,9 @@ import { parseAndCleanPdf, TextWithMetadata } from './preprocessing';
 import { 
     groupSentenceObjectsIntoChunks, 
     groupSentenceObjectsIntoChunksHeuristic,
-    Chunk, 
-    TextPosition 
+    Chunk
 } from './chunking';
+import { TextPosition } from './preprocessing/types';
 import { getEmbedding, generateEmbeddingsForChunks, ProcessedChunk } from './embedding';
 import {
     splitIntoIdeasHeuristic,
@@ -176,12 +176,34 @@ export class ExplanationProcessor {
         const left = Math.min(...positions.map(p => p.left));
         const right = Math.max(...positions.map(p => p.left + p.width));
 
-        return {
-            top,
-            left,
-            width: right - left,
-            height: bottom - top
+        // Get page dimensions from the first position (all should be from the same page)
+        const pageWidth = positions[0].pageWidth || 1;
+        const pageHeight = positions[0].pageHeight || 1;
+
+        // Debug logging for coordinate calculation
+        debugLog('createBoundingRect input positions:', positions.length);
+        debugLog('Raw coordinates - top:', top, 'bottom:', bottom, 'left:', left, 'right:', right);
+        debugLog('Page dimensions - width:', pageWidth, 'height:', pageHeight);
+        
+        // EXPERIMENTAL: Try inverting Y coordinate to test if there's a coordinate system issue
+        // If highlights appear too far down, maybe we need to flip the Y axis
+        const flippedTop = pageHeight - bottom; // Use bottom for top (flip Y axis)
+        const flippedBottom = pageHeight - top; // Use top for bottom (flip Y axis)
+        
+        debugLog('Flipped coordinates - top:', flippedTop, 'bottom:', flippedBottom);
+        
+        // Normalize coordinates to 0-1 range for PDF viewer
+        const normalizedRect = {
+            top: flippedTop / pageHeight,
+            left: left / pageWidth,
+            width: (right - left) / pageWidth,
+            height: (flippedBottom - flippedTop) / pageHeight,
+            pageWidth: 1, // Normalized coordinates, so page dimensions are 1
+            pageHeight: 1
         };
+        
+        debugLog('Normalized rect (with flipped Y):', normalizedRect);
+        return normalizedRect;
     }
 
     static async processResponse(
@@ -191,7 +213,7 @@ export class ExplanationProcessor {
         try {
             const sourceFile = sourceData instanceof File 
                 ? sourceData 
-                : new File([sourceData], 'document.pdf', { type: 'application/pdf' });
+                : new File([new Uint8Array(sourceData)], 'document.pdf', { type: 'application/pdf' });
 
             const cleanedSentences = await parseAndCleanPdf(sourceFile);
             debugLog('Cleaned sentences count:', Array.isArray(cleanedSentences) ? cleanedSentences.length : 'unknown');
@@ -393,7 +415,8 @@ export class ExplanationProcessor {
                                                 const allPositions = bestOriginalChunk.sentences
                                                     .map(s => s.metadata?.linePositions)
                                                     .filter((pos): pos is TextPosition[] => Array.isArray(pos))
-                                                    .flat();
+                                                    .flat()
+                                                    .filter((pos): pos is TextPosition => pos !== undefined);
                                                     
                                                 if (allPositions.length > 0) {
                                                     const boundingRect = this.createBoundingRect(allPositions);

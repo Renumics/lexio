@@ -10,7 +10,7 @@ const allowedActionReturnValues: Record<UserAction['type'], string[]> = {
     SEARCH_SOURCES: ['sources', 'followUpAction'],
     CLEAR_SOURCES: ['followUpAction'],
     SET_ACTIVE_SOURCES: ['followUpAction'],
-    SET_SELECTED_SOURCE: ['sourceData', 'followUpAction'],
+    SET_SELECTED_SOURCE: ['sourceData', 'citations', 'followUpAction'],
     SET_FILTER_SOURCES: ['followUpAction'],
     RESET_FILTER_SOURCES: ['followUpAction'],
     SET_MESSAGE_FEEDBACK: ['followUpAction']
@@ -98,11 +98,17 @@ export const retrievedSourcesAtom = atom(
         citation => citation.sourceHighlight
       );
       
+      console.log(`Source ${source.id} has ${sourceCitations.length} citations with highlights:`, sourceHighlights);
+      
       // Return enhanced source with highlights from citations
-      return {
+      const enhancedSource = {
         ...source,
         highlights: [...(source.highlights || []), ...sourceHighlights]
       };
+      
+      console.log(`Enhanced source ${source.id} now has ${enhancedSource.highlights?.length || 0} total highlights`);
+      
+      return enhancedSource;
     });
   }
 );

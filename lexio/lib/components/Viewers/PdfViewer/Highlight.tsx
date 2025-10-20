@@ -113,6 +113,21 @@ const Highlight = ({
     useEffect(() => {
         const transformedRect = transformCoordinates(rect, rotate);
 
+        // Debug logging for highlight positioning
+        console.log('Highlight Debug:', {
+            originalRect: rect,
+            transformedRect,
+            scale,
+            rotate,
+            canvasDimensions,
+            finalPosition: {
+                top: transformedRect.top * scale,
+                left: transformedRect.left * scale,
+                width: transformedRect.width * scale,
+                height: transformedRect.height * scale
+            }
+        });
+
         // Parse the RGBA color to get its components
         const rgbaMatch = highlightColorRgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
         let borderColor = highlightColorRgba;
