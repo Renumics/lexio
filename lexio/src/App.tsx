@@ -19,27 +19,20 @@ import './App.css';
 // This is a temporary mocked response for testing purposes
 // In the future, this will be replaced with a real response from the RAG system
 const MOCKED_RESPONSE = {
-  //answer: "# Deep Learning for Traffic Data Imputation\n\nDeep learning improves traffic data imputation by **automatically learning patterns** without manual feature selection. The *Denoising Stacked Autoencoder* (DSAE) approach treats missing and observed data as a whole, enabling robust recovery through:\n\n1. Layer-wise pre-training\n2. Fine-tuning\n\nCompared to traditional methods like ARIMA and k-NN, it maintains:\n- Higher accuracy\n- Stable error rates\n\nAcross different missing data levels, as demonstrated on Caltrans PeMS traffic data.\n\nThe DSAE model architecture consists of multiple layers that progressively encode the input data into a lower-dimensional representation before reconstructing it. This approach is particularly effective for handling the temporal and spatial correlations in traffic data.\n\n```python\n# Example code for DSAE implementation\nimport tensorflow as tf\n\ndef build_autoencoder(input_dim, encoding_dim):\n    # Define encoder\n    input_layer = tf.keras.layers.Input(shape=(input_dim,))\n    encoder = tf.keras.layers.Dense(encoding_dim, activation='relu')(input_layer)\n    \n    # Define decoder\n    decoder = tf.keras.layers.Dense(input_dim, activation='sigmoid')(encoder)\n    \n    # Define autoencoder\n    autoencoder = tf.keras.Model(inputs=input_layer, outputs=decoder)\n    return autoencoder\n```\n\nExperimental results show that DSAE outperforms traditional methods in both accuracy and computational efficiency. The model was validated using real-world traffic data from multiple highway segments."
-  //answer: "# Deep Learning for Retrieval-Augmented Generation\n\nDeep learning improves retrieval-augmented generation by **jointly optimizing retrieval and generation** using expected utility maximization. The *Stochastic RAG* framework addresses limitations of traditional RAG models by enabling end-to-end differentiable training through:\n\n1. Modeling retrieval as **sampling without replacement**\n2. Applying **straight-through Gumbel-top-k** for gradient-based learning\n\nCompared to pipeline-based methods, it achieves:\n- Higher task-specific performance (EM, BLEU, F1)\n- Improved relevance and fluency of generated outputs\n\nAcross diverse NLP tasks like open-domain QA, fact verification, and dialogue (KILT benchmark).\n\nThe Stochastic RAG architecture integrates retrieval scores and generation in a unified loop, approximating gradients through sampling to update both retriever and generator.\n\n```python\n# Example: Expected Utility Maximization with Gumbel-top-k\nfor x, y_true in training_data:\n    scores = R_phi(x)  # retrieval scores\n    docs = gumbel_top_k(scores, k)\n    y_pred = G_theta(x, docs)\n    utility = U(y_pred, y_true)\n    loss = -utility\n    backpropagate(loss)\n```"
-  //answer: "# Gravitational Waves and the Legacy of LIGO\n\nKip Thorne's Nobel Lecture chronicles decades of breakthroughs in gravitational-wave detection using laser interferometers. His narrative emphasizes:\n\n1. Innovative Detection Methods\n - Development of laser interferometers to detect minuscule spacetime distortions.\n - Overcoming noise challenges with advanced techniques like frequency-dependent squeezed vacuum.\n\n2. Advances in Numerical Relativity and Data Analysis\n - Utilization of simulation tools (e.g., SpEC) to predict gravitational waveforms.\n - Integration of numerical and quasi-analytic models for precise data extraction.\n\n3. Collaborative Scientific Endeavors\n - Synergistic efforts between theorists and experimentalists, paving the way for multi-messenger astronomy.\n - A transformative era in astronomy with unprecedented insights into cosmic phenomena.\n\nThis comprehensive approach has revolutionized our understanding of the universe and continues to drive forward the field of gravitational-wave astronomy."
-  //answer: "# Foundations of Machine Learning through Physics\n\nPhysics has shaped AI, as highlighted by the 2024 Nobel Prize in Physics.\n\nKey Contributions:\n1. Hopfield Networks – using energy landscapes to recover patterns\n2. Boltzmann Machines – applying statistical physics to neural design\n3. Deep Learning – integrating physics principles into modern AI\n\nImpact:\n- Improved pattern recognition and memory\n- Enhanced data retrieval from partial inputs\n- Revolutionized NLP and computer vision\n\nThese contributions continue to drive AI innovation."
-  //answer: "# Real-Time Object Detection Revolutionized by YOLO\n\nYOLO (You Only Look Once) transformed object detection by treating it as a **single regression task**, enabling real-time performance.\n\nKey Innovations:\n1. Unified Detection Model – one network predicts boxes and probabilities directly\n2. End-to-End Optimization – joint training system for optimal detection\n3. Real-Time Processing – achieves 45-155 FPS while maintaining accuracy\n\nImpact:\n- Context-aware detection reducing false positives\n- Improved generalization across diverse domains\n- Enabled real-time applications in robotics and autonomous systems\n\nYOLO's approach continues to influence modern computer vision systems." 
-  //answer: "# LIMU-BERT: Unleashing the Potential of Unlabeled IMU Data\n\nLIMU-BERT proposes a **lightweight self-supervised learning model** for mobile sensing that extracts **general features** from **unlabeled IMU data**, enabling strong performance with limited labeled data.\n\nKey Contributions:\n1. Inspired by BERT – adapts the Masked Language Model (MLM) concept to IMU time-series data\n2. Fusion + Normalization – processes accelerometer, gyroscope, and magnetometer data while preserving distribution information\n3. Span Masking Mechanism – masks subsequences instead of individual points for richer context learning\n4. Lightweight + Efficient – designed for mobile devices, with low parameter count and fast inference\n\nImpact:\n- Achieves ~10%+ improvement over state-of-the-art on HAR and DPC tasks\n- Requires only 1% labeled data for training classifiers with high accuracy\n- Learns generalizable representations transferable across datasets\n- Publicly available code and pretrained models accelerate adoption"
-  //answer: "# Physics Foundations of Machine Learning\n\nThe 2024 Nobel Prize in Physics recognized Hopfield and Hinton for pioneering work linking physics and AI.\n\nCore Ideas:\n\n1. Hopfield Networks: memory as energy minimization in neural systems.\n2. Boltzmann Machines: learning from noise via statistical physics.\n3. Deep Learning: built on physical models, enabling modern AI.\n\nImpact:\n\n• Revolutionized memory, perception, and optimization in AI.\n\n• Unified insights from physics, biology, and computation.\n\nThese ideas reshaped both how we understand the brain and how we build intelligent machines."
-  answer: "# Attention Is All You Need\n\nThe Transformer eliminates recurrence and convolution by using only attention mechanisms, leading to faster training and enhanced parallelism.\n\nCore Components:\n\n1. Self-Attention utilizes Scaled Dot-Product Attention and Multi-Head Attention for constant sequential operations.\n\n2. Encoder-Decoder Architecture stacks self-attention with position-wise feed-forward networks, residual connections, and layer normalization.\n\n3. Positional Encoding adds order information to embeddings using sine and cosine functions.\n\nImpact:\n\n• Sets new state-of-the-art BLEU scores on WMT 2014 machine translation tasks.\n\n• Reduces training time and cost while generalizing well to tasks like English constituency parsing.\n\nOverall, the Transformer shows that attention alone is sufficient for effective sequence transduction."
+  answer: "## Technical Implementation:\n\nThe DSAE architecture is designed to handle missing traffic data by learning robust representations that can reconstruct incomplete patterns. The denoising component helps the model become resilient to noise and missing values, while the stacked structure enables hierarchical feature extraction for better imputation accuracy."
 }; 
 
 const MOCKED_SOURCES = [{
-  id: 'attention-paper',
-  title: "Attention Is All You Need",
+  id: 'traffic-paper',
+  title: "A deep learning based approach for traffic data imputation",
   type: "pdf" as const,
   relevance: 1,
-  description: "The original Transformer paper that revolutionized natural language processing",
-  href: "https://arxiv.org/pdf/1706.03762.pdf",
+  description: "IEEE paper introducing deep learning methods for handling missing traffic data using denoising stacked autoencoders",
+  href: "https://ieeexplore.ieee.org/document/6957805",
   metadata: {
-    authors: 'Vaswani et al.',
-    year: '2017',
-    pages: '11',
+    authors: 'Y. Duan et al.',
+    year: '2014',
+    pages: '6',
     page: 1
   }
 }];
@@ -53,10 +46,7 @@ function App() {
 
   const contentSourceOptions = useMemo(() => ({
     buildFetchRequest: (_source: Source) => ({
-      //url: '/pdfs/physicsprize2024.pdf',  //'/pdfs/kahnemann-lecture.pdf', 
-      //url: 'https://arxiv.org/pdf/2412.18030',
-      //url: 'https://arxiv.org/pdf/1805.01978',
-      url: 'https://arxiv.org/pdf/1706.03762',
+      url: '/pdfs/traffic.pdf',
       options: {
         method: 'GET',
         headers: {

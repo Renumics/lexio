@@ -36,7 +36,7 @@ export interface Config {
 
 // File and Path Configuration
 const PUBLIC_PATH = 'public/pdfs';
-const PDF_FILE_NAME = 'deepseek.pdf';
+const PDF_FILE_NAME = 'traffic.pdf';
 export const EMBEDDINGS_FILE = 'embeddings.json';
 export const PDF_FILE_PATH = `${PUBLIC_PATH}/${PDF_FILE_NAME}`;
 
