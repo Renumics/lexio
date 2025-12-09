@@ -6,6 +6,9 @@ on:
       - 'v*'  # Trigger on version tags
   workflow_dispatch:  # Allows manual triggering
 
+permissions:
+  contents: read
+
 jobs:
   checks:
     uses: ./.github/workflows/check.yml  # Reuse the check workflow (for lint/test/typecheck only)

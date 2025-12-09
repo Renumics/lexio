@@ -6,6 +6,9 @@ on:
       - 'v*'  # Trigger on version tags
   workflow_dispatch:  # Allows manual triggering
 
+permissions:
+  contents: read
+
 jobs:
   build-and-check:
     uses: ./.github/workflows/python-build-and-check.yml
