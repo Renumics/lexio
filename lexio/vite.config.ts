@@ -31,8 +31,12 @@ export default defineConfig({
       fileName: (format) => `lexio.${format}.js`
     },
     rollupOptions: {
-      //external: ["react", "react-dom", "react/jsx-runtime", "pdfjs-dist", "jotai", "@react-hook/resize-observer", "react-toastify"], // potentially add tailwindcss this all has to be removed if building as umd and not installing react?
-      external: Object.keys((pkg as any).dependencies || {}),
+      // Externalize deps and peerDeps so the host app supplies React (avoids "useMemo F.current is null" from duplicate React).
+      external: [
+        ...Object.keys((pkg as any).dependencies || {}),
+        ...Object.keys((pkg as any).peerDependencies || {}),
+        'react/jsx-runtime',
+      ],
       // output: {
         // globals: {
         //   'react': 'React',
