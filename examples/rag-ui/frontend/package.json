@@ -18,6 +18,11 @@
     "tailwind-merge": "^3.0.1",
     "uuid": "^11.1.0"
   },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": ">=9.0.7"
+    }
+  },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",
     "@types/react": "^18.2.43",
