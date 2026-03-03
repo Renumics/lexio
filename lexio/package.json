@@ -108,6 +108,12 @@
       "plugin:storybook/recommended"
     ]
   },
+  "overrides": {
+    "@microsoft/api-extractor": {
+      "minimatch": ">=10.2.3"
+    }
+  },
+  "overridesComment": "@microsoft/api-extractor@7.57.6 pins minimatch: '10.2.1' (exact); no upstream fix yet",
   "keywords": [
     "lexio",
     "react",

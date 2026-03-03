@@ -14,3 +14,5 @@ dummy-package/
 
 examples/llama-index/frontend/rag-ui/
 /examples/rag-ui/frontend/public/excel_sample.xlsx
+
+examples/**/package-lock.json
