@@ -222,6 +222,11 @@ const PdfViewer = ({data, highlights, page, styleOverrides = {}}: PdfViewerProps
         }
     }, [canvasDimensions, rotate]);
 
+    // Re-fit when actual page dimensions become available
+    useEffect(() => {
+        calculateScale();
+    }, [calculateScale]);
+
     const changePageTo = (newPage: number) => setPageNumber(newPage);
     const changePage = (offset: number) => setPageNumber(prevPageNumber => prevPageNumber + offset);
     const previousPage = () => changePage(-1);
