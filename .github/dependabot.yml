@@ -1,0 +1,56 @@
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Main lexio npm package
+  - package-ecosystem: "npm"
+    directory: "/lexio"
+    schedule:
+      interval: "weekly"
+
+  # Example frontends
+  - package-ecosystem: "npm"
+    directory: "/examples/rag-ui/frontend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/examples/llama-index/frontend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/examples/advanced-local-rag/frontend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/examples/langchain/frontend"
+    schedule:
+      interval: "weekly"
+
+  # Python lexio package
+  - package-ecosystem: "pip"
+    directory: "/python/lexio"
+    schedule:
+      interval: "weekly"
+
+  # Example backends
+  - package-ecosystem: "pip"
+    directory: "/examples/langchain/backend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "pip"
+    directory: "/examples/llama-index/backend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "pip"
+    directory: "/examples/advanced-local-rag/backend"
+    schedule:
+      interval: "weekly"
