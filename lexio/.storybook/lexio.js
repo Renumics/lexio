@@ -1,5 +1,5 @@
 import { create } from '@storybook/theming';
-import logo from '../src/stories/assets/lexio logo transparent.png';
+import logo from '../src/stories/assets/lexio_logo_transparent.png';
 
 export default create({
   base: 'light',
