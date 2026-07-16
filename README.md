@@ -1,4 +1,4 @@
-<p align="center"><a href="https://renumics.com/lexio-ui"><img src="lexio/src/stories/assets/lexio logo transparent.png" alt="Lexio Logo" height="80"/></a></p>
+<p align="center"><a href="https://renumics.github.io/lexio/"><img src="lexio/src/stories/assets/lexio logo transparent.png" alt="Lexio Logo" height="80"/></a></p>
 
 <p align="center">Quickest way to production grade RAG UI. </p>
 
@@ -10,7 +10,7 @@
 </p>
 
 <h3 align="center">
-<a href="https://renumics.com/lexio-ui"><b>Documentation</b></a> &bull;
+<a href="https://renumics.github.io/lexio/"><b>Documentation</b></a> &bull;
 <a href="https://renumics.com/blog/"><b>Blog</b></a>
 </h3>
 
@@ -20,7 +20,7 @@ It supports multiple document types (PDF, HTML, Markdown, Text) with advanced fe
 
 Developers can use ready-made components or easily build custom ones using React hooks and the flexible action handler pattern.
 
-<p align="center"><a href="https://renumics.com/lexio-ui"><img src="lexio/src/assets/lexio-intro-video.gif" width="100%"/></a></p>
+<p align="center"><a href="https://renumics.github.io/lexio/"><img src="lexio/src/assets/lexio-intro-video.gif" width="100%"/></a></p>
 
 ## Quick Start
 

@@ -1,4 +1,4 @@
-<p align="center"><a href="https://renumics.com/lexio-ui"><img src="https://raw.githubusercontent.com/Renumics/lexio/main/lexio/src/stories/assets/lexio%20logo%20transparent.png" alt="Lexio Logo" height="80"/></a></p>
+<p align="center"><a href="https://renumics.github.io/lexio/"><img src="https://raw.githubusercontent.com/Renumics/lexio/main/lexio/src/stories/assets/lexio%20logo%20transparent.png" alt="Lexio Logo" height="80"/></a></p>
 
 <p align="center">Quickest way to production grade RAG UI. </p>
 
@@ -10,7 +10,7 @@
 </p>
 
 <h3 align="center">
-<a href="https://renumics.com/lexio-ui"><b>Documentation</b></a> &bull;
+<a href="https://renumics.github.io/lexio/"><b>Documentation</b></a> &bull;
 <a href="https://renumics.com/blog/"><b>Blog</b></a>
 </h3>
 
