@@ -104,7 +104,7 @@ If you add new types which are exported to the Python package, you should also a
 ## Questions & Support
 
 - Open an issue for bugs or feature requests
-- Check the existing [documentation](https://renumics.com/lexio-ui) and issues before opening new ones
+- Check the existing [documentation](https://renumics.github.io/lexio/) and issues before opening new ones
 
 ## License
 
