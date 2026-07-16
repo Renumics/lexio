@@ -61,7 +61,7 @@ const App = () => (
   </LexioProvider>
 );
 ```
-Follow the [documentation](https://renumics.com/lexio/) to learn more about the library.
+Follow the [documentation](https://renumics.github.io/lexio/) to learn more about the library.
 
 
 ## Dependencies

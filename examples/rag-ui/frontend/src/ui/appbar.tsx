@@ -30,7 +30,7 @@ export const AppBarComponent: FC = () => {
                 </div>
                 <div className="flex gap-2">
                     <a
-                        href="https://renumics.com/open-source/docs/lexio"
+                        href="https://renumics.github.io/lexio/"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-4 py-2 text-gray-600 hover:text-gray-900"
