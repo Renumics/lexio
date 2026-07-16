@@ -26,7 +26,7 @@ jobs:
         name: dist
         path: python/lexio/dist
 
-    - name: Set up Python 🐍 3.12
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
