@@ -111,9 +111,15 @@
   "overrides": {
     "@microsoft/api-extractor": {
       "minimatch": ">=10.2.3"
+    },
+    "@storybook/addon-actions": {
+      "uuid": "^11.1.1"
+    },
+    "exceljs": {
+      "uuid": "^11.1.1"
     }
   },
-  "overridesComment": "@microsoft/api-extractor@7.57.6 pins minimatch: '10.2.1' (exact); no upstream fix yet",
+  "overridesComment": "@microsoft/api-extractor@7.57.6 pins minimatch: '10.2.1' (exact); no upstream fix yet. @storybook/addon-actions pins uuid ^9.0.0 and exceljs pins uuid ^8.3.0, both vulnerable to GHSA-w5hq-g745-h8pq (patched in 11.1.1); kept at ^11 because uuid >=12 is ESM-only and exceljs requires it via CJS",
   "keywords": [
     "lexio",
     "react",
