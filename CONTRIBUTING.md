@@ -4,7 +4,7 @@ We're excited about your interest in contributing to Lexio!
 
 ### Prerequisites
 
-- Node.js (v20 or higher)
+- Node.js 22.12 or higher (use 22.14 from `.tool-versions` for development and CI)
 - Python 3.9+
 - npm
 - Git

@@ -7,7 +7,6 @@ import {
   act,
 } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import '@testing-library/jest-dom';
 
 import { SourcesDisplay } from './SourcesDisplay';
 import { LexioProvider } from '../LexioProvider';
