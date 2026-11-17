@@ -2,6 +2,9 @@ packages:
   - lexio
   - examples/*/frontend
 
+# Three days, in minutes.
+minimumReleaseAge: 4320
+
 # Preserve compatibility and security fixes for transitive dependencies.
 # uuid 11 supports the CommonJS consumers in Storybook and ExcelJS.
 overrides:

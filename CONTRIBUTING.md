@@ -12,6 +12,8 @@ We're excited about your interest in contributing to Lexio!
 
 The root `.tool-versions` pins the versions used throughout the repository, including examples. Run commands through asdf so subfolders inherit these versions. JavaScript packages share one pnpm workspace and lockfile. Python projects use uv with the Python selected by asdf; uv is configured to prefer system interpreters. The library supports Python 3.10 and newer.
 
+Dependency resolution uses a three-day release quarantine: `minimumReleaseAge: 4320` for pnpm and `exclude-newer = "3 days"` for uv. These settings are committed locally so they also apply in CI and Docker builds.
+
 ### Setting up the Development Environment
 
 1. Fork the repository
