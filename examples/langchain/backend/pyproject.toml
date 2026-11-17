@@ -72,4 +72,5 @@ allow-direct-references = true
 lexio = { path = "../../../python/lexio", editable = true }
 
 [tool.uv]
+python-preference = "system"
 exclude-newer = "3 days"

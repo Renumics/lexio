@@ -56,11 +56,16 @@ cd backend
 
 2. Create a virtual environment:
 ```bash
+python -m venv .venv
+source .venv/bin/activate
+# or
 uv venv
 ```
 
 3. Install dependencies:
 ```bash
+pip install -e ../../../python/lexio -e .
+# or
 uv sync --locked
 ```
 
@@ -73,11 +78,15 @@ echo "OPENAI_API_KEY=your-api-key-here" > .env
 
 6. Index the documents:
 ```bash
+index-files # with the pip environment activated
+# or
 uv run --locked index-files
 ```
 
 7. Start the backend server:
 ```bash
+run-server # with the pip environment activated
+# or
 uv run --locked run-server
 ```
 
@@ -94,8 +103,12 @@ pnpm install --frozen-lockfile
 pnpm --filter lexio build
 ```
 
+The source checkout uses a pnpm workspace. To use the published library in another frontend, install it with `npm install lexio` or `pnpm add lexio`.
+
 3. Start the development server:
 ```bash
+npm run dev
+# or
 pnpm run dev
 ```
 
@@ -138,19 +151,28 @@ make start-backend    # Start the FastAPI server
 make start-frontend   # Start the Vite development server
 ```
 
-## Docker Compose Setup
+## Docker Setup
 
-This project includes Docker Compose configurations for both development and production environments.
+Build both images from the repository root so the local Lexio packages are included:
 
-### Development Setup
-
-3. Build and start the development containers:
 ```bash
-docker compose build
-docker compose up
+docker build -f examples/langchain/backend/Dockerfile -t lexio-langchain-backend .
+docker build -f examples/langchain/frontend/Dockerfile -t lexio-langchain-frontend .
 ```
 
-4. Access the frontend at http://localhost:5173
+Index your PDFs using the backend steps above, then start the containers on a shared network:
+
+```bash
+docker network create lexio-langchain
+docker run -d --name backend --network lexio-langchain -p 8000:8000 \
+  --env-file examples/langchain/backend/.env \
+  -v "$PWD/examples/langchain/backend/data:/app/examples/langchain/backend/data" \
+  -v "$PWD/examples/langchain/backend/.chroma:/app/examples/langchain/backend/.chroma" \
+  lexio-langchain-backend
+docker run --rm --network lexio-langchain -p 5173:80 lexio-langchain-frontend
+```
+
+Open http://localhost:5173 in your browser.
 
 ## Requirements
 

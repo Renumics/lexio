@@ -24,9 +24,11 @@ Developers can use ready-made components or easily build custom ones using React
 
 ## Quick Start
 
-You can install the library with pnpm:
+You can install the library with npm or pnpm:
 
 ```bash
+npm install lexio
+# or
 pnpm add lexio
 ```
 
@@ -70,11 +72,15 @@ Lexio has minimal core dependencies, but some advanced components require additi
 
 - **SpreadsheetViewer**: For Excel/spreadsheet file viewing, you'll need to install:
   ```bash
+  npm install exceljs xlsx @tanstack/react-table @tanstack/react-virtual
+  # or
   pnpm add exceljs xlsx @tanstack/react-table @tanstack/react-virtual
   ```
 
 - **Explanations Module**: For advanced explanation features, you'll need to install:
   ```bash
+  npm install compromise js-tiktoken sbd @types/sbd
+  # or
   pnpm add compromise js-tiktoken sbd @types/sbd
   ```
 

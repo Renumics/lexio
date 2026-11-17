@@ -5,6 +5,8 @@ Python package containing API types for the lexio frontend library.
 ## Installation
 
 ```bash
+pip install lexio
+# or
 uv add lexio
 ```
 

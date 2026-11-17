@@ -10,7 +10,7 @@ We're excited about your interest in contributing to Lexio!
 - uv 0.13.7
 - Git
 
-The root `.tool-versions` pins the versions used throughout the repository, including examples. Run commands through asdf so subfolders inherit these versions. JavaScript packages share one pnpm workspace and lockfile. Python projects use uv; `.python-version` files keep uv on the same Python as asdf. The library supports Python 3.10 and newer.
+The root `.tool-versions` pins the versions used throughout the repository, including examples. Run commands through asdf so subfolders inherit these versions. JavaScript packages share one pnpm workspace and lockfile. Python projects use uv with the Python selected by asdf; uv is configured to prefer system interpreters. The library supports Python 3.10 and newer.
 
 ### Setting up the Development Environment
 

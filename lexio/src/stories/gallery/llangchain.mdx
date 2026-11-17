@@ -71,11 +71,16 @@ cd examples/langchain/backend
 
 2. **Create a virtual environment** and activate it:
 ```bash
+python -m venv .venv
+source .venv/bin/activate
+# or
 uv venv
 ```
 
 3. **Install dependencies**:
 ```bash
+pip install -e ../../../python/lexio -e .
+# or
 uv sync --locked
 ```
 
@@ -88,11 +93,15 @@ echo "OPENAI_API_KEY=your-api-key-here" > .env
 
 6. **Index** the documents:
 ```bash
+index-files # with the pip environment activated
+# or
 uv run --locked index-files
 ```
 
 7. **Start** the backend server:
 ```bash
+run-server # with the pip environment activated
+# or
 uv run --locked run-server
 ```
 
@@ -109,8 +118,12 @@ pnpm install --frozen-lockfile
 pnpm --filter lexio build
 ```
 
+The source checkout uses a pnpm workspace. To use the published library in another frontend, install it with `npm install lexio` or `pnpm add lexio`.
+
 3. **Start** the development server:
 ```bash
+npm run dev
+# or
 pnpm run dev
 ```
 

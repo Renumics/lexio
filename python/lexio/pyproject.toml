@@ -49,4 +49,5 @@ only-include = ["lexio", "pyproject.toml", "README.md"]
 only-include = ["lexio", "pyproject.toml", "README.md"]
 
 [tool.uv]
+python-preference = "system"
 exclude-newer = "3 days"
