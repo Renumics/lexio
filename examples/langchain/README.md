@@ -54,15 +54,14 @@ Langchain, ChromaDB, PyMuPDF and the Lexio UI components. The demo showcases:
 cd backend
 ```
 
-2. Create a virtual environment and activate it:
+2. Create a virtual environment:
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv venv
 ```
 
 3. Install dependencies:
 ```bash
-pip install -e .
+uv sync --locked
 ```
 
 4. Create a `.env` file with your OpenAI API key:
@@ -74,12 +73,12 @@ echo "OPENAI_API_KEY=your-api-key-here" > .env
 
 6. Index the documents:
 ```bash
-index-files
+uv run --locked index-files
 ```
 
 7. Start the backend server:
 ```bash
-run-server
+uv run --locked run-server
 ```
 
 ### Frontend
@@ -91,12 +90,13 @@ cd frontend
 
 2. Install dependencies:
 ```bash
-npm install
+pnpm install --frozen-lockfile
+pnpm --filter lexio build
 ```
 
 3. Start the development server:
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 4. Open http://localhost:5173 in your browser
@@ -124,7 +124,7 @@ The project uses modern development tools and practices:
 - **Type Safety**: TypeScript for frontend, Python type hints for backend
 - **Code Quality**: ESLint, Prettier, Black, and Ruff for code formatting
 - **Development Server**: Vite for frontend, Uvicorn for backend
-- **Package Management**: npm for frontend, pip for backend
+- **Package Management**: pnpm for frontend, uv for backend
 
 ## Quick Start with Make
 
@@ -156,7 +156,7 @@ docker compose up
 
 - Make (optional)
 - Python 3.12 or higher
-- Node.js 20 or higher
+- Node.js 24.22.2
 - OpenAI API key
 - Modern web browser with SSE support
 

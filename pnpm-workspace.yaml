@@ -1,0 +1,16 @@
+packages:
+  - lexio
+  - examples/*/frontend
+
+# Preserve compatibility and security fixes for transitive dependencies.
+# uuid 11 supports the CommonJS consumers in Storybook and ExcelJS.
+overrides:
+  '@microsoft/api-extractor>minimatch': '>=10.2.3'
+  '@storybook/addon-actions>uuid': '^11.1.1'
+  'exceljs>uuid': '^11.1.1'
+  'refractor>prismjs': '^1.30.0'
+  '@typescript-eslint/typescript-estree>minimatch': '9.0.9'
+
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true

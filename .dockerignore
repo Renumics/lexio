@@ -1,3 +1,7 @@
 **/node_modules
 **/dist
-.git 
+.git
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/storybook-static

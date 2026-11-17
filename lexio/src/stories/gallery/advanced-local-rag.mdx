@@ -55,14 +55,15 @@ This repository demonstrates how to build a _complex Retrieval-Augmented Generat
 2. **Install backend dependencies**:
    ```bash
    cd backend
-   pip install -r requirements.txt
+   uv venv
+   uv pip install -r requirements.txt
    ```
 
 3. **Install frontend dependencies**:
    ```bash
    cd ../frontend
-   npm install
-   npm install ../../../lexio --install-links
+   pnpm install
+   pnpm --filter lexio build
    ```
 
 4. **Add your documents**:
@@ -72,20 +73,20 @@ This repository demonstrates how to build a _complex Retrieval-Augmented Generat
 5. **Build the index**:
    - In the `backend` folder, run:
      ```bash
-     python build_index.py
+     uv run --no-project python build_index.py
      ```
    - This parses, chunks, and embeds your data, then stores it in a LanceDB index at `.lancedb`.
 
 6. **Start the backend**:
    ```bash
-   uvicorn main:app --reload
+   uv run --no-project uvicorn main:app --reload
    ```
    By default, this listens on `http://localhost:8000`.
 
 7. **Start the frontend**:
    ```bash
    cd ../frontend
-   npm run dev
+   pnpm run dev
    ```
    By default, this is served on `http://localhost:5173` (or whichever port Vite chooses).
 

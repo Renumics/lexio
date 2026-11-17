@@ -1,34 +1,19 @@
-name: Node.js CI
+name: JavaScript CI
 on:
   workflow_call:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
-
+    branches: [main]
 permissions:
   contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [ "22.14" ]
     steps:
-    - uses: actions/checkout@v6
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v6
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: './lexio/package.json'
-    - name: Install dependencies
-      working-directory: ./lexio
-      run: npm ci
-    - name: Type check
-      working-directory: ./lexio
-      run: npm run typecheck
-    - name: Run tests
-      working-directory: ./lexio
-      run: npm test
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-tools
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build

@@ -15,4 +15,9 @@ dummy-package/
 examples/llama-index/frontend/rag-ui/
 /examples/rag-ui/frontend/public/excel_sample.xlsx
 
-examples/**/package-lock.json
+**/dist/
+**/storybook-static/
+**/*.tsbuildinfo
+__pycache__/
+.pytest_cache/
+.coverage

@@ -12,26 +12,26 @@ init: setup-backend setup-frontend
 # Backend setup
 setup-backend:
 	@echo "Setting up backend..."
-	cd $(BACKEND_DIR) && python -m venv $(VENV_DIR)
+	cd $(BACKEND_DIR) && uv venv $(VENV_DIR)
 	@echo "Activating virtual environment and installing backend dependencies..."
-	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/pip install -e .
+	cd $(BACKEND_DIR) && uv sync --locked
 	@echo "Backend setup complete. Don't forget to create a .env file with your OpenAI API key."
 	@echo "Place your PDFs in the 'backend/data' directory to index them."
 
 # Frontend setup
 setup-frontend:
 	@echo "Setting up frontend..."
-	cd $(FRONTEND_DIR) && npm install &&  npm install --install-links ../../../lexio/
+	cd $(FRONTEND_DIR) && pnpm install --frozen-lockfile && pnpm --filter lexio build
 
 # Start backend server
 start-backend:
 	@echo "Starting backend server..."
-	cd $(BACKEND_DIR) && PYTHONPATH=. $(VENV_DIR)/bin/python -m uvicorn src.main:app --reload
+	cd $(BACKEND_DIR) && PYTHONPATH=. uv run --locked python -m uvicorn src.main:app --reload
 
 # Start frontend server
 start-frontend:
 	@echo "Starting frontend server..."
-	cd $(FRONTEND_DIR) && npm run dev
+	cd $(FRONTEND_DIR) && pnpm run dev
 
 # Clean up
 clean:
@@ -42,7 +42,7 @@ clean:
 # Indexing target
 index:
 	@echo "Running document indexing..."
-	cd $(BACKEND_DIR) && PYTHONPATH=. $(VENV_DIR)/bin/python src/indexing.py
+	cd $(BACKEND_DIR) && PYTHONPATH=. uv run --locked python src/indexing.py
 
 # Help
 help:

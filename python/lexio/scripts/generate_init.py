@@ -4,13 +4,8 @@
 Script to generate the __init__.py file for lexio package based on the types list.
 """
 
-import sys
 import json
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
-
-# Get UTC timezone in a version-compatible way
-UTC = timezone.utc
 
 def generate_init(types_to_include: list):
     # Remove duplicates and sort
@@ -22,9 +17,6 @@ def generate_init(types_to_include: list):
     # Generate the __all__ list
     all_list = '\n'.join(f'    "{type_name}",' for type_name in types)
 
-    # Get current timestamp
-    timestamp = datetime.now(UTC).astimezone(timezone(timedelta(hours=1))).strftime("%Y-%m-%dT%H:%M:%S+00:00")
-    
     # Template for the __init__.py file
     template = '''"""
 Lexio - API types for the lexio frontend library
@@ -32,7 +24,6 @@ This file is auto-generated. Do not edit directly.
 
 Generated from:
   source:    lexio.types
-  timestamp: {timestamp}
 """
 
 from lexio.types import (
@@ -51,8 +42,7 @@ __all__ = [
     # Write the content to the file
     init_path.write_text(template.format(
         imports=imports,
-        all_list=all_list,
-        timestamp=timestamp
+        all_list=all_list
     ))
     print(f"✅ Generated {init_path}")
 

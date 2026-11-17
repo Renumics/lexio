@@ -4,10 +4,13 @@ We're excited about your interest in contributing to Lexio!
 
 ### Prerequisites
 
-- Node.js 22.12 or higher (use 22.14 from `.tool-versions` for development and CI)
-- Python 3.9+
-- npm
+- Node.js 24.22.2 (pinned in `.tool-versions` for development and CI)
+- Python 3.10+ (3.12.16 for development)
+- pnpm 12.20.0
+- uv 0.13.7
 - Git
+
+The root `.tool-versions` pins the versions used throughout the repository, including examples. Run commands through asdf so subfolders inherit these versions. JavaScript packages share one pnpm workspace and lockfile. Python projects use uv; `.python-version` files keep uv on the same Python as asdf. The library supports Python 3.10 and newer.
 
 ### Setting up the Development Environment
 
@@ -19,9 +22,10 @@ We're excited about your interest in contributing to Lexio!
    ```
 3. Install dependencies:
    ```bash
-   # install the React UI dependencies
-   cd lexio
-   npm install
+   asdf install
+   pnpm install --frozen-lockfile
+   pnpm --filter lexio build
+   uv sync --locked --project python/lexio
    ```
 
 ## Python Package
@@ -40,8 +44,8 @@ The core types are defined in `python/lexio/lexio/types/__init__.py` and are gen
 ### Working with the Python Package
 
 1. Update the frontend library with the latest changes.
-2. If you want to add new types to the Python package, update the [types-to-include.json](scripts/types-to-include.json) file.
-3. Run `npm run build-python-package` to:
+2. If you want to add new types to the Python package, update the [types-to-include.json](lexio/scripts/types-to-include.json) file.
+3. Run `pnpm run build-python-package` to:
    1. Generate the Python package with Pydantic models from the TypeScript types
    2. Run tests to ensure the package is working as expected
    3. Build the package in the `python/lexio` folder
@@ -65,17 +69,17 @@ These models provide type safety and validation for data exchanged between your 
 # cd to the python/lexio directory from the root of the project
 cd python/lexio
 
-# activate the virtual environment
-source .venv/bin/activate
+# install development dependencies
+uv sync --locked
 
 # build the package
-hatch build
+uv build
 
 # check the package
-twine check dist/*
+uv run --locked twine check dist/*
 
 # upload the package
-twine upload dist/*
+uv publish dist/*
 ```
 
 ### Testing the Python Package
@@ -83,6 +87,8 @@ twine upload dist/*
 Since we are creating the `lexio` Python package automatically, we run several tests with 'pytest' to ensure the package is working as expected. The tests are located in the [python/lexio/tests](python/lexio/tests) folder.
 
 If you add new types which are exported to the Python package, you should also add tests for them to ensure they work correctly.
+
+The `react-pdf` and `pdfjs-dist` versions in `lexio/package.json` must be updated together so PDF.js and its worker use the same version.
 
 ## Code Style
 

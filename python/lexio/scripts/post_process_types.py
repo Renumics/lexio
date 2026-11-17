@@ -37,15 +37,15 @@ def post_process_types(file_path):
     # 3. Replace Union[Data, str] with Union[bytes, str] in the Source class
     content = content.replace('Union[Data, str]', 'Union[bytes, str]')
     
-    # 4. Fix the data field type in Source class to be Union[str, bytes]
+    # datamodel-code-generator may use Optional[Any] or the Python 3.10 union syntax.
     content = re.sub(
-        r'(data: Annotated\[Optional\[)Any(\], Field\(title=\'data\'\)\])',
-        r'\1Union[str, bytes]\2',
-        content
+        r"(data: Annotated\[)(?:Optional\[Any\]|Any \| None)(, Field\(title=['\"]data['\"]\))",
+        r"\1Union[str, bytes, None]\2",
+        content,
     )
-    
+
     # 5. Fix invalid escape sequences in docstrings
-    content = content.replace('\\`', '`')
+    content = re.sub(r'\\+`', '`', content)
     
     # 6. Remove the UUID class definition
     uuid_class_pattern = re.compile(
@@ -57,13 +57,9 @@ def post_process_types(file_path):
     # 7. Replace all references to UUID with str
     content = re.sub(r'Annotated\[UUID,', 'Annotated[str,', content)
     
-    # 8. Make sure Union is imported
-    if 'Union' not in content.split('from typing import ')[1].split('\n')[0]:
-        content = content.replace(
-            'from typing import Annotated, Any,', 
-            'from typing import Annotated, Any, Union,'
-        )
-    
+    if 'Union[' in content and not re.search(r'from typing import .*\bUnion\b', content):
+        content = content.replace('from typing import Annotated, Any,', 'from typing import Annotated, Any, Union,', 1)
+
     # Write the modified content back to the file
     with open(file_path, 'w') as f:
         f.write(content)

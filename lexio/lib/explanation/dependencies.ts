@@ -9,9 +9,7 @@ export async function loadCompromise() {
   } catch (error) {
     throw new Error(
       'Explainability features require the compromise library. Please install it:\n' +
-      'npm install compromise\n' +
-      'or\n' +
-      'yarn add compromise'
+      'pnpm add compromise'
     );
   }
 }
@@ -27,9 +25,7 @@ export async function loadTiktoken() {
   } catch (error) {
     throw new Error(
       'Token counting features require the js-tiktoken library. Please install it:\n' +
-      'npm install js-tiktoken\n' +
-      'or\n' +
-      'yarn add js-tiktoken'
+      'pnpm add js-tiktoken'
     );
   }
 }
@@ -45,9 +41,7 @@ export async function loadSbd() {
   } catch (error) {
     throw new Error(
       'Sentence boundary detection features require the sbd library. Please install it:\n' +
-      'npm install sbd\n' +
-      'or\n' +
-      'yarn add sbd'
+      'pnpm add sbd'
     );
   }
 }

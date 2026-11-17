@@ -1,5 +1,6 @@
 """Tests for the types module."""
 import pytest
+from pydantic import ValidationError
 from typing import Union
 from lexio.types import (
     Message,
@@ -168,17 +169,11 @@ def test_source_data_union_type():
     )
     assert isinstance(source2.data, bytes)
     
-    # Verify the type annotation
-    # This is a bit of a hack to check the type annotation at runtime
-    import inspect
-    from lexio.types import Source as SourceClass
-    
-    # Get the type annotation for the data field
-    annotations = getattr(SourceClass, "__annotations__", {})
-    data_type = annotations.get("data", None)
-    
-    # Check if it's a Union type with str and bytes
-    assert "Union" in str(data_type) and "str" in str(data_type) and "bytes" in str(data_type)
+    from typing import get_args
+
+    assert set(get_args(Source.model_fields["data"].annotation)) == {str, bytes, type(None)}
+    with pytest.raises(ValidationError):
+        Source(id="invalid-data", title="Invalid", type="text", data=123)
 
 
 def test_uuid_validation():

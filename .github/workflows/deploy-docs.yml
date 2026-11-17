@@ -5,6 +5,11 @@ on:
     branches: [ "main" ]
     paths:
       - 'lexio/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.tool-versions'
+      - '.github/actions/**'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
@@ -19,18 +24,10 @@ jobs:
       contents: read
     steps:
     - uses: actions/checkout@v6
-    - name: Setup Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: "22.14"
-        cache: 'npm'
-        cache-dependency-path: './lexio/package.json'
-    - name: Install dependencies
-      working-directory: ./lexio
-      run: npm ci
+    - uses: ./.github/actions/setup-tools
+    - run: pnpm install --frozen-lockfile
     - name: Build Storybook
-      working-directory: ./lexio
-      run: npm run build-storybook
+      run: pnpm --filter lexio build-storybook
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
