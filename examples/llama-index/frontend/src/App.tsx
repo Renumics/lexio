@@ -23,7 +23,7 @@ function App() {
         action: UserAction, 
         _messages: Message[], 
         sources: Source[], 
-        _activeSources: Source[], 
+        _activeSources: Source[] | null,
         _selectedSource: Source | null
     ): SetSelectedSourceActionResponse| AddUserMessageActionResponse| undefined => {
         if (action.type === 'ADD_USER_MESSAGE') {
@@ -131,7 +131,7 @@ function App() {
 
         // Handle search sources action
         if (action.type === 'SEARCH_SOURCES') {
-            return { sources: Promise.resolve<Source[]>(mockSources) }
+            return { sources: Promise.resolve<Source[]>(sources) }
         }
 
         return undefined;

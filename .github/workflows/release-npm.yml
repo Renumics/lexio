@@ -1,60 +1,40 @@
 name: Release to NPM
-
 on:
   push:
-    tags:
-      - 'v*'  # Trigger on version tags
-  workflow_dispatch:  # Allows manual triggering
-
+    tags: ['v*']
+  workflow_dispatch:
 permissions:
   contents: read
-
 jobs:
   validate-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/setup-tools
       - name: Check release versions
-        run: python .github/scripts/check-release-version.py
-
+        run: uv run --no-project python .github/scripts/check-release-version.py
   checks:
     needs: validate-version
-    uses: ./.github/workflows/check.yml  # Reuse the check workflow (for lint/test/typecheck only)
-
+    uses: ./.github/workflows/check.yml
   publish:
-    needs: checks  # Wait for checks to pass
+    needs: checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Use Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/setup-tools
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: "22.14"
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'npm'
-          cache-dependency-path: './lexio/package-lock.json'
-
-      - name: Install dependencies
-        working-directory: ./lexio
-        run: npm ci
-
-      - name: Build the library
-        working-directory: ./lexio
-        run: npm run build
-
-      - name: Dry run npm publish
-        working-directory: ./lexio
-        run: npm publish --dry-run --access public
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter lexio build
+      - name: Validate package
+        working-directory: lexio
+        run: pnpm publish --dry-run --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish to NPM
-        if: startsWith(github.ref, 'refs/tags/v')  # Only run on version tags
-        working-directory: ./lexio
-        run: npm publish --access public
+      - name: Publish package
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: lexio
+        run: pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -32,7 +32,7 @@ const demoTheme = createTheme({
     },
 });
 
-const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: Source | null): ActionHandlerResponse => {
+const myOnActionFn = (action: UserAction, messages: Message[], sources: Source[], activeSources: Source[] | null, selectedSource: Source | null): ActionHandlerResponse => {
     const TIMEOUT_MS = 10000; // 10 seconds timeout
     console.log("myOnActionFn", action, messages, sources, activeSources, selectedSource)
 

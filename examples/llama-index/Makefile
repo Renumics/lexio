@@ -12,26 +12,26 @@ init: setup-backend setup-frontend
 # Backend setup
 setup-backend:
 	@echo "Setting up backend..."
-	cd $(BACKEND_DIR) && python -m venv $(VENV_DIR)
+	cd $(BACKEND_DIR) && uv venv $(VENV_DIR)
 	@echo "Activating virtual environment and installing backend dependencies..."
-	cd $(BACKEND_DIR) && $(VENV_DIR)/bin/pip install -r requirements.txt
+	cd $(BACKEND_DIR) && uv pip install -r requirements.txt
 
 # Frontend setup
 setup-frontend:
 	@echo "Setting up frontend..."
-	cd $(FRONTEND_DIR) && npm install 
+	cd $(FRONTEND_DIR) && pnpm install --frozen-lockfile && pnpm --filter lexio build
 
 
 # Start backend server
 start-backend:
 	@echo "Starting backend server..."
-	cd $(BACKEND_DIR) && PYTHONPATH=. $(VENV_DIR)/bin/python -m uvicorn main_with_highlighting:app --reload
+	cd $(BACKEND_DIR) && PYTHONPATH=. uv run --no-project python -m uvicorn main_with_highlighting:app --reload
 
 
 # Start frontend server
 start-frontend:
 	@echo "Starting frontend server..."
-	cd $(FRONTEND_DIR) && npm run dev
+	cd $(FRONTEND_DIR) && pnpm run dev
 
 # Clean up
 clean:

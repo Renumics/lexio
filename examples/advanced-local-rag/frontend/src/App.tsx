@@ -89,24 +89,25 @@ function App() {
     const contentSource = createRESTContentSource(contentSourceOptions);
 
     // 3) Action handler uses the SSE connector for "ADD_USER_MESSAGE"
-    const onAction = useCallback((action: UserAction, messages: Message[], _sources: Source[], activeSources: Source[], _selectedSource: Source | null) => {
+    const onAction = useCallback((action: UserAction, messages: Message[], _sources: Source[], activeSources: Source[] | null, _selectedSource: Source | null) => {
         if (action.type === 'ADD_USER_MESSAGE') {
             const newMessages = [...messages, { content: action.message, role: 'user' as const }];
             
             console.log('activeSources', activeSources);
             
-            const useExistingSources = activeSources.length > 0;
+            const selectedSources = activeSources ?? [];
+            const useExistingSources = selectedSources.length > 0;
             
             console.log('Chat action metadata:', {
                 useExistingSources,
-                activeSourceCount: activeSources.length
+                activeSourceCount: selectedSources.length
             });
             
             // When using existing sources, set mode to 'text' to prevent sources update
             // When not using existing sources, use 'both' to get new sources
             const { response, sources: newSources } = chatConnector({
                 messages: newMessages,
-                sources: activeSources,
+                sources: selectedSources,
                 mode: useExistingSources ? 'text' : 'both',
                 metadata: {
                     useExistingSources

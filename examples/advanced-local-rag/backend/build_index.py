@@ -26,7 +26,8 @@ IGNORE_DIRECTORIES = {
 
 # Files to ignore during processing
 IGNORE_FILES = {
-    'package-lock.json',
+    'pnpm-lock.yaml',
+    'uv.lock',
     "LICENSE",
 }
 

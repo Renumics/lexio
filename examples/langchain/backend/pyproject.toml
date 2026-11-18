@@ -2,27 +2,27 @@
 name = "langchain-demo-backend"
 version = "0.1.0"
 description = "A demo RAG application using Langchain, ChromaDB, and FastAPI. This is the backend."
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "pymupdf>=1.24.11",
     "fastapi>=0.109.0",
     "uvicorn>=0.27.0",
-    "langchain>=0.3.0",
-    "langchain-openai>=0.3.0",
-    "langchain-community>=0.3.0",
+    "langchain>=0.3.0,<0.4",
+    "langchain-openai>=0.3.0,<0.4",
+    "langchain-community>=0.3.0,<0.4",
     "python-multipart>=0.0.6",
     "python-dotenv>=1.0.0",
     "sse-starlette>=1.8.2",
     "chromadb>=0.6.3",
     "pypdf>=3.17.4",
     "tiktoken>=0.5.2",
-    "langchain-chroma>=0.1.0",
+    "langchain-chroma>=0.1.0,<0.3",
     "lexio",
     "tqdm>=4.66.0",
-    "langfuse>=2.0.0",
+    "langfuse>=2.0.0,<3",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=7.0",
     "black>=23.0",
@@ -67,3 +67,10 @@ ignore = [
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.uv.sources]
+lexio = { path = "../../../python/lexio", editable = true }
+
+[tool.uv]
+python-preference = "system"
+exclude-newer = "3 days"

@@ -1,0 +1,15 @@
+{
+  "name": "lexio-workspace",
+  "private": true,
+  "packageManager": "pnpm@12.20.0",
+  "engines": {
+    "node": ">=24.22.2 <25",
+    "pnpm": "12.20.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter lexio build && pnpm --filter \"./examples/*/frontend\" -r build",
+    "test": "pnpm --filter lexio test --run",
+    "typecheck": "pnpm --filter lexio typecheck",
+    "build-python-package": "pnpm --filter lexio build-python-package"
+  }
+}

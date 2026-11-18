@@ -19,7 +19,7 @@ const App: FC = () => {
         sources: Promise.resolve<Source[]>(mockSources),
     }
     // @ts-ignore
-    const handleAction = (actionHandlerFunction: UserAction, messages: Message[], sources: Source[], activeSources: Source[], selectedSource: (Source | null)): ActionHandlerResponse | undefined => {
+    const handleAction = (actionHandlerFunction: UserAction, messages: Message[], sources: Source[], activeSources: Source[] | null, selectedSource: (Source | null)): ActionHandlerResponse | undefined => {
         return mockActionResult;
     }
 
@@ -51,13 +51,13 @@ const useMockData = (): MockData => {
         // Jarvis pdf
         const getJarvisPdfSource = async () => {
             const response = await fetch("http://localhost:5173/Current_State_Of_LLM-based_Assistants_For_Engineering.pdf");
-            const data = await response.arrayBuffer() as Uint8Array<ArrayBufferLike>;
+            const data = await response.arrayBuffer();
             setJarvisPdfBuffer(data);
         }
         // Dummy pdf
         const getDummyPdfSource = async () => {
             const response = await fetch("http://localhost:5173/dummy.pdf");
-            const data = await response.arrayBuffer() as Uint8Array<ArrayBufferLike>;
+            const data = await response.arrayBuffer();
             setDummyPdfBuffer(data);
         }
         // Excel file

@@ -1,0 +1,31 @@
+name: Set up project tools
+description: Install the tool versions pinned in .tool-versions and cache dependencies
+inputs:
+  python-version:
+    description: Override Python for compatibility tests
+    default: ''
+  enable-uv-cache:
+    description: Cache dependencies installed by uv
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - id: versions
+      shell: bash
+      run: |
+        awk '{print $1 "=" $2}' .tool-versions >> "$GITHUB_OUTPUT"
+    - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      with:
+        version: ${{ steps.versions.outputs.pnpm }}
+        run_install: false
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      with:
+        node-version: ${{ steps.versions.outputs.nodejs }}
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
+    - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      with:
+        version: ${{ steps.versions.outputs.uv }}
+        python-version: ${{ inputs.python-version || steps.versions.outputs.python }}
+        enable-cache: ${{ inputs.enable-uv-cache }}
+        cache-dependency-glob: '**/uv.lock'

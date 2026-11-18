@@ -11,14 +11,18 @@ import tomllib
 def main():
     root = Path(__file__).resolve().parents[2]
     package = json.loads((root / "lexio/package.json").read_text())
-    lock = json.loads((root / "lexio/package-lock.json").read_text())
     project = tomllib.loads((root / "python/lexio/pyproject.toml").read_text())
     versions = {
         "lexio/package.json": package["version"],
-        "lexio/package-lock.json": lock["version"],
-        "lexio/package-lock.json packages[root]": lock["packages"][""]["version"],
         "python/lexio/pyproject.toml": project["project"]["version"],
     }
+    for lock_path in ("python/lexio/uv.lock", "examples/langchain/backend/uv.lock"):
+        lock = tomllib.loads((root / lock_path).read_text())
+        versions[lock_path] = next(
+            (entry["version"] for entry in lock["package"] if entry["name"] == "lexio"),
+            "missing",
+        )
+
     version_file = root / "python/lexio/lexio/_version.py"
     assignments = {}
     for statement in ast.parse(version_file.read_text()).body:
