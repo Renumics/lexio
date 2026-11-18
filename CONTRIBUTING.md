@@ -24,6 +24,28 @@ We're excited about your interest in contributing to Lexio!
    npm install
    ```
 
+## Releasing npm and Python packages
+
+Before creating a release tag, update and commit the package versions:
+
+```bash
+cd lexio
+npm version 0.1.4 --no-git-tag-version --ignore-scripts
+npm run sync-version
+cd ..
+GITHUB_REF=refs/tags/v0.1.4 python3 .github/scripts/check-release-version.py
+```
+
+Replace `0.1.4` with the intended release version. The validation script requires
+Python 3.11 or newer. Commit `lexio/package.json`, `lexio/package-lock.json`,
+`python/lexio/pyproject.toml`, and `python/lexio/lexio/_version.py` before tagging
+that commit. Both release workflows check these versions against the tag before
+running builds and tests.
+
+Tag pushes publish to npm and **Test PyPI**. They require the repository secrets
+`NPM_TOKEN` (with publish access to `lexio`) and `TEST_PYPI_TOKEN`, respectively.
+The Python workflow does not publish to production PyPI.
+
 ## Python Package
 
 The python package is located in the [lexio](python/lexio) directory. The Python package is auto-generated from the frontend library. It contains API types for the lexio frontend library as pydantic models.  
