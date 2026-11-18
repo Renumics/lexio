@@ -4,6 +4,9 @@ inputs:
   python-version:
     description: Override Python for compatibility tests
     default: ''
+  enable-uv-cache:
+    description: Cache dependencies installed by uv
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -24,5 +27,5 @@ runs:
       with:
         version: ${{ steps.versions.outputs.uv }}
         python-version: ${{ inputs.python-version || steps.versions.outputs.python }}
-        enable-cache: true
+        enable-cache: ${{ inputs.enable-uv-cache }}
         cache-dependency-glob: '**/uv.lock'
