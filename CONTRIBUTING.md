@@ -30,6 +30,29 @@ Dependency resolution uses a three-day release quarantine: `minimumReleaseAge: 4
    uv sync --locked --project python/lexio
    ```
 
+## Releasing npm and Python packages
+
+Before creating a release tag, update and commit the package versions:
+
+```bash
+release_version=0.1.4
+pnpm --dir lexio version "$release_version" --no-git-tag-version
+pnpm --filter lexio sync-version
+uv lock --project python/lexio
+uv lock --project examples/langchain/backend
+GITHUB_REF="refs/tags/v$release_version" python3 .github/scripts/check-release-version.py
+```
+
+Replace `0.1.4` with the intended release version. The validation script requires
+Python 3.11 or newer. Commit `lexio/package.json`, `python/lexio/pyproject.toml`,
+`python/lexio/lexio/_version.py`, and both updated `uv.lock` files before tagging
+that commit. Both release workflows check these versions against the tag
+before running builds and tests.
+
+Tag pushes publish to npm and **Test PyPI**. They require the repository secrets
+`NPM_TOKEN` (with publish access to `lexio`) and `TEST_PYPI_TOKEN`, respectively.
+The Python workflow does not publish to production PyPI.
+
 ## Python Package
 
 The python package is located in the [lexio](python/lexio) directory. The Python package is auto-generated from the frontend library. It contains API types for the lexio frontend library as pydantic models.  

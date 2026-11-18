@@ -6,7 +6,15 @@ on:
 permissions:
   contents: read
 jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/setup-tools
+      - name: Check release versions
+        run: uv run --no-project python .github/scripts/check-release-version.py
   checks:
+    needs: validate-version
     uses: ./.github/workflows/check.yml
   publish:
     needs: checks
